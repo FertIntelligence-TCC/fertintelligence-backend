@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DataNasc {
-    private int dia;
-    private int mes;
-    private int ano;
+    private String dia;
+    private String mes;
+    private String ano;
 }

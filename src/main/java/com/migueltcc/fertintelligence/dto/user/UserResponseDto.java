@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAtributes.Cargo;
+import com.migueltcc.fertintelligence.composedAtributes.Telefone;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class UserResponseDto {
 
-    @Schema(example = "214")
+    @Schema(example = "404")
     @JsonProperty("id")
     private Long id;
 
@@ -36,9 +38,9 @@ public class UserResponseDto {
     @JsonProperty("genero")
     private String genero;
 
-    @Schema(example = "(83) 99121-4231")
+    @Schema(example = "+55 (83) 99121-4231")
     @JsonProperty("telefone")
-    private String telefone;
+    private TelefoneDto telefone;
 
     @Schema(example = "GRADUACAO")
     @JsonProperty("formacao")
@@ -49,7 +51,7 @@ public class UserResponseDto {
     private String profissao;
 
     @Schema(example = "SECRETARIO")
-    @JsonProperty("carga")
-    private String carga;
+    @JsonProperty("cargo")
+    private Cargo cargo;
 
 }
