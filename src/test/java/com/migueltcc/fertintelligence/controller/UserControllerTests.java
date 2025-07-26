@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.migueltcc.fertintelligence.composedAtributes.*;
@@ -18,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,7 +24,6 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestTemplate;
 import java.util.Optional;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -67,7 +64,7 @@ class UserControllerImplTest {
                 .nome("Miguel Macedo Ferreira")
                 .email("miguel.ferreira@ccc.ufcg.edu.com.br")
                 .cpf("13600319442")
-                .datanasc(new DataNasc("08", "05", "2001")) // Ajuste conforme o construtor real de DataNasc
+                .datanasc(new DataNasc(8, 5, 2001)) // Ajuste conforme o construtor real de DataNasc
                 .genero(Genero.MASCULINO) // Enum ou objeto - ajuste se for diferente
                 .telefone(new Telefone("+55", "11", "99121-4231")) // Ajuste conforme construtor
                 .formacao(Formacao.GRADUACAO) // Enum ou objeto
@@ -136,7 +133,7 @@ class UserControllerImplTest {
                 .nome("Miguel Macedo Ferreira")
                 .cpf("13600319442")
                 .email("miguel.ferreira@ccc.ufcg.edu.com.br")
-                .datanasc(new DataNasc("8", "5", "2001")) // Supondo construtor público
+                .datanasc(new DataNasc(8, 5, 2001)) // Supondo construtor público
                 .genero(Genero.MASCULINO) // Enum
                 .telefone(new Telefone("+55", "83", "99121-4231")) // Supondo construtor público
                 .formacao(Formacao.GRADUACAO) // Enum

@@ -10,15 +10,15 @@ import lombok.*;
 @Data
 public class DataNascDto {
 
-    @Schema(example = "08")
+    @Schema(example = "8")
     @JsonProperty("dia")
-    private String dia;
+    private int dia;
 
-    @Schema(example = "05")
+    @Schema(example = "5")
     @JsonProperty("mes")
-    private String mes;
+    private int mes;
 
     @Schema(example = "2001")
     @JsonProperty("ano")
-    private String ano;
+    private int ano;
 }
