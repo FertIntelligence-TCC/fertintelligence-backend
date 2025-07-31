@@ -34,7 +34,7 @@ public class UserControllerImpl implements UserController {
     public ResponseEntity<String> updateUser(
             @Validated @RequestBody UserPostRequestDto userDto,
             Authentication authentication) {
-        return ResponseEntity.status(HttpStatus.OK).body(userService.postUser(authentication.getName(), userDto));
+        return ResponseEntity.status(HttpStatus.OK).body(userService.updateUser(authentication.getName(), userDto));
     }
 
     @DeleteMapping("/delete")

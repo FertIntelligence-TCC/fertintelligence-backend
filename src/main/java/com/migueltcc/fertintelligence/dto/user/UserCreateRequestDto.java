@@ -15,15 +15,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserCreateRequestDto {
 
-    @JsonProperty("nome")
+    @JsonProperty("login")
     @NotBlank
-    private String nome;
+    private String username;
 
     @JsonProperty("cpf")
     @NotBlank
     private String cpf;
 
-    @JsonProperty("login")
+    @JsonProperty("email")
     @NotBlank
     private String email;
 
@@ -54,4 +54,8 @@ public class UserCreateRequestDto {
     @JsonProperty("senha")
     @NotBlank
     private String password;
+
+    @JsonProperty("name")
+    @NotBlank
+    private String name;
 }

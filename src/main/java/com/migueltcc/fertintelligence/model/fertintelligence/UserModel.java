@@ -22,8 +22,8 @@ public class UserModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "NOME", nullable = false)
-    private String nome;
+    @Column(name = "LOGIN", unique = true, nullable = false)
+    private String username;
 
     @Column(name = "CPF", unique = true, nullable = false, length = 11)
     private String cpf;
@@ -50,16 +50,19 @@ public class UserModel {
     private String profissao;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "CARGA", nullable = false)
+    @Column(name = "CARGO", nullable = false)
     private Cargo cargo;
 
     @Column(name = "SENHA", nullable = false)
     private String password;
 
+    @Column(name = "NOME", nullable = false)
+    private String name;
+
     public UserResponseDto toDto() {
         return UserResponseDto.builder()
                 .id(this.id)
-                .nome(this.nome)
+                .nome(this.name)
                 .cpf(this.cpf)
                 .email(this.email)
                 .datanasc(new DataNascDto(

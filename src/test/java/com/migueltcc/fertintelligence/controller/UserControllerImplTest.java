@@ -61,19 +61,20 @@ class UserControllerImplTest {
     void createUserSuccessfully() throws Exception {
         UserCreateRequestDto requestDto = UserCreateRequestDto.builder()
                 .password("password123")
-                .nome("Miguel Macedo Ferreira")
+                .username("Mikeru")
+                .name("Miguel Macedo Ferreira")
                 .email("miguel.ferreira@ccc.ufcg.edu.com.br")
                 .cpf("13600319442")
-                .datanasc(new DataNasc(8, 5, 2001)) // Ajuste conforme o construtor real de DataNasc
-                .genero(Genero.MASCULINO) // Enum ou objeto - ajuste se for diferente
-                .telefone(new Telefone("+55", "11", "99121-4231")) // Ajuste conforme construtor
-                .formacao(Formacao.GRADUACAO) // Enum ou objeto
+                .datanasc(new DataNasc(8, 5, 2001))
+                .genero(Genero.MASCULINO)
+                .telefone(new Telefone("+55", "11", "99121-4231"))
+                .formacao(Formacao.GRADUACAO)
                 .profissao("Engenheiro de Software")
-                .cargo(Cargo.SECRETARIO) // Enum ou objeto
+                .cargo(Cargo.SECRETARIO)
                 .build();
         String requestBody = new ObjectMapper().writeValueAsString(requestDto);
 
-        Mockito.when(userRepository.existsByNome(Mockito.any(String.class)))
+        Mockito.when(userRepository.existsByUsername(Mockito.any(String.class)))
                 .thenReturn(false);
         Mockito.when(userRepository.save(Mockito.any(UserModel.class)))
                 .thenReturn(new UserModel());
@@ -94,10 +95,11 @@ class UserControllerImplTest {
                 .password("password")
                 .nome("name")
                 .email("email")
+                .telefone(new Telefone("+55", "83", "99381-0404"))
                 .build();
         String requestBody = new ObjectMapper().writeValueAsString(requestDto);
 
-        Mockito.when(userRepository.findByNome(Mockito.any(String.class)))
+        Mockito.when(userRepository.findByUsername(Mockito.any(String.class)))
                 .thenReturn(Optional.of(new UserModel()));
         Mockito.when(userRepository.save(Mockito.any(UserModel.class)))
                 .thenReturn(new UserModel());
@@ -114,7 +116,7 @@ class UserControllerImplTest {
     @Test
     @WithMockUser(username = "testuser", roles = {""})
     void deleteUserSuccessfully() throws Exception {
-        Mockito.when(userRepository.findByNome(Mockito.any(String.class)))
+        Mockito.when(userRepository.findByUsername(Mockito.any(String.class)))
                 .thenReturn(Optional.of(new UserModel()));
         Mockito.doNothing().when(userRepository).delete(Mockito.any(UserModel.class));
 
@@ -130,21 +132,22 @@ class UserControllerImplTest {
     void getUserSuccessfully() throws Exception {
         UserModel user = UserModel.builder()
                 .id(1L)
-                .nome("Miguel Macedo Ferreira")
+                .name("Miguel Macedo Ferreira")
+                .username("Mikeru")
                 .cpf("13600319442")
                 .email("miguel.ferreira@ccc.ufcg.edu.com.br")
-                .datanasc(new DataNasc(8, 5, 2001)) // Supondo construtor público
+                .datanasc(new DataNasc(8, 5, 2001))
                 .genero(Genero.MASCULINO) // Enum
-                .telefone(new Telefone("+55", "83", "99121-4231")) // Supondo construtor público
+                .telefone(new Telefone("+55", "83", "99121-4231"))
                 .formacao(Formacao.GRADUACAO) // Enum
                 .profissao("Engenheiro de Software")
-                .cargo(Cargo.SECRETARIO) // Enum
-                .password("senha123") // Campo obrigatório
+                .cargo(Cargo.SECRETARIO)
+                .password("senha123")
                 .build();
         UserResponseDto responseDto = user.toDto();
         String responseBody = new ObjectMapper().writeValueAsString(responseDto);
 
-        Mockito.when(userRepository.findByNome(Mockito.any(String.class)))
+        Mockito.when(userRepository.findByUsername(Mockito.any(String.class)))
                 .thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/user/get")

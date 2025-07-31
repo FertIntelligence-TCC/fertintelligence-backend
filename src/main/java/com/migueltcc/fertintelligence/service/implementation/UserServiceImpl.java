@@ -26,11 +26,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String createUser(UserCreateRequestDto userDTO) {
-        if (userRepository.existsByNome(userDTO.getNome())) {
+        if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new RuntimeException("Name already exists!");
         }
         UserModel user = UserModel.builder()
-                .nome(userDTO.getNome())
+                .username(userDTO.getUsername())
                 .cpf(userDTO.getCpf())
                 .email(userDTO.getEmail())
                 .datanasc(userDTO.getDatanasc())
@@ -40,6 +40,7 @@ public class UserServiceImpl implements UserService {
                 .profissao(userDTO.getProfissao())
                 .cargo(userDTO.getCargo())
                 .password(passwordEncoder.encode(userDTO.getPassword()))
+                .name(userDTO.getName())
                 .build();
 
         userRepository.save(user);
@@ -48,10 +49,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public String postUser(String Username, UserPostRequestDto userDTO) {
-        UserModel user = userRepository.findByNome(Username)
+    public String updateUser(String Username, UserPostRequestDto userDTO) {
+        UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
-        user.setNome(userDTO.getNome() == null ? user.getNome() : userDTO.getNome());
+        user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
         user.setEmail(userDTO.getEmail() == null ? user.getEmail() : userDTO.getEmail());
         user.setDatanasc(userDTO.getDatanasc() == null ? user.getDatanasc() : userDTO.getDatanasc());
@@ -69,7 +70,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String deleteUser(String userName) {
-        UserModel user = userRepository.findByNome(userName)
+        UserModel user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
 
         userRepository.delete(user);
@@ -78,7 +79,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDto getUser(String userName) {
-        UserModel user = userRepository.findByNome(userName)
+        UserModel user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
 
         return user.toDto();

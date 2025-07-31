@@ -6,7 +6,7 @@ import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
 
 public interface UserService {
     String createUser(UserCreateRequestDto userDTO);
-    String postUser(String userName, UserPostRequestDto request);
+    String updateUser(String userName, UserPostRequestDto request);
     String deleteUser(String username);
     UserResponseDto getUser(String username);
 

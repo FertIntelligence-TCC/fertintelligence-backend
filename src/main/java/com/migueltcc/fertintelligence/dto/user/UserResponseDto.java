@@ -19,9 +19,9 @@ public class UserResponseDto {
     @JsonProperty("id")
     private Long id;
 
-    @Schema(example = "Miguel Macedo Ferreira")
-    @JsonProperty("nome")
-    private String nome;
+    @Schema(example = "Mikeru")
+    @JsonProperty("login")
+    private String username;
 
     @Schema(example = "13600319442")
     @JsonProperty("cpf")
@@ -53,5 +53,9 @@ public class UserResponseDto {
     @Schema(example = "SECRETARIO")
     @JsonProperty("cargo")
     private Cargo cargo;
+
+    @Schema(example = "Miguel Macedo Ferreira")
+    @JsonProperty("name")
+    private String nome;
 
 }

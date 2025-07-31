@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserPostRequestDto {
 
-    @Schema(defaultValue = "nome")
+    @Schema(defaultValue = "name")
     @JsonProperty("novo_nome")
     private String nome;
 
@@ -34,11 +34,11 @@ public class UserPostRequestDto {
     @JsonProperty("novo_genero")
     private Genero genero;
 
-    @Schema(defaultValue = "genero")
+    @Schema(defaultValue = "telefone")
     @JsonProperty("novo_telefone")
     private Telefone telefone;
 
-    @Schema(defaultValue = "genero")
+    @Schema(defaultValue = "formacao")
     @JsonProperty("nova_formacao")
     private Formacao formacao;
 
@@ -46,7 +46,7 @@ public class UserPostRequestDto {
     @JsonProperty("nova_profissao")
     private String profissao;
 
-    @Schema(defaultValue = "genero")
+    @Schema(defaultValue = "cargo")
     @JsonProperty("novo_cargo")
     private Cargo cargo;
 
