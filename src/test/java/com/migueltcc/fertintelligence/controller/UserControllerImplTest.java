@@ -36,8 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
         "app.frontend.url=http://dummy-test-url.com",
-        "jwt.public.key=classpath:public-key.pem", // Você provavelmente precisará disso também
-        "jwt.private.key=classpath:private-key.pem" // E disso
+        "jwt.public.key=classpath:public.pem", // Você provavelmente precisará disso também
+        "jwt.private.key=classpath:private.pem" // E disso
 })
 @ExtendWith(MockitoExtension.class)
 class UserControllerImplTest {
