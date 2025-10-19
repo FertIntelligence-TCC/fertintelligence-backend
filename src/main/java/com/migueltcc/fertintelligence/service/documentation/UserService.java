@@ -4,10 +4,13 @@ import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
 
+import java.util.List;
+
 public interface UserService {
     String createUser(UserCreateRequestDto userDTO);
     String updateUser(String userName, UserPostRequestDto request);
     String deleteUser(String username);
     UserResponseDto getUser(String username);
+    // List<UserResponseDto> getAllUsers();
 
 }

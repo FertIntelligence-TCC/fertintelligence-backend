@@ -1,8 +1,7 @@
 package com.migueltcc.fertintelligence.service.documentation;
 
-import org.springframework.security.core.Authentication;
+import com.migueltcc.fertintelligence.dto.user.SignInRequestDto;
 
 public interface AuthService {
-    String authenticate(Authentication authentication);
+    String authenticate(SignInRequestDto request);
 }
-

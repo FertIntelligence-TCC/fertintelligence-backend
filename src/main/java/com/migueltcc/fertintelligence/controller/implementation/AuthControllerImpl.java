@@ -1,15 +1,12 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.AuthController;
+import com.migueltcc.fertintelligence.dto.user.SignInRequestDto;
 import com.migueltcc.fertintelligence.service.documentation.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/authentication")
@@ -24,9 +21,10 @@ public class AuthControllerImpl implements AuthController {
         this.authService = authService;
     }
 
+    @Override
     @PostMapping("/authenticate")
-    public String authenticate(Authentication authentication) {
-        return authService.authenticate(authentication);
+    public String authenticate(@RequestBody SignInRequestDto request) {
+        return authService.authenticate(request);
     }
 
 }
