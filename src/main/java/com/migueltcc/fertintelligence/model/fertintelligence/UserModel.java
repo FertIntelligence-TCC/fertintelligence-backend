@@ -22,7 +22,7 @@ public class UserModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "LOGIN", unique = true, nullable = false)
+    @Column(name = "USERNAME", unique = true, nullable = false)
     private String username;
 
     @Column(name = "CPF", unique = true, nullable = false, length = 11)

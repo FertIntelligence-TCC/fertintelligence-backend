@@ -20,7 +20,7 @@ public class UserResponseDto {
     private Long id;
 
     @Schema(example = "Mikeru")
-    @JsonProperty("login")
+    @JsonProperty("username")
     private String username;
 
     @Schema(example = "13600319442")
