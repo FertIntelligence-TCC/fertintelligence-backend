@@ -17,8 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,8 +32,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+        "app.frontend.url=http://dummy-test-url.com",
+        "jwt.public.key=classpath:public-key.pem", // Você provavelmente precisará disso também
+        "jwt.private.key=classpath:private-key.pem" // E disso
+})
 @ExtendWith(MockitoExtension.class)
 class UserControllerImplTest {
 
@@ -45,6 +54,12 @@ class UserControllerImplTest {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static MockRestServiceServer mockServer;
+
+    @MockitoBean
+    private JwtEncoder jwtEncoder;
+
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {

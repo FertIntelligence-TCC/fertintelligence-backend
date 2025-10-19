@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.config;
+package com.migueltcc.fertintelligence_not_backend.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
