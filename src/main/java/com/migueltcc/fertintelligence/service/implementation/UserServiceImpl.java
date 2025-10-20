@@ -53,6 +53,7 @@ public class UserServiceImpl implements UserService {
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
+        user.setUsername(userDTO.getUsername() == null ? user.getUsername() : userDTO.getUsername());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
         user.setEmail(userDTO.getEmail() == null ? user.getEmail() : userDTO.getEmail());
         user.setDatanasc(userDTO.getDatanasc() == null ? user.getDatanasc() : userDTO.getDatanasc());

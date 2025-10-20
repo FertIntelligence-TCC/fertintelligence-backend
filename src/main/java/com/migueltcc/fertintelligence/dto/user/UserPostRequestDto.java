@@ -18,6 +18,10 @@ public class UserPostRequestDto {
     @JsonProperty("novo_nome")
     private String nome;
 
+    @Schema(defaultValue = "username")
+    @JsonProperty("novo_username")
+    private String username;
+
     @Schema(defaultValue = "cpf")
     @JsonProperty("novo_cpf")
     private String cpf;
