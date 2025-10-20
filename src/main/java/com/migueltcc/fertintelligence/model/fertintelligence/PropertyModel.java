@@ -42,7 +42,9 @@ public class PropertyModel {
                 .cnpj(this.cnpj)
                 .localizacao(new LocalizacaoDto(
                         this.localizacao.getLatitude(),
+                        this.localizacao.getLatDirection(),
                         this.localizacao.getLongitude(),
+                        this.localizacao.getLongDirection(),
                         this.localizacao.getAltitude()
                 ))
                 .ownerId(this.owner.getId())

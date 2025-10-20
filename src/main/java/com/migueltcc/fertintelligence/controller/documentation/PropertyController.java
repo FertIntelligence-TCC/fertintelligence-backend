@@ -9,8 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam; // Import necessário
 
 import java.util.List;
 
@@ -18,28 +18,33 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public interface PropertyController {
 
+    // POST /property/register
     ResponseEntity<PropertyResponseDto> createProperty(
             @Parameter(description = "Dados da propriedade a ser criada", required = true) @Valid @RequestBody PropertyPostRequestDto postRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 
-    ResponseEntity<PropertyResponseDto> getPropertyById(
-            @Parameter(description = "ID da propriedade a ser buscada", required = true) @PathVariable Long id,
+    // GET /property/get?propertyId={id}
+    ResponseEntity<PropertyResponseDto> getProperty(
+            @Parameter(description = "ID da propriedade a ser buscada", required = true) @RequestParam(name = "propertyId") Long propertyId, // ID como RequestParam
             @Parameter(hidden = true) Authentication authentication
     );
 
+    // GET /property/get-my-properties
     ResponseEntity<List<PropertyResponseDto>> getMyProperties(
             @Parameter(hidden = true) Authentication authentication
     );
 
+    // PUT /property/update?propertyId={id}
     ResponseEntity<PropertyResponseDto> updateProperty(
-            @Parameter(description = "ID da propriedade a ser atualizada", required = true) @PathVariable Long id,
+            @Parameter(description = "ID da propriedade a ser atualizada", required = true) @RequestParam(name = "propertyId") Long propertyId, // ID como RequestParam
             @Parameter(description = "Dados para atualização", required = true) @Valid @RequestBody PropertyUpdateRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 
+    // DELETE /property/delete?propertyId={id}
     ResponseEntity<Void> deleteProperty(
-            @Parameter(description = "ID da propriedade a ser excluída", required = true) @PathVariable Long id,
+            @Parameter(description = "ID da propriedade a ser excluída", required = true) @RequestParam(name = "propertyId") Long propertyId, // ID como RequestParam
             @Parameter(hidden = true) Authentication authentication
     );
 }

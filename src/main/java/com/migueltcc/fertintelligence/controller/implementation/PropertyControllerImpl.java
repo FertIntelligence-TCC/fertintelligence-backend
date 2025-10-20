@@ -11,69 +11,67 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder; // Import para construir URI com params
 
 import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/property") // Base path /property
 public class PropertyControllerImpl implements PropertyController {
 
     @Autowired
     private PropertyService propertyService;
 
     @Override
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<PropertyResponseDto> createProperty(
             @Valid @RequestBody PropertyPostRequestDto postRequestDto,
             Authentication authentication) {
 
-        // Padrão corrigido: Passa o username (email) para o serviço
         PropertyResponseDto createdProperty = propertyService.createProperty(postRequestDto, authentication.getName());
 
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(createdProperty.getId())
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentContextPath().path("/property/get")
+                .queryParam("propertyId", createdProperty.getId())
+                .build()
                 .toUri();
 
         return ResponseEntity.created(location).body(createdProperty);
     }
 
     @Override
-    @GetMapping("/{id}")
-    public ResponseEntity<PropertyResponseDto> getPropertyById(
-            @PathVariable Long id,
+    @GetMapping("/get")
+    public ResponseEntity<PropertyResponseDto> getProperty(
+            @RequestParam(name = "propertyId") Long propertyId,
             Authentication authentication) {
-
-        PropertyResponseDto property = propertyService.getPropertyById(id, authentication.getName());
+        PropertyResponseDto property = propertyService.getPropertyById(propertyId, authentication.getName());
         return ResponseEntity.ok(property);
     }
 
     @Override
-    @GetMapping("/my-properties")
+    @GetMapping("/get-my-properties")
     public ResponseEntity<List<PropertyResponseDto>> getMyProperties(Authentication authentication) {
         List<PropertyResponseDto> properties = propertyService.getAllPropertiesByOwner(authentication.getName());
         return ResponseEntity.ok(properties);
     }
 
     @Override
-    @PutMapping("/{id}")
+    @PutMapping("/update") // PUT /property/update?propertyId={id}
     public ResponseEntity<PropertyResponseDto> updateProperty(
-            @PathVariable Long id,
+            @RequestParam(name = "propertyId") Long propertyId,
             @Valid @RequestBody PropertyUpdateRequestDto updateRequestDto,
             Authentication authentication) {
-
-        PropertyResponseDto updatedProperty = propertyService.updateProperty(id, updateRequestDto, authentication.getName());
+        PropertyResponseDto updatedProperty = propertyService.updateProperty(propertyId, updateRequestDto, authentication.getName());
         return ResponseEntity.ok(updatedProperty);
     }
 
     @Override
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteProperty(
-            @PathVariable Long id,
+            @RequestParam(name = "propertyId") Long propertyId,
             Authentication authentication) {
-
-        propertyService.deleteProperty(id, authentication.getName());
+        propertyService.deleteProperty(propertyId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }
