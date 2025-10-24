@@ -13,8 +13,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class LocalizacaoDto {
     private Double latitude;
-    private LatitudeDirection latDirection;
+    private LatitudeDirection latitudeDirection;
     private Double longitude;
-    private LongitudeDirection longDirection;
+    private LongitudeDirection longitudeDirection;
     private Double altitude;
 }

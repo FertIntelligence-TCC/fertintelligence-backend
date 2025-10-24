@@ -48,9 +48,9 @@ public class PropertyServiceImpl implements PropertyService {
 
         Localizacao localizacao = new Localizacao(
                 postRequestDto.getLocalizacao().getLatitude(),
-                postRequestDto.getLocalizacao().getLatDirection(),
+                postRequestDto.getLocalizacao().getLatitudeDirection(),
                 postRequestDto.getLocalizacao().getLongitude(),
-                postRequestDto.getLocalizacao().getLongDirection(),
+                postRequestDto.getLocalizacao().getLongitudeDirection(),
                 postRequestDto.getLocalizacao().getAltitude()
         );
 
@@ -123,9 +123,9 @@ public class PropertyServiceImpl implements PropertyService {
         if (updateRequestDto.getLocalizacao() != null) {
             property.setLocalizacao(new Localizacao(
                     updateRequestDto.getLocalizacao().getLatitude(),
-                    updateRequestDto.getLocalizacao().getLatDirection(),
+                    updateRequestDto.getLocalizacao().getLatitudeDirection(),
                     updateRequestDto.getLocalizacao().getLongitude(),
-                    updateRequestDto.getLocalizacao().getLongDirection(),
+                    updateRequestDto.getLocalizacao().getLongitudeDirection(),
                     updateRequestDto.getLocalizacao().getAltitude()
             ));
         }
