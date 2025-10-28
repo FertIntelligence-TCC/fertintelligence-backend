@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAtributes;
+package com.migueltcc.fertintelligence.composedAttributes;
 
 public enum Cargo {
     PROPRIETARIO,

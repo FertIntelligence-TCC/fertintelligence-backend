@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
-import com.migueltcc.fertintelligence.composedAtributes.*;
+import com.migueltcc.fertintelligence.composedAttributes.*;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import jakarta.persistence.*;

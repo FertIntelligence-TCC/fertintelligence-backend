@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAtributes.Cargo; // <-- IMPORT ADICIONADO
-import com.migueltcc.fertintelligence.composedAtributes.Localizacao;
+import com.migueltcc.fertintelligence.composedAttributes.Cargo; // <-- IMPORT ADICIONADO
+import com.migueltcc.fertintelligence.composedAttributes.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyUpdateRequestDto;
