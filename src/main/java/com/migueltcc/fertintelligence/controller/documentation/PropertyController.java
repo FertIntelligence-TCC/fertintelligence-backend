@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
+import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,7 +20,7 @@ public interface PropertyController {
 
     // POST /property/register
     ResponseEntity<PropertyResponseDto> createProperty(
-            @Parameter(description = "Dados da propriedade a ser criada", required = true) @Valid @RequestBody PropertyPostRequestDto postRequestDto,
+            @Parameter(description = "Dados da propriedade a ser criada", required = true) @Valid @RequestBody PropertyCreateRequestDto createRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 

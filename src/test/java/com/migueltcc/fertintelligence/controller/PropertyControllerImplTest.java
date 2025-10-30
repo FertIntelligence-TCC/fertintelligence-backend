@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.migueltcc.fertintelligence.composedAttributes.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
+import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -37,14 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = { // Usando 'properties' como no UserControllerImplTest
-        "app.frontend.url=http://dummy-test-url.com",
-        "jwt.public.key=classpath:public.pem", // Assume que esses arquivos existem em src/main/resources
-        "jwt.private.key=classpath:private.pem"
-})
-@ExtendWith(MockitoExtension.class)
+@TestPropertySource(locations = "classpath:application-test.properties")
 public class PropertyControllerImplTest {
 
     @Autowired
@@ -57,16 +54,19 @@ public class PropertyControllerImplTest {
     private PropertyRepository propertyRepository;
 
     @MockitoBean
-    private UserRepository userRepository; // Mock do repositório de usuário
+    private UserRepository userRepository;
 
+    // --- Entidades Mock ---
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
     private UserModel otherProprietarioUser;
 
     @BeforeEach
     void setUp() {
+        // Configura o ObjectMapper para suportar Java Time (se necessário)
         objectMapper.registerModule(new JavaTimeModule());
 
+        // Criação de usuários mock
         proprietarioUser = UserModel.builder()
                 .id(1L)
                 .username("testuser")
@@ -91,14 +91,24 @@ public class PropertyControllerImplTest {
 
     // --- HELPER METHODS ---
 
+    private PropertyCreateRequestDto createCreateRequestDto() {
+        LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
+        return PropertyCreateRequestDto.builder()
+                .nome("Fazenda Santa Clara")
+                .cnpj("12.345.678/0001-99")
+                .endereco("Rodovia PB 031, KM 25")
+                .localizacao(localizacaoDto)
+                .build();
+    }
+
     private PropertyPostRequestDto createPostRequestDto() {
         LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
-        PropertyPostRequestDto requestDto = new PropertyPostRequestDto();
-        requestDto.setNome("Fazenda Santa Clara");
-        requestDto.setCnpj("12.345.678/0001-99");
-        requestDto.setEndereco("Rodovia PB 031, KM 25");
-        requestDto.setLocalizacao(localizacaoDto);
-        return requestDto;
+        return PropertyPostRequestDto.builder()
+                .nome("Fazenda Santa Clara")
+                .cnpj("12.345.678/0001-99")
+                .endereco("Rodovia PB 031, KM 25")
+                .localizacao(localizacaoDto)
+                .build();
     }
 
     private PropertyModel createPropertyModel(Long id, String nome, UserModel owner) {
@@ -116,7 +126,7 @@ public class PropertyControllerImplTest {
     @Test
     @WithMockUser(username = "testuser") // Simula usuário autenticado
     void createPropertySuccessfully() throws Exception {
-        PropertyPostRequestDto requestDto = createPostRequestDto();
+        PropertyCreateRequestDto requestDto = createCreateRequestDto();
         PropertyModel savedProperty = createPropertyModel(1L, requestDto.getNome(), proprietarioUser);
         String requestBody = objectMapper.writeValueAsString(requestDto);
 
@@ -139,7 +149,7 @@ public class PropertyControllerImplTest {
     @Test
     @WithMockUser(username = "testuser")
     void createPropertyFails_WhenUserIsNotProprietario() throws Exception {
-        PropertyPostRequestDto requestDto = createPostRequestDto();
+        PropertyCreateRequestDto requestDto = createCreateRequestDto();
         String requestBody = objectMapper.writeValueAsString(requestDto);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser)); // Mock: Usuário NÃO é proprietário
 
@@ -153,7 +163,7 @@ public class PropertyControllerImplTest {
     @Test
     @WithMockUser(username = "testuser")
     void createPropertyFails_WhenCnpjAlreadyExists() throws Exception {
-        PropertyPostRequestDto requestDto = createPostRequestDto();
+        PropertyCreateRequestDto requestDto = createCreateRequestDto();
         PropertyModel existingProperty = createPropertyModel(99L, "Outra Fazenda", otherProprietarioUser);
         String requestBody = objectMapper.writeValueAsString(requestDto);
 

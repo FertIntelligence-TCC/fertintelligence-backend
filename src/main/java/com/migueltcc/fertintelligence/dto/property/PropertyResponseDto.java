@@ -2,13 +2,15 @@ package com.migueltcc.fertintelligence.dto.property;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data // Alterado de @Getter/@Setter para @Data
 @Builder
+@NoArgsConstructor // Adicionado
+@AllArgsConstructor // Adicionado
 public class PropertyResponseDto {
 
     @Schema(example = "1")

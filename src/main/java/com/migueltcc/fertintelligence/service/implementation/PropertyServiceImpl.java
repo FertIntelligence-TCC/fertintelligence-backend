@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.Cargo; // <-- IMPORT ADICIONADO
 import com.migueltcc.fertintelligence.composedAttributes.Localizacao;
+import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -30,12 +31,12 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional
-    public PropertyResponseDto createProperty(PropertyPostRequestDto postRequestDto, String username) {
+    public PropertyResponseDto createProperty(PropertyCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         checkUserIsProprietario(owner);
 
-        String cnpj = postRequestDto.getCnpj();
-        String nome = postRequestDto.getNome();
+        String cnpj = createRequestDto.getCnpj();
+        String nome = createRequestDto.getNome();
 
         propertyRepository.findByCnpj(cnpj).ifPresent(p -> {
             throw new EntityExistsException("Uma propriedade com este CNPJ já existe: " + cnpj);
@@ -46,16 +47,16 @@ public class PropertyServiceImpl implements PropertyService {
         });
 
         Localizacao localizacao = new Localizacao(
-                postRequestDto.getLocalizacao().getLatitude(),
-                postRequestDto.getLocalizacao().getLatitudeDirection(),
-                postRequestDto.getLocalizacao().getLongitude(),
-                postRequestDto.getLocalizacao().getLongitudeDirection(),
-                postRequestDto.getLocalizacao().getAltitude()
+                createRequestDto.getLocalizacao().getLatitude(),
+                createRequestDto.getLocalizacao().getLatitudeDirection(),
+                createRequestDto.getLocalizacao().getLongitude(),
+                createRequestDto.getLocalizacao().getLongitudeDirection(),
+                createRequestDto.getLocalizacao().getAltitude()
         );
 
         PropertyModel property = PropertyModel.builder()
                 .nome(nome)
-                .endereco(postRequestDto.getEndereco())
+                .endereco(createRequestDto.getEndereco())
                 .cnpj(cnpj)
                 .localizacao(localizacao)
                 .owner(owner)
@@ -96,7 +97,7 @@ public class PropertyServiceImpl implements PropertyService {
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         checkOwnerPermission(property, requestingUser);
 
-        if (!property.getNome().equals(updateRequestDto.getNome())) {
+        if (updateRequestDto.getNome() != null && !updateRequestDto.getNome().equals(property.getNome())) {
             propertyRepository.findByNome(updateRequestDto.getNome()).ifPresent(p -> {
                 if (!p.getId().equals(propertyId)) {
                     throw new EntityExistsException("O nome '" + updateRequestDto.getNome() + "' já está em uso.");
@@ -105,7 +106,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.setNome(updateRequestDto.getNome());
         }
 
-        if (!property.getCnpj().equals(updateRequestDto.getCnpj())) {
+        if (updateRequestDto.getCnpj() != null && !property.getCnpj().equals(updateRequestDto.getCnpj())) {
             propertyRepository.findByCnpj(updateRequestDto.getCnpj()).ifPresent(p -> {
                 if (!p.getId().equals(propertyId)) {
                     throw new EntityExistsException("O CNPJ '" + updateRequestDto.getCnpj() + "' já está em uso.");
@@ -114,14 +115,19 @@ public class PropertyServiceImpl implements PropertyService {
             property.setCnpj(updateRequestDto.getCnpj());
         }
 
-        property.setEndereco(updateRequestDto.getEndereco());
-        property.setLocalizacao(new Localizacao(
-                updateRequestDto.getLocalizacao().getLatitude(),
-                updateRequestDto.getLocalizacao().getLatitudeDirection(),
-                updateRequestDto.getLocalizacao().getLongitude(),
-                updateRequestDto.getLocalizacao().getLongitudeDirection(),
-                updateRequestDto.getLocalizacao().getAltitude()
-        ));
+        if (updateRequestDto.getEndereco() != null) {
+            property.setEndereco(updateRequestDto.getEndereco());
+        }
+
+        if (updateRequestDto.getLocalizacao() != null) {
+            property.setLocalizacao(new Localizacao(
+                    updateRequestDto.getLocalizacao().getLatitude(),
+                    updateRequestDto.getLocalizacao().getLatitudeDirection(),
+                    updateRequestDto.getLocalizacao().getLongitude(),
+                    updateRequestDto.getLocalizacao().getLongitudeDirection(),
+                    updateRequestDto.getLocalizacao().getAltitude()
+            ));
+        }
 
         PropertyModel updatedProperty = propertyRepository.save(property);
         return updatedProperty.toDto();

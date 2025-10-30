@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.PropertyController;
+import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.PropertyService;
@@ -23,10 +24,10 @@ public class PropertyControllerImpl implements PropertyController {
     @Override
     @PostMapping("/register")
     public ResponseEntity<PropertyResponseDto> createProperty(
-            @Valid @RequestBody PropertyPostRequestDto postRequestDto,
+            @Valid @RequestBody PropertyCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        PropertyResponseDto createdProperty = propertyService.createProperty(postRequestDto, authentication.getName());
+        PropertyResponseDto createdProperty = propertyService.createProperty(createRequestDto, authentication.getName());
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/property/get")
