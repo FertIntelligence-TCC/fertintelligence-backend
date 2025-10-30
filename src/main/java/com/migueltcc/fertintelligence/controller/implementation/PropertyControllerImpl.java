@@ -3,7 +3,6 @@ package com.migueltcc.fertintelligence.controller.implementation;
 import com.migueltcc.fertintelligence.controller.documentation.PropertyController;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
-import com.migueltcc.fertintelligence.dto.property.PropertyUpdateRequestDto;
 import com.migueltcc.fertintelligence.service.documentation.PropertyService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder; // Import para construir URI com params
-
 import java.net.URI;
 import java.util.List;
 
@@ -60,7 +57,7 @@ public class PropertyControllerImpl implements PropertyController {
     @PutMapping("/update") // PUT /property/update?propertyId={id}
     public ResponseEntity<PropertyResponseDto> updateProperty(
             @RequestParam(name = "propertyId") Long propertyId,
-            @Valid @RequestBody PropertyUpdateRequestDto updateRequestDto,
+            @Valid @RequestBody PropertyPostRequestDto updateRequestDto,
             Authentication authentication) {
         PropertyResponseDto updatedProperty = propertyService.updateProperty(propertyId, updateRequestDto, authentication.getName());
         return ResponseEntity.ok(updatedProperty);

@@ -6,7 +6,6 @@ import com.migueltcc.fertintelligence.composedAttributes.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
-import com.migueltcc.fertintelligence.dto.property.PropertyUpdateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
@@ -133,7 +132,7 @@ public class PropertyControllerImplTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara"))
                 .andExpect(jsonPath("$.cnpj").value("12.345.678/0001-99"))
-                .andExpect(jsonPath("$.ownerId").value(1L))
+                .andExpect(jsonPath("$.owner_id").value(1L))
                 .andDo(print()); // Imprime detalhes da requisição/resposta
     }
 
@@ -182,7 +181,7 @@ public class PropertyControllerImplTest {
                 .andExpect(status().isOk()) // Espera 200 OK
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara"))
-                .andExpect(jsonPath("$.ownerId").value(proprietarioUser.getId()))
+                .andExpect(jsonPath("$.owner_id").value(proprietarioUser.getId()))
                 .andDo(print());
     }
 
@@ -234,7 +233,7 @@ public class PropertyControllerImplTest {
     @WithMockUser(username = "testuser")
     void updatePropertySuccessfully() throws Exception {
         PropertyModel originalProperty = createPropertyModel(1L, "Fazenda Santa Clara", proprietarioUser);
-        PropertyUpdateRequestDto updateRequestDto = new PropertyUpdateRequestDto();
+        PropertyPostRequestDto updateRequestDto = createPostRequestDto();
         updateRequestDto.setNome("Fazenda Santa Clara (Atualizada)");
         String requestBody = objectMapper.writeValueAsString(updateRequestDto);
 
@@ -257,7 +256,7 @@ public class PropertyControllerImplTest {
     @WithMockUser(username = "testuser")
     void updatePropertyFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel propertyOfOther = createPropertyModel(1L, "Fazenda Secreta", otherProprietarioUser);
-        PropertyUpdateRequestDto updateRequestDto = new PropertyUpdateRequestDto();
+        PropertyPostRequestDto updateRequestDto = createPostRequestDto();
         updateRequestDto.setNome("Tentativa de Hack");
         String requestBody = objectMapper.writeValueAsString(updateRequestDto);
 

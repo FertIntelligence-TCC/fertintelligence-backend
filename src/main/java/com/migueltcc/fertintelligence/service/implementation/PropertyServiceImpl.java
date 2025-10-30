@@ -4,7 +4,6 @@ import com.migueltcc.fertintelligence.composedAttributes.Cargo; // <-- IMPORT AD
 import com.migueltcc.fertintelligence.composedAttributes.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
-import com.migueltcc.fertintelligence.dto.property.PropertyUpdateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
@@ -90,15 +89,14 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional
-    public PropertyResponseDto updateProperty(Long propertyId, PropertyUpdateRequestDto updateRequestDto, String username) {
+    public PropertyResponseDto updateProperty(Long propertyId, PropertyPostRequestDto updateRequestDto, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
         checkUserIsProprietario(requestingUser);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         checkOwnerPermission(property, requestingUser);
 
-        // ... (lógica de atualização)
-        if (updateRequestDto.getNome() != null && !updateRequestDto.getNome().isBlank()) {
+        if (!property.getNome().equals(updateRequestDto.getNome())) {
             propertyRepository.findByNome(updateRequestDto.getNome()).ifPresent(p -> {
                 if (!p.getId().equals(propertyId)) {
                     throw new EntityExistsException("O nome '" + updateRequestDto.getNome() + "' já está em uso.");
@@ -107,7 +105,7 @@ public class PropertyServiceImpl implements PropertyService {
             property.setNome(updateRequestDto.getNome());
         }
 
-        if (updateRequestDto.getCnpj() != null && !updateRequestDto.getCnpj().isBlank()) {
+        if (!property.getCnpj().equals(updateRequestDto.getCnpj())) {
             propertyRepository.findByCnpj(updateRequestDto.getCnpj()).ifPresent(p -> {
                 if (!p.getId().equals(propertyId)) {
                     throw new EntityExistsException("O CNPJ '" + updateRequestDto.getCnpj() + "' já está em uso.");
@@ -116,19 +114,14 @@ public class PropertyServiceImpl implements PropertyService {
             property.setCnpj(updateRequestDto.getCnpj());
         }
 
-        if (updateRequestDto.getEndereco() != null && !updateRequestDto.getEndereco().isBlank()) {
-            property.setEndereco(updateRequestDto.getEndereco());
-        }
-
-        if (updateRequestDto.getLocalizacao() != null) {
-            property.setLocalizacao(new Localizacao(
-                    updateRequestDto.getLocalizacao().getLatitude(),
-                    updateRequestDto.getLocalizacao().getLatitudeDirection(),
-                    updateRequestDto.getLocalizacao().getLongitude(),
-                    updateRequestDto.getLocalizacao().getLongitudeDirection(),
-                    updateRequestDto.getLocalizacao().getAltitude()
-            ));
-        }
+        property.setEndereco(updateRequestDto.getEndereco());
+        property.setLocalizacao(new Localizacao(
+                updateRequestDto.getLocalizacao().getLatitude(),
+                updateRequestDto.getLocalizacao().getLatitudeDirection(),
+                updateRequestDto.getLocalizacao().getLongitude(),
+                updateRequestDto.getLocalizacao().getLongitudeDirection(),
+                updateRequestDto.getLocalizacao().getAltitude()
+        ));
 
         PropertyModel updatedProperty = propertyRepository.save(property);
         return updatedProperty.toDto();

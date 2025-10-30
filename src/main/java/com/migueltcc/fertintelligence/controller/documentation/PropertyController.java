@@ -2,7 +2,6 @@ package com.migueltcc.fertintelligence.controller.documentation;
 
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
-import com.migueltcc.fertintelligence.dto.property.PropertyUpdateRequestDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,14 +36,14 @@ public interface PropertyController {
 
     // PUT /property/update?propertyId={id}
     ResponseEntity<PropertyResponseDto> updateProperty(
-            @Parameter(description = "ID da propriedade a ser atualizada", required = true) @RequestParam(name = "propertyId") Long propertyId, // ID como RequestParam
-            @Parameter(description = "Dados para atualização", required = true) @Valid @RequestBody PropertyUpdateRequestDto updateRequestDto,
+            @Parameter(description = "ID da propriedade a ser atualizada", required = true) @RequestParam(name = "propertyId") Long propertyId,
+            @Parameter(description = "Dados para atualização", required = true) @Valid @RequestBody PropertyPostRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 
     // DELETE /property/delete?propertyId={id}
     ResponseEntity<Void> deleteProperty(
-            @Parameter(description = "ID da propriedade a ser excluída", required = true) @RequestParam(name = "propertyId") Long propertyId, // ID como RequestParam
+            @Parameter(description = "ID da propriedade a ser excluída", required = true) @RequestParam(name = "propertyId") Long propertyId,
             @Parameter(hidden = true) Authentication authentication
     );
 }
