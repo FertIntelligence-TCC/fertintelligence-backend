@@ -32,6 +32,7 @@ public class PropertyModel {
     private String cnpj;
 
     @Embedded
+    @Column(name = "LOCALIZACAO", nullable = false)
     private Localizacao localizacao;
 
     public PropertyResponseDto toDto() {
