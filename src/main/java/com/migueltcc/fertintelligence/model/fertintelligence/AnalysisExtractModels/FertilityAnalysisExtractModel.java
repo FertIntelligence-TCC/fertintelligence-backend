@@ -19,11 +19,11 @@ public class FertilityAnalysisExtractModel {
     Long id;
 
     @OneToOne
-    @JoinColumn(name = "ID_EXTRATO_INTERVALOS", nullable = true)
+    @JoinColumn(name = "ID_EXTRATO_INTERVALOS", nullable = true) // rangeExtract ou layerExtract deve ser nulo!
     RangeExtractModel rangeExtract;
 
     @OneToOne
-    @JoinColumn(name = "ID_EXTRATO_CAMADAS", nullable = true)
+    @JoinColumn(name = "ID_EXTRATO_CAMADAS", nullable = true) // rangeExtract ou layerExtract deve ser nulo!
     LayerExtractModel layerExtract;
 
     // pH água

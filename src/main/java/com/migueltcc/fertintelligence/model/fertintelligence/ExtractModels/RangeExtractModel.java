@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels;
 
+import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,5 +29,16 @@ public class RangeExtractModel {
     // Profundidade Final, em cm
     @Column(name = "PROFUNDIDADE_FINAL", nullable = false)
     Integer profundidade_final;
+
+    public LayerExtractResponseDto toDto() {
+        return LayerExtractResponseDto.builder()
+                .id(this.id)
+                .initialDepth(this.profundidade_inicial)
+                .finalDepth(this.profundidade_final)
+                .analysisId(this.analysis.getId())
+                .analysisYear(this.analysis.getAnalysisYear())
+                .responsibleLaboratory(this.analysis.getResponsibleLaboratory())
+                .build();
+    }
 
 }
