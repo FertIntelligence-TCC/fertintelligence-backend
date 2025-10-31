@@ -10,7 +10,7 @@ import lombok.*;
 @Builder
 @Entity
 @Data
-@Table(name = "TEMPLATES_ANALISES")
+@Table(name = "ANALISES_SOLO")
 @EqualsAndHashCode
 public class SoilAnalysisModel {
 
