@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels;
 
+import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
+import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
 import jakarta.persistence.*;
@@ -117,4 +119,62 @@ public class FertilityAnalysisExtractModel {
     // Zinco disponível (Zn, mg/dm3).
     @Column(name = "ZINCO", nullable = true)
     Double zinco;
+
+    public FertilityAnalysisExtractResponseDto toDto() {
+        RangeExtractModel range = this.rangeExtract;
+        LayerExtractModel layer = this.layerExtract;
+
+        Long rangeExtractId = null;
+        Long layerExtractId = null;
+        Integer initialDepth = null;
+        Integer finalDepth = null;
+        Camada camada = null;
+        Integer subLayer = null;
+
+        if (range != null) {
+            rangeExtractId = range.getId();
+            initialDepth = range.getProfundidade_inicial();
+            finalDepth = range.getProfundidade_final();
+        } else if (layer != null) {
+            layerExtractId = layer.getId();
+            initialDepth = layer.getProfundidade_inicial();
+            finalDepth = layer.getProfundidade_final();
+            camada = layer.getLayer();
+            subLayer = layer.getSub_layer();
+        }
+
+        return FertilityAnalysisExtractResponseDto.builder()
+                .id(this.id)
+                .rangeExtractId(rangeExtractId)
+                .layerExtractId(layerExtractId)
+                .initialDepth(initialDepth)
+                .finalDepth(finalDepth)
+                .layer(camada)
+                .subLayer(subLayer)
+                .phAgua(this.phAgua)
+                .phCacl2(this.phCacl2)
+                .calcio(this.calcio)
+                .magnesio(this.magnesio)
+                .potassio(this.potassio)
+                .sodio(this.sodio)
+                .aluminio(this.aluminio)
+                .aluminioMaisHidrogenio(this.aluminioMaisHidrogenio)
+                .somaBases(this.somaBases)
+                .ctcEfetiva(this.ctcEfetiva)
+                .ctcPh7(this.ctcPh7)
+                .saturacaoBasesV(this.saturacaoBasesV)
+                .saturacaoAluminioM(this.saturacaoAluminioM)
+                .fosforoMehlich1(this.fosforoMehlich1)
+                .fosforoResina(this.fosforoResina)
+                .enxofre(this.enxofre)
+                .materiaOrganica(this.materiaOrganica)
+                .boro(this.boro)
+                .cobre(this.cobre)
+                .ferro(this.ferro)
+                .manganes(this.manganes)
+                .molibdenio(this.molibdenio)
+                .zinco(this.zinco)
+                .build();
+    }
+
 }
