@@ -11,6 +11,4 @@ public interface UserService {
     String updateUser(String userName, UserPostRequestDto request);
     String deleteUser(String username);
     UserResponseDto getUser(String username);
-    // List<UserResponseDto> getAllUsers();
-
 }

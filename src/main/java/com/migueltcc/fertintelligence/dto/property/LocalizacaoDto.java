@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.property;
 
-import com.migueltcc.fertintelligence.composedAttributes.LatitudeDirection;
-import com.migueltcc.fertintelligence.composedAttributes.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.Property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.Property.LongitudeDirection;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 

@@ -1,9 +1,9 @@
 package com.migueltcc.fertintelligence.dto.plot;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.AreaIrrigada;
-import com.migueltcc.fertintelligence.composedAttributes.ClasseSolo;
-import com.migueltcc.fertintelligence.composedAttributes.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.Plot.AreaIrrigada;
+import com.migueltcc.fertintelligence.composedAttributes.Plot.ClasseSolo;
+import com.migueltcc.fertintelligence.composedAttributes.Plot.TexturaSolo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

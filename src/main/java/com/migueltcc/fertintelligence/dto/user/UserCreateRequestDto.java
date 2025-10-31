@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.*;
+import com.migueltcc.fertintelligence.composedAttributes.User.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

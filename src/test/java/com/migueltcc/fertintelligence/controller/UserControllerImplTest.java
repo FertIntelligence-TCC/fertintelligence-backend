@@ -2,7 +2,7 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.migueltcc.fertintelligence.composedAttributes.*;
+import com.migueltcc.fertintelligence.composedAttributes.User.*;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;

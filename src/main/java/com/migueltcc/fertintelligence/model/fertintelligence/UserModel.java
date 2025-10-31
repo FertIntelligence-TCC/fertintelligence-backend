@@ -1,9 +1,9 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
-import com.migueltcc.fertintelligence.composedAttributes.Cargo;
-import com.migueltcc.fertintelligence.composedAttributes.DataNasc;
-import com.migueltcc.fertintelligence.composedAttributes.Formacao;
-import com.migueltcc.fertintelligence.composedAttributes.Genero;
-import com.migueltcc.fertintelligence.composedAttributes.Telefone;
+import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.User.DataNasc;
+import com.migueltcc.fertintelligence.composedAttributes.User.Formacao;
+import com.migueltcc.fertintelligence.composedAttributes.User.Genero;
+import com.migueltcc.fertintelligence.composedAttributes.User.Telefone;
 import com.migueltcc.fertintelligence.dto.user.DataNascDto;
 import com.migueltcc.fertintelligence.dto.user.TelefoneDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;

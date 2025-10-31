@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAttributes;
+package com.migueltcc.fertintelligence.composedAttributes.Plot;
 
 public enum TexturaSolo {
     AREIA,
