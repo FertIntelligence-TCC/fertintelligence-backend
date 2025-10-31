@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.AnalysisExtractModels;
 
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.ExtractTemplateModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,8 +19,12 @@ public class SaturationExtractAnalysisExtractModel {
     Long id;
 
     @OneToOne
-    @JoinColumn(name = "ID_EXTRATO", nullable = false)
-    ExtractTemplateModel extract;
+    @JoinColumn(name = "ID_EXTRATO_INTERVALOS", nullable = true)
+    RangeExtractModel rangeExtract;
+
+    @OneToOne
+    @JoinColumn(name = "ID_EXTRATO_CAMADAS", nullable = true)
+    LayerExtractModel layerExtract;
 
     // pH
     @Column(name = "PH", nullable = true)
