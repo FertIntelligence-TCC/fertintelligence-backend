@@ -4,14 +4,15 @@ import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 @Data
-@Table(name = "EXTRATOS_CAMADAS")
-@EqualsAndHashCode
+// @Table(name = "EXTRATOS_CAMADAS")
+@EqualsAndHashCode(callSuper = true)
 public class LayerExtractModel extends ExtractTemplateModel {
 
     // Camada O, A, B, E, C

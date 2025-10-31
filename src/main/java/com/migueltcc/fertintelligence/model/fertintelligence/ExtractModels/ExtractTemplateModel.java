@@ -3,10 +3,11 @@ package com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 @Data
 @Table(name = "TEMPLATES_EXTRATOS")

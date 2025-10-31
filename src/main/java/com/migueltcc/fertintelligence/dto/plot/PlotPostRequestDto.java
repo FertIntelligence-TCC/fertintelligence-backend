@@ -52,12 +52,4 @@ public class PlotPostRequestDto {
     @JsonProperty("nova_pluviosidade_anual")
     Double annualPluviosity;
 
-    @Schema(example = "42")
-    @JsonProperty("id")
-    Long propertyId;
-
-    @Schema(example = "Fazenda 4 Irmãos")
-    @JsonProperty("nova_nome_propriedade")
-    String propertyName;
-
 }

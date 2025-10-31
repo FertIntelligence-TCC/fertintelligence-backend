@@ -11,7 +11,7 @@ import lombok.*;
 @Data
 @Table(name = "EXTRATOS_ANALISES_EXTRATO_SATURACAO")
 @EqualsAndHashCode
-public class ExtractSaturationAnalysisExtractModel {
+public class SaturationExtractAnalysisExtractModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

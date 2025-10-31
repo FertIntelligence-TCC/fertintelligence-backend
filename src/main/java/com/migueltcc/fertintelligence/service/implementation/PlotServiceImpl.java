@@ -145,18 +145,6 @@ public class PlotServiceImpl implements PlotService {
             plot.setAnnualPluviosity(updateRequestDto.getAnnualPluviosity());
         }
 
-        PropertyModel targetProperty = resolveTargetProperty(updateRequestDto, owner)
-                .orElse(plot.getProperty());
-
-        if (!targetProperty.getId().equals(plot.getProperty().getId())) {
-            plotRepository.findByIdentificationAndProperty(plot.getIdentification(), targetProperty)
-                    .ifPresent(existing -> {
-                        throw new EntityExistsException("Um talhão com a identificação '" + plot.getIdentification()
-                                + "' já existe na propriedade selecionada.");
-                    });
-            plot.setProperty(targetProperty);
-        }
-
         PlotModel updatedPlot = plotRepository.save(plot);
         return updatedPlot.toDto();
     }
@@ -171,24 +159,6 @@ public class PlotServiceImpl implements PlotService {
         checkOwnerPermission(plot.getProperty(), owner);
 
         plotRepository.delete(plot);
-    }
-
-    private Optional<PropertyModel> resolveTargetProperty(PlotPostRequestDto updateRequestDto, UserModel owner) {
-        if (updateRequestDto.getPropertyId() != null) {
-            PropertyModel property = findPropertyByIdOrThrow(updateRequestDto.getPropertyId());
-            checkOwnerPermission(property, owner);
-            return Optional.of(property);
-        }
-
-        if (updateRequestDto.getPropertyName() != null) {
-            PropertyModel property = propertyRepository.findByNome(updateRequestDto.getPropertyName())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Propriedade não encontrada com o nome: " + updateRequestDto.getPropertyName()));
-            checkOwnerPermission(property, owner);
-            return Optional.of(property);
-        }
-
-        return Optional.empty();
     }
 
     private void checkUserIsProprietario(UserModel user) {

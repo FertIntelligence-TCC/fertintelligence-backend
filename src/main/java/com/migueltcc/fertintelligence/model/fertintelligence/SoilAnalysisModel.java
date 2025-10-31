@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
 import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,7 +20,7 @@ public class SoilAnalysisModel {
 
     @ManyToOne
     @JoinColumn(name = "ID_PROPRIEDADE", nullable = false)
-    PropertyModel property;
+    PlotModel plot;
 
     @Column(name = "ANO_ANALISE", nullable = false)
     Integer analysisYear;
@@ -29,5 +30,16 @@ public class SoilAnalysisModel {
 
     @Column(name = "TIPO_EXTRATO", nullable = false)
     TipoExtrato extractType;
+
+    public SoilAnalysisResponseDto toDto() {
+        return SoilAnalysisResponseDto.builder()
+                .id(this.id)
+                .analysisYear(this.analysisYear)
+                .responsibleLaboratory(this.responsibleLaboratory)
+                .extractType(this.extractType)
+                .plotId(this.plot.getId())
+                .plotIdentification(this.plot.getIdentification())
+                .build();
+    }
 
 }
