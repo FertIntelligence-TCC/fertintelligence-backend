@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.model.fertintelligence.AnalysisExtractModels;
+package com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels;
 
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
