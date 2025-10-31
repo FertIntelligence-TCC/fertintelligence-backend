@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels;
 
-import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
+import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,8 +30,8 @@ public class RangeExtractModel {
     @Column(name = "PROFUNDIDADE_FINAL", nullable = false)
     Integer profundidade_final;
 
-    public LayerExtractResponseDto toDto() {
-        return LayerExtractResponseDto.builder()
+    public RangeExtractResponseDto toDto() {
+        return RangeExtractResponseDto.builder()
                 .id(this.id)
                 .initialDepth(this.profundidade_inicial)
                 .finalDepth(this.profundidade_final)
