@@ -12,7 +12,7 @@ import lombok.*;
 @Data
 @Table(name = "EXTRATOS_ANALISES_FISICAS")
 @EqualsAndHashCode
-public class PhysicAnalysisExtractModel {
+public class PhysicalAnalysisExtractModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
