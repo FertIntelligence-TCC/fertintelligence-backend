@@ -7,18 +7,18 @@ import com.migueltcc.fertintelligence.composedAttributes.Property.LongitudeDirec
 import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
 import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
-import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractPostRequestDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
-import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-public class SaturationExtractAnalysisExtractControllerImplTest {
+public class FertilityAnalysisExtractControllerImplTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -60,7 +60,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private SaturationExtractAnalysisExtractRepository saturationExtractAnalysisExtractRepository;
+    private FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
 
     @MockitoBean
     private RangeExtractRepository rangeExtractRepository;
@@ -144,122 +144,137 @@ public class SaturationExtractAnalysisExtractControllerImplTest {
                 .build();
     }
 
-    private SaturationExtractAnalysisExtractCreateRequestDto createCreateRequestDto() {
-        return SaturationExtractAnalysisExtractCreateRequestDto.builder()
-                .ph(7.2)
-                .ce(0.5)
-                .teorCO3(12.0)
-                .teorHCO3(18.0)
-                .teorNO3(25.0)
-                .teorH2PO4(5.0)
-                .teorSO4(14.0)
-                .teorNa(10.0)
-                .teorK(8.0)
-                .teorCa(20.0)
-                .teorMg(12.0)
-                .residuosSuspensao(30.0)
-                .durezaCaCO3(50.0)
-                .durezaTotalCaCO3(80.0)
-                .ras(12.5)
-                .pst(8.0)
+    private FertilityAnalysisExtractCreateRequestDto createCreateRequestDto() {
+        return FertilityAnalysisExtractCreateRequestDto.builder()
+                .phAgua(5.6)
+                .phCacl2(5.2)
+                .calcio(40.0)
+                .magnesio(20.0)
+                .potassio(3.5)
+                .sodio(2.4)
+                .aluminio(0.5)
+                .aluminioMaisHidrogenio(4.2)
+                .somaBases(60.0)
+                .ctcEfetiva(70.0)
+                .ctcPh7(80.0)
+                .saturacaoBasesV(75.0)
+                .saturacaoAluminioM(10.0)
+                .fosforoMehlich1(15.0)
+                .fosforoResina(18.0)
+                .enxofre(22.0)
+                .materiaOrganica(3.2)
+                .boro(0.35)
+                .cobre(1.8)
+                .ferro(25.0)
+                .manganes(12.0)
+                .molibdenio(0.1)
+                .zinco(3.4)
                 .build();
     }
 
-    private SaturationExtractAnalysisExtractPostRequestDto createUpdateRequestDto() {
-        return SaturationExtractAnalysisExtractPostRequestDto.builder()
-                .ph(7.5)
-                .ce(0.6)
+    private FertilityAnalysisExtractPostRequestDto createUpdateRequestDto() {
+        return FertilityAnalysisExtractPostRequestDto.builder()
+                .phAgua(6.0)
+                .somaBases(65.0)
                 .build();
     }
 
-    private SaturationExtractAnalysisExtractModel createSaturationExtractAnalysisExtractModel(Long id,
-                                                                                              RangeExtractModel rangeExtract,
-                                                                                              LayerExtractModel layerExtract) {
-        return SaturationExtractAnalysisExtractModel.builder()
+    private FertilityAnalysisExtractModel createFertilityAnalysisExtractModel(Long id,
+                                                                              RangeExtractModel rangeExtract,
+                                                                              LayerExtractModel layerExtract) {
+        return FertilityAnalysisExtractModel.builder()
                 .id(id)
                 .rangeExtract(rangeExtract)
                 .layerExtract(layerExtract)
-                .ph(7.2)
-                .ce(0.5)
-                .teorCO3(12.0)
-                .teorHCO3(18.0)
-                .teorNO3(25.0)
-                .teorH2PO4(5.0)
-                .teorSO4(14.0)
-                .teorNa(10.0)
-                .teorK(8.0)
-                .teorCa(20.0)
-                .teorMg(12.0)
-                .residuosSuspensao(30.0)
-                .durezaCaCO3(50.0)
-                .durezaTotalCaCO3(80.0)
-                .ras(12.5)
-                .pst(8.0)
+                .phAgua(5.6)
+                .phCacl2(5.2)
+                .calcio(40.0)
+                .magnesio(20.0)
+                .potassio(3.5)
+                .sodio(2.4)
+                .aluminio(0.5)
+                .aluminioMaisHidrogenio(4.2)
+                .somaBases(60.0)
+                .ctcEfetiva(70.0)
+                .ctcPh7(80.0)
+                .saturacaoBasesV(75.0)
+                .saturacaoAluminioM(10.0)
+                .fosforoMehlich1(15.0)
+                .fosforoResina(18.0)
+                .enxofre(22.0)
+                .materiaOrganica(3.2)
+                .boro(0.35)
+                .cobre(1.8)
+                .ferro(25.0)
+                .manganes(12.0)
+                .molibdenio(0.1)
+                .zinco(3.4)
                 .build();
     }
 
     @Test
     @WithMockUser(username = "testuser")
-    void createSaturationExtractAnalysisExtractWithRangeSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+    void createFertilityAnalysisExtractWithRangeSuccessfully() throws Exception {
+        FertilityAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        FertilityAnalysisExtractModel savedExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+        when(fertilityAnalysisExtractRepository.save(any(FertilityAnalysisExtractModel.class))).thenReturn(savedExtract);
 
-        mockMvc.perform(post("/saturation-extract-analysis-extract/register")
+        mockMvc.perform(post("/fertility-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/saturation-extract-analysis-extract/get?saturationExtractAnalysisExtractId=1"))
+                .andExpect(header().string("Location", "http://localhost/fertility-analysis-extract/get?fertilityAnalysisExtractId=1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
-                .andExpect(jsonPath("$.ph").value(7.2));
+                .andExpect(jsonPath("$.profundidade_inicial").value(0))
+                .andExpect(jsonPath("$.ph_agua").value(5.6));
     }
 
     @Test
     @WithMockUser(username = "testuser")
-    void getSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+    void getFertilityAnalysisExtractSuccessfully() throws Exception {
+        FertilityAnalysisExtractModel analysisExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(analysisExtract));
+        when(fertilityAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(analysisExtract));
 
-        mockMvc.perform(get("/saturation-extract-analysis-extract/get")
-                        .param("saturationExtractAnalysisExtractId", "1"))
+        mockMvc.perform(get("/fertility-analysis-extract/get")
+                        .param("fertilityAnalysisExtractId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.ph").value(7.2));
+                .andExpect(jsonPath("$.ph_agua").value(5.6));
     }
 
     @Test
     @WithMockUser(username = "testuser")
-    void getSaturationExtractAnalysisExtractsByRangeSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+    void getFertilityAnalysisExtractsByRangeSuccessfully() throws Exception {
+        FertilityAnalysisExtractModel analysisExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(saturationExtractAnalysisExtractRepository.findAllByRangeExtract(ownerRangeExtract)).thenReturn(List.of(analysisExtract));
+        when(fertilityAnalysisExtractRepository.findAllByRangeExtract(ownerRangeExtract)).thenReturn(List.of(analysisExtract));
 
-        mockMvc.perform(get("/saturation-extract-analysis-extract/get-by-range")
+        mockMvc.perform(get("/fertility-analysis-extract/get-by-range")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].ph").value(7.2));
+                .andExpect(jsonPath("$[0].id_extrato_intervalo").value(ownerRangeExtract.getId()));
     }
 
     @Test
     @WithMockUser(username = "testuser")
-    void getSaturationExtractAnalysisExtractsByLayerSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(2L, null, ownerLayerExtract);
+    void getFertilityAnalysisExtractsByLayerSuccessfully() throws Exception {
+        FertilityAnalysisExtractModel analysisExtract = createFertilityAnalysisExtractModel(2L, null, ownerLayerExtract);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
-        when(saturationExtractAnalysisExtractRepository.findAllByLayerExtract(ownerLayerExtract)).thenReturn(List.of(analysisExtract));
+        when(fertilityAnalysisExtractRepository.findAllByLayerExtract(ownerLayerExtract)).thenReturn(List.of(analysisExtract));
 
-        mockMvc.perform(get("/saturation-extract-analysis-extract/get-by-layer")
+        mockMvc.perform(get("/fertility-analysis-extract/get-by-layer")
                         .param("layerExtractId", ownerLayerExtract.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(2L))
@@ -269,34 +284,34 @@ public class SaturationExtractAnalysisExtractControllerImplTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void updateSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel existingExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
-        SaturationExtractAnalysisExtractPostRequestDto updateRequestDto = createUpdateRequestDto();
+    void updateFertilityAnalysisExtractSuccessfully() throws Exception {
+        FertilityAnalysisExtractModel existingExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
+        FertilityAnalysisExtractPostRequestDto updateRequestDto = createUpdateRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fertilityAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
+        when(fertilityAnalysisExtractRepository.save(any(FertilityAnalysisExtractModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        mockMvc.perform(put("/saturation-extract-analysis-extract/update")
-                        .param("saturationExtractAnalysisExtractId", "1")
+        mockMvc.perform(put("/fertility-analysis-extract/update")
+                        .param("fertilityAnalysisExtractId", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ph").value(7.5))
-                .andExpect(jsonPath("$.ce").value(0.6));
+                .andExpect(jsonPath("$.ph_agua").value(6.0))
+                .andExpect(jsonPath("$.soma_bases").value(65.0));
     }
 
     @Test
     @WithMockUser(username = "testuser")
-    void deleteSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel existingExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+    void deleteFertilityAnalysisExtractSuccessfully() throws Exception {
+        FertilityAnalysisExtractModel existingExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
-        doNothing().when(saturationExtractAnalysisExtractRepository).delete(existingExtract);
+        when(fertilityAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
+        doNothing().when(fertilityAnalysisExtractRepository).delete(existingExtract);
 
-        mockMvc.perform(delete("/saturation-extract-analysis-extract/delete")
-                        .param("saturationExtractAnalysisExtractId", "1"))
+        mockMvc.perform(delete("/fertility-analysis-extract/delete")
+                        .param("fertilityAnalysisExtractId", "1"))
                 .andExpect(status().isNoContent());
     }
 }
