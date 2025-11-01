@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels;
 
+import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
 import jakarta.persistence.*;
@@ -89,4 +90,55 @@ public class PhysicalAnalysisExtractModel {
     // Percentagem de agregados < 1,0 mm (Assumindo que "1,0 mm" seja o limite inferior)
     @Column(name = "PERC_AGREGADOS_MENOR_1_0MM", nullable = true)
     double percAgregadosMenor1_0mm;
+
+    public PhysicalAnalysisExtractResponseDto toDto() {
+        RangeExtractModel range = this.rangeExtract;
+        LayerExtractModel layer = this.layerExtract;
+
+        Long rangeExtractId = null;
+        Long layerExtractId = null;
+        Integer initialDepth = null;
+        Integer finalDepth = null;
+        com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada camada = null;
+        Integer subLayer = null;
+
+        if (range != null) {
+            rangeExtractId = range.getId();
+            initialDepth = range.getProfundidade_inicial();
+            finalDepth = range.getProfundidade_final();
+        } else if (layer != null) {
+            layerExtractId = layer.getId();
+            initialDepth = layer.getProfundidade_inicial();
+            finalDepth = layer.getProfundidade_final();
+            camada = layer.getLayer();
+            subLayer = layer.getSub_layer();
+        }
+
+        return PhysicalAnalysisExtractResponseDto.builder()
+                .id(this.id)
+                .rangeExtractId(rangeExtractId)
+                .layerExtractId(layerExtractId)
+                .initialDepth(initialDepth)
+                .finalDepth(finalDepth)
+                .layer(camada)
+                .subLayer(subLayer)
+                .teorAreia(this.teorAreia)
+                .teorSilte(this.teorSilte)
+                .teorArgila(this.teorArgila)
+                .densidadeAparente(this.densidadeAparente)
+                .densidadeReal(this.densidadeReal)
+                .porosidadeTotal(this.porosidadeTotal)
+                .microporosidade(this.microporosidade)
+                .umidadeCapacidadeCampo(this.umidadeCapacidadeCampo)
+                .umidadePontoMurchaPermanente(this.umidadePontoMurchaPermanente)
+                .aguaDisponivel(this.aguaDisponivel)
+                .resistenciaPenetracao(this.resistenciaPenetracao)
+                .percAgregados6_0mm(this.percAgregados6_0mm)
+                .percAgregados4_1a6_0mm(this.percAgregados4_1a6_0mm)
+                .percAgregados2_1a4_0mm(this.percAgregados2_1a4_0mm)
+                .percAgregados1_0a2_0mm(this.percAgregados1_0a2_0mm)
+                .percAgregadosMenor1_0mm(this.percAgregadosMenor1_0mm)
+                .build();
+    }
+
 }

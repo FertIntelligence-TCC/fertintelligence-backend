@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels;
 
+import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
 import jakarta.persistence.*;
@@ -89,5 +90,55 @@ public class SaturationExtractAnalysisExtractModel {
     // PST, %
     @Column(name = "PST", nullable = true)
     Double pst;
+
+    public SaturationExtractAnalysisExtractResponseDto toDto() {
+        RangeExtractModel range = this.rangeExtract;
+        LayerExtractModel layer = this.layerExtract;
+
+        Long rangeExtractId = null;
+        Long layerExtractId = null;
+        Integer initialDepth = null;
+        Integer finalDepth = null;
+        com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada camada = null;
+        Integer subLayer = null;
+
+        if (range != null) {
+            rangeExtractId = range.getId();
+            initialDepth = range.getProfundidade_inicial();
+            finalDepth = range.getProfundidade_final();
+        } else if (layer != null) {
+            layerExtractId = layer.getId();
+            initialDepth = layer.getProfundidade_inicial();
+            finalDepth = layer.getProfundidade_final();
+            camada = layer.getLayer();
+            subLayer = layer.getSub_layer();
+        }
+
+        return SaturationExtractAnalysisExtractResponseDto.builder()
+                .id(this.id)
+                .rangeExtractId(rangeExtractId)
+                .layerExtractId(layerExtractId)
+                .initialDepth(initialDepth)
+                .finalDepth(finalDepth)
+                .layer(camada)
+                .subLayer(subLayer)
+                .ph(this.ph)
+                .ce(this.ce)
+                .teorCO3(this.teorCO3)
+                .teorHCO3(this.teorHCO3)
+                .teorNO3(this.teorNO3)
+                .teorH2PO4(this.teorH2PO4)
+                .teorSO4(this.teorSO4)
+                .teorNa(this.teorNa)
+                .teorK(this.teorK)
+                .teorCa(this.teorCa)
+                .teorMg(this.teorMg)
+                .residuosSuspensao(this.residuosSuspensao)
+                .durezaCaCO3(this.durezaCaCO3)
+                .durezaTotalCaCO3(this.durezaTotalCaCO3)
+                .ras(this.ras)
+                .pst(this.pst)
+                .build();
+    }
 
 }
