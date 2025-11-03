@@ -19,7 +19,7 @@ public class SoilAnalysisModel {
     Long id;
 
     @ManyToOne
-    @JoinColumn(name = "ID_PROPRIEDADE", nullable = false)
+    @JoinColumn(name = "ID_TALHAO", nullable = false)
     PlotModel plot;
 
     @Column(name = "ANO_ANALISE", nullable = false)
