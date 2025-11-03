@@ -1,7 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderResponseDto;
-import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
 
