@@ -1,8 +1,8 @@
-package com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels;
+package com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels;
 
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import jakarta.persistence.*;
 import lombok.*;
 

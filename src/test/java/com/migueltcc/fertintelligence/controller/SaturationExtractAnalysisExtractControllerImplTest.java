@@ -9,9 +9,9 @@ import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrat
 import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractAnalysisModels.SaturationExtractAnalysisExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;

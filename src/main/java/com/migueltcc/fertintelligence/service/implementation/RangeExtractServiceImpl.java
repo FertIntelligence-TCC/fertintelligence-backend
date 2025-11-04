@@ -5,7 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.RangeExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;

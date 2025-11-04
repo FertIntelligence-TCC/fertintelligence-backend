@@ -1,12 +1,10 @@
-package com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels;
+package com.migueltcc.fertintelligence.model.fertintelligence.extractModels;
 
 import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
-import com.migueltcc.fertintelligence.dto.plot.PlotResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 
 @NoArgsConstructor
 @AllArgsConstructor

@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels;
+package com.migueltcc.fertintelligence.model.fertintelligence.extractModels;
 
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;

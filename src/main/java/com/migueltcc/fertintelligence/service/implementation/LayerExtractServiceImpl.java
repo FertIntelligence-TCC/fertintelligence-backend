@@ -5,7 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrat
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.ExtractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
