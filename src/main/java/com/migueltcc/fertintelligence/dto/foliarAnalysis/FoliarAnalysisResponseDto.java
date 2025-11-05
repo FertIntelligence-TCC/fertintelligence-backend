@@ -26,6 +26,15 @@ public class FoliarAnalysisResponseDto {
     @JsonProperty("laboratorio")
     String laboratory;
 
+    @JsonProperty("micronutrientes")
+    MicronutrientsContentDto micronutrients;
+
+    @JsonProperty("macronutrientes")
+    MacronutrientsContentDto macronutrients;
+
+    @JsonProperty("elementos_beneficos")
+    BeneficialElementsContentDto elements;
+
     @Schema(example = "201")
     @JsonProperty("id_cultura")
     Long cropId;

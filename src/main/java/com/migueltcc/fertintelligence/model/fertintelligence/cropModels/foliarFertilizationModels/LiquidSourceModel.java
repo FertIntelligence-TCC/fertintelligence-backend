@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels;
 
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarAnalysisModels.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import jakarta.persistence.*;
 import lombok.*;
 

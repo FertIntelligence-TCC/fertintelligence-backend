@@ -22,4 +22,13 @@ public class FoliarAnalysisPostRequestDto {
     @JsonProperty("novo_laboratorio")
     String laboratory;
 
+    @JsonProperty("novo_micronutrientes")
+    MicronutrientsContentDto micronutrients;
+
+    @JsonProperty("novo_macronutrientes")
+    MacronutrientsContentDto macronutrients;
+
+    @JsonProperty("novo_elementos_beneficos")
+    BeneficialElementsContentDto elements;
+
 }

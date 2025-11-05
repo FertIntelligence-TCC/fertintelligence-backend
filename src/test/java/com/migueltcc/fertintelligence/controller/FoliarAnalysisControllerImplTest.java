@@ -10,7 +10,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarAnalysisModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;

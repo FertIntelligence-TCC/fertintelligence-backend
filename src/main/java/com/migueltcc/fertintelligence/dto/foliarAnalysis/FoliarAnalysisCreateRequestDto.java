@@ -25,4 +25,13 @@ public class FoliarAnalysisCreateRequestDto {
     @Schema(example = "Laboratório Solos & Plantas")
     String laboratory;
 
+    @JsonProperty("micronutrientes")
+    MicronutrientsContentDto micronutrients;
+
+    @JsonProperty("macronutrientes")
+    MacronutrientsContentDto macronutrients;
+
+    @JsonProperty("elementos_beneficos")
+    BeneficialElementsContentDto elements;
+
 }

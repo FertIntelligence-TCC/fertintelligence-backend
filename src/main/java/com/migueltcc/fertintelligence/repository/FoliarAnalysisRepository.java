@@ -2,7 +2,7 @@ package com.migueltcc.fertintelligence.repository;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarAnalysisModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
