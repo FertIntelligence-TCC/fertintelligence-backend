@@ -2,8 +2,8 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
-import com.migueltcc.fertintelligence.composedAttributes.Property.Localizacao;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
@@ -27,8 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
-import static com.migueltcc.fertintelligence.composedAttributes.Property.LatitudeDirection.SUL;
-import static com.migueltcc.fertintelligence.composedAttributes.Property.LongitudeDirection.OESTE;
+import static com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection.SUL;
+import static com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection.OESTE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;

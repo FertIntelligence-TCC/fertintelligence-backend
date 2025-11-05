@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAttributes.User;
+package com.migueltcc.fertintelligence.composedAttributes.user;
 
 public enum Formacao {
     ENSINO_FUNDAMENTAL,

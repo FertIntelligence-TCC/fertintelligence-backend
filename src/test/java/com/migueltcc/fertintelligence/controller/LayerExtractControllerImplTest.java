@@ -1,12 +1,12 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.migueltcc.fertintelligence.composedAttributes.Property.LatitudeDirection;
-import com.migueltcc.fertintelligence.composedAttributes.Property.Localizacao;
-import com.migueltcc.fertintelligence.composedAttributes.Property.LongitudeDirection;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;

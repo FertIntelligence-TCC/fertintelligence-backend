@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAttributes.User;
+package com.migueltcc.fertintelligence.composedAttributes.user;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DataNasc {
-    private int dia;
-    private int mes;
-    private int ano;
+public class Telefone {
+    String pais;
+    String ddd;
+    String numero;
 }

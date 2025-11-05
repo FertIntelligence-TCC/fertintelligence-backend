@@ -1,13 +1,13 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.AreaIrrigada;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.ClasseSolo;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.TexturaSolo;
-import com.migueltcc.fertintelligence.composedAttributes.Property.LatitudeDirection;
-import com.migueltcc.fertintelligence.composedAttributes.Property.Localizacao;
-import com.migueltcc.fertintelligence.composedAttributes.Property.LongitudeDirection;
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
+import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plot.PlotCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;

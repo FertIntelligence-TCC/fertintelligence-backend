@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels;
 
-import com.migueltcc.fertintelligence.composedAttributes.Crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

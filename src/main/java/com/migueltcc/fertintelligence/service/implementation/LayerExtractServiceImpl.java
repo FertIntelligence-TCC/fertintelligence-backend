@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;

@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAttributes.Plot;
+package com.migueltcc.fertintelligence.composedAttributes.plot;
 
 public enum ClasseSolo {
     ARGISSOLO,

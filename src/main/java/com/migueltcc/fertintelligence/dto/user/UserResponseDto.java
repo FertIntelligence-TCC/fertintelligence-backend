@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

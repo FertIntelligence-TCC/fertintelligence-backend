@@ -99,7 +99,7 @@ public class PhysicalAnalysisExtractModel {
         Long layerExtractId = null;
         Integer initialDepth = null;
         Integer finalDepth = null;
-        com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada camada = null;
+        com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada camada = null;
         Integer subLayer = null;
 
         if (range != null) {

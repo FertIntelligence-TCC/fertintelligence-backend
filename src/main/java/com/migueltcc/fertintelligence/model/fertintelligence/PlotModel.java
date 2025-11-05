@@ -1,8 +1,8 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
-import com.migueltcc.fertintelligence.composedAttributes.Plot.AreaIrrigada;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.ClasseSolo;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
+import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import com.migueltcc.fertintelligence.dto.plot.PlotResponseDto;
 import jakarta.persistence.*;
 import lombok.*;

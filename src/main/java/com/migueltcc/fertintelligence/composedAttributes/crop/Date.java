@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.composedAttributes.Crop;
+package com.migueltcc.fertintelligence.composedAttributes.crop;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;

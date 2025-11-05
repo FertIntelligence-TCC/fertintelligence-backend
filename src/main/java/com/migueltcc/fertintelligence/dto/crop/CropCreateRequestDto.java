@@ -1,8 +1,8 @@
 package com.migueltcc.fertintelligence.dto.crop;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.Crop.CultivationType;
-import com.migueltcc.fertintelligence.composedAttributes.Crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

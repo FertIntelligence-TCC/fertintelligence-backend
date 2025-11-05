@@ -1,5 +1,5 @@
 // Local: /com/migueltcc/fertintelligence/composedAtributes/Localizacao.java
-package com.migueltcc.fertintelligence.composedAttributes.Property;
+package com.migueltcc.fertintelligence.composedAttributes.property;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

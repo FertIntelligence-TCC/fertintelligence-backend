@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels;
 
-import com.migueltcc.fertintelligence.composedAttributes.Crop.CultivationType;
-import com.migueltcc.fertintelligence.composedAttributes.Crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import jakarta.persistence.*;

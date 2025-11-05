@@ -1,11 +1,7 @@
 package com.migueltcc.fertintelligence.dto.soilAnalysis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.AreaIrrigada;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.ClasseSolo;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.TexturaSolo;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
-import io.swagger.v3.oas.annotations.media.Schema;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

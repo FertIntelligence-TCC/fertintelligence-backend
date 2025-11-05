@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extract.layer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.Camada;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

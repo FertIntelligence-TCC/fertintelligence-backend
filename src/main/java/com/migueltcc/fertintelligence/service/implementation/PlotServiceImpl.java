@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.User.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plot.PlotCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotPostRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotResponseDto;
@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service

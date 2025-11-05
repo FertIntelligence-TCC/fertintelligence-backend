@@ -1,9 +1,9 @@
 package com.migueltcc.fertintelligence.dto.plot;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.AreaIrrigada;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.ClasseSolo;
-import com.migueltcc.fertintelligence.composedAttributes.Plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
+import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
+import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

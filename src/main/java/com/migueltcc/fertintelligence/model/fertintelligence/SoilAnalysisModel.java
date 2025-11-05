@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
-import com.migueltcc.fertintelligence.composedAttributes.SoilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisResponseDto;
 import jakarta.persistence.*;
 import lombok.*;

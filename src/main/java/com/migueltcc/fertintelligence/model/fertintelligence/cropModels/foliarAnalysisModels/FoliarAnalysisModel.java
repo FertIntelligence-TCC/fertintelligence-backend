@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarAnalysisModels;
 
-import com.migueltcc.fertintelligence.composedAttributes.Crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import jakarta.persistence.*;

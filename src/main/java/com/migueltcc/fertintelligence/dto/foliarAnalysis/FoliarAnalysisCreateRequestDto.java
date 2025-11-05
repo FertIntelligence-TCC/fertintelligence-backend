@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.dto.foliarAnalysis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.migueltcc.fertintelligence.composedAttributes.Crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import io.swagger.v3.oas.annotations.media.Schema; // Adicionado para Schema
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
