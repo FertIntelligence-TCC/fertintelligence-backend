@@ -3,6 +3,10 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.BeneficialElementsContentDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
@@ -11,6 +15,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.MacronutrientsContentDto;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.MicronutrientsContentDto;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -202,6 +208,9 @@ public class FoliarAnalysisControllerImplTest {
         return FoliarAnalysisCreateRequestDto.builder()
                 .collectDate(new Date(15, 1, 2025))
                 .laboratory("Laboratório Foliar Nordeste")
+                .micronutrients(createMicronutrientsContentDto())
+                .macronutrients(createMacronutrientsContentDto())
+                .elements(createBeneficialElementsContentDto())
                 .build();
     }
 
@@ -209,6 +218,9 @@ public class FoliarAnalysisControllerImplTest {
         return FoliarAnalysisPostRequestDto.builder()
                 .collectDate(new Date(20, 2, 2025))
                 .laboratory("Laboratório Agro Atualizado")
+                .micronutrients(new MicronutrientsContentDto(45.0, 12.0, 160.0, 0.2, 80.0, 0.6, 35.0))
+                .macronutrients(new MacronutrientsContentDto(4.0, 0.25, 2.0, 1.2, 0.4, 0.18))
+                .elements(new BeneficialElementsContentDto(6.0, 25.0, 0.03, 0.02, 0.06))
                 .build();
     }
 
@@ -217,8 +229,35 @@ public class FoliarAnalysisControllerImplTest {
                 .id(id)
                 .collectDate(date)
                 .laboratory("Laboratório Foliar Nordeste")
+                .micronutrients(createMicronutrientsContent())
+                .macronutrients(createMacronutrientsContent())
+                .elements(createBeneficialElementsContent())
                 .crop(crop)
                 .build();
+    }
+
+    private MicronutrientsContentDto createMicronutrientsContentDto() {
+        return new MicronutrientsContentDto(40.0, 10.0, 150.0, 0.1, 70.0, 0.5, 30.0);
+    }
+
+    private MacronutrientsContentDto createMacronutrientsContentDto() {
+        return new MacronutrientsContentDto(3.5, 0.2, 1.8, 1.0, 0.3, 0.15);
+    }
+
+    private BeneficialElementsContentDto createBeneficialElementsContentDto() {
+        return new BeneficialElementsContentDto(5.0, 20.0, 0.02, 0.01, 0.05);
+    }
+
+    private MicronutrientsContent createMicronutrientsContent() {
+        return new MicronutrientsContent(40.0, 10.0, 150.0, 0.1, 70.0, 0.5, 30.0);
+    }
+
+    private MacronutrientsContent createMacronutrientsContent() {
+        return new MacronutrientsContent(3.5, 0.2, 1.8, 1.0, 0.3, 0.15);
+    }
+
+    private BeneficialElementsContent createBeneficialElementsContent() {
+        return new BeneficialElementsContent(5.0, 20.0, 0.02, 0.01, 0.05);
     }
 
     @Test
@@ -242,6 +281,9 @@ public class FoliarAnalysisControllerImplTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.laboratorio").value("Laboratório Foliar Nordeste"))
                 .andExpect(jsonPath("$.id_cultura").value(ownerCrop.getId()))
+                .andExpect(jsonPath("$.micronutrientes.b_content").value(40.0))
+                .andExpect(jsonPath("$.macronutrientes.n_content").value(3.5))
+                .andExpect(jsonPath("$.elementos_beneficos.na_content").value(5.0))
                 .andExpect(jsonPath("$.data_coleta.day").value(15))
                 .andExpect(jsonPath("$.data_coleta.month").value(1))
                 .andExpect(jsonPath("$.data_coleta.year").value(2025));
@@ -307,6 +349,7 @@ public class FoliarAnalysisControllerImplTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_cultura").value(ownerCrop.getId()))
+                .andExpect(jsonPath("$.micronutrientes.b_content").value(40.0))
                 .andExpect(jsonPath("$.data_coleta.day").value(10));
     }
 
@@ -375,6 +418,9 @@ public class FoliarAnalysisControllerImplTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.laboratorio").value("Laboratório Agro Atualizado"))
+                .andExpect(jsonPath("$.micronutrientes.b_content").value(45.0))
+                .andExpect(jsonPath("$.macronutrientes.n_content").value(4.0))
+                .andExpect(jsonPath("$.elementos_beneficos.na_content").value(6.0))
                 .andExpect(jsonPath("$.data_coleta.day").value(20))
                 .andExpect(jsonPath("$.data_coleta.month").value(2))
                 .andExpect(jsonPath("$.data_coleta.year").value(2025));

@@ -2,9 +2,15 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.BeneficialElementsContentDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisPostRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisResponseDto;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.MacronutrientsContentDto;
+import com.migueltcc.fertintelligence.dto.foliarAnalysis.MicronutrientsContentDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -57,6 +63,9 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
                 .crop(crop)
                 .collectDate(copyDate(createRequestDto.getCollectDate()))
                 .laboratory(createRequestDto.getLaboratory())
+                .micronutrients(copyMicronutrientsContent(createRequestDto.getMicronutrients()))
+                .macronutrients(copyMacronutrientsContent(createRequestDto.getMacronutrients()))
+                .elements(copyBeneficialElementsContent(createRequestDto.getElements()))
                 .build();
 
         FoliarAnalysisModel savedAnalysis = foliarAnalysisRepository.save(foliarAnalysis);
@@ -84,7 +93,8 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
         CropModel crop = findCropByIdOrThrow(cropId);
         checkOwnerPermission(crop.getFolder(), owner);
 
-        return foliarAnalysisRepository.findAllByCrop(crop).stream()
+        List<FoliarAnalysisModel> analyses = foliarAnalysisRepository.findAllByCrop(crop);
+        return analyses.stream()
                 .map(FoliarAnalysisModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -113,6 +123,18 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
 
         if (updateRequestDto.getLaboratory() != null) {
             foliarAnalysis.setLaboratory(updateRequestDto.getLaboratory());
+        }
+
+        if (updateRequestDto.getMicronutrients() != null) {
+            foliarAnalysis.setMicronutrients(copyMicronutrientsContent(updateRequestDto.getMicronutrients()));
+        }
+
+        if (updateRequestDto.getMacronutrients() != null) {
+            foliarAnalysis.setMacronutrients(copyMacronutrientsContent(updateRequestDto.getMacronutrients()));
+        }
+
+        if (updateRequestDto.getElements() != null) {
+            foliarAnalysis.setElements(copyBeneficialElementsContent(updateRequestDto.getElements()));
         }
 
         FoliarAnalysisModel updatedAnalysis = foliarAnalysisRepository.save(foliarAnalysis);
@@ -172,5 +194,47 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
             return "";
         }
         return String.format("%02d/%02d/%04d", date.getDay(), date.getMonth(), date.getYear());
+    }
+
+    private MicronutrientsContent copyMicronutrientsContent(MicronutrientsContentDto micronutrientsDto) {
+        if (micronutrientsDto == null) {
+            return null;
+        }
+        return new MicronutrientsContent(
+                micronutrientsDto.getB_content(),
+                micronutrientsDto.getCu_content(),
+                micronutrientsDto.getFe_content(),
+                micronutrientsDto.getNi_content(),
+                micronutrientsDto.getMn_content(),
+                micronutrientsDto.getMo_content(),
+                micronutrientsDto.getZn_content()
+        );
+    }
+
+    private MacronutrientsContent copyMacronutrientsContent(MacronutrientsContentDto macronutrientsDto) {
+        if (macronutrientsDto == null) {
+            return null;
+        }
+        return new MacronutrientsContent(
+                macronutrientsDto.getN_content(),
+                macronutrientsDto.getP_content(),
+                macronutrientsDto.getK_content(),
+                macronutrientsDto.getCa_content(),
+                macronutrientsDto.getMg_content(),
+                macronutrientsDto.getS_content()
+        );
+    }
+
+    private BeneficialElementsContent copyBeneficialElementsContent(BeneficialElementsContentDto beneficialElementsDto) {
+        if (beneficialElementsDto == null) {
+            return null;
+        }
+        return new BeneficialElementsContent(
+                beneficialElementsDto.getNa_content(),
+                beneficialElementsDto.getSi_content(),
+                beneficialElementsDto.getV_content(),
+                beneficialElementsDto.getCo_content(),
+                beneficialElementsDto.getSe_content()
+        );
     }
 }
