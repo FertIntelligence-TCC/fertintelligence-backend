@@ -2,7 +2,7 @@ package com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarF
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
-import com.migueltcc.fertintelligence.dto.foliarFertilization.liquidSource.LiquidSourceResponseDto; // Import adicionado
+import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceResponseDto; // Import adicionado
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import jakarta.persistence.*;
 import lombok.*;

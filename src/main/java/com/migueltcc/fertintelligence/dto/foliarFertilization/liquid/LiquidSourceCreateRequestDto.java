@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.dto.foliarFertilization.solidSource;
+package com.migueltcc.fertintelligence.dto.foliarFertilization.liquid;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SolidSourceCreateRequestDto {
+public class LiquidSourceCreateRequestDto {
 
     @JsonProperty("data")
     @NotNull
@@ -31,7 +31,15 @@ public class SolidSourceCreateRequestDto {
     @NotNull
     Double concentration;
 
-    @JsonProperty("quantidade_aplicada")
+    @JsonProperty("densidade")
     @NotNull
-    Double quantity;
+    Double density;
+
+    @JsonProperty("volume_aplicado")
+    @NotNull
+    Double applied_volume;
+
+    @JsonProperty("volume_calda")
+    @NotNull
+    Double tail_volume;
 }

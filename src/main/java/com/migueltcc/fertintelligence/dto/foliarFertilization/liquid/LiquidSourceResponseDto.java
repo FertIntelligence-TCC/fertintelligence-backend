@@ -1,9 +1,9 @@
-package com.migueltcc.fertintelligence.dto.foliarFertilization.liquidSource;
+package com.migueltcc.fertintelligence.dto.foliarFertilization.liquid;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
-import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,33 +13,41 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LiquidSourceCreateRequestDto {
+public class LiquidSourceResponseDto {
 
+    @Schema(example = "1")
+    @JsonProperty("id")
+    Long id;
+
+    @Schema(example = "10")
+    @JsonProperty("id_cultura")
+    Long crop_id;
+
+    @Schema(example = "{\"day\": 20, \"month\": 6, \"year\": 2024}")
     @JsonProperty("data")
-    @NotNull
     Date date;
 
+    @Schema(example = "BORO")
     @JsonProperty("micronutriente_aplicado")
-    @NotNull
     AppliedMicronutrient micronutrient;
 
+    @Schema(example = "Ácido Bórico")
     @JsonProperty("fonte")
-    @NotNull
     String source;
 
+    @Schema(example = "17.0")
     @JsonProperty("concentracao")
-    @NotNull
     Double concentration;
 
+    @Schema(example = "1.2")
     @JsonProperty("densidade")
-    @NotNull
     Double density;
 
+    @Schema(example = "2.5")
     @JsonProperty("volume_aplicado")
-    @NotNull
     Double applied_volume;
 
+    @Schema(example = "200.0")
     @JsonProperty("volume_calda")
-    @NotNull
     Double tail_volume;
 }

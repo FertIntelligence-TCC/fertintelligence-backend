@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.dto.foliarFertilization.liquidSource;
+package com.migueltcc.fertintelligence.dto.foliarFertilization.solid;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
@@ -13,33 +13,25 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LiquidSourcePostRequestDto {
+public class SolidSourcePostRequestDto {
 
-    @Schema(example = "21/06/2025")
+    @Schema(example = "26/07/2025")
     @JsonProperty("novo_data")
     Date date;
 
-    @Schema(example = "ZINCO")
+    @Schema(example = "COBRE")
     @JsonProperty("novo_micronutriente_aplicado")
     AppliedMicronutrient micronutrient;
 
-    @Schema(example = "Sulfato de Zinco")
+    @Schema(example = "Sulfato de Cobre")
     @JsonProperty("novo_fonte")
     String source;
 
-    @Schema(example = "20.0")
+    @Schema(example = "24.0")
     @JsonProperty("novo_concentracao")
     Double concentration;
 
-    @Schema(example = "1.3")
-    @JsonProperty("novo_densidade")
-    Double density;
-
-    @Schema(example = "3.0")
-    @JsonProperty("novo_volume_aplicado")
-    Double applied_volume;
-
-    @Schema(example = "250.0")
-    @JsonProperty("novo_volume_calda")
-    Double tail_volume;
+    @Schema(example = "2.5")
+    @JsonProperty("novo_quantidade_aplicada")
+    Double quantity;
 }
