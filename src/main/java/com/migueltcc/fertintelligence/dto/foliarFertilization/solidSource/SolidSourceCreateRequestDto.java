@@ -1,0 +1,37 @@
+package com.migueltcc.fertintelligence.dto.foliarFertilization.solidSource;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class SolidSourceCreateRequestDto {
+
+    @JsonProperty("data")
+    @NotNull
+    Date date;
+
+    @JsonProperty("micronutriente_aplicado")
+    @NotNull
+    AppliedMicronutrient micronutrient;
+
+    @JsonProperty("fonte")
+    @NotNull
+    String source;
+
+    @JsonProperty("concentracao")
+    @NotNull
+    Double concentration;
+
+    @JsonProperty("quantidade_aplicada")
+    @NotNull
+    Double quantity;
+}
