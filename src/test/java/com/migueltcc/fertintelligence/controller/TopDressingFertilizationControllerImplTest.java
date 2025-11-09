@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationCreateRequestDto;
@@ -46,22 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-public class TopDressingFertilizationControllerImplTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private TopDressingFertilizationRepository topDressingFertilizationRepository;
-
-    @MockitoBean
-    private CropRepository cropRepository;
-
-    @MockitoBean
-    private UserRepository userRepository;
+public class TopDressingFertilizationControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;

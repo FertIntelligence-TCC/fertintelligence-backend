@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.user.*;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
@@ -39,26 +40,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "jwt.private.key=classpath:private.pem"
 })
 @ExtendWith(MockitoExtension.class)
-class UserControllerImplTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private UserRepository userRepository;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+class UserControllerImplTest extends AbstractControllerTest {
 
     private static MockRestServiceServer mockServer;
-
-    @MockitoBean
-    private JwtEncoder jwtEncoder;
-
-    @MockitoBean
-    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {

@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
@@ -51,22 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-public class FoliarAnalysisControllerImplTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private FoliarAnalysisRepository foliarAnalysisRepository;
-
-    @MockitoBean
-    private CropRepository cropRepository;
-
-    @MockitoBean
-    private UserRepository userRepository;
+public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;

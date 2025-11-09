@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
@@ -48,22 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-public class LayerExtractControllerImplTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private LayerExtractRepository layerExtractRepository;
-
-    @MockitoBean
-    private SoilAnalysisRepository soilAnalysisRepository;
-
-    @MockitoBean
-    private UserRepository userRepository;
+public class LayerExtractControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;

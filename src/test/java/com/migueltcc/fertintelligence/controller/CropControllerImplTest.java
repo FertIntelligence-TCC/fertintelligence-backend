@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
@@ -46,22 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
-public class CropControllerImplTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private CropRepository cropRepository;
-
-    @MockitoBean
-    private AnnualCropFolderRepository annualCropFolderRepository;
-
-    @MockitoBean
-    private UserRepository userRepository;
+public class CropControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
