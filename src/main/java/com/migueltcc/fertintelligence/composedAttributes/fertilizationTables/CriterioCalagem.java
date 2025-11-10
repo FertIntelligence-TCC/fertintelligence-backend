@@ -1,0 +1,8 @@
+package com.migueltcc.fertintelligence.composedAttributes.fertilizationTables;
+
+public enum CriterioCalagem {
+    SATURACAO_POR_BASES_TROCAVEIS,
+    NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL,
+    ELEVACAO_DO_TEOR_DE_CALCIO_MAIS_MAGNESIO,
+    NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL_MAIS_ELEVACAO_DO_TEOR_DE_CALCIO_MAIS_MAGNESIO,
+}

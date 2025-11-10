@@ -17,12 +17,10 @@ public class FoliarAnalysisCreateRequestDto {
 
     @JsonProperty("data_coleta")
     @NotNull
-    @Schema(example = "15/01/2025")
     Date collectDate;
 
     @JsonProperty("laboratorio")
     @NotNull
-    @Schema(example = "Laboratório Solos & Plantas")
     String laboratory;
 
     @JsonProperty("micronutrientes")
