@@ -19,12 +19,6 @@ public class CoverageModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    /**
-     * Em relação ao intervalo de teores.
-     * Nitrogênio sempre tem um intervalo de teores nulo.
-     * Fosforo e Potassio podem ter até 5 intervalos de teores.
-     * Melhor descrição em ContentRangeModel.
-     */
     @ManyToOne
     @JoinColumn(name = "ID_INTERVALO_TEORES", nullable = false)
     ContentRangeModel range;
