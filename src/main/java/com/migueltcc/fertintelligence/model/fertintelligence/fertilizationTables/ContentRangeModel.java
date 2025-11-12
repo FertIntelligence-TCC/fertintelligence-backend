@@ -31,6 +31,7 @@ public class ContentRangeModel {
      * Pode ter até 5 intervalos de teores.
      * O primeiro intervalo tem smallest nulo.
      * O último intervalo tem largest nulo.
+     * Os outros intervalos tem smallest e largest não nulos.
      * Em 2 intervalos subsequentes, o largest do primeiro é igual ao smallest do segundo.
      */
     @Column(name = "ORDEM_TEOR", nullable = true)
