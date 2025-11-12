@@ -17,65 +17,75 @@ import java.util.stream.Collectors;
 @ControllerAdvice // Indica que esta classe tratará exceções globalmente
 public class GlobalExceptionHandler {
 
-    // --- Handler para Entidade Não Encontrada ---
+    // --- Handler para Entidade Não Encontrada (404) ---
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Object> handleEntityNotFoundException(EntityNotFoundException ex, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.NOT_FOUND.value());
         body.put("error", "Not Found");
-        body.put("message", ex.getMessage()); // Mensagem da exceção (ex: "Propriedade não encontrada...")
-        body.put("path", request.getDescription(false).substring(4)); // URI da requisição
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).substring(4));
 
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    // --- Handler para Entidade Já Existente ---
+    // --- Handler para Entidade Já Existente (400) ---
     @ExceptionHandler(EntityExistsException.class)
     public ResponseEntity<Object> handleEntityExistsException(EntityExistsException ex, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("error", "Bad Request");
-        body.put("message", ex.getMessage()); // Mensagem da exceção (ex: "CNPJ já existe...")
+        body.put("message", ex.getMessage());
         body.put("path", request.getDescription(false).substring(4));
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // --- Handler para Acesso Negado (Permissões) ---
+    // --- NOVO: Handler para Regras de Negócio / Argumentos Inválidos (400) ---
+    // Adicionado para corrigir o erro nos testes onde 500 era retornado ao invés de 400
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Bad Request");
+        body.put("message", ex.getMessage()); // Ex: "A tabela deve manter ao menos um intervalo..."
+        body.put("path", request.getDescription(false).substring(4));
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    // --- Handler para Acesso Negado (403) ---
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.FORBIDDEN.value());
         body.put("error", "Forbidden");
-        body.put("message", ex.getMessage()); // Mensagem da exceção (ex: "Acesso negado...")
+        body.put("message", ex.getMessage());
         body.put("path", request.getDescription(false).substring(4));
 
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 
-    // --- Handler para Erros de Validação (@Valid) ---
+    // --- Handler para Erros de Validação @Valid (400) ---
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("error", "Validation Error");
-        // Coleta todas as mensagens de erro de validação
+
         String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
+
         body.put("message", errors);
         body.put("path", request.getDescription(false).substring(4));
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-
-    // --- Handler Genérico para Outras Exceções (Opcional, mas recomendado) ---
+    // --- Handler Genérico para Outras Exceções (500) ---
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGenericException(Exception ex, WebRequest request) {
-        // Logar a exceção aqui é uma boa prática
-        // logger.error("Unhandled exception occurred", ex);
-
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         body.put("error", "Internal Server Error");

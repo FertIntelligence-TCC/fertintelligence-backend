@@ -1,0 +1,249 @@
+package com.migueltcc.fertintelligence.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.coverage.CoveragePostRequestDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(locations = "classpath:application-test.properties")
+public class CoverageControllerImplTest extends AbstractControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private UserModel proprietarioUser;
+    private UserModel funcionarioUser;
+
+    private CropFertilizationTableModel ownerTable;
+    private ContentRangeModel ownerRange;
+    private CoverageModel coverageOne;
+    private CoverageModel coverageTwo;
+
+    @BeforeEach
+    void setUp() {
+        proprietarioUser = UserModel.builder()
+                .id(1L)
+                .username("testuser")
+                .name("Test User Proprietario")
+                .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        funcionarioUser = UserModel.builder()
+                .id(2L)
+                .username("employee")
+                .name("Employee User")
+                .cargo(Cargo.SECRETARIO)
+                .build();
+
+        ownerTable = CropFertilizationTableModel.builder()
+                .id(10L)
+                .creator(proprietarioUser)
+                .build();
+
+        ownerRange = ContentRangeModel.builder()
+                .id(100L)
+                .table(ownerTable)
+                .nutrient(Nutriente.FOSFORO)
+                .order(1)
+                .smallest(null)
+                .largest(10.0)
+                .application(80.0)
+                .build();
+
+        coverageOne = CoverageModel.builder()
+                .id(200L)
+                .range(ownerRange)
+                .order(1)
+                .application(30.0)
+                .build();
+
+        coverageTwo = CoverageModel.builder()
+                .id(201L)
+                .range(ownerRange)
+                .order(2)
+                .application(20.0)
+                .build();
+    }
+
+    private CoverageCreateRequestDto createCoverageRequest(int order, double application) {
+        return CoverageCreateRequestDto.builder()
+                .order(order)
+                .application(application)
+                .build();
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCoverageSuccessfully() throws Exception {
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 30.0);
+
+        CoverageModel savedCoverage = coverageOne.toBuilder().id(300L).build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of());
+        when(coverageRepository.save(any(CoverageModel.class))).thenReturn(savedCoverage);
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", ownerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/coverage/get?coverageId=300"))
+                .andExpect(jsonPath("$.ordem_cobertura").value(1))
+                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(30.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCoverageFails_WhenOrderNotSequential() throws Exception {
+        CoverageCreateRequestDto requestDto = createCoverageRequest(2, 25.0);
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of());
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", ownerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getCoverageSuccessfully() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
+
+        mockMvc.perform(get("/coverage/get")
+                        .param("coverageId", coverageOne.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(coverageOne.getId()))
+                .andExpect(jsonPath("$.ordem_cobertura").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "employee")
+    void getCoverageFails_WhenUserNotProprietario() throws Exception {
+        when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+
+        mockMvc.perform(get("/coverage/get")
+                        .param("coverageId", coverageOne.getId().toString()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void listCoveragesSuccessfully() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+
+        mockMvc.perform(get("/coverage/get-by-range")
+                        .param("contentRangeId", ownerRange.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[1].ordem_cobertura").value(2));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateCoverageSuccessfully() throws Exception {
+        CoveragePostRequestDto requestDto = CoveragePostRequestDto.builder()
+                .order(2)
+                .application(22.0)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageTwo.getId())).thenReturn(Optional.of(coverageTwo));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+        when(coverageRepository.save(any(CoverageModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/coverage/update")
+                        .param("coverageId", coverageTwo.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(22.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateCoverageFails_WhenOrderInvalid() throws Exception {
+        CoveragePostRequestDto requestDto = CoveragePostRequestDto.builder()
+                .order(3)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+
+        mockMvc.perform(put("/coverage/update")
+                        .param("coverageId", coverageOne.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void deleteCoverageSuccessfully() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageTwo.getId())).thenReturn(Optional.of(coverageTwo));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+        doNothing().when(coverageRepository).delete(coverageTwo);
+
+        mockMvc.perform(delete("/coverage/delete")
+                        .param("coverageId", coverageTwo.getId().toString()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void deleteCoverageFails_WhenNotLast() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+
+        mockMvc.perform(delete("/coverage/delete")
+                        .param("coverageId", coverageOne.getId().toString()))
+                .andExpect(status().isBadRequest());
+    }
+}

@@ -73,14 +73,14 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected UserRepository userRepository;
 
-    // @MockitoBean
-    // protected CropFertilizationTableRepository cropFertilizationTableRepository;
+    @MockitoBean
+    protected CropFertilizationTableRepository cropFertilizationTableRepository;
 
-    // @MockitoBean
-    // protected ContentRangeRepository contentRangeRepository;
+    @MockitoBean
+    protected ContentRangeRepository contentRangeRepository;
 
-    // @MockitoBean
-    // protected CoverageRepository coverageRepository;
+    @MockitoBean
+    protected CoverageRepository coverageRepository;
 
     // Mocks do UserControllerImplTest
     @MockitoBean
