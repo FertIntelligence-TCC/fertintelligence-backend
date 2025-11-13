@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
@@ -23,6 +24,9 @@ public class CropFoliarAnalysisInterpretationTableModel {
     @ManyToOne
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
+
+    // @Column(name = "REGIAO_ANALISE_FOLIAR_CULTURAS", nullable = false)
+    // private Regiao region;
 
     public CropFoliarAnalysisInterpretationTableResponseDto toDto() {
         return CropFoliarAnalysisInterpretationTableResponseDto.builder()

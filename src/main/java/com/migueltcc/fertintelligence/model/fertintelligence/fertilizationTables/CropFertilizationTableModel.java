@@ -25,6 +25,9 @@ public class CropFertilizationTableModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 
+    // @Column(name = "REGIOES_CULTURA", nullable = false)
+    // private Regiao region;
+
     @Column(name = "NOME_COMUM_CULTURA", nullable = false)
     private NomeComum crop_common_name;
 
