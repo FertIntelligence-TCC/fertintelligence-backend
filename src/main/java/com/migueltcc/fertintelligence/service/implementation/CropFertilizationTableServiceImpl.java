@@ -40,6 +40,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         CropFertilizationTableModel table = CropFertilizationTableModel.builder()
                 .creator(owner)
+                .region(createRequestDto.getRegion())
                 .crop_common_name(createRequestDto.getCrop_common_name())
                 .crop_scientific_nome(createRequestDto.getCrop_scientific_nome())
                 .cultivares(createRequestDto.getCultivares())
@@ -161,6 +162,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         if (updateRequestDto.getObservations() != null) {
             table.setObservations(updateRequestDto.getObservations());
+        }
+
+        if (updateRequestDto.getRegion() != null) {
+            table.setRegion(updateRequestDto.getRegion());
         }
 
         CropFertilizationTableModel updatedTable = cropFertilizationTableRepository.save(table);

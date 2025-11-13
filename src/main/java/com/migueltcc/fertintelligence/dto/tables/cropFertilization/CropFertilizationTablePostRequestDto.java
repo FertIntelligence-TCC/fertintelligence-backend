@@ -77,4 +77,8 @@ public class CropFertilizationTablePostRequestDto {
     @JsonProperty("novo_observacoes")
     @Schema(example = "Observação atualizada.")
     private String observations;
+
+    @JsonProperty("novo_regioes_cultura")
+    @Schema(example = "NORDESTE")
+    private Regiao region;
 }

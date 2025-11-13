@@ -27,6 +27,11 @@ public class CropFertilizationTableCreateRequestDto {
     @NotNull
     private String cultivares;
 
+    @JsonProperty("regioes_cultura")
+    @Schema(example = "SUL")
+    @NotNull
+    private Regiao region;
+
     @JsonProperty("espacamentos_sugeridos")
     @NotNull
     private SpacingType suggested_spacing;

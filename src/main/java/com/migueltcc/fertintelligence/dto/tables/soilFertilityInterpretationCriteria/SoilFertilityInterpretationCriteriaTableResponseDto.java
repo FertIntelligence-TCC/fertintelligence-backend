@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table;
+package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
@@ -12,22 +12,21 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CropFoliarAnalysisInterpretationTableResponseDto {
+public class SoilFertilityInterpretationCriteriaTableResponseDto {
 
-    @Schema(example = "10")
+    @Schema(example = "1")
     @JsonProperty("id")
     private Long id;
 
-    @Schema(example = "5")
+    @Schema(example = "10")
     @JsonProperty("id_criador")
     private Long creator_id;
 
-    @Schema(example = "João Silva")
+    @Schema(example = "Maria Souza")
     @JsonProperty("nome_criador")
     private String creator_name;
 
-    @Schema(example = "SUL")
-    @JsonProperty("regiao_analise_foliar_culturas")
+    @Schema(example = "SUL") // Exemplo hipotético, depende do Enum Regiao
+    @JsonProperty("regiao")
     private Regiao region;
-
 }

@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.SpacingType;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.TipoEsterco;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -30,17 +31,12 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CropFertilizationTableControllerImplTest extends AbstractControllerTest {
 
@@ -74,6 +70,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         ownerTable = CropFertilizationTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .region(Regiao.SUL)
                 .crop_common_name(NomeComum.MILHO)
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .cultivares("Cultivar 1")
@@ -95,6 +92,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
 
     private CropFertilizationTableCreateRequestDto createRequestDto() {
         return CropFertilizationTableCreateRequestDto.builder()
+                .region(Regiao.SUL)
                 .crop_common_name(NomeComum.MILHO)
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .cultivares("Cultivar 1")
@@ -116,6 +114,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
 
     private CropFertilizationTablePostRequestDto updateRequestDto() {
         return CropFertilizationTablePostRequestDto.builder()
+                .region(Regiao.NORDESTE)
                 .crop_common_name(NomeComum.MILHO)
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .expected_productivity(9500.0)
@@ -144,6 +143,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_comum_cultura").value("MILHO"))
                 .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
+                .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
                 .andExpect(jsonPath("$.observacoes").value("Observações iniciais"));
     }
 
@@ -172,7 +172,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"));
+                .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
+                .andExpect(jsonPath("$.regioes_cultura").value("SUL"));
     }
 
     @Test
@@ -192,6 +193,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         CropFertilizationTableModel otherTable = ownerTable.toBuilder()
                 .id(11L)
                 .observations("Outra tabela")
+                .region(Regiao.CENTRO_OESTE)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -200,7 +202,9 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         mockMvc.perform(get("/crop-fertilization-table/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$[1].observacoes").value("Outra tabela"));
+                .andExpect(jsonPath("$[1].observacoes").value("Outra tabela"))
+                .andExpect(jsonPath("$[0].regioes_cultura").value("SUL"))
+                .andExpect(jsonPath("$[1].regioes_cultura").value("CENTRO_OESTE"));
     }
 
     @Test
@@ -219,7 +223,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.produtividade_esperada").value(9500.0))
-                .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"));
+                .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"))
+                .andExpect(jsonPath("$.regioes_cultura").value("NORDESTE"));
     }
 
     @Test

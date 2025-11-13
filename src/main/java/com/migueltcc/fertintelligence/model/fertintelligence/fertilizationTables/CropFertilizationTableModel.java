@@ -25,8 +25,8 @@ public class CropFertilizationTableModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 
-    // @Column(name = "REGIOES_CULTURA", nullable = false)
-    // private Regiao region;
+    @Column(name = "REGIOES_CULTURA", nullable = false)
+    private Regiao region;
 
     @Column(name = "NOME_COMUM_CULTURA", nullable = false)
     private NomeComum crop_common_name;
@@ -84,6 +84,7 @@ public class CropFertilizationTableModel {
                 .id(this.id)
                 .creator_id(this.creator.getId())
                 .creator_name(this.creator.getName())
+                .region(this.region)
                 .crop_common_name(this.crop_common_name)
                 .crop_scientific_nome(this.crop_scientific_nome)
                 .cultivares(this.cultivares)

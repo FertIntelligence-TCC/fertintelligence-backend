@@ -25,14 +25,15 @@ public class CropFoliarAnalysisInterpretationTableModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 
-    // @Column(name = "REGIAO_ANALISE_FOLIAR_CULTURAS", nullable = false)
-    // private Regiao region;
+    @Column(name = "REGIAO_ANALISE_FOLIAR_CULTURAS", nullable = false)
+    private Regiao region;
 
     public CropFoliarAnalysisInterpretationTableResponseDto toDto() {
         return CropFoliarAnalysisInterpretationTableResponseDto.builder()
                 .id(this.id)
                 .creator_id(this.creator.getId())
                 .creator_name(this.creator.getName())
+                .region(this.region)
                 .build();
     }
 

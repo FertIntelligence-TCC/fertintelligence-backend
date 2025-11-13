@@ -43,6 +43,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
 
         CropFoliarAnalysisInterpretationTableModel table = CropFoliarAnalysisInterpretationTableModel.builder()
                 .creator(owner)
+                .region(createRequestDto.getRegion())
                 .build();
 
         CropFoliarAnalysisInterpretationTableModel savedTable = tableRepository.save(table);
@@ -90,8 +91,10 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
 
-        // Atualmente, a tabela não possui campos adicionais além do criador.
-        // O método foi mantido para garantir compatibilidade com futuras evoluções da API.
+        if (updateRequestDto.getRegion() != null) {
+            table.setRegion(updateRequestDto.getRegion());
+        }
+
         CropFoliarAnalysisInterpretationTableModel updatedTable = tableRepository.save(table);
         return updatedTable.toDto();
     }

@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
@@ -25,17 +26,12 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CropFoliarAnalysisInterpretationTableControllerImplTest extends AbstractControllerTest {
 
@@ -68,15 +64,20 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
         ownerTable = CropFoliarAnalysisInterpretationTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .region(Regiao.SUL)
                 .build();
     }
 
     private CropFoliarAnalysisInterpretationTableCreateRequestDto createRequestDto() {
-        return CropFoliarAnalysisInterpretationTableCreateRequestDto.builder().build();
+        return CropFoliarAnalysisInterpretationTableCreateRequestDto.builder()
+                .region(Regiao.SUL)
+                .build();
     }
 
     private CropFoliarAnalysisInterpretationTablePostRequestDto updateRequestDto() {
-        return CropFoliarAnalysisInterpretationTablePostRequestDto.builder().build();
+        return CropFoliarAnalysisInterpretationTablePostRequestDto.builder()
+                .region(Regiao.NORDESTE)
+                .build();
     }
 
     @Test
@@ -96,7 +97,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location",
                         "http://localhost/crop-foliar-analysis-interpretation-table/get?tableId=25"))
-                .andExpect(jsonPath("$.id").value(25L));
+                .andExpect(jsonPath("$.id").value(25L))
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"));
     }
 
     @Test
@@ -111,7 +113,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"));
+                .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"));
     }
 
     @Test
@@ -131,6 +134,7 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
     void listCropFoliarAnalysisInterpretationTablesSuccessfully() throws Exception {
         CropFoliarAnalysisInterpretationTableModel otherTable = ownerTable.toBuilder()
                 .id(11L)
+                .region(Regiao.CENTRO_OESTE)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -140,7 +144,9 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
         mockMvc.perform(get("/crop-foliar-analysis-interpretation-table/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$[1].id").value(otherTable.getId()));
+                .andExpect(jsonPath("$[1].id").value(otherTable.getId()))
+                .andExpect(jsonPath("$[0].regiao_analise_foliar_culturas").value("SUL"))
+                .andExpect(jsonPath("$[1].regiao_analise_foliar_culturas").value("CENTRO_OESTE"));
     }
 
     @Test
@@ -158,7 +164,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequestDto())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(ownerTable.getId()));
+                .andExpect(jsonPath("$.id").value(ownerTable.getId()))
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("NORDESTE"));
     }
 
     @Test

@@ -88,6 +88,9 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected CropFoliarAnalysisInterpretationTableLineRepository cropFoliarAnalysisInterpretationTableLineRepository;
 
+    // @MockitoBean
+    // protected SoilFertilityInterpretationCriteriaTable soilFertilityInterpretationCriteriaTable;
+
     // Mocks do UserControllerImplTest
     @MockitoBean
     protected PasswordEncoder passwordEncoder;

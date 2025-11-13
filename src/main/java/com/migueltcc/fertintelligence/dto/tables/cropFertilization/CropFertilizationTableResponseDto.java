@@ -26,11 +26,15 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("nome_criador")
     private String creator_name;
 
-    @Schema(example = "SOJA") // OK
+    @Schema(example = "SUL")
+    @JsonProperty("regioes_cultura")
+    private Regiao region;
+
+    @Schema(example = "SOJA")
     @JsonProperty("nome_comum_cultura")
     private NomeComum crop_common_name;
 
-    @Schema(example = "Glycine_max") // CORRIGIDO
+    @Schema(example = "Glycine_max")
     @JsonProperty("nome_cientifico_cultura")
     private NomeCientifico crop_scientific_nome;
 
