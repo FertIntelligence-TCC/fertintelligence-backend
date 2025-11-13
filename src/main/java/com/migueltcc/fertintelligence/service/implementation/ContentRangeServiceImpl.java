@@ -68,6 +68,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         validateNutrientRanges(createRequestDto.getNutrient(), updatedRanges);
 
         ContentRangeModel savedRange = contentRangeRepository.save(newRange);
+        createPlaceholderCoveragesForNewRange(savedRange, existingRanges);
         return savedRange.toDto();
     }
 
@@ -296,6 +297,39 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 }
             }
         }
+    }
+
+    private void createPlaceholderCoveragesForNewRange(ContentRangeModel newRange, List<ContentRangeModel> existingRanges) {
+        if (existingRanges.isEmpty()) {
+            return;
+        }
+
+        List<CoverageModel> referenceCoverages = coverageRepository
+                .findAllByRangeOrderByOrderAsc(existingRanges.get(0));
+
+        if (referenceCoverages.isEmpty()) {
+            return;
+        }
+
+        int expectedCoverageCount = referenceCoverages.size();
+
+        for (ContentRangeModel range : existingRanges) {
+            List<CoverageModel> rangeCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+            if (rangeCoverages.size() != expectedCoverageCount) {
+                throw new IllegalStateException(
+                        "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
+            }
+        }
+
+        List<CoverageModel> placeholderCoverages = referenceCoverages.stream()
+                .map(reference -> CoverageModel.builder()
+                        .range(newRange)
+                        .order(reference.getOrder())
+                        .application(null)
+                        .build())
+                .collect(Collectors.toList());
+
+        coverageRepository.saveAll(placeholderCoverages);
     }
 
     private void checkUserIsProprietario(UserModel user) {

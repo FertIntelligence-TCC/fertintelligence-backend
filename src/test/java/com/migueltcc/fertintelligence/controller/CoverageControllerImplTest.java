@@ -13,6 +13,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,9 +25,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -118,6 +124,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of());
         when(coverageRepository.save(any(CoverageModel.class))).thenReturn(savedCoverage);
 
@@ -133,11 +141,52 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void createCoverageCreatesPlaceholderForSiblingRange() throws Exception {
+        ContentRangeModel siblingRange = ownerRange.toBuilder()
+                .id(101L)
+                .order(2)
+                .build();
+
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 30.0);
+
+        CoverageModel savedCoverage = coverageOne.toBuilder().id(300L).build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange, siblingRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of());
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(siblingRange)).thenReturn(List.of());
+        when(coverageRepository.save(any(CoverageModel.class))).thenReturn(savedCoverage);
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", ownerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<Iterable<CoverageModel>> placeholdersCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).saveAll(placeholdersCaptor.capture());
+
+        List<CoverageModel> placeholders = StreamSupport.stream(placeholdersCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+
+        assertEquals(1, placeholders.size());
+        CoverageModel placeholder = placeholders.get(0);
+        assertEquals(siblingRange.getId(), placeholder.getRange().getId());
+        assertEquals(1, placeholder.getOrder());
+        assertNull(placeholder.getApplication());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void createCoverageFails_WhenOrderNotSequential() throws Exception {
         CoverageCreateRequestDto requestDto = createCoverageRequest(2, 25.0);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of());
 
         mockMvc.perform(post("/coverage/register")
@@ -175,6 +224,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
     void listCoveragesSuccessfully() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
 
         mockMvc.perform(get("/coverage/get-by-range")
@@ -194,6 +245,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(coverageRepository.findById(coverageTwo.getId())).thenReturn(Optional.of(coverageTwo));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
         when(coverageRepository.save(any(CoverageModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put("/coverage/update")
@@ -214,6 +267,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
 
         mockMvc.perform(put("/coverage/update")
                         .param("coverageId", coverageOne.getId().toString())
@@ -228,11 +283,49 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(coverageRepository.findById(coverageTwo.getId())).thenReturn(Optional.of(coverageTwo));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange));
         doNothing().when(coverageRepository).delete(coverageTwo);
 
         mockMvc.perform(delete("/coverage/delete")
                         .param("coverageId", coverageTwo.getId().toString()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void deleteCoverageRemovesSiblingCoverages() throws Exception {
+        ContentRangeModel siblingRange = ownerRange.toBuilder()
+                .id(101L)
+                .order(2)
+                .build();
+
+        CoverageModel siblingCoverage = coverageOne.toBuilder()
+                .id(210L)
+                .range(siblingRange)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(ownerRange, siblingRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(siblingRange)).thenReturn(List.of(siblingCoverage));
+        doNothing().when(coverageRepository).delete(coverageOne);
+        doNothing().when(coverageRepository).deleteAll(any());
+
+        mockMvc.perform(delete("/coverage/delete")
+                        .param("coverageId", coverageOne.getId().toString()))
+                .andExpect(status().isNoContent());
+
+        ArgumentCaptor<Iterable<CoverageModel>> deletedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).deleteAll(deletedCaptor.capture());
+
+        List<CoverageModel> deletedCoverages = StreamSupport.stream(deletedCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+
+        assertEquals(1, deletedCoverages.size());
+        assertEquals(siblingCoverage.getId(), deletedCoverages.get(0).getId());
     }
 
     @Test

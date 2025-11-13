@@ -18,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +52,8 @@ public class CoverageServiceImpl implements CoverageService {
             throw new IllegalArgumentException("A ordem da cobertura deve ser sequencial e iniciar em 1.");
         }
 
+        List<CoverageModel> siblingPlaceholders = createSiblingPlaceholderCoverages(range, existingCoverages.size(), expectedOrder);
+
         CoverageModel coverage = CoverageModel.builder()
                 .range(range)
                 .order(createRequestDto.getOrder())
@@ -58,6 +61,11 @@ public class CoverageServiceImpl implements CoverageService {
                 .build();
 
         CoverageModel savedCoverage = coverageRepository.save(coverage);
+
+        if (!siblingPlaceholders.isEmpty()) {
+            coverageRepository.saveAll(siblingPlaceholders);
+        }
+
         return savedCoverage.toDto();
     }
 
@@ -144,7 +152,14 @@ public class CoverageServiceImpl implements CoverageService {
             }
         }
 
+        List<CoverageModel> siblingCoveragesToDelete = collectSiblingCoveragesForDeletion(range,
+                existingCoverages.size());
+
         coverageRepository.delete(coverage);
+
+        if (!siblingCoveragesToDelete.isEmpty()) {
+            coverageRepository.deleteAll(siblingCoveragesToDelete);
+        }
     }
 
     private void validateCoverageOrders(List<CoverageModel> coverages) {
@@ -192,4 +207,58 @@ public class CoverageServiceImpl implements CoverageService {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar as coberturas desta tabela.");
         }
     }
+
+    private List<CoverageModel> createSiblingPlaceholderCoverages(ContentRangeModel range, int currentCoverageCount,
+                                                                  int newOrder) {
+        List<ContentRangeModel> siblingRanges = contentRangeRepository
+                .findAllByTableAndNutrientOrderByOrderAsc(range.getTable(), range.getNutrient());
+
+        List<CoverageModel> placeholders = new ArrayList<>();
+
+        for (ContentRangeModel sibling : siblingRanges) {
+            if (Objects.equals(sibling.getId(), range.getId())) {
+                continue;
+            }
+
+            List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
+            if (siblingCoverages.size() != currentCoverageCount) {
+                throw new IllegalStateException(
+                        "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
+            }
+
+            placeholders.add(CoverageModel.builder()
+                    .range(sibling)
+                    .order(newOrder)
+                    .application(null)
+                    .build());
+        }
+
+        return placeholders;
+    }
+
+    private List<CoverageModel> collectSiblingCoveragesForDeletion(ContentRangeModel range, int currentCoverageCount) {
+        List<ContentRangeModel> siblingRanges = contentRangeRepository
+                .findAllByTableAndNutrientOrderByOrderAsc(range.getTable(), range.getNutrient());
+
+        List<CoverageModel> coveragesToDelete = new ArrayList<>();
+
+        for (ContentRangeModel sibling : siblingRanges) {
+            if (Objects.equals(sibling.getId(), range.getId())) {
+                continue;
+            }
+
+            List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
+            if (siblingCoverages.size() != currentCoverageCount) {
+                throw new IllegalStateException(
+                        "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
+            }
+
+            if (currentCoverageCount > 0) {
+                coveragesToDelete.add(siblingCoverages.get(currentCoverageCount - 1));
+            }
+        }
+
+        return coveragesToDelete;
+    }
+
 }

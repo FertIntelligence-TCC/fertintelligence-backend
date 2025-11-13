@@ -8,10 +8,12 @@ import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreate
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,9 +25,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,6 +39,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
@@ -162,6 +169,7 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
         when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
         when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
                 .thenReturn(List.of(fosforoRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoRange)).thenReturn(List.of());
         when(contentRangeRepository.save(any(ContentRangeModel.class))).thenReturn(savedRange);
 
         mockMvc.perform(post("/content-range/register")
@@ -173,6 +181,47 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.ordem_teor").value(2))
                 .andExpect(jsonPath("$.maior_teor").doesNotExist());
     }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createContentRangeCopiesCoverageStructureFromExistingRanges() throws Exception {
+        ContentRangeCreateRequestDto requestDto = createFosforoFinalRequest();
+
+        ContentRangeModel savedRange = fosforoFinalRange.toBuilder().id(130L).build();
+
+        CoverageModel existingCoverage = CoverageModel.builder()
+                .id(400L)
+                .range(fosforoRange)
+                .order(1)
+                .application(70.0)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoRange)).thenReturn(List.of(existingCoverage));
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenReturn(savedRange);
+
+        mockMvc.perform(post("/content-range/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<Iterable<CoverageModel>> placeholdersCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).saveAll(placeholdersCaptor.capture());
+
+        List<CoverageModel> placeholders = StreamSupport.stream(placeholdersCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+
+        assertEquals(1, placeholders.size());
+        CoverageModel placeholder = placeholders.get(0);
+        assertEquals(savedRange.getId(), placeholder.getRange().getId());
+        assertEquals(existingCoverage.getOrder(), placeholder.getOrder());
+        assertNull(placeholder.getApplication());
+    }
+
 
     @Test
     @WithMockUser(username = "testuser")
