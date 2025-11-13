@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables;
 
+import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,4 +19,17 @@ public class CropFoliarAnalysisInterpretationTableModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "ID_CRIADOR", nullable = false)
+    private UserModel creator;
+
+    public CropFoliarAnalysisInterpretationTableResponseDto toDto() {
+        return CropFoliarAnalysisInterpretationTableResponseDto.builder()
+                .id(this.id)
+                .creator_id(this.creator.getId())
+                .creator_name(this.creator.getName())
+                .build();
+    }
+
 }

@@ -1,7 +1,8 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
-import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NutrienteFolha;
+import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 @Entity
 @Data
-@Table(name = "LINHAS_TABELAS_DE_INTERPRETACAO_DE_ANÁLISE_FOLIAR_DE CULTURAS")
+@Table(name = "LINHAS_TABELAS_DE_INTERPRETACAO_DE_ANÁLISE_FOLIAR_DE_CULTURAS")
 public class CropFoliarAnalysisInterpretationTableLineModel {
 
     @Id
@@ -21,19 +22,132 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
     Long id;
 
     @ManyToOne
-    @JoinColumn(name = "ID_TABELA_DE_INTERPRETACAO_DE_ANÁLISE_FOLIAR_DE CULTURAS", nullable = false)
+    @JoinColumn(name = "ID_TABELA_INTERPRETACAO", nullable = false)
     CropFoliarAnalysisInterpretationTableModel table;
 
+    /**
+     * Regras de Negócio:
+     * A tabela de interpretação de análise foliar de culturas deve possuir ao menos uma linha.
+     * A tabela não pode possuir linhas com nomes de cultura repetidos.
+     */
     @Column(name = "NOME_CULTURA", nullable = false)
-    NomeComum crop;
+    private NomeComum crop;
 
-    @Column(name = "NUTRIENTE_CULTURA", nullable = false)
-    NutrienteFolha nutrient;
+    // --- NITROGÊNIO (N) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "N_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "N_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "N_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores n_content;
 
-    @Column(name = "MENOR_DOSE", nullable = false)
-    Double lower_dose;
+    // --- FÓSFORO (P) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "P_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "P_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "P_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores p_content;
 
-    @Column(name = "MAIOR_DOSE", nullable = false)
-    Double higher_dose;
+    // --- POTÁSSIO (K) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "K_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "K_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "K_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores k_content;
 
+    // --- MAGNÉSIO (Mg) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "MG_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "MG_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "MG_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores mg_content;
+
+    // --- ENXOFRE (S) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "S_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "S_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "S_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores s_content;
+
+    // --- BORO (B) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "B_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "B_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "B_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores b_content;
+
+    // --- COBRE (Cu) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "CU_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "CU_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "CU_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores cu_content;
+
+    // --- FERRO (Fe) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "FE_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "FE_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "FE_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores fe_content;
+
+    // --- MANGANÊS (Mn) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "MN_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "MN_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "MN_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores mn_content;
+
+    // --- MOLIBDÊNIO (Mo) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "MO_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "MO_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "MO_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores mo_content;
+
+    // --- ZINCO (Zn) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "ZN_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "ZN_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "ZN_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores zn_content;
+
+    public CropFoliarAnalysisInterpretationTableLineResponseDto toDto() {
+        return CropFoliarAnalysisInterpretationTableLineResponseDto.builder()
+                .id(this.id)
+                .table_id(this.table != null ? this.table.getId() : null)
+                .crop(this.crop)
+                .n_content(this.n_content)
+                .p_content(this.p_content)
+                .k_content(this.k_content)
+                .mg_content(this.mg_content)
+                .s_content(this.s_content)
+                .b_content(this.b_content)
+                .cu_content(this.cu_content)
+                .fe_content(this.fe_content)
+                .mn_content(this.mn_content)
+                .mo_content(this.mo_content)
+                .zn_content(this.zn_content)
+                .build();
+    }
 }

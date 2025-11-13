@@ -27,22 +27,14 @@ public class ContentRangeModel {
     @Column(name = "NUTRIENTE", nullable = false)
     Nutriente nutrient;
 
-    /**
-     * Table possui apenas 1 Intervalo de Teor, para o nutriente Nitrogênio, com smallest e largest ambos nulos.
-     * Table possui de 1 até 5 intervalos de teores, para cada: Fosforo e Potassio.
-     * O primeiro intervalo tem smallest nulo e largest não nulo.
-     * O último intervalo tem smallest não nulo e largest nulo.
-     * Os outros intervalos tem smallest e largest não nulos.
-     * Em 2 intervalos subsequentes, o largest do primeiro é igual ao smallest do segundo.
-     */
     @Column(name = "ORDEM_TEOR", nullable = true)
     Integer order;
 
     @Column(name = "MENOR_TEOR", nullable = true)
-    Double smallest; // Ao menos um dos teores deve ser não nulo, exceção Nitrogênio
+    Double smallest;
 
     @Column(name = "MAIOR_TEOR", nullable = true)
-    Double largest; // Ao menos um dos teores deve ser não nulo, exceção Nitrogênio
+    Double largest;
 
     @Column(name = "APLICACAO_RECOMENDADA_PLANTIO", nullable = true)
     Double application;
