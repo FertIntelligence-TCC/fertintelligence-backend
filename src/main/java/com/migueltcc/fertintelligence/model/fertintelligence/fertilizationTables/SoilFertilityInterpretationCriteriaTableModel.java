@@ -36,11 +36,6 @@ public class SoilFertilityInterpretationCriteriaTableModel {
      * - Critério para interpretar fertilidade do solo (K);
      * - Critério para interpretar fertilidade do solo (S);
      * - Faixas de interpretação para diversos teores.
-     * Relacionamento @OneToOne entre essa classe e cada uma das demais.
-     * Regra de negócio:
-     * - A classe SoilFertilityInterpretationCriteriaTableModel.java deve possuir 1 instância
-     * de cada uma das classes supracitadas.
-     * - Adicionar essa condição aos testes de controlador.
      */
 
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
