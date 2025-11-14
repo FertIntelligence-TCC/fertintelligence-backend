@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria;
+package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;

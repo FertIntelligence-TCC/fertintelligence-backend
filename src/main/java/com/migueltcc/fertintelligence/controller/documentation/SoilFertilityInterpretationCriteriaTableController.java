@@ -1,8 +1,8 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
-import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.SoilFertilityInterpretationCriteriaTablePostRequestDto;
-import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.SoilFertilityInterpretationCriteriaTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

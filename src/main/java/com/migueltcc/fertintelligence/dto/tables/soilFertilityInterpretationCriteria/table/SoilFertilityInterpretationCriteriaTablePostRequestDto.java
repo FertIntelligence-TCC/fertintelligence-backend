@@ -1,22 +1,20 @@
-package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria;
+package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder(toBuilder = true)
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SoilFertilityInterpretationCriteriaTableCreateRequestDto {
+public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
 
-    @JsonProperty("regiao")
-    @NotNull
-    @Schema(example = "NORDESTE")
+    @JsonProperty("nova_regiao")
+    @Schema(example = "CENTRO_OESTE")
     private Regiao region;
 }

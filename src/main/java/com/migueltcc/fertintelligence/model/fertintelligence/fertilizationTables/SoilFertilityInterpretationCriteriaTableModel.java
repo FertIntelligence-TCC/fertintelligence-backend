@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
-import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.SoilFertilityInterpretationCriteriaTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,10 +29,18 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     private Regiao region;
 
     /**
-     * As classes a seguir serão implementadas separadamente (vínculo OneToMany ou similar):
-     * - Critérios para interpretar salinidade do solo
-     * - Critérios para interpretar fertilidade do solo (P Mehlich-1, P Resina, K, S)
-     * - Faixas de interpretação para diversos teores
+     * As classes a seguir serão implementadas separadamente, e são componentes dessa principal:
+     * - Critérios para interpretar salinidade do solo;
+     * - Critério para interpretar fertilidade do solo (P disponível com extrator Mehlich-1);
+     * - Critério para interpretar fertilidade do solo (P disponivel com extrator Resina);
+     * - Critério para interpretar fertilidade do solo (K);
+     * - Critério para interpretar fertilidade do solo (S);
+     * - Faixas de interpretação para diversos teores.
+     * Relacionamento @OneToOne entre essa classe e cada uma das demais.
+     * Regra de negócio:
+     * - A classe SoilFertilityInterpretationCriteriaTableModel.java deve possuir 1 instância
+     * de cada uma das classes supracitadas.
+     * - Adicionar essa condição aos testes de controlador.
      */
 
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
