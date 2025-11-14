@@ -13,10 +13,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class KExchangeableContentPostRequestDto {
 
-    @Schema(description = "ID da tabela pai", requiredMode = Schema.RequiredMode.REQUIRED)
-    @JsonProperty("novo_id_tabela")
-    private Long tableId;
-
     // --- CTC < 20 mmolc/dm³ ---
     @JsonProperty("novo_menor_teor_k_ctc_menor_20")
     private Double k_content_cec_less_20_too_low;

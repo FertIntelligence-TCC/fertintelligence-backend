@@ -91,6 +91,24 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository;
 
+    @MockitoBean
+    protected AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
+
+    @MockitoBean
+    protected AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
+
+    @MockitoBean
+    protected AvailableSRepository availableSRepository;
+
+    @MockitoBean
+    protected DiverseContentRangeRepository diverseContentRangeRepository;
+
+    @MockitoBean
+    protected KExchangeableContentRepository kExchangeableContentRepository;
+
+    @MockitoBean
+    protected SalinityInterpretationRepository salinityInterpretationRepository;
+
     // Mocks do UserControllerImplTest
     @MockitoBean
     protected PasswordEncoder passwordEncoder;

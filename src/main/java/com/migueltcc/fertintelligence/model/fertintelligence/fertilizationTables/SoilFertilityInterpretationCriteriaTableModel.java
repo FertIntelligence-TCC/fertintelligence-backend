@@ -3,11 +3,9 @@ package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTable
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.*;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,6 +35,30 @@ public class SoilFertilityInterpretationCriteriaTableModel {
      * - Critério para interpretar fertilidade do solo (S);
      * - Faixas de interpretação para diversos teores.
      */
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private AvailablePAnionExchangeResinExtractorModel availablePAnionExchangeResinExtractor;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private AvailablePMehlich1ExtractorModel availablePMehlich1Extractor;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private AvailableSModel availableS;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private DiverseContentRangeModel diverseContentRange;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private KExchangeableContentModel kExchangeableContent;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private SalinityInterpretationModel salinityInterpretation;
 
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()

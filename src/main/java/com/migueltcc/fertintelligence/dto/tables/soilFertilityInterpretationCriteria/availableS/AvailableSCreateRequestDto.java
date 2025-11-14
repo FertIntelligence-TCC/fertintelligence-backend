@@ -13,10 +13,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AvailableSCreateRequestDto {
 
-    @Schema(description = "ID da tabela pai", requiredMode = Schema.RequiredMode.REQUIRED)
-    @JsonProperty("id_tabela")
-    private Long tableId;
-
     // --- SOLO ARENOSO ---
     @JsonProperty("menor_teor_enxofre_solo_arenoso")
     private Double s_content_sandy_too_low;
