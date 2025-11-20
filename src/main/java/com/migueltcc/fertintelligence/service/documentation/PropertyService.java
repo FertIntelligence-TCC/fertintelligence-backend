@@ -13,4 +13,5 @@ public interface PropertyService {
     List<PropertyResponseDto> getAllPropertiesByOwner(String username);
     PropertyResponseDto updateProperty(Long propertyId, PropertyPostRequestDto updateRequestDto, String username);
     void deleteProperty(Long propertyId, String username);
+    List<PropertyResponseDto> searchPropertiesByName(String nome, String username);
 }
