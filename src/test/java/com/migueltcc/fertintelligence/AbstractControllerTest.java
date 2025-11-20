@@ -109,6 +109,9 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected SalinityInterpretationRepository salinityInterpretationRepository;
 
+    @MockitoBean
+    protected PropertyAccessRequestRepository propertyAccessRequestRepository;
+
     // Mocks do UserControllerImplTest
     @MockitoBean
     protected PasswordEncoder passwordEncoder;
