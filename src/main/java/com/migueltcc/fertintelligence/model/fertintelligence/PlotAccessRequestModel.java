@@ -24,6 +24,10 @@ public class PlotAccessRequestModel {
     @JoinColumn(name = "ID_PROPRIEDADE", nullable = false)
     private PropertyModel property;
 
+    @ManyToOne
+    @JoinColumn(name = "ID_TALHAO")
+    private PlotModel plot;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "ID_SOLICITANTE", nullable = false)
     private UserModel requester;
@@ -40,6 +44,8 @@ public class PlotAccessRequestModel {
                 .id(this.id)
                 .propertyId(this.property.getId())
                 .propertyName(this.property.getNome())
+                .plotId(this.plot != null ? this.plot.getId() : null)
+                .plotIdentification(this.plot != null ? this.plot.getIdentification() : null)
                 .requesterId(this.requester.getId())
                 .requesterName(this.requester.getName())
                 .requesterCargo(this.requester.getCargo())

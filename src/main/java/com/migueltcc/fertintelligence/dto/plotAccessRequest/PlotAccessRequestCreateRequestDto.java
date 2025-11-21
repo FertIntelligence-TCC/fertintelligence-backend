@@ -16,4 +16,8 @@ public class PlotAccessRequestCreateRequestDto {
     @JsonProperty("id_propriedade")
     @NotNull
     private Long propertyId;
+
+    @JsonProperty("id_talhao")
+    private Long plotId;
+
 }

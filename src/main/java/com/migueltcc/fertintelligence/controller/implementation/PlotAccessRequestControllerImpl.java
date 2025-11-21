@@ -26,7 +26,11 @@ public class PlotAccessRequestControllerImpl implements PlotAccessRequestControl
             @Valid @RequestBody PlotAccessRequestCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        PlotAccessRequestResponseDto responseDto = plotAccessRequestService.requestAccess(createRequestDto.getPropertyId(), authentication.getName());
+        PlotAccessRequestResponseDto responseDto = plotAccessRequestService.requestAccess(
+                createRequestDto.getPropertyId(),
+                createRequestDto.getPlotId(),
+                authentication.getName());
+
         return ResponseEntity.ok(responseDto);
     }
 

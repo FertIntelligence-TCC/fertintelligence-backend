@@ -4,9 +4,11 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plotAccessRequest.PlotAccessRequestResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -31,6 +33,9 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     private PropertyRepository propertyRepository;
 
     @Autowired
+    private PlotRepository plotRepository;
+
+    @Autowired
     private PropertyAccessRequestRepository propertyAccessRequestRepository;
 
     @Autowired
@@ -38,23 +43,30 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
 
     @Override
     @Transactional
-    public PlotAccessRequestResponseDto requestAccess(Long propertyId, String username) {
+    public PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        if (requester.getCargo() != Cargo.AGRONOMO_RESIDENTE) {
-            throw new AccessDeniedException("Somente agrônomos residentes podem solicitar acesso aos talhões.");
+
+        // ✔ Patch: Novo comportamento — apenas agrônomo consultor solicita acesso
+        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR) {
+            throw new AccessDeniedException("Somente agrônomos consultores podem solicitar acesso aos talhões.");
         }
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
+        PlotModel plot = findPlotByIdOrThrow(plotId);
+        ensurePlotBelongsToProperty(property, plot);
+
         ensurePropertyAccessApproved(property, requester);
         ensurePropertyHasManager(property);
 
-        plotAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.PENDING)
-                .ifPresent(req -> {
-                    throw new AccessDeniedException("Já existe uma solicitação pendente para esta propriedade.");
-                });
+        plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot, requester, AccessRequestStatus.PENDING
+        ).ifPresent(req -> {
+            throw new AccessDeniedException("Já existe uma solicitação pendente para esta propriedade.");
+        });
 
         PlotAccessRequestModel accessRequest = PlotAccessRequestModel.builder()
                 .property(property)
+                .plot(plot)
                 .requester(requester)
                 .status(AccessRequestStatus.PENDING)
                 .createdAt(LocalDateTime.now())
@@ -80,8 +92,9 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     @Transactional
     public PlotAccessRequestResponseDto decideRequest(Long requestId, boolean approve, String managerUsername) {
         UserModel manager = findUserByUsernameOrThrow(managerUsername);
+
         PlotAccessRequestModel request = plotAccessRequestRepository.findById(requestId)
-                .orElseThrow(() -> new EntityNotFoundException("Solicitação de acesso a talhões não encontrada: " + requestId));
+                .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada."));
 
         checkManagerPermission(request.getProperty(), manager);
 
@@ -107,9 +120,19 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
         }
     }
 
+    private void ensurePlotBelongsToProperty(PropertyModel property, PlotModel plot) {
+        if (!plot.getProperty().getId().equals(property.getId())) {
+            throw new AccessDeniedException("O talhão selecionado não pertence à propriedade informada.");
+        }
+    }
+
     private void ensurePropertyAccessApproved(PropertyModel property, UserModel requester) {
-        propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.APPROVED)
-                .orElseThrow(() -> new AccessDeniedException("O proprietário ainda não aprovou o acesso a esta propriedade."));
+        propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                        property, requester, AccessRequestStatus.APPROVED
+                )
+                .orElseThrow(() ->
+                        new AccessDeniedException("O proprietário ainda não aprovou o acesso a esta propriedade.")
+                );
     }
 
     private void checkManagerPermission(PropertyModel property, UserModel manager) {
@@ -126,5 +149,10 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     private PropertyModel findPropertyByIdOrThrow(Long propertyId) {
         return propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada: " + propertyId));
+    }
+
+    private PlotModel findPlotByIdOrThrow(Long plotId) {
+        return plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado: " + plotId));
     }
 }

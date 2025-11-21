@@ -30,6 +30,14 @@ public class PlotAccessRequestResponseDto {
     @JsonProperty("nome_propriedade")
     private String propertyName;
 
+    @Schema(description = "ID do talhão solicitado, quando aplicável", example = "8")
+    @JsonProperty("id_talhao")
+    private Long plotId;
+
+    @Schema(description = "Identificação do talhão solicitado, quando aplicável", example = "Talhão A")
+    @JsonProperty("identificacao_talhao")
+    private String plotIdentification;
+
     @Schema(description = "ID do usuário solicitante", example = "10")
     @JsonProperty("id_solicitante")
     private Long requesterId;

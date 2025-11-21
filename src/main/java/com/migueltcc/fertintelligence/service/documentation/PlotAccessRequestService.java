@@ -6,7 +6,8 @@ import java.util.List;
 
 public interface PlotAccessRequestService {
 
-    PlotAccessRequestResponseDto requestAccess(Long propertyId, String username);
+    // PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username);
+    PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username);
 
     List<PlotAccessRequestResponseDto> getRequestsForManager(Long propertyId, String managerUsername);
 

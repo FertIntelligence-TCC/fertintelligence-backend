@@ -24,6 +24,10 @@ public class PropertyAccessRequestModel {
     @JoinColumn(name = "PROPERTY_ID", nullable = false)
     private PropertyModel property;
 
+    @ManyToOne
+    @JoinColumn(name = "ID_TALHAO")
+    private PlotModel plot;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "REQUESTER_ID", nullable = false)
     private UserModel requester;

@@ -43,7 +43,7 @@ class PlotAccessRequestControllerImplTest {
     private PlotAccessRequestService plotAccessRequestService;
 
     @Test
-    @WithMockUser(username = "residente")
+    @WithMockUser(username = "consultor")
     @DisplayName("Deve criar solicitação de acesso aos talhões")
     void shouldCreatePlotAccessRequest() throws Exception {
         PlotAccessRequestResponseDto responseDto = PlotAccessRequestResponseDto.builder()
@@ -51,17 +51,20 @@ class PlotAccessRequestControllerImplTest {
                 .propertyId(2L)
                 .propertyName("Fazenda Teste")
                 .requesterId(5L)
-                .requesterName("Residente")
-                .requesterCargo(Cargo.AGRONOMO_RESIDENTE)
+                .requesterName("Consultor")
+                .requesterCargo(Cargo.AGRONOMO_CONSULTOR)
+                .plotId(9L)
+                .plotIdentification("Talhão 09")
                 .status(AccessRequestStatus.PENDING)
                 .createdAt(LocalDateTime.of(2024, 5, 1, 10, 0))
                 .build();
 
-        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), Mockito.eq("residente")))
+        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), Mockito.eq("consultor")))
                 .thenReturn(responseDto);
 
         PlotAccessRequestCreateRequestDto requestDto = PlotAccessRequestCreateRequestDto.builder()
                 .propertyId(2L)
+                .plotId(9L)
                 .build();
 
         mockMvc.perform(post("/plot-access/request")
@@ -71,9 +74,10 @@ class PlotAccessRequestControllerImplTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.id_propriedade", is(2)))
+                .andExpect(jsonPath("$.id_talhao", is(9)))
                 .andExpect(jsonPath("$.status", is(AccessRequestStatus.PENDING.name())));
 
-        Mockito.verify(plotAccessRequestService).requestAccess(2L, "residente");
+        Mockito.verify(plotAccessRequestService).requestAccess(2L, 9L, "consultor");
     }
 
     @Test
