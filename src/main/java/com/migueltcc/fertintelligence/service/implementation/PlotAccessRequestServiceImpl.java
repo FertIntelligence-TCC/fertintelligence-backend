@@ -46,10 +46,8 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     public PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        // ✔ Patch: Novo comportamento — apenas agrônomo consultor solicita acesso
-        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR) {
-            throw new AccessDeniedException("Somente agrônomos consultores podem solicitar acesso aos talhões.");
-        }
+        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR && requester.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Somente agrônomos consultores ou secretários podem solicitar acesso aos talhões.");        }
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         PlotModel plot = findPlotByIdOrThrow(plotId);

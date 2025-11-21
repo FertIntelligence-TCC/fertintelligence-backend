@@ -215,12 +215,14 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     private void checkUserIsProprietario(UserModel user) {
         if (user.getCargo() != Cargo.PROPRIETARIO
                 && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas proprietários, gerentes ou agrônomos consultores podem gerenciar extratos de análises de fertilidade."
-            );
+                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                    && user.getCargo() != Cargo.SECRETARIO) {
+                throw new AccessDeniedException(
+                        "Acesso negado. Apenas proprietários, gerentes, agrônomos residentes, agrõnomos consultores ou secretários podem gerenciar extratos de análises de fertilidade."
+                );
+            }
         }
-    }
 
     private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
         PropertyModel property = plot.getProperty();
