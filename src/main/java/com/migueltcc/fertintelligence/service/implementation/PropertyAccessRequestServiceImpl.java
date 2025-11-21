@@ -93,8 +93,10 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         }
 
         if (approve) {
+            ensureManagerSlotAvailableIfNeeded(request);
             request.setStatus(AccessRequestStatus.APPROVED);
             PropertyAccessRequestModel saved = propertyAccessRequestRepository.save(request);
+            updatePropertyManagerIfNeeded(saved);
             return saved.toDto();
         }
 
@@ -102,6 +104,29 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         PropertyAccessRequestResponseDto response = request.toDto();
         propertyAccessRequestRepository.delete(request);
         return response;
+    }
+
+    private void ensureManagerSlotAvailableIfNeeded(PropertyAccessRequestModel request) {
+        if (request.getRequester().getCargo() != Cargo.GERENTE) {
+            return;
+        }
+
+        PropertyModel property = request.getProperty();
+        if (property.getManager() != null && !property.getManager().getId().equals(request.getRequester().getId())) {
+            throw new AccessDeniedException("A propriedade já possui um gerente atribuído.");
+        }
+    }
+
+    private void updatePropertyManagerIfNeeded(PropertyAccessRequestModel request) {
+        if (request.getRequester().getCargo() != Cargo.GERENTE) {
+            return;
+        }
+
+        PropertyModel property = request.getProperty();
+        if (property.getManager() == null || !property.getManager().getId().equals(request.getRequester().getId())) {
+            property.setManager(request.getRequester());
+            propertyRepository.save(property);
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
