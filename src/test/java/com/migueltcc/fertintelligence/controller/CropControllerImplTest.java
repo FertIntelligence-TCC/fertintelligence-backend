@@ -225,19 +225,17 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void createCropFails_WhenFolderDoesNotExist() throws Exception {
+    void createCropFails_WhenUserIsNotProprietario() throws Exception {
         CropCreateRequestDto requestDto = createCreateRequestDto();
 
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
 
         mockMvc.perform(post("/crop/register")
                         .param("folderId", "1000")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
-
 
     @Test
     @WithMockUser(username = "testuser")

@@ -72,14 +72,4 @@ public class PropertyControllerImpl implements PropertyController {
         propertyService.deleteProperty(propertyId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
-
-    @Override
-    @GetMapping("/search")
-    public ResponseEntity<List<PropertyResponseDto>> searchPropertiesByName(
-            @RequestParam(name = "nome") String nome,
-            Authentication authentication) {
-        List<PropertyResponseDto> properties = propertyService.searchPropertiesByName(nome, authentication.getName());
-        return ResponseEntity.ok(properties);
-    }
-
 }

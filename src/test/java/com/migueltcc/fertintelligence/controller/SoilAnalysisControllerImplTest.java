@@ -127,10 +127,6 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .monthlyPluviosity(210.0)
                 .annualPluviosity(1150.0)
                 .build();
-
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
-                .thenReturn(Optional.empty());
-
     }
 
     private SoilAnalysisCreateRequestDto createCreateRequestDto() {
@@ -197,18 +193,13 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     void createSoilAnalysisFails_WhenUserIsNotProprietario() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
 
-        // Garante que o usuário NÃO tem um cargo permitido (não PROPRIETARIO, GERENTE ou SECRETARIO)
-        funcionarioUser.setCargo(Cargo.AGRONOMO_CONSULTOR);
-
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
 
         mockMvc.perform(post("/soil-analysis/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isForbidden());
     }
-
 
     @Test
     @WithMockUser(username = "testuser")

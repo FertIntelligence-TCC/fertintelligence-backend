@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisPostRequestDto;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisResponseDto;
@@ -7,11 +8,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SoilAnalysisService;
 import jakarta.persistence.EntityExistsException;
@@ -34,19 +32,16 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     private PlotRepository plotRepository;
 
     @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Override
     @Transactional
     public SoilAnalysisResponseDto createSoilAnalysis(SoilAnalysisCreateRequestDto createRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasPermissionRole(requestingUser);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(createRequestDto.getPlotId());
-        checkPlotPermission(plot, requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         if (!plot.getIdentification().equals(createRequestDto.getPlotIdentification())) {
             throw new IllegalArgumentException("A identificação do talhão informada não corresponde ao talhão selecionado.");
@@ -72,11 +67,11 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional(readOnly = true)
     public SoilAnalysisResponseDto getSoilAnalysisById(Long soilAnalysisId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasPermissionRole(requestingUser);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        checkPlotPermission(soilAnalysis.getPlot(), requestingUser);
+        checkOwnerPermission(soilAnalysis.getPlot().getProperty(), owner);
 
         return soilAnalysis.toDto();
     }
@@ -84,11 +79,11 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional(readOnly = true)
     public List<SoilAnalysisResponseDto> getAllSoilAnalysesByPlot(Long plotId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasPermissionRole(requestingUser);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkPlotPermission(plot, requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         return soilAnalysisRepository.findAllByPlot(plot).stream()
                 .map(SoilAnalysisModel::toDto)
@@ -98,11 +93,11 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional
     public SoilAnalysisResponseDto updateSoilAnalysis(Long soilAnalysisId, SoilAnalysisPostRequestDto updateRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasPermissionRole(requestingUser);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        checkPlotPermission(soilAnalysis.getPlot(), requestingUser);
+        checkOwnerPermission(soilAnalysis.getPlot().getProperty(), owner);
 
         if (updateRequestDto.getAnalysisYear() != null
                 && !updateRequestDto.getAnalysisYear().equals(soilAnalysis.getAnalysisYear())) {
@@ -131,13 +126,19 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional
     public void deleteSoilAnalysis(Long soilAnalysisId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasPermissionRole(requestingUser);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        checkPlotPermission(soilAnalysis.getPlot(), requestingUser);
+        checkOwnerPermission(soilAnalysis.getPlot().getProperty(), owner);
 
         soilAnalysisRepository.delete(soilAnalysis);
+    }
+
+    private void checkUserIsProprietario(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO) {
+            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar análises de solo.");
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -155,35 +156,9 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
                 .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada com o ID: " + soilAnalysisId));
     }
 
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasApprovedAccess) {
+    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
+        if (!property.getOwner().getId().equals(requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
-    private void checkUserHasPermissionRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
-                && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas proprietários, gerentes ou secretários podem gerenciar análises de solo."
-            );
         }
     }
 }

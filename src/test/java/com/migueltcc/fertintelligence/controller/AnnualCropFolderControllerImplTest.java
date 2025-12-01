@@ -163,11 +163,7 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     void createAnnualCropFolderFails_WhenUserIsNotProprietario() throws Exception {
         AnnualCropFolderCreateRequestDto requestDto = createCreateRequestDto();
 
-        // 1. Configura o usuário logado (sem permissão)
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
-
-        // 2. [CORREÇÃO] Mocka o retorno do Talhão para evitar o erro 404
-        when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
 
         mockMvc.perform(post("/annual-crop-folder/register")
                         .param("plotId", ownerPlot.getId().toString())

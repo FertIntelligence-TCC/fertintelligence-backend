@@ -36,10 +36,11 @@ public class PlotServiceImpl implements PlotService {
     @Override
     @Transactional
     public PlotResponseDto createPlot(Long propertyId, PlotCreateRequestDto createRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkManagerOrOwnerPermission(property, requestingUser);
+        checkOwnerPermission(property, owner);
 
         plotRepository.findByIdentificationAndProperty(createRequestDto.getIdentification(), property)
                 .ifPresent(existing -> {
@@ -67,10 +68,11 @@ public class PlotServiceImpl implements PlotService {
     @Override
     @Transactional(readOnly = true)
     public PlotResponseDto getPlotById(Long plotId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         return plot.toDto();
     }
@@ -78,10 +80,11 @@ public class PlotServiceImpl implements PlotService {
     @Override
     @Transactional(readOnly = true)
     public List<PlotResponseDto> getAllPlotsByProperty(Long propertyId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkManagerOrOwnerPermission(property, requestingUser);
+        checkOwnerPermission(property, owner);
 
         return plotRepository.findAllByProperty(property).stream()
                 .map(PlotModel::toDto)
@@ -91,10 +94,11 @@ public class PlotServiceImpl implements PlotService {
     @Override
     @Transactional
     public PlotResponseDto updatePlot(Long plotId, PlotPostRequestDto updateRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         if (updateRequestDto.getIdentification() != null
                 && !updateRequestDto.getIdentification().equals(plot.getIdentification())) {
@@ -147,12 +151,20 @@ public class PlotServiceImpl implements PlotService {
     @Override
     @Transactional
     public void deletePlot(Long plotId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         plotRepository.delete(plot);
+    }
+
+    private void checkUserIsProprietario(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO) {
+            throw new AccessDeniedException(
+                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar talhões.");
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -170,15 +182,9 @@ public class PlotServiceImpl implements PlotService {
                 .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
     }
 
-    private void checkManagerOrOwnerPermission(PropertyModel property, UserModel requestingUser) {
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
+    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
+        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
     }
 }

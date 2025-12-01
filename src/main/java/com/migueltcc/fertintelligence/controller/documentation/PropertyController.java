@@ -47,11 +47,4 @@ public interface PropertyController {
             @Parameter(description = "ID da propriedade a ser excluída", required = true) @RequestParam(name = "propertyId") Long propertyId,
             @Parameter(hidden = true) Authentication authentication
     );
-
-    // GET /property/search?nome={nome}
-    ResponseEntity<List<PropertyResponseDto>> searchPropertiesByName(
-            @Parameter(description = "Trecho do nome da propriedade para buscar", required = true) @RequestParam(name = "nome") String nome,
-            @Parameter(hidden = true) Authentication authentication
-    );
-
 }

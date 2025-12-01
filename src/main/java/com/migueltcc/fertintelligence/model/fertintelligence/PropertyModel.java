@@ -22,10 +22,6 @@ public class PropertyModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel owner;
 
-    @ManyToOne
-    @JoinColumn(name = "ID_GERENTE")
-    private UserModel manager;
-
     @Column(name = "NOME", unique = true, nullable = false)
     private String nome;
 
@@ -52,8 +48,6 @@ public class PropertyModel {
                         this.localizacao.getLongDirection(),
                         this.localizacao.getAltitude()
                 ))
-                .managerId(this.manager != null ? this.manager.getId() : null)
-                .managerNome(this.manager != null ? this.manager.getName() : null)
                 .ownerId(this.owner.getId())
                 .ownerNome(this.owner.getName())
                 .build();

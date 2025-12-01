@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderPostRequestDto;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderResponseDto;
@@ -9,7 +9,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.AnnualCropFolderService;
@@ -33,9 +32,6 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     private PlotRepository plotRepository;
 
     @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Override
@@ -43,10 +39,11 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     public AnnualCropFolderResponseDto createAnnualCropFolder(Long plotId,
                                                               AnnualCropFolderCreateRequestDto createRequestDto,
                                                               String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkPlotPermission(plot, requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         annualCropFolderRepository.findByPlotAndCropsYear(plot, createRequestDto.getCropsYear())
                 .ifPresent(existing -> {
@@ -66,10 +63,11 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Override
     @Transactional(readOnly = true)
     public AnnualCropFolderResponseDto getAnnualCropFolderById(Long annualCropFolderId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
+        checkOwnerPermission(annualCropFolder.getPlot().getProperty(), owner);
 
         return annualCropFolder.toDto();
     }
@@ -77,10 +75,11 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Override
     @Transactional(readOnly = true)
     public List<AnnualCropFolderResponseDto> getAllAnnualCropFoldersByPlot(Long plotId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkPlotPermission(plot, requestingUser);
+        checkOwnerPermission(plot.getProperty(), owner);
 
         return annualCropFolderRepository.findAllByPlot(plot).stream()
                 .map(AnnualCropFolderModel::toDto)
@@ -92,10 +91,11 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     public AnnualCropFolderResponseDto updateAnnualCropFolder(Long annualCropFolderId,
                                                               AnnualCropFolderPostRequestDto updateRequestDto,
                                                               String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
+        checkOwnerPermission(annualCropFolder.getPlot().getProperty(), owner);
 
         if (updateRequestDto.getCropsYear() != null
                 && !updateRequestDto.getCropsYear().equals(annualCropFolder.getCropsYear())) {
@@ -116,12 +116,19 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Override
     @Transactional
     public void deleteAnnualCropFolder(Long annualCropFolderId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserIsProprietario(owner);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
+        checkOwnerPermission(annualCropFolder.getPlot().getProperty(), owner);
 
         annualCropFolderRepository.delete(annualCropFolder);
+    }
+
+    private void checkUserIsProprietario(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO) {
+            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar pastas de culturas anuais.");
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -139,24 +146,8 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
                 .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + annualCropFolderId));
     }
 
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasApprovedAccess) {
+    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
+        if (!property.getOwner().getId().equals(requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

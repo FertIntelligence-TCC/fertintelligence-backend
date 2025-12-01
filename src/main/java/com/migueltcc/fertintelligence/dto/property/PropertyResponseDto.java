@@ -37,13 +37,4 @@ public class PropertyResponseDto {
     @Schema(example = "João da Silva")
     @JsonProperty("owner_nome")
     private String ownerNome;
-
-    @Schema(example = "84")
-    @JsonProperty("manager_id")
-    private Long managerId;
-
-    @Schema(example = "Maria Gerente")
-    @JsonProperty("manager_nome")
-    private String managerNome;
-
 }
