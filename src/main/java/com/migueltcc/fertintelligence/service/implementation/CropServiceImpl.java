@@ -1,15 +1,17 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropPostRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropService;
@@ -34,18 +36,21 @@ public class CropServiceImpl implements CropService {
     private AnnualCropFolderRepository annualCropFolderRepository;
 
     @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
     @Transactional
     public CropResponseDto createCrop(Long folderId, CropCreateRequestDto createRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkOwnerPermission(folder.getPlot().getProperty(), owner);
+        checkPlotPermission(folder.getPlot(), requestingUser);
 
-        cropRepository.findByNameAndVarietyAndFolder(createRequestDto.getName(),
+        cropRepository.findByNameAndVarietyAndFolder(
+                        createRequestDto.getName(),
                         createRequestDto.getVariety(),
                         folder)
                 .ifPresent(existing -> {
@@ -77,11 +82,10 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional(readOnly = true)
     public CropResponseDto getCropById(Long cropId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder().getPlot().getProperty(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
 
         return crop.toDto();
     }
@@ -89,11 +93,10 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional(readOnly = true)
     public List<CropResponseDto> getAllCropsByFolder(Long folderId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkOwnerPermission(folder.getPlot().getProperty(), owner);
+        checkPlotPermission(folder.getPlot(), requestingUser);
 
         return cropRepository.findAllByFolder(folder).stream()
                 .map(CropModel::toDto)
@@ -103,11 +106,10 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public CropResponseDto updateCrop(Long cropId, CropPostRequestDto updateRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder().getPlot().getProperty(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
 
         String newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
         String newVariety = Optional.ofNullable(updateRequestDto.getVariety()).orElse(crop.getVariety());
@@ -179,19 +181,12 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public void deleteCrop(Long cropId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder().getPlot().getProperty(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
 
         cropRepository.delete(crop);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar culturas.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -209,8 +204,24 @@ public class CropServiceImpl implements CropService {
                 .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + cropId));
     }
 
-    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+    private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
+        PropertyModel property = plot.getProperty();
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasApprovedAccess) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

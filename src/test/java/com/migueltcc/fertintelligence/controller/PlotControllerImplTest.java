@@ -155,13 +155,17 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     void createPlotFails_WhenUserIsNotProprietario() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
 
+        // 1. Mock do usuário logado (Funcionário)
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+
+        // 2. [CORREÇÃO] Você precisa garantir que a propriedade EXISTE para o sistema validar o acesso a ela
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
 
         mockMvc.perform(post("/plot/register")
                         .param("propertyId", "10")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden()); // Agora sim deve dar 403
     }
 
     @Test
