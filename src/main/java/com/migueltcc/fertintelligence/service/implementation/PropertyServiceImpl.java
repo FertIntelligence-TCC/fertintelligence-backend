@@ -70,10 +70,10 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional(readOnly = true)
     public PropertyResponseDto getPropertyById(Long propertyId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(requestingUser);
-
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkOwnerPermission(property, requestingUser);
+        if (requestingUser.getCargo() == Cargo.PROPRIETARIO) {
+            checkOwnerPermission(property, requestingUser);
+        }
         return property.toDto();
     }
 
@@ -142,6 +142,16 @@ public class PropertyServiceImpl implements PropertyService {
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         checkOwnerPermission(property, requestingUser); // Verifica se ele é dono DESSA propriedade
         propertyRepository.delete(property);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PropertyResponseDto> searchPropertiesByName(String nome, String username) {
+        findUserByUsernameOrThrow(username);
+
+        return propertyRepository.findByNomeContainingIgnoreCase(nome).stream()
+                .map(PropertyModel::toDto)
+                .collect(Collectors.toList());
     }
 
     // --- Métodos Utilitários ---
