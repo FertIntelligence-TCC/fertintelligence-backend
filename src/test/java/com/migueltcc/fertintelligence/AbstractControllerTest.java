@@ -123,6 +123,9 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
 
+    @MockitoBean
+    protected OrganoMineralFertilizerRepository organoMineralFertilizerRepository;
+
     // Mocks do UserControllerImplTest
     @MockitoBean
     protected PasswordEncoder passwordEncoder;
