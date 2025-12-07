@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
@@ -19,6 +20,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropMode
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FoliarAnalysisService;
 import jakarta.persistence.EntityExistsException;
@@ -42,16 +45,21 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     private CropRepository cropRepository;
 
     @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
+
+    @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
     @Transactional
     public FoliarAnalysisResponseDto createFoliarAnalysis(Long cropId, FoliarAnalysisCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), owner, true);
 
         foliarAnalysisRepository.findByCropAndCollectDate(crop, createRequestDto.getCollectDate())
                 .ifPresent(existing -> {
@@ -76,10 +84,9 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional(readOnly = true)
     public FoliarAnalysisResponseDto getFoliarAnalysisById(Long foliarAnalysisId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        checkOwnerPermission(foliarAnalysis.getCrop().getFolder(), owner);
+        checkPlotPermission(foliarAnalysis.getCrop().getFolder().getPlot(), owner, false);
 
         return foliarAnalysis.toDto();
     }
@@ -88,10 +95,9 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional(readOnly = true)
     public List<FoliarAnalysisResponseDto> getAllFoliarAnalysesByCrop(Long cropId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), owner, false);
 
         List<FoliarAnalysisModel> analyses = foliarAnalysisRepository.findAllByCrop(crop);
         return analyses.stream()
@@ -103,11 +109,10 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional
     public FoliarAnalysisResponseDto updateFoliarAnalysis(Long foliarAnalysisId, FoliarAnalysisPostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
         CropModel crop = foliarAnalysis.getCrop();
-        checkOwnerPermission(crop.getFolder(), owner);
+        checkPlotPermission(crop.getFolder().getPlot(), owner, true);
 
         if (updateRequestDto.getCollectDate() != null
                 && !Objects.equals(updateRequestDto.getCollectDate(), foliarAnalysis.getCollectDate())) {
@@ -145,18 +150,11 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional
     public void deleteFoliarAnalysis(Long foliarAnalysisId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        checkOwnerPermission(foliarAnalysis.getCrop().getFolder(), owner);
+        checkPlotPermission(foliarAnalysis.getCrop().getFolder().getPlot(), owner, true);
 
         foliarAnalysisRepository.delete(foliarAnalysis);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar análises foliares.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -174,10 +172,49 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
                 .orElseThrow(() -> new EntityNotFoundException("Análise foliar não encontrada com o ID: " + foliarAnalysisId));
     }
 
-    private void checkOwnerPermission(AnnualCropFolderModel folder, UserModel requestingUser) {
-        PlotModel plot = folder.getPlot();
+    private void checkPlotPermission(PlotModel plot, UserModel requestingUser, boolean requireEditPermission) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        if (requireEditPermission && requestingUser.getCargo() == Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas ou suas análises.");
+        }
+
         PropertyModel property = plot.getProperty();
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPlotApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

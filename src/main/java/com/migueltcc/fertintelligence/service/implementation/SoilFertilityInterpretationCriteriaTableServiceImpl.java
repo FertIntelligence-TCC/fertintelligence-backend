@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
@@ -34,7 +33,6 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             SoilFertilityInterpretationCriteriaTableCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .creator(owner)
@@ -51,7 +49,6 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             Long tableId,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -64,7 +61,6 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(owner).stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
@@ -78,7 +74,6 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             SoilFertilityInterpretationCriteriaTablePostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -95,18 +90,11 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     @Transactional
     public void deleteSoilFertilityInterpretationCriteriaTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
 
         soilFertilityInterpretationCriteriaTableRepository.delete(table);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar tabelas de critérios de interpretação da fertilidade do solo.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

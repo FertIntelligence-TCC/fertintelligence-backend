@@ -56,8 +56,10 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
 
     private CropFertilizationTableModel ownerTable;
+    private CropFertilizationTableModel managerTable;
     private ContentRangeModel fosforoRange;
     private ContentRangeModel fosforoFinalRange;
     private ContentRangeModel nitrogenRange;
@@ -78,9 +80,21 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerTable = CropFertilizationTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .build();
+
+        managerTable = CropFertilizationTableModel.builder()
+                .id(11L)
+                .creator(managerUser)
                 .build();
 
         fosforoRange = ContentRangeModel.builder()
@@ -156,6 +170,31 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.id").value(120L))
                 .andExpect(jsonPath("$.nutriente").value("FOSFORO"))
                 .andExpect(jsonPath("$.ordem_teor").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createContentRangeForManagerOwnedTable() throws Exception {
+        ContentRangeCreateRequestDto requestDto = createFosforoFirstRequest();
+
+        ContentRangeModel savedRange = fosforoRange.toBuilder()
+                .id(130L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(cropFertilizationTableRepository.findById(managerTable.getId())).thenReturn(Optional.of(managerTable));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(managerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of());
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenReturn(savedRange);
+
+        mockMvc.perform(post("/content-range/register")
+                        .param("tableId", managerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/content-range/get?contentRangeId=130"));
+        // CORREÇÃO: Removido teste de campo inexistente 'nome_criador_tabela'
     }
 
     @Test

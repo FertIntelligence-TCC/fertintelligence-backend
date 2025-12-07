@@ -46,8 +46,11 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     public PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR && requester.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Somente agrônomos consultores ou secretários podem solicitar acesso aos talhões.");        }
+        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requester.getCargo() != Cargo.SECRETARIO
+                && requester.getCargo() != Cargo.AGRONOMO_RESIDENTE) {
+            throw new AccessDeniedException("Somente agrônomos consultores, residentes ou secretários podem solicitar acesso aos talhões.");
+        }
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         PlotModel plot = findPlotByIdOrThrow(plotId);
@@ -59,7 +62,7 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
         plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
                 plot, requester, AccessRequestStatus.PENDING
         ).ifPresent(req -> {
-            throw new AccessDeniedException("Já existe uma solicitação pendente para esta propriedade.");
+            throw new AccessDeniedException("Já existe uma solicitação pendente para este talhão.");
         });
 
         PlotAccessRequestModel accessRequest = PlotAccessRequestModel.builder()

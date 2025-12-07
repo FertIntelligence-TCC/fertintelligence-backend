@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderPostRequestDto;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderResponseDto;
@@ -11,6 +12,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.AnnualCropFolderService;
 import jakarta.persistence.EntityExistsException;
@@ -36,6 +38,9 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     private PlotAccessRequestRepository plotAccessRequestRepository;
 
     @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
@@ -44,6 +49,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
                                                               AnnualCropFolderCreateRequestDto createRequestDto,
                                                               String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
         checkPlotPermission(plot, requestingUser);
@@ -67,6 +73,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Transactional(readOnly = true)
     public AnnualCropFolderResponseDto getAnnualCropFolderById(Long annualCropFolderId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
         checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
@@ -78,6 +85,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Transactional(readOnly = true)
     public List<AnnualCropFolderResponseDto> getAllAnnualCropFoldersByPlot(Long plotId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
         checkPlotPermission(plot, requestingUser);
@@ -93,6 +101,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
                                                               AnnualCropFolderPostRequestDto updateRequestDto,
                                                               String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
         checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
@@ -117,6 +126,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
     @Transactional
     public void deleteAnnualCropFolder(Long annualCropFolderId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
         checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
@@ -139,6 +149,16 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
                 .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + annualCropFolderId));
     }
 
+    private void checkUserHasAllowedRole(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO
+                && user.getCargo() != Cargo.GERENTE
+                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && user.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta pasta de cultura anual.");
+        }
+    }
+
     private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
         PropertyModel property = plot.getProperty();
 
@@ -147,6 +167,19 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
         }
 
         if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
             return;
         }
 

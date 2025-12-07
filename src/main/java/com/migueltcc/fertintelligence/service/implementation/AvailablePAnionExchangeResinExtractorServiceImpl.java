@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorResponseDto;
@@ -42,7 +41,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
             AvailablePAnionExchangeResinExtractorCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -67,7 +65,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
             Long criterionId,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -81,7 +78,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
             Long tableId,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -101,7 +97,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
             AvailablePAnionExchangeResinExtractorPostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -117,7 +112,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
     @Transactional
     public void deleteAvailablePAnionExchangeResinExtractor(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -128,13 +122,6 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar os critérios.");
-        }
     }
 
     private SoilFertilityInterpretationCriteriaTableModel findTableByIdOrThrow(Long tableId) {

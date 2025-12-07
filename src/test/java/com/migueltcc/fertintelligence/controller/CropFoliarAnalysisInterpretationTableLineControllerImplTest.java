@@ -51,6 +51,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
     private CropFoliarAnalysisInterpretationTableModel ownerTable;
     private CropFoliarAnalysisInterpretationTableLineModel ownerLine;
 
@@ -61,6 +62,13 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
                 .username("testuser")
                 .name("Test User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(5L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -129,6 +137,36 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
                         "http://localhost/crop-foliar-analysis-interpretation-table-line/get?lineId=200"))
                 .andExpect(jsonPath("$.id").value(200L))
                 .andExpect(jsonPath("$.nome_cultura").value("SOJA"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createCropFoliarAnalysisInterpretationTableLineAsManagerSuccessfully() throws Exception {
+        CropFoliarAnalysisInterpretationTableModel managerTable = ownerTable.toBuilder()
+                .id(300L)
+                .creator(managerUser)
+                .build();
+
+        CropFoliarAnalysisInterpretationTableLineModel managerLine = ownerLine.toBuilder()
+                .id(301L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(managerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(cropFoliarAnalysisInterpretationTableLineRepository.findByTableAndCrop(managerTable, NomeComum.SOJA))
+                .thenReturn(Optional.empty());
+        when(cropFoliarAnalysisInterpretationTableLineRepository.save(any(CropFoliarAnalysisInterpretationTableLineModel.class)))
+                .thenReturn(managerLine);
+
+        mockMvc.perform(post("/crop-foliar-analysis-interpretation-table-line/register")
+                        .param("tableId", managerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequestDto())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(301L))
+                .andExpect(jsonPath("$.nome_cultura").value("SOJA")); // <-- trocado aqui
     }
 
     @Test

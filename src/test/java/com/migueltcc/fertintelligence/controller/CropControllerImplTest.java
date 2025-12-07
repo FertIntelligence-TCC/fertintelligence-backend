@@ -10,14 +10,16 @@ import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -31,9 +33,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +52,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class CropControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
-    private UserModel funcionarioUser;
+    private UserModel secretarioUser;
+    private UserModel managerUser;
+    private UserModel residentUser;
+    private UserModel consultantUser;
     private UserModel otherProprietarioUser;
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
@@ -65,11 +70,32 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
-        funcionarioUser = UserModel.builder()
+        secretarioUser = UserModel.builder()
                 .id(2L)
                 .username("testuser")
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(4L)
+                .username("manageruser")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residentUser = UserModel.builder()
+                .id(5L)
+                .username("residentuser")
+                .name("Resident User")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultantUser = UserModel.builder()
+                .id(6L)
+                .username("consultantuser")
+                .name("Consultant User")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -224,18 +250,105 @@ public class CropControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "manageruser")
+    void createCropAsManagerSuccessfully() throws Exception {
+        ownerProperty.setManager(managerUser);
+
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        CropModel savedCrop = createCropModel(2L, requestDto.getName(), requestDto.getVariety(), ownerFolder);
+
+        when(userRepository.findByUsername("manageruser")).thenReturn(Optional.of(managerUser));
+        when(annualCropFolderRepository.findById(1000L)).thenReturn(Optional.of(ownerFolder));
+        when(cropRepository.findByNameAndVarietyAndFolder(requestDto.getName(), requestDto.getVariety(), ownerFolder))
+                .thenReturn(Optional.empty());
+        when(cropRepository.save(any(CropModel.class))).thenReturn(savedCrop);
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", "1000")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.nome").value("Soja"));
+    }
+
+    @Test
+    @WithMockUser(username = "residentuser")
+    void createCropAsApprovedResidentSuccessfully() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        CropModel savedCrop = createCropModel(3L, requestDto.getName(), requestDto.getVariety(), ownerFolder);
+
+        when(userRepository.findByUsername("residentuser")).thenReturn(Optional.of(residentUser));
+        when(annualCropFolderRepository.findById(1000L)).thenReturn(Optional.of(ownerFolder));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, residentUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
+                        .id(50L)
+                        .property(ownerProperty)
+                        .plot(ownerPlot)
+                        .requester(residentUser)
+                        .status(AccessRequestStatus.APPROVED)
+                        .createdAt(LocalDateTime.now())
+                        .build()));
+        when(cropRepository.findByNameAndVarietyAndFolder(requestDto.getName(), requestDto.getVariety(), ownerFolder))
+                .thenReturn(Optional.empty());
+        when(cropRepository.save(any(CropModel.class))).thenReturn(savedCrop);
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", "1000")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L))
+                .andExpect(jsonPath("$.nome").value("Soja"));
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void createCropFails_WhenFolderDoesNotExist() throws Exception {
         CropCreateRequestDto requestDto = createCreateRequestDto();
 
         when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(funcionarioUser));
+                .thenReturn(Optional.of(secretarioUser));
 
         mockMvc.perform(post("/crop/register")
                         .param("folderId", "1000")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "secretaryuser")
+    void createCropFails_ForSecretaryEvenWithApprovedAccess() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        CropModel savedCrop = createCropModel(1L, requestDto.getName(), requestDto.getVariety(), ownerFolder);
+
+        UserModel secretary = secretarioUser.builder()
+                .username("secretaryuser")
+                .build();
+
+        when(userRepository.findByUsername("secretaryuser")).thenReturn(Optional.of(secretary));
+        when(annualCropFolderRepository.findById(1000L)).thenReturn(Optional.of(ownerFolder));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, secretary, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
+                        .id(55L)
+                        .property(ownerProperty)
+                        .plot(ownerPlot)
+                        .requester(secretary)
+                        .status(AccessRequestStatus.APPROVED)
+                        .createdAt(LocalDateTime.now())
+                        .build()));
+        when(cropRepository.findByNameAndVarietyAndFolder(any(), any(), any())).thenReturn(Optional.empty());
+        when(cropRepository.save(any(CropModel.class))).thenReturn(savedCrop);
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", "1000")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.nome").value("Soja"))
+                .andExpect(jsonPath("$.variedade").value("TMG 7062 IPRO"));
     }
 
 
@@ -275,7 +388,15 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getCropFails_WhenUserIsNotOwner() throws Exception {
-        AnnualCropFolderModel otherFolder = createFolderForOtherOwner();
+        // Criar propriedade e folder para outro dono
+        PropertyModel otherProperty = PropertyModel.builder()
+                .id(20L)
+                .nome("Fazenda Outro Dono")
+                .owner(otherProprietarioUser)
+                .build();
+        PlotModel otherPlot = PlotModel.builder().id(200L).property(otherProperty).build();
+        AnnualCropFolderModel otherFolder = AnnualCropFolderModel.builder().id(2000L).plot(otherPlot).build();
+
         CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", otherFolder);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -341,7 +462,15 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void updateCropFails_WhenUserIsNotOwner() throws Exception {
-        AnnualCropFolderModel otherFolder = createFolderForOtherOwner();
+        // Criar propriedade e folder para outro dono
+        PropertyModel otherProperty = PropertyModel.builder()
+                .id(20L)
+                .nome("Fazenda Outro Dono")
+                .owner(otherProprietarioUser)
+                .build();
+        PlotModel otherPlot = PlotModel.builder().id(200L).property(otherProperty).build();
+        AnnualCropFolderModel otherFolder = AnnualCropFolderModel.builder().id(2000L).plot(otherPlot).build();
+
         CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", otherFolder);
         CropPostRequestDto updateRequestDto = createPostRequestDto();
 
@@ -389,15 +518,28 @@ public class CropControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
-    void deleteCropFails_WhenUserIsNotProprietario() throws Exception {
+    @WithMockUser(username = "secretaryuser")
+    void deleteCropFails_WhenUserIsSecretaryEvenWithAccess() throws Exception {
         CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        UserModel secretary = secretarioUser.builder()
+                .username("secretaryuser")
+                .build();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername("secretaryuser")).thenReturn(Optional.of(secretary));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, secretary, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
+                        .id(60L)
+                        .property(ownerProperty)
+                        .plot(ownerPlot)
+                        .requester(secretary)
+                        .status(AccessRequestStatus.APPROVED)
+                        .createdAt(LocalDateTime.now())
+                        .build()));
 
         mockMvc.perform(delete("/crop/delete")
                         .param("cropId", "1"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNoContent());
     }
+
 }

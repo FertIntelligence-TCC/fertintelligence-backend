@@ -52,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LayerExtractControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
+    private UserModel managerUser;
     private UserModel otherProprietarioUser;
 
     private PropertyModel ownerProperty;
@@ -72,6 +73,13 @@ public class LayerExtractControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         otherProprietarioUser = UserModel.builder()
                 .id(2L)
                 .username("otheruser")
@@ -85,6 +93,7 @@ public class LayerExtractControllerImplTest extends AbstractControllerTest {
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(managerUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
 
@@ -195,6 +204,24 @@ public class LayerExtractControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.id_analise").value(ownerAnalysis.getId()))
                 .andExpect(jsonPath("$.ano_analise").value(ownerAnalysis.getAnalysisYear()))
                 .andExpect(jsonPath("$.laboratorio_responsavel").value(ownerAnalysis.getResponsibleLaboratory()));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createLayerExtractAsManager() throws Exception {
+        LayerExtractCreateRequestDto requestDto = createCreateRequestDto();
+        LayerExtractModel savedExtract = createLayerExtractModel(2L, ownerAnalysis);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(soilAnalysisRepository.findById(ownerAnalysis.getId())).thenReturn(Optional.of(ownerAnalysis));
+        when(layerExtractRepository.save(any(LayerExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/layer-extract/register")
+                        .param("analysisId", ownerAnalysis.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L));
     }
 
     @Test

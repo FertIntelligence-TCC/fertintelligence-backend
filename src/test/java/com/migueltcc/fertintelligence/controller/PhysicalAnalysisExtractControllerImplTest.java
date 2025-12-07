@@ -7,6 +7,7 @@ import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractPostRequestDto;
@@ -56,6 +57,7 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
 
     private UserModel proprietarioUser;
     private PropertyModel ownerProperty;
+    private UserModel managerUser;
     private PlotModel ownerPlot;
     private SoilAnalysisModel ownerRangeAnalysis;
     private SoilAnalysisModel ownerLayerAnalysis;
@@ -71,12 +73,20 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(2L)
+                .username("manager")
+                .name("Gerente")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerProperty = PropertyModel.builder()
                 .id(10L)
                 .nome("Fazenda Santa Clara")
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(managerUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
 
@@ -200,6 +210,24 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.teor_areia").value(450.0));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createPhysicalAnalysisExtractAsManagerSuccessfully() throws Exception {
+        PhysicalAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        PhysicalAnalysisExtractModel savedExtract = createPhysicalAnalysisExtractModel(3L, ownerRangeExtract, null);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
+        when(physicalAnalysisExtractRepository.save(any(PhysicalAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/physical-analysis-extract/register")
+                        .param("rangeExtractId", ownerRangeExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L));
     }
 
     @Test

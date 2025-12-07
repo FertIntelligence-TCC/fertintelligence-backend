@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropPostRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
@@ -47,7 +48,7 @@ public class CropServiceImpl implements CropService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkPlotPermission(folder.getPlot(), requestingUser);
+        checkPlotPermission(folder.getPlot(), requestingUser, true);
 
         cropRepository.findByNameAndVarietyAndFolder(
                         createRequestDto.getName(),
@@ -85,7 +86,7 @@ public class CropServiceImpl implements CropService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, false);
 
         return crop.toDto();
     }
@@ -96,7 +97,7 @@ public class CropServiceImpl implements CropService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkPlotPermission(folder.getPlot(), requestingUser);
+        checkPlotPermission(folder.getPlot(), requestingUser, false);
 
         return cropRepository.findAllByFolder(folder).stream()
                 .map(CropModel::toDto)
@@ -109,7 +110,7 @@ public class CropServiceImpl implements CropService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
         String newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
         String newVariety = Optional.ofNullable(updateRequestDto.getVariety()).orElse(crop.getVariety());
@@ -184,7 +185,7 @@ public class CropServiceImpl implements CropService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser);
+        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
         cropRepository.delete(crop);
     }
@@ -204,14 +205,16 @@ public class CropServiceImpl implements CropService {
                 .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + cropId));
     }
 
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
+    private void checkPlotPermission(PlotModel plot, UserModel requestingUser, boolean requireEditPermission) {
         PropertyModel property = plot.getProperty();
 
         if (property.getOwner().getId().equals(requestingUser.getId())) {
+            ensureEditAllowed(requestingUser, requireEditPermission);
             return;
         }
 
         if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            ensureEditAllowed(requestingUser, requireEditPermission);
             return;
         }
 
@@ -223,6 +226,14 @@ public class CropServiceImpl implements CropService {
 
         if (!hasApprovedAccess) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        ensureEditAllowed(requestingUser, requireEditPermission);
+    }
+
+    private void ensureEditAllowed(UserModel requestingUser, boolean requireEditPermission) {
+        if (requireEditPermission && requestingUser.getCargo() == Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas.");
         }
     }
 

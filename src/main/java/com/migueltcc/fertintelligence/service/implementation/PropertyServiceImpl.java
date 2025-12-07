@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo; // <-- IMPORT ADICIONADO
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
@@ -7,6 +8,7 @@ import com.migueltcc.fertintelligence.dto.property.PropertyPostRequestDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.PropertyService;
@@ -28,6 +30,9 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
 
     @Override
     @Transactional
@@ -71,9 +76,7 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyResponseDto getPropertyById(Long propertyId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        if (requestingUser.getCargo() == Cargo.PROPRIETARIO) {
-            checkOwnerPermission(property, requestingUser);
-        }
+        checkPropertyPermission(property, requestingUser);
         return property.toDto();
     }
 
@@ -92,10 +95,9 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional
     public PropertyResponseDto updateProperty(Long propertyId, PropertyPostRequestDto updateRequestDto, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(requestingUser);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkOwnerPermission(property, requestingUser);
+        checkPropertyPermission(property, requestingUser);
 
         if (updateRequestDto.getNome() != null && !updateRequestDto.getNome().equals(property.getNome())) {
             propertyRepository.findByNome(updateRequestDto.getNome()).ifPresent(p -> {
@@ -137,10 +139,9 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional
     public void deleteProperty(Long propertyId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(requestingUser); // <-- NOVA VERIFICAÇÃO DE CARGO
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkOwnerPermission(property, requestingUser); // Verifica se ele é dono DESSA propriedade
+        checkPropertyPermission(property, requestingUser);
         propertyRepository.delete(property);
     }
 
@@ -156,12 +157,6 @@ public class PropertyServiceImpl implements PropertyService {
 
     // --- Métodos Utilitários ---
 
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar propriedades.");
-        }
-    }
-
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
@@ -172,8 +167,36 @@ public class PropertyServiceImpl implements PropertyService {
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + propertyId));
     }
 
-    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+    private void checkUserIsProprietario(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO) {
+            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar propriedades.");
+        }
+    }
+
+    private void checkPropertyPermission(PropertyModel property, UserModel requestingUser) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPropertyApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

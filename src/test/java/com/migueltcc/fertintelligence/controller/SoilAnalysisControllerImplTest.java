@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisCreateRequestDto;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -127,6 +129,12 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .monthlyPluviosity(210.0)
                 .annualPluviosity(1150.0)
                 .build();
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+
     }
 
     private SoilAnalysisCreateRequestDto createCreateRequestDto() {
@@ -194,6 +202,14 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+
+        when(plotRepository.findById(100L)).thenReturn(Optional.of(ownerPlot));
+
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                any(PlotModel.class),
+                eq(funcionarioUser),
+                any(AccessRequestStatus.class)))
+                .thenReturn(Optional.empty());
 
         mockMvc.perform(post("/soil-analysis/register")
                         .contentType(MediaType.APPLICATION_JSON)

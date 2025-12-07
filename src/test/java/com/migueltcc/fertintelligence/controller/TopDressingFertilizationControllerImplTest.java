@@ -3,11 +3,14 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -51,6 +54,9 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel gerenteUser;
+    private UserModel residenteUser;
+    private UserModel consultorUser;
 
     private PropertyModel ownerProperty;
     private PropertyModel otherProperty;
@@ -80,12 +86,34 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        gerenteUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Gerente User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(4L)
+                .username("residente")
+                .name("Residente User")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(5L)
+                .username("consultor")
+                .name("Consultor User")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
+                .build();
+
         ownerProperty = PropertyModel.builder()
                 .id(10L)
                 .nome("Fazenda Santa Clara")
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(gerenteUser)
                 .localizacao(null)
                 .build();
 
@@ -221,6 +249,25 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .build();
     }
 
+    private PlotAccessRequestModel approvedPlotAccess(UserModel requester, PlotModel plot) {
+        return PlotAccessRequestModel.builder()
+                .id(70L)
+                .property(plot.getProperty())
+                .plot(plot)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    private PropertyAccessRequestModel approvedPropertyAccess(UserModel requester, PropertyModel property) {
+        return PropertyAccessRequestModel.builder()
+                .id(80L)
+                .property(property)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
     @Test
     @WithMockUser(username = "testuser")
     void createTopDressingFertilizationSuccessfully() throws Exception {
@@ -246,6 +293,85 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.data.day").value(15))
                 .andExpect(jsonPath("$.data.month").value(5))
                 .andExpect(jsonPath("$.data.year").value(2025));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createTopDressingFertilizationAsGerenteSuccessfully() throws Exception {
+        TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
+        TopdressingFertilizationModel savedFertilization = createFertilizationModel(3L, requestDto.getDate(), requestDto.getOrder(), ownerCrop);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
+        when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
+
+        mockMvc.perform(post("/top-dressing-fertilization/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L));
+    }
+
+    @Test
+    @WithMockUser(username = "residente")
+    void createTopDressingFertilizationAsResidenteWithApprovalSuccessfully() throws Exception {
+        TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
+        TopdressingFertilizationModel savedFertilization = createFertilizationModel(4L, requestDto.getDate(), requestDto.getOrder(), ownerCrop);
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
+        when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
+
+        mockMvc.perform(post("/top-dressing-fertilization/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(4L));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createTopDressingFertilizationAsConsultorWithPlotApprovalSuccessfully() throws Exception {
+        TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
+        TopdressingFertilizationModel savedFertilization = createFertilizationModel(5L, requestDto.getDate(), requestDto.getOrder(), ownerCrop);
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
+        when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
+
+        mockMvc.perform(post("/top-dressing-fertilization/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(5L));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createTopDressingFertilizationFailsWithoutPlotApproval() throws Exception {
+        TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.empty());
+        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/top-dressing-fertilization/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

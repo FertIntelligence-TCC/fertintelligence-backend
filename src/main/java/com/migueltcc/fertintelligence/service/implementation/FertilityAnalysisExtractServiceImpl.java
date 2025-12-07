@@ -14,6 +14,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FertilityAnalysisExtractService;
@@ -43,6 +44,9 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     private PlotAccessRequestRepository plotAccessRequestRepository;
 
     @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
@@ -52,7 +56,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                                                                               FertilityAnalysisExtractCreateRequestDto createRequestDto,
                                                                               String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
         checkOwnerPermission(extractContext.plot(), owner);
@@ -93,7 +97,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Transactional(readOnly = true)
     public FertilityAnalysisExtractResponseDto getFertilityAnalysisExtractById(Long fertilityAnalysisExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
         checkOwnerPermission(resolvePlot(analysisExtract), owner);
@@ -105,7 +109,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Transactional(readOnly = true)
     public List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByRange(Long rangeExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
         checkOwnerPermission(rangeExtract.getAnalysis().getPlot(), owner);
@@ -119,7 +123,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Transactional(readOnly = true)
     public List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByLayer(Long layerExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
@@ -135,7 +139,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                                                                               FertilityAnalysisExtractPostRequestDto updateRequestDto,
                                                                               String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
         checkOwnerPermission(resolvePlot(analysisExtract), owner);
@@ -172,7 +176,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Transactional
     public void deleteFertilityAnalysisExtract(Long fertilityAnalysisExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserRole(owner);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
         checkOwnerPermission(resolvePlot(analysisExtract), owner);
@@ -212,13 +216,13 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         throw new IllegalStateException("Extrato de análise de fertilidade não possui extrato base associado.");
     }
 
-    private void checkUserIsProprietario(UserModel user) {
+    private void checkUserRole(UserModel user) {
         if (user.getCargo() != Cargo.PROPRIETARIO
                 && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas proprietários, gerentes ou agrônomos consultores podem gerenciar extratos de análises de fertilidade."
-            );
+                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && user.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }
 
@@ -230,6 +234,19 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         }
 
         if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasApprovedPropertyAccess = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasApprovedPropertyAccess) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
             return;
         }
 

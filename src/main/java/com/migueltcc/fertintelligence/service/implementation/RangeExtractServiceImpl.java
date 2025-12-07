@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractPostRequestDto;
@@ -10,7 +11,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.RangeExtractService;
@@ -35,14 +38,19 @@ public class RangeExtractServiceImpl implements RangeExtractService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
+
     @Override
     @Transactional
     public RangeExtractResponseDto createRangeExtract(Long analysisId, RangeExtractCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
-        checkOwnerPermission(analysis.getPlot(), owner);
+        checkPermission(analysis.getPlot(), owner);
         ensureAnalysisSupportsRanges(analysis);
 
         validateDepthRange(createRequestDto.getInitialDepth(), createRequestDto.getFinalDepth());
@@ -61,10 +69,9 @@ public class RangeExtractServiceImpl implements RangeExtractService {
     @Transactional(readOnly = true)
     public RangeExtractResponseDto getRangeExtractById(Long rangeExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        checkOwnerPermission(rangeExtract.getAnalysis().getPlot(), owner);
+        checkPermission(rangeExtract.getAnalysis().getPlot(), owner);
         ensureAnalysisSupportsRanges(rangeExtract.getAnalysis());
 
         return rangeExtract.toDto();
@@ -74,10 +81,9 @@ public class RangeExtractServiceImpl implements RangeExtractService {
     @Transactional(readOnly = true)
     public List<RangeExtractResponseDto> getAllRangeExtractsByAnalysis(Long analysisId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
-        checkOwnerPermission(analysis.getPlot(), owner);
+        checkPermission(analysis.getPlot(), owner);
         ensureAnalysisSupportsRanges(analysis);
 
         return rangeExtractRepository.findAllByAnalysis(analysis).stream()
@@ -89,11 +95,10 @@ public class RangeExtractServiceImpl implements RangeExtractService {
     @Transactional
     public RangeExtractResponseDto updateRangeExtract(Long rangeExtractId, RangeExtractPostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
         SoilAnalysisModel analysis = rangeExtract.getAnalysis();
-        checkOwnerPermission(analysis.getPlot(), owner);
+        checkPermission(analysis.getPlot(), owner);
         ensureAnalysisSupportsRanges(analysis);
 
         Integer updatedInitialDepth = updateRequestDto.getInitialDepth() != null
@@ -116,10 +121,9 @@ public class RangeExtractServiceImpl implements RangeExtractService {
     @Transactional
     public void deleteRangeExtract(Long rangeExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        checkOwnerPermission(rangeExtract.getAnalysis().getPlot(), owner);
+        checkPermission(rangeExtract.getAnalysis().getPlot(), owner);
         ensureAnalysisSupportsRanges(rangeExtract.getAnalysis());
 
         rangeExtractRepository.delete(rangeExtract);
@@ -145,12 +149,6 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         }
     }
 
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar extratos por intervalo.");
-        }
-    }
-
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
@@ -166,9 +164,45 @@ public class RangeExtractServiceImpl implements RangeExtractService {
                 .orElseThrow(() -> new EntityNotFoundException("Extrato de intervalo não encontrado com o ID: " + rangeExtractId));
     }
 
-    private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
+    private void checkPermission(PlotModel plot, UserModel requestingUser) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
         PropertyModel property = plot.getProperty();
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPlotApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

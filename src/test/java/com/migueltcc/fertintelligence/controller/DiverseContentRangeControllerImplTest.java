@@ -43,7 +43,9 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel managerUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
+    private SoilFertilityInterpretationCriteriaTableModel managerTable;
     private DiverseContentRangeModel existingCriterion;
 
     @BeforeEach
@@ -55,9 +57,21 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(5L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .id(13L)
                 .creator(proprietarioUser)
+                .build();
+
+        managerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
+                .id(14L)
+                .creator(managerUser)
                 .build();
 
         existingCriterion = DiverseContentRangeModel.builder()
@@ -187,6 +201,35 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/diverse-content-range/get?criterionId=321"))
                 .andExpect(jsonPath("$.id").value(321L));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createDiverseContentRangeForManagerOwnedTable() throws Exception {
+        DiverseContentRangeCreateRequestDto requestDto = DiverseContentRangeCreateRequestDto.builder()
+                .organic_carbon_too_low(1.2)
+                .organic_carbon_low_i(2.2)
+                .build();
+
+        DiverseContentRangeModel savedCriterion = existingCriterion.toBuilder()
+                .id(322L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(managerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(diverseContentRangeRepository.findByTable(managerTable)).thenReturn(Optional.empty());
+        when(diverseContentRangeRepository.save(any(DiverseContentRangeModel.class))).thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/diverse-content-range/register")
+                        .param("tableId", managerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(322L))
+                // campo e valor de acordo com o JSON real
+                .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.0));
     }
 
     @Test

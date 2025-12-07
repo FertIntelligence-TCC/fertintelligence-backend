@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.solid.SolidSourceCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.solid.SolidSourcePostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -52,6 +55,9 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel gerenteUser;
+    private UserModel residenteUser;
+    private UserModel consultorUser;
 
     private PropertyModel ownerProperty;
     private PropertyModel otherProperty;
@@ -81,6 +87,27 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.SECRETARIO)
                 .build();
 
+        gerenteUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Gerente User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(5L)
+                .username("residente")
+                .name("Residente User")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(6L)
+                .username("consultor")
+                .name("Consultor User")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
+                .build();
+
         otherProprietarioUser = UserModel.builder()
                 .id(3L)
                 .username("otheruser")
@@ -94,6 +121,7 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(gerenteUser)
                 .localizacao(null)
                 .build();
 
@@ -217,6 +245,25 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    private PlotAccessRequestModel approvedPlotAccess(UserModel requester, PlotModel plot) {
+        return PlotAccessRequestModel.builder()
+                .id(50L)
+                .property(plot.getProperty())
+                .plot(plot)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    private PropertyAccessRequestModel approvedPropertyAccess(UserModel requester, PropertyModel property) {
+        return PropertyAccessRequestModel.builder()
+                .id(60L)
+                .property(property)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
     @Test
     @WithMockUser(username = "testuser")
     void createSolidSourceSuccessfully() throws Exception {
@@ -325,6 +372,86 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
         SolidSourceCreateRequestDto requestDto = createRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, funcionarioUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/foliar-fertilization/solid-source/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createSolidSourceAsGerenteSuccessfully() throws Exception {
+        SolidSourceCreateRequestDto requestDto = createRequestDto();
+        SolidSourceModel savedSource = createSolidSourceModel(8L, ownerCrop);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
+
+        mockMvc.perform(post("/foliar-fertilization/solid-source/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(8L));
+    }
+
+    @Test
+    @WithMockUser(username = "residente")
+    void createSolidSourceAsResidenteWithApprovalSuccessfully() throws Exception {
+        SolidSourceCreateRequestDto requestDto = createRequestDto();
+        SolidSourceModel savedSource = createSolidSourceModel(9L, ownerCrop);
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+        when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
+
+        mockMvc.perform(post("/foliar-fertilization/solid-source/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(9L));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createSolidSourceAsConsultorWithPlotApprovalSuccessfully() throws Exception {
+        SolidSourceCreateRequestDto requestDto = createRequestDto();
+        SolidSourceModel savedSource = createSolidSourceModel(10L, ownerCrop);
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+        when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
+
+        mockMvc.perform(post("/foliar-fertilization/solid-source/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(10L));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createSolidSourceFailsWithoutPlotApproval() throws Exception {
+        SolidSourceCreateRequestDto requestDto = createRequestDto();
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.empty());
 
         mockMvc.perform(post("/foliar-fertilization/solid-source/register")
                         .param("cropId", ownerCrop.getId().toString())

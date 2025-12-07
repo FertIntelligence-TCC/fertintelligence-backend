@@ -43,6 +43,7 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
     private CropFoliarAnalysisInterpretationTableModel ownerTable;
 
     @BeforeEach
@@ -52,6 +53,13 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .username("testuser")
                 .name("Test User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(5L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -99,6 +107,27 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                         "http://localhost/crop-foliar-analysis-interpretation-table/get?tableId=25"))
                 .andExpect(jsonPath("$.id").value(25L))
                 .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createCropFoliarAnalysisInterpretationTableAsManagerSuccessfully() throws Exception {
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.save(any(CropFoliarAnalysisInterpretationTableModel.class)))
+                .thenAnswer(invocation -> {
+                    CropFoliarAnalysisInterpretationTableModel table = invocation.getArgument(0);
+                    table.setId(30L);
+                    return table;
+                });
+
+        mockMvc.perform(post("/crop-foliar-analysis-interpretation-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequestDto())))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location",
+                        "http://localhost/crop-foliar-analysis-interpretation-table/get?tableId=30"))
+                .andExpect(jsonPath("$.id").value(30L))
+                .andExpect(jsonPath("$.nome_criador").value("Manager User"));
     }
 
     @Test

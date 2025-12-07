@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plot.PlotCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotPostRequestDto;
@@ -9,7 +10,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.service.documentation.PlotService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,6 +34,12 @@ public class PlotServiceImpl implements PlotService {
     private PropertyRepository propertyRepository;
 
     @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
@@ -39,7 +48,7 @@ public class PlotServiceImpl implements PlotService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkManagerOrOwnerPermission(property, requestingUser);
+        checkPermission(property, null, requestingUser, true);
 
         plotRepository.findByIdentificationAndProperty(createRequestDto.getIdentification(), property)
                 .ifPresent(existing -> {
@@ -70,7 +79,7 @@ public class PlotServiceImpl implements PlotService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkPermission(plot.getProperty(), plot, requestingUser, false);
 
         return plot.toDto();
     }
@@ -81,7 +90,7 @@ public class PlotServiceImpl implements PlotService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkManagerOrOwnerPermission(property, requestingUser);
+        checkPermission(property, null, requestingUser, false);
 
         return plotRepository.findAllByProperty(property).stream()
                 .map(PlotModel::toDto)
@@ -94,7 +103,7 @@ public class PlotServiceImpl implements PlotService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkPermission(plot.getProperty(), plot, requestingUser, true);
 
         if (updateRequestDto.getIdentification() != null
                 && !updateRequestDto.getIdentification().equals(plot.getIdentification())) {
@@ -150,7 +159,7 @@ public class PlotServiceImpl implements PlotService {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
 
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkManagerOrOwnerPermission(plot.getProperty(), requestingUser);
+        checkPermission(plot.getProperty(), plot, requestingUser, true);
 
         plotRepository.delete(plot);
     }
@@ -170,7 +179,15 @@ public class PlotServiceImpl implements PlotService {
                 .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
     }
 
-    private void checkManagerOrOwnerPermission(PropertyModel property, UserModel requestingUser) {
+    private void checkPermission(PropertyModel property, PlotModel plot, UserModel requestingUser, boolean requireEdit) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
         if (property.getOwner().getId().equals(requestingUser.getId())) {
             return;
         }
@@ -179,6 +196,31 @@ public class PlotServiceImpl implements PlotService {
             return;
         }
 
-        throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        if (plot == null) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPlotApproval) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
     }
 }

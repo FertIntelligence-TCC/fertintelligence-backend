@@ -81,6 +81,42 @@ class PlotAccessRequestControllerImplTest {
     }
 
     @Test
+    @WithMockUser(username = "residente")
+    @DisplayName("Deve permitir que residente solicite acesso aos talhões")
+    void shouldAllowResidentRequest() throws Exception {
+        PlotAccessRequestResponseDto responseDto = PlotAccessRequestResponseDto.builder()
+                .id(2L)
+                .propertyId(2L)
+                .propertyName("Fazenda Teste")
+                .requesterId(7L)
+                .requesterName("Residente")
+                .requesterCargo(Cargo.AGRONOMO_RESIDENTE)
+                .plotId(9L)
+                .plotIdentification("Talhão 09")
+                .status(AccessRequestStatus.PENDING)
+                .createdAt(LocalDateTime.of(2024, 5, 2, 10, 0))
+                .build();
+
+        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), Mockito.eq("residente")))
+                .thenReturn(responseDto);
+
+        PlotAccessRequestCreateRequestDto requestDto = PlotAccessRequestCreateRequestDto.builder()
+                .propertyId(2L)
+                .plotId(9L)
+                .build();
+
+        mockMvc.perform(post("/plot-access/request")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(2)))
+                .andExpect(jsonPath("$.cargo_solicitante", is(Cargo.AGRONOMO_RESIDENTE.name())));
+
+        Mockito.verify(plotAccessRequestService).requestAccess(2L, 9L, "residente");
+    }
+
+    @Test
     @WithMockUser(username = "gerente")
     @DisplayName("Deve listar solicitações para o gerente")
     void shouldListRequestsForManager() throws Exception {

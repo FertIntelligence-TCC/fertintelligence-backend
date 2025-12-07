@@ -43,6 +43,7 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel gerenteUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
     private AvailablePAnionExchangeResinExtractorModel existingCriterion;
 
@@ -53,6 +54,13 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                 .username("testuser")
                 .name("Test User")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        gerenteUser = UserModel.builder()
+                .id(2L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
@@ -112,6 +120,35 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                         "http://localhost/available-p-anion-exchange-resin-extractor/get?criterionId=120"))
                 .andExpect(jsonPath("$.id").value(120L))
                 .andExpect(jsonPath("$.menor_teor_fosforo_solo_algodao").value(1.0));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createAvailablePAnionExchangeResinExtractorAsManagerSuccessfully() throws Exception {
+        AvailablePAnionExchangeResinExtractorCreateRequestDto requestDto =
+                AvailablePAnionExchangeResinExtractorCreateRequestDto.builder()
+                        .p_content_cotton_too_low(1.0)
+                        .build();
+
+        AvailablePAnionExchangeResinExtractorModel savedCriterion = existingCriterion.toBuilder()
+                .id(121L)
+                .table(ownerTable.toBuilder().creator(gerenteUser).build())
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable.toBuilder().creator(gerenteUser).build()));
+        when(availablePAnionExchangeResinExtractorRepository.findByTable(any()))
+                .thenReturn(Optional.empty());
+        when(availablePAnionExchangeResinExtractorRepository.save(any(AvailablePAnionExchangeResinExtractorModel.class)))
+                .thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/available-p-anion-exchange-resin-extractor/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(121L));
     }
 
     @Test

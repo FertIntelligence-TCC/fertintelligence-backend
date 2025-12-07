@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractResponseDto;
@@ -51,6 +52,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                                                                             PhysicalAnalysisExtractCreateRequestDto createRequestDto,
                                                                             String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
         checkPlotPermission(extractContext.plot(), requestingUser);
@@ -84,6 +86,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public PhysicalAnalysisExtractResponseDto getPhysicalAnalysisExtractById(Long physicalAnalysisExtractId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
         checkPlotPermission(resolvePlot(analysisExtract), requestingUser);
@@ -95,6 +98,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByRange(Long rangeExtractId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
         checkPlotPermission(rangeExtract.getAnalysis().getPlot(), requestingUser);
@@ -108,6 +112,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByLayer(Long layerExtractId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         checkPlotPermission(layerExtract.getAnalysis().getPlot(), requestingUser);
@@ -123,6 +128,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                                                                             PhysicalAnalysisExtractPostRequestDto updateRequestDto,
                                                                             String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
         checkPlotPermission(resolvePlot(analysisExtract), requestingUser);
@@ -152,6 +158,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional
     public void deletePhysicalAnalysisExtract(Long physicalAnalysisExtractId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
+        checkUserHasAllowedRole(requestingUser);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
         checkPlotPermission(resolvePlot(analysisExtract), requestingUser);
@@ -197,6 +204,8 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     }
 
     private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
+        checkUserHasAllowedRole(requestingUser);
+
         PropertyModel property = plot.getProperty();
 
         if (property.getOwner().getId().equals(requestingUser.getId())) {
@@ -214,6 +223,16 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         ).isPresent();
 
         if (!hasApprovedAccess) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+    }
+
+    private void checkUserHasAllowedRole(UserModel requestingUser) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

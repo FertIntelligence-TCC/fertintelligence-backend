@@ -43,7 +43,9 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel managerUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
+    private SoilFertilityInterpretationCriteriaTableModel managerTable;
     private KExchangeableContentModel existingCriterion;
 
     @BeforeEach
@@ -55,9 +57,21 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(6L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .id(14L)
                 .creator(proprietarioUser)
+                .build();
+
+        managerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
+                .id(15L)
+                .creator(managerUser)
                 .build();
 
         existingCriterion = KExchangeableContentModel.builder()
@@ -131,6 +145,35 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/k-exchangeable-content/get?criterionId=421"))
                 .andExpect(jsonPath("$.id").value(421L));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createKExchangeableContentForManagerOwnedTable() throws Exception {
+        KExchangeableContentCreateRequestDto requestDto = KExchangeableContentCreateRequestDto.builder()
+                .k_content_cec_less_20_too_low(1.5)
+                .k_content_cec_less_20_low_i(2.5)
+                .build();
+
+        KExchangeableContentModel savedCriterion = existingCriterion.toBuilder()
+                .id(422L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(managerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(kExchangeableContentRepository.findByTable(managerTable)).thenReturn(Optional.empty());
+        when(kExchangeableContentRepository.save(any(KExchangeableContentModel.class))).thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/k-exchangeable-content/register")
+                        .param("tableId", managerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(422L))
+                // campo e valor conforme o JSON de resposta
+                .andExpect(jsonPath("$.menor_teor_k_ctc_menor_20").value(1.0));
     }
 
     @Test

@@ -8,12 +8,11 @@ import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plot.PlotCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotPostRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -48,6 +47,9 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
+    private UserModel residenteUser;
+    private UserModel consultorUser;
     private PropertyModel ownerProperty;
 
     @BeforeEach
@@ -66,6 +68,27 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.SECRETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Gerente")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(5L)
+                .username("residente")
+                .name("Agrônomo Residente")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(6L)
+                .username("consultor")
+                .name("Agrônomo Consultor")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
+                .build();
+
         otherProprietarioUser = UserModel.builder()
                 .id(3L)
                 .username("otheruser")
@@ -79,6 +102,7 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(managerUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
     }
@@ -127,6 +151,23 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    private PropertyAccessRequestModel approvedPropertyAccess(UserModel user, PropertyModel property) {
+        return PropertyAccessRequestModel.builder()
+                .property(property)
+                .requester(user)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    private PlotAccessRequestModel approvedPlotAccess(UserModel user, PlotModel plot) {
+        return PlotAccessRequestModel.builder()
+                .plot(plot)
+                .requester(user)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+
     @Test
     @WithMockUser(username = "testuser")
     void createPlotSuccessfully() throws Exception {
@@ -148,6 +189,48 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.identificacao").value("Talhao 01"))
                 .andExpect(jsonPath("$.id_propriedade").value(10L))
                 .andExpect(jsonPath("$.nome_propriedade").value("Fazenda Santa Clara"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createPlotAsManagerSuccessfully() throws Exception {
+        PlotCreateRequestDto requestDto = createCreateRequestDto();
+        PlotModel savedPlot = createPlotModel(2L, requestDto.getIdentification(), ownerProperty);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
+        when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
+                .thenReturn(Optional.empty());
+        when(plotRepository.save(any(PlotModel.class))).thenReturn(savedPlot);
+
+        mockMvc.perform(post("/plot/register")
+                        .param("propertyId", "10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L));
+    }
+
+    @Test
+    @WithMockUser(username = "residente")
+    void createPlotAsResidentWithApproval() throws Exception {
+        PlotCreateRequestDto requestDto = createCreateRequestDto();
+        PlotModel savedPlot = createPlotModel(3L, requestDto.getIdentification(), ownerProperty);
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
+        when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
+                .thenReturn(Optional.empty());
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+        when(plotRepository.save(any(PlotModel.class))).thenReturn(savedPlot);
+
+        mockMvc.perform(post("/plot/register")
+                        .param("propertyId", "10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L));
     }
 
     @Test
@@ -271,6 +354,28 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.identificacao").value("Talhao Atualizado"))
                 .andExpect(jsonPath("$.area").value(18.0));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void updatePlotAsConsultantWithApproval() throws Exception {
+        PlotModel existingPlot = createPlotModel(1L, "Talhao 01", ownerProperty);
+        PlotPostRequestDto updateRequestDto = createPostRequestDto();
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(plotRepository.findById(1L)).thenReturn(Optional.of(existingPlot));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(existingPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, existingPlot)));
+        when(plotRepository.findByIdentificationAndProperty(updateRequestDto.getIdentification(), ownerProperty))
+                .thenReturn(Optional.empty());
+        when(plotRepository.save(any(PlotModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/plot/update")
+                        .param("plotId", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.identificacao").value("Talhao Atualizado"));
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirect
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractPostRequestDto;
@@ -52,6 +53,8 @@ public class RangeExtractControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
+    private UserModel consultorUser;
 
     private PropertyModel ownerProperty;
     private PropertyModel otherProperty;
@@ -76,6 +79,20 @@ public class RangeExtractControllerImplTest extends AbstractControllerTest {
                 .username("otheruser")
                 .name("Other User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(4L)
+                .username("consultor")
+                .name("Consultor User")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
         ownerProperty = PropertyModel.builder()
@@ -139,6 +156,11 @@ public class RangeExtractControllerImplTest extends AbstractControllerTest {
                 .responsibleLaboratory("Laboratório Y")
                 .extractType(TipoExtrato.CAMADAS)
                 .build();
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
     }
 
     private RangeExtractCreateRequestDto createCreateRequestDto() {
@@ -189,6 +211,26 @@ public class RangeExtractControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "manager")
+    void createRangeExtractAsManager() throws Exception {
+        ownerProperty.setManager(managerUser);
+        RangeExtractCreateRequestDto requestDto = createCreateRequestDto();
+        RangeExtractModel savedExtract = createRangeExtractModel(2L, ownerAnalysis);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(soilAnalysisRepository.findById(ownerAnalysis.getId())).thenReturn(Optional.of(ownerAnalysis));
+        when(rangeExtractRepository.save(any(RangeExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/range-extract/register")
+                        .param("analysisId", ownerAnalysis.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.id_analise").value(ownerAnalysis.getId()));
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void getRangeExtractSuccessfully() throws Exception {
         RangeExtractModel rangeExtract = createRangeExtractModel(1L, ownerAnalysis);
@@ -201,6 +243,23 @@ public class RangeExtractControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.profundidade_inicial").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createRangeExtractFailsWithoutPlotApproval() throws Exception {
+        RangeExtractCreateRequestDto requestDto = createCreateRequestDto();
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(soilAnalysisRepository.findById(ownerAnalysis.getId())).thenReturn(Optional.of(ownerAnalysis));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/range-extract/register")
+                        .param("analysisId", ownerAnalysis.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

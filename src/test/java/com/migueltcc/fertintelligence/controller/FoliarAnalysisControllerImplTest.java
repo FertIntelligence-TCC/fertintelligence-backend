@@ -56,6 +56,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
+    private UserModel managerUser;
     private UserModel otherProprietarioUser;
 
     private PropertyModel ownerProperty;
@@ -81,9 +82,16 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
         funcionarioUser = UserModel.builder()
                 .id(2L)
-                .username("testuser")
+                .username("secretary")
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -99,6 +107,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(managerUser)
                 .localizacao(null)
                 .build();
 
@@ -276,17 +285,43 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
-    void createFoliarAnalysisFails_WhenUserIsNotProprietario() throws Exception {
+    @WithMockUser(username = "secretary")
+    void createFoliarAnalysisFailsForSecretaryEdit() throws Exception {
         FoliarAnalysisCreateRequestDto requestDto = createCreateRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername("secretary")).thenReturn(Optional.of(funcionarioUser));
+
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+
+        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
+                .thenReturn(Optional.empty());
 
         mockMvc.perform(post("/foliar-analysis/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isForbidden());
+    }
+
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createFoliarAnalysisAsManager() throws Exception {
+        FoliarAnalysisCreateRequestDto requestDto = createCreateRequestDto();
+        FoliarAnalysisModel savedAnalysis = createFoliarAnalysisModel(2L, requestDto.getCollectDate(), ownerCrop);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
+                .thenReturn(Optional.empty());
+        when(foliarAnalysisRepository.save(any(FoliarAnalysisModel.class))).thenReturn(savedAnalysis);
+
+        mockMvc.perform(post("/foliar-analysis/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation.SalinityInterpretationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation.SalinityInterpretationPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation.SalinityInterpretationResponseDto;
@@ -41,7 +40,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
             SalinityInterpretationCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -63,7 +61,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
     @Transactional(readOnly = true)
     public SalinityInterpretationResponseDto getSalinityInterpretationById(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SalinityInterpretationModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -75,7 +72,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
     @Transactional(readOnly = true)
     public SalinityInterpretationResponseDto getSalinityInterpretationByTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -94,7 +90,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
             SalinityInterpretationPostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SalinityInterpretationModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -109,7 +104,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
     @Transactional
     public void deleteSalinityInterpretation(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SalinityInterpretationModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -120,13 +114,6 @@ public class SalinityInterpretationServiceImpl implements SalinityInterpretation
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar os critérios.");
-        }
     }
 
     private SoilFertilityInterpretationCriteriaTableModel findTableByIdOrThrow(Long tableId) {

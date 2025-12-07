@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
@@ -49,6 +50,8 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
+    private UserModel residenteUser;
 
     @BeforeEach
     void setUp() {
@@ -76,6 +79,23 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                 .name("Other User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
+
+        managerUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(5L)
+                .username("residente")
+                .name("Residente User")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
     }
 
     // --- HELPER METHODS ---
@@ -252,6 +272,28 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "manager")
+    void updatePropertyAsManager() throws Exception {
+        PropertyModel originalProperty = createPropertyModel(1L, "Fazenda Santa Clara", proprietarioUser);
+        originalProperty.setManager(managerUser);
+
+        PropertyPostRequestDto updateRequestDto = createPostRequestDto();
+        updateRequestDto.setNome("Fazenda Santa Clara (Gerente)");
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(originalProperty));
+        when(propertyRepository.findByNome(anyString())).thenReturn(Optional.empty());
+        when(propertyRepository.save(any(PropertyModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/property/update")
+                        .param("propertyId", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara (Gerente)"));
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void updatePropertyFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel propertyOfOther = createPropertyModel(1L, "Fazenda Secreta", otherProprietarioUser);
@@ -287,6 +329,26 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "residente")
+    void deletePropertyWithResidentApproval() throws Exception {
+        PropertyModel property = createPropertyModel(1L, "Fazenda a Deletar", proprietarioUser);
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, residenteUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel.builder()
+                        .property(property)
+                        .requester(residenteUser)
+                        .status(AccessRequestStatus.APPROVED)
+                        .build()));
+        doNothing().when(propertyRepository).delete(property);
+
+        mockMvc.perform(delete("/property/delete")
+                        .param("propertyId", "1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void deletePropertyFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel propertyOfOther = createPropertyModel(1L, "Fazenda Secreta", otherProprietarioUser);
@@ -302,15 +364,17 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void deletePropertyFails_WhenUserIsNotProprietario() throws Exception {
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser)); // Mock: Usuário NÃO é proprietário
-        // Adicionamos um mock para findById para evitar NullPointerException caso o service
-        // tente buscar a propriedade antes de verificar o cargo do usuário.
+    void deletePropertyFails_WhenUserRoleIsNotAllowed() throws Exception {
+        UserModel supervisorUser = funcionarioUser.builder()
+                .cargo(Cargo.SUPERVISOR_DE_AREA)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(supervisorUser));
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(createPropertyModel(1L, "Dummy", proprietarioUser)));
 
-        mockMvc.perform(delete("/property/delete") // URL: DELETE /property/delete
-                        .param("propertyId", "1")) // ID como parâmetro
-                .andExpect(status().isForbidden()) // Espera 403 Forbidden (checkUserIsProprietario falha)
+        mockMvc.perform(delete("/property/delete")
+                        .param("propertyId", "1"))
+                .andExpect(status().isForbidden())
                 .andDo(print());
     }
 }

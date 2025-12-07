@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSResponseDto;
@@ -38,7 +37,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     @Transactional
     public AvailableSResponseDto createAvailableS(Long tableId, AvailableSCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -60,7 +58,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     @Transactional(readOnly = true)
     public AvailableSResponseDto getAvailableSById(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -72,7 +69,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     @Transactional(readOnly = true)
     public AvailableSResponseDto getAvailableSByTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -88,7 +84,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     @Transactional
     public AvailableSResponseDto updateAvailableS(Long criterionId, AvailableSPostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -103,7 +98,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     @Transactional
     public void deleteAvailableS(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -114,13 +108,6 @@ public class AvailableSServiceImpl implements AvailableSService {
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar os critérios.");
-        }
     }
 
     private SoilFertilityInterpretationCriteriaTableModel findTableByIdOrThrow(Long tableId) {

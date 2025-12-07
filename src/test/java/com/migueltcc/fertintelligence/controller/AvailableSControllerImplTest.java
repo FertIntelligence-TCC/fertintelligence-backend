@@ -43,6 +43,7 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel gerenteUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
     private AvailableSModel existingCriterion;
 
@@ -53,6 +54,13 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
                 .username("testuser")
                 .name("Test User")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        gerenteUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
@@ -177,5 +185,35 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(availableSRepository).delete(existingCriterion);
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createAvailableSAsManagerSuccessfully() throws Exception {
+        AvailableSCreateRequestDto requestDto = AvailableSCreateRequestDto.builder()
+                .s_content_clayey_too_low(1.0)
+                .build();
+
+        SoilFertilityInterpretationCriteriaTableModel managerTable = ownerTable.toBuilder()
+                .creator(gerenteUser)
+                .build();
+
+        AvailableSModel savedCriterion = existingCriterion.toBuilder()
+                .id(121L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(availableSRepository.findByTable(managerTable)).thenReturn(Optional.empty());
+        when(availableSRepository.save(any(AvailableSModel.class))).thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/available-s/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(121L));
     }
 }

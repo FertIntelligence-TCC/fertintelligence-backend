@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoveragePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageResponseDto;
@@ -40,7 +39,6 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public CoverageResponseDto createCoverage(Long contentRangeId, CoverageCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         checkCreatorPermission(range.getTable(), owner);
@@ -73,7 +71,6 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional(readOnly = true)
     public CoverageResponseDto getCoverageById(Long coverageId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         checkCreatorPermission(coverage.getRange().getTable(), owner);
@@ -85,7 +82,6 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional(readOnly = true)
     public List<CoverageResponseDto> getAllCoveragesByContentRange(Long contentRangeId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         checkCreatorPermission(range.getTable(), owner);
@@ -99,7 +95,6 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public CoverageResponseDto updateCoverage(Long coverageId, CoveragePostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
@@ -138,7 +133,6 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public void deleteCoverage(Long coverageId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
@@ -178,12 +172,6 @@ public class CoverageServiceImpl implements CoverageService {
             if (!order.equals(i + 1)) {
                 throw new IllegalArgumentException("As coberturas devem ser ordenadas sequencialmente sem lacunas.");
             }
-        }
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar coberturas.");
         }
     }
 

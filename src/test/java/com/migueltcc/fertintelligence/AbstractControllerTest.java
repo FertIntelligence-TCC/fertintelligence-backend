@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -111,6 +113,9 @@ public abstract class AbstractControllerTest {
 
     @MockitoBean
     protected PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @MockitoBean
+    protected PlotAccessRequestRepository plotAccessRequestRepository;
 
     // Mocks do UserControllerImplTest
     @MockitoBean

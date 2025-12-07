@@ -2,7 +2,6 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
@@ -34,7 +33,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional
     public CropFertilizationTableResponseDto createCropFertilizationTable(CropFertilizationTableCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         validateCropNames(createRequestDto.getCrop_common_name(), createRequestDto.getCrop_scientific_nome());
 
@@ -67,7 +65,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional(readOnly = true)
     public CropFertilizationTableResponseDto getCropFertilizationTableById(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -79,7 +76,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllCropFertilizationTablesByCreator(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         return cropFertilizationTableRepository.findAllByCreator(owner).stream()
                 .map(CropFertilizationTableModel::toDto)
@@ -90,7 +86,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional
     public CropFertilizationTableResponseDto updateCropFertilizationTable(Long tableId, CropFertilizationTablePostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -176,18 +171,11 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional
     public void deleteCropFertilizationTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
 
         cropFertilizationTableRepository.delete(table);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar tabelas de adubação.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

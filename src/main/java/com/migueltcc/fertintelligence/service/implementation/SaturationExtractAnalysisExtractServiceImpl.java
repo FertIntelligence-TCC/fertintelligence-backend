@@ -13,6 +13,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -43,6 +44,9 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
     private PlotAccessRequestRepository plotAccessRequestRepository;
 
     @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
@@ -53,11 +57,10 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             SaturationExtractAnalysisExtractCreateRequestDto createRequestDto,
             String username
     ) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
-        checkOwnerPermission(extractContext.plot(), owner);
+        checkPermission(extractContext.plot(), requester);
 
         SaturationExtractAnalysisExtractModel analysisExtract = SaturationExtractAnalysisExtractModel.builder()
                 .rangeExtract(extractContext.rangeExtract())
@@ -90,13 +93,12 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             Long saturationExtractAnalysisExtractId,
             String username
     ) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        checkPermission(resolvePlot(analysisExtract), requester);
 
         return analysisExtract.toDto();
     }
@@ -107,11 +109,10 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             Long rangeExtractId,
             String username
     ) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        checkOwnerPermission(rangeExtract.getAnalysis().getPlot(), owner);
+        checkPermission(rangeExtract.getAnalysis().getPlot(), requester);
 
         return saturationExtractAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
@@ -125,11 +126,10 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             Long layerExtractId,
             String username
     ) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
+        checkPermission(layerExtract.getAnalysis().getPlot(), requester);
 
         return saturationExtractAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
@@ -144,13 +144,12 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             SaturationExtractAnalysisExtractPostRequestDto updateRequestDto,
             String username
     ) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        checkPermission(resolvePlot(analysisExtract), requester);
 
         updateField(updateRequestDto.getPh(), analysisExtract::setPh);
         updateField(updateRequestDto.getCe(), analysisExtract::setCe);
@@ -178,13 +177,12 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
     @Override
     @Transactional
     public void deleteSaturationExtractAnalysisExtract(Long saturationExtractAnalysisExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        checkPermission(resolvePlot(analysisExtract), requester);
 
         saturationExtractAnalysisExtractRepository.delete(analysisExtract);
     }
@@ -218,35 +216,45 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         throw new IllegalStateException("Extrato de análise de saturação não possui extrato base associado.");
     }
 
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO &&
-                user.getCargo() != Cargo.GERENTE &&
-                user.getCargo() != Cargo.AGRONOMO_CONSULTOR) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas proprietários, gerentes ou agrônomos consultores podem gerenciar extratos de análises."
-            );
+    private void checkPermission(PlotModel plot, UserModel requestingUser) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
-    }
 
-    private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
         PropertyModel property = plot.getProperty();
 
         if (property.getOwner().getId().equals(requestingUser.getId())) {
             return;
         }
 
-        if (property.getManager() != null &&
-                property.getManager().getId().equals(requestingUser.getId())) {
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
             return;
         }
 
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
                 plot,
                 requestingUser,
                 AccessRequestStatus.APPROVED
         ).isPresent();
 
-        if (!hasApprovedAccess) {
+        if (!hasPlotApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

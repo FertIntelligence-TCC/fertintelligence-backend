@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationPostRequestDto;
@@ -12,6 +13,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.TopdressingFertilizationModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.TopDressingFertilizationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.TopDressingFertilizationService;
@@ -37,6 +40,12 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
 
     @Override
     @Transactional
@@ -170,8 +179,12 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     }
 
     private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar adubações de cobertura.");
+        if (user.getCargo() != Cargo.PROPRIETARIO
+                && user.getCargo() != Cargo.GERENTE
+                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && user.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Acesso negado. Você não tem permissão para gerenciar adubações de cobertura.");
         }
     }
 
@@ -193,7 +206,35 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     private void checkOwnerPermission(AnnualCropFolderModel folder, UserModel requestingUser) {
         PlotModel plot = folder.getPlot();
         PropertyModel property = plot.getProperty();
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPlotApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

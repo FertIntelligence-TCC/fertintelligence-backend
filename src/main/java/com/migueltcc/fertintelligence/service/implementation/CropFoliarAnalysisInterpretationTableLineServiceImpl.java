@@ -1,7 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLinePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
@@ -43,7 +42,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -78,7 +76,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
         checkCreatorPermission(line.getTable(), owner);
@@ -92,7 +89,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
     getAllCropFoliarAnalysisInterpretationTableLinesByTable(Long tableId, String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -110,7 +106,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
         CropFoliarAnalysisInterpretationTableModel table = line.getTable();
@@ -173,7 +168,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
     @Transactional
     public void deleteCropFoliarAnalysisInterpretationTableLine(Long lineId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
         CropFoliarAnalysisInterpretationTableModel table = line.getTable();
@@ -221,13 +215,6 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
     private void checkCreatorPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
         if (!table.getCreator().getId().equals(requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
-        }
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar linhas de interpretação foliar.");
         }
     }
 }

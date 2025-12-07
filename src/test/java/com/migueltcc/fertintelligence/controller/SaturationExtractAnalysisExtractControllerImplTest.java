@@ -7,6 +7,7 @@ import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
@@ -17,6 +18,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
@@ -55,6 +58,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class SaturationExtractAnalysisExtractControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
+    private UserModel gerenteUser;
+    private UserModel residenteUser;
+    private UserModel consultorUser;
+    private UserModel secretarioUser;
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
     private SoilAnalysisModel ownerRangeAnalysis;
@@ -71,12 +78,41 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        gerenteUser = UserModel.builder()
+                .id(2L)
+                .username("manager")
+                .name("Gerente da Propriedade")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(3L)
+                .username("residente")
+                .name("Agrônomo Residente")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(4L)
+                .username("consultor")
+                .name("Agrônomo Consultor")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
+                .build();
+
+        secretarioUser = UserModel.builder()
+                .id(5L)
+                .username("secretario")
+                .name("Secretário da Propriedade")
+                .cargo(Cargo.SECRETARIO)
+                .build();
+
         ownerProperty = PropertyModel.builder()
                 .id(10L)
                 .nome("Fazenda Santa Clara")
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(gerenteUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
 
@@ -181,6 +217,25 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .build();
     }
 
+    private PlotAccessRequestModel approvedPlotAccess(UserModel requester, PlotModel plot) {
+        return PlotAccessRequestModel.builder()
+                .id(50L)
+                .property(plot.getProperty())
+                .plot(plot)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    private PropertyAccessRequestModel approvedPropertyAccess(UserModel requester, PropertyModel property) {
+        return PropertyAccessRequestModel.builder()
+                .id(60L)
+                .property(property)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
     @Test
     @WithMockUser(username = "testuser")
     void createSaturationExtractAnalysisExtractWithRangeSuccessfully() throws Exception {
@@ -200,6 +255,85 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.ph").value(7.2));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createSaturationExtractAnalysisExtractWithRangeAsGerenteSuccessfully() throws Exception {
+        SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(2L, ownerRangeExtract, null);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/saturation-extract-analysis-extract/register")
+                        .param("rangeExtractId", ownerRangeExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L));
+    }
+
+    @Test
+    @WithMockUser(username = "residente")
+    void createSaturationExtractAnalysisExtractWithRangeAsResidenteWithApproval() throws Exception {
+        SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(3L, ownerRangeExtract, null);
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/saturation-extract-analysis-extract/register")
+                        .param("rangeExtractId", ownerRangeExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L));
+    }
+
+    @Test
+    @WithMockUser(username = "consultor")
+    void createSaturationExtractAnalysisExtractWithLayerAsConsultorWithApproval() throws Exception {
+        SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(4L, null, ownerLayerExtract);
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/saturation-extract-analysis-extract/register")
+                        .param("layerExtractId", ownerLayerExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(4L))
+                .andExpect(jsonPath("$.id_extrato_camada").value(ownerLayerExtract.getId()));
+    }
+
+    @Test
+    @WithMockUser(username = "secretario")
+    void createSaturationExtractAnalysisExtractWithLayerAsSecretarioWithApproval() throws Exception {
+        SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(5L, null, ownerLayerExtract);
+
+        when(userRepository.findByUsername("secretario")).thenReturn(Optional.of(secretarioUser));
+        when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, secretarioUser, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(approvedPlotAccess(secretarioUser, ownerPlot)));
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/saturation-extract-analysis-extract/register")
+                        .param("layerExtractId", ownerLayerExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(5L));
     }
 
     @Test

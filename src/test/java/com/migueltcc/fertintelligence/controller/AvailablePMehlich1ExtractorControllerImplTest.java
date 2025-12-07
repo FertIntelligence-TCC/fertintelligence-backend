@@ -43,6 +43,7 @@ public class AvailablePMehlich1ExtractorControllerImplTest extends AbstractContr
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel gerenteUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
     private AvailablePMehlich1ExtractorModel existingCriterion;
 
@@ -53,6 +54,13 @@ public class AvailablePMehlich1ExtractorControllerImplTest extends AbstractContr
                 .username("testuser")
                 .name("Test User")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        gerenteUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
@@ -194,5 +202,37 @@ public class AvailablePMehlich1ExtractorControllerImplTest extends AbstractContr
                 .andExpect(status().isNoContent());
 
         verify(availablePMehlich1ExtractorRepository).delete(existingCriterion);
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createAvailablePMehlich1ExtractorAsManagerSuccessfully() throws Exception {
+        AvailablePMehlich1ExtractorCreateRequestDto requestDto =
+                AvailablePMehlich1ExtractorCreateRequestDto.builder()
+                        .p_content_clayey_too_low(1.0)
+                        .build();
+
+        SoilFertilityInterpretationCriteriaTableModel managerTable = ownerTable.toBuilder()
+                .creator(gerenteUser)
+                .build();
+
+        AvailablePMehlich1ExtractorModel savedCriterion = existingCriterion.toBuilder()
+                .id(121L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(availablePMehlich1ExtractorRepository.findByTable(managerTable)).thenReturn(Optional.empty());
+        when(availablePMehlich1ExtractorRepository.save(any(AvailablePMehlich1ExtractorModel.class)))
+                .thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/available-p-mehlich-1-extractor/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(121L));
     }
 }

@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
@@ -11,6 +12,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.LayerExtractService;
@@ -33,13 +36,18 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     private SoilAnalysisRepository soilAnalysisRepository;
 
     @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
+
+    @Autowired
+    private PropertyAccessRequestRepository propertyAccessRequestRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
     @Transactional
     public LayerExtractResponseDto createLayerExtract(Long analysisId, LayerExtractCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
         checkOwnerPermission(analysis.getPlot(), owner);
@@ -63,7 +71,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Transactional(readOnly = true)
     public LayerExtractResponseDto getLayerExtractById(Long layerExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
@@ -76,7 +83,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Transactional(readOnly = true)
     public List<LayerExtractResponseDto> getAllLayerExtractsByAnalysis(Long analysisId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
         checkOwnerPermission(analysis.getPlot(), owner);
@@ -91,7 +97,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Transactional
     public LayerExtractResponseDto updateLayerExtract(Long layerExtractId, LayerExtractPostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         SoilAnalysisModel analysis = layerExtract.getAnalysis();
@@ -126,7 +131,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Transactional
     public void deleteLayerExtract(Long layerExtractId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
@@ -155,12 +159,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
         }
     }
 
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar extratos por camada.");
-        }
-    }
-
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
@@ -178,7 +176,43 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
     private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
         PropertyModel property = plot.getProperty();
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
+
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+            return;
+        }
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                    property,
+                    requestingUser,
+                    AccessRequestStatus.APPROVED
+            ).isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
+                plot,
+                requestingUser,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPlotApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

@@ -48,6 +48,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel managerUser;
 
     private CropFertilizationTableModel ownerTable;
 
@@ -65,6 +66,13 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .username("otheruser")
                 .name("Other User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
                 .build();
 
         ownerTable = CropFertilizationTableModel.builder()
@@ -145,6 +153,28 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
                 .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
                 .andExpect(jsonPath("$.observacoes").value("Observações iniciais"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createCropFertilizationTableSuccessfullyForManagerRole() throws Exception {
+        CropFertilizationTableCreateRequestDto requestDto = createRequestDto();
+
+        CropFertilizationTableModel managerTable = ownerTable.toBuilder()
+                .creator(managerUser)
+                .id(25L)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class))).thenReturn(managerTable);
+
+        mockMvc.perform(post("/crop-fertilization-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/crop-fertilization-table/get?tableId=25"))
+                .andExpect(jsonPath("$.id").value(25L))
+                .andExpect(jsonPath("$.nome_criador").value("Manager User"));
     }
 
     @Test

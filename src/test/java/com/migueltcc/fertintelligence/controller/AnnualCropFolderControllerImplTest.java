@@ -9,11 +9,14 @@ import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
@@ -55,6 +58,9 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel gerenteUser;
+    private UserModel residenteUser;
+    private UserModel consultorUser;
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
 
@@ -74,6 +80,27 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
                 .username("testuser")
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
+                .build();
+
+        gerenteUser = UserModel.builder()
+                .id(4L)
+                .username("manager")
+                .name("Gerente User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(5L)
+                .username("residente")
+                .name("Agronomo Residente")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        consultorUser = UserModel.builder()
+                .id(6L)
+                .username("consultor")
+                .name("Agronomo Consultor")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -111,6 +138,22 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
                 .declivity(5.0)
                 .monthlyPluviosity(200.0)
                 .annualPluviosity(1200.0)
+                .build();
+    }
+
+    private PropertyAccessRequestModel createPropertyAccessRequest(PropertyModel property, UserModel requester) {
+        return PropertyAccessRequestModel.builder()
+                .property(property)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    private PlotAccessRequestModel createPlotAccessRequest(PlotModel plot, UserModel requester) {
+        return PlotAccessRequestModel.builder()
+                .plot(plot)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
                 .build();
     }
 
@@ -160,20 +203,25 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void createAnnualCropFolderFails_WhenUserIsNotProprietario() throws Exception {
+    void createAnnualCropFolderAsSecretaryWithApproval() throws Exception {
         AnnualCropFolderCreateRequestDto requestDto = createCreateRequestDto();
+        AnnualCropFolderModel savedAnnualCropFolder = createAnnualCropFolderModel(1L, requestDto.getCropsYear(), ownerPlot);
 
-        // 1. Configura o usuário logado (sem permissão)
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
-
-        // 2. [CORREÇÃO] Mocka o retorno do Talhão para evitar o erro 404
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
+        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.of(createPlotAccessRequest(ownerPlot, funcionarioUser)));
+        when(annualCropFolderRepository.findByPlotAndCropsYear(any(), any()))
+                .thenReturn(Optional.empty());
+        when(annualCropFolderRepository.save(any(AnnualCropFolderModel.class)))
+                .thenReturn(savedAnnualCropFolder);
 
         mockMvc.perform(post("/annual-crop-folder/register")
                         .param("plotId", ownerPlot.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id_talhao").value(ownerPlot.getId()));
     }
 
     @Test

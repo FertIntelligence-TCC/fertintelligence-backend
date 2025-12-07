@@ -1,7 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
@@ -45,7 +44,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public ContentRangeResponseDto createContentRange(Long tableId, ContentRangeCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -76,7 +74,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional(readOnly = true)
     public ContentRangeResponseDto getContentRangeById(Long contentRangeId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         checkCreatorPermission(range.getTable(), owner);
@@ -88,7 +85,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional(readOnly = true)
     public List<ContentRangeResponseDto> getAllContentRangesByTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -102,7 +98,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public ContentRangeResponseDto updateContentRange(Long contentRangeId, ContentRangePostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
@@ -188,7 +183,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public void deleteContentRange(Long contentRangeId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
@@ -330,12 +324,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 .collect(Collectors.toList());
 
         coverageRepository.saveAll(placeholderCoverages);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar intervalos de teor.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

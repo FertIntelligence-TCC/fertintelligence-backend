@@ -43,6 +43,9 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
+    private UserModel gerenteUser;
+    private UserModel residenteUser;
+    private UserModel secretarioUser;
 
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
 
@@ -60,6 +63,27 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .username("otheruser")
                 .name("Other User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        gerenteUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Gerente")
+                .cargo(Cargo.GERENTE)
+                .build();
+
+        residenteUser = UserModel.builder()
+                .id(4L)
+                .username("residente")
+                .name("Agrônomo Residente")
+                .cargo(Cargo.AGRONOMO_RESIDENTE)
+                .build();
+
+        secretarioUser = UserModel.builder()
+                .id(5L)
+                .username("secretario")
+                .name("Secretário")
+                .cargo(Cargo.SECRETARIO)
                 .build();
 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
@@ -103,6 +127,75 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
                 .andExpect(jsonPath("$.regiao").value("SUL"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createSoilFertilityInterpretationCriteriaTableAsGerenteSuccessfully() throws Exception {
+        SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
+
+        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
+                .id(21L)
+                .creator(gerenteUser)
+                .region(Regiao.SUL)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
+                .thenReturn(savedTable);
+
+        mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(21L))
+                .andExpect(jsonPath("$.nome_criador").value("Gerente"));
+    }
+
+    @Test
+    @WithMockUser(username = "residente")
+    void createSoilFertilityInterpretationCriteriaTableAsResidenteSuccessfully() throws Exception {
+        SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
+
+        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
+                .id(22L)
+                .creator(residenteUser)
+                .region(Regiao.SUL)
+                .build();
+
+        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
+                .thenReturn(savedTable);
+
+        mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(22L))
+                .andExpect(jsonPath("$.nome_criador").value("Agrônomo Residente"));
+    }
+
+    @Test
+    @WithMockUser(username = "secretario")
+    void createSoilFertilityInterpretationCriteriaTableAsSecretarioSuccessfully() throws Exception {
+        SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
+
+        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
+                .id(23L)
+                .creator(secretarioUser)
+                .region(Regiao.SUL)
+                .build();
+
+        when(userRepository.findByUsername("secretario")).thenReturn(Optional.of(secretarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
+                .thenReturn(savedTable);
+
+        mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(23L))
+                .andExpect(jsonPath("$.nome_criador").value("Secretário"));
     }
 
     @Test

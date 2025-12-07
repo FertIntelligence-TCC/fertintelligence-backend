@@ -56,9 +56,12 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
+    private UserModel managerUser;
 
     private CropFertilizationTableModel ownerTable;
+    private CropFertilizationTableModel managerTable;
     private ContentRangeModel ownerRange;
+    private ContentRangeModel managerRange;
     private CoverageModel coverageOne;
     private CoverageModel coverageTwo;
 
@@ -78,9 +81,21 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.SECRETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(3L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerTable = CropFertilizationTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .build();
+
+        managerTable = CropFertilizationTableModel.builder()
+                .id(11L)
+                .creator(managerUser)
                 .build();
 
         ownerRange = ContentRangeModel.builder()
@@ -91,6 +106,11 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .smallest(null)
                 .largest(10.0)
                 .application(80.0)
+                .build();
+
+        managerRange = ownerRange.toBuilder()
+                .id(101L)
+                .table(managerTable)
                 .build();
 
         coverageOne = CoverageModel.builder()
@@ -137,6 +157,33 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .andExpect(header().string("Location", "http://localhost/coverage/get?coverageId=300"))
                 .andExpect(jsonPath("$.ordem_cobertura").value(1))
                 .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(30.0));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createCoverageSuccessfullyForManagerOwnedRange() throws Exception {
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 25.0);
+
+        CoverageModel savedCoverage = coverageOne.toBuilder()
+                .id(305L)
+                .range(managerRange)
+                .application(25.0)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(contentRangeRepository.findById(managerRange.getId())).thenReturn(Optional.of(managerRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(managerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(managerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(managerRange)).thenReturn(List.of());
+        when(coverageRepository.save(any(CoverageModel.class))).thenReturn(savedCoverage);
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", managerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/coverage/get?coverageId=305"));
+        // CORREÇÃO 1: Removida verificação de 'nome_criador_tabela' pois não existe no response DTO
     }
 
     @Test
@@ -213,6 +260,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "employee")
     void getCoverageFails_WhenUserNotProprietario() throws Exception {
         when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+        // CORREÇÃO 2: Mockar o retorno do repositório para evitar 404 e permitir que a lógica chegue na verificação de permissão (403)
+        when(coverageRepository.findById(coverageOne.getId())).thenReturn(Optional.of(coverageOne));
 
         mockMvc.perform(get("/coverage/get")
                         .param("coverageId", coverageOne.getId().toString()))

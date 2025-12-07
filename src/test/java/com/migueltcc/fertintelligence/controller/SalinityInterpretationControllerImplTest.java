@@ -2,7 +2,6 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation.SalinityInterpretationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation.SalinityInterpretationPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -43,6 +42,7 @@ public class SalinityInterpretationControllerImplTest extends AbstractController
     private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
+    private UserModel managerUser;
     private SoilFertilityInterpretationCriteriaTableModel ownerTable;
     private SalinityInterpretationModel existingCriterion;
 
@@ -52,7 +52,12 @@ public class SalinityInterpretationControllerImplTest extends AbstractController
                 .id(6L)
                 .username("testuser")
                 .name("Test User")
-                .cargo(Cargo.PROPRIETARIO)
+                .build();
+
+        managerUser = UserModel.builder()
+                .id(7L)
+                .username("manager")
+                .name("Manager User")
                 .build();
 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
@@ -107,6 +112,37 @@ public class SalinityInterpretationControllerImplTest extends AbstractController
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/salinity-interpretation/get?criterionId=521"))
                 .andExpect(jsonPath("$.id").value(521L));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createSalinityInterpretationAsManagerCreator() throws Exception {
+        SoilFertilityInterpretationCriteriaTableModel managerTable = ownerTable.toBuilder()
+                .creator(managerUser)
+                .id(25L)
+                .build();
+
+        SalinityInterpretationCreateRequestDto requestDto = SalinityInterpretationCreateRequestDto.builder()
+                .normal_soil_highest_ce(1.5)
+                .build();
+
+        SalinityInterpretationModel savedCriterion = existingCriterion.toBuilder()
+                .id(530L)
+                .table(managerTable)
+                .build();
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(managerTable.getId()))
+                .thenReturn(Optional.of(managerTable));
+        when(salinityInterpretationRepository.findByTable(managerTable)).thenReturn(Optional.empty());
+        when(salinityInterpretationRepository.save(any(SalinityInterpretationModel.class))).thenReturn(savedCriterion);
+
+        mockMvc.perform(post("/salinity-interpretation/register")
+                        .param("tableId", managerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(530L));
     }
 
     @Test

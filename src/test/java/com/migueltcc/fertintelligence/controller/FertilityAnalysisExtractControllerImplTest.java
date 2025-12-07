@@ -56,6 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class FertilityAnalysisExtractControllerImplTest extends AbstractControllerTest {
 
     private UserModel proprietarioUser;
+    private UserModel managerUser;
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
     private SoilAnalysisModel ownerRangeAnalysis;
@@ -72,12 +73,20 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
+        managerUser = UserModel.builder()
+                .id(2L)
+                .username("manager")
+                .name("Manager User")
+                .cargo(Cargo.GERENTE)
+                .build();
+
         ownerProperty = PropertyModel.builder()
                 .id(10L)
                 .nome("Fazenda Santa Clara")
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
                 .owner(proprietarioUser)
+                .manager(managerUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
 
@@ -216,6 +225,24 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.profundidade_inicial").value(0))
                 .andExpect(jsonPath("$.ph_agua").value(5.6));
+    }
+
+    @Test
+    @WithMockUser(username = "manager")
+    void createFertilityAnalysisExtractWithRangeAsManager() throws Exception {
+        FertilityAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
+        FertilityAnalysisExtractModel savedExtract = createFertilityAnalysisExtractModel(2L, ownerRangeExtract, null);
+
+        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
+        when(fertilityAnalysisExtractRepository.save(any(FertilityAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        mockMvc.perform(post("/fertility-analysis-extract/register")
+                        .param("rangeExtractId", ownerRangeExtract.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L));
     }
 
     @Test

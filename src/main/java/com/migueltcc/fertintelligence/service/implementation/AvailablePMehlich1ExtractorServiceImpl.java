@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePMehlich1Extractor.AvailablePMehlich1ExtractorCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePMehlich1Extractor.AvailablePMehlich1ExtractorPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePMehlich1Extractor.AvailablePMehlich1ExtractorResponseDto;
@@ -41,7 +40,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             AvailablePMehlich1ExtractorCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -65,7 +63,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             Long criterionId,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePMehlich1ExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -79,7 +76,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             Long tableId,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkCreatorPermission(table, owner);
@@ -98,7 +94,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             AvailablePMehlich1ExtractorPostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePMehlich1ExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -113,7 +108,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
     @Transactional
     public void deleteAvailablePMehlich1Extractor(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
 
         AvailablePMehlich1ExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
         checkCreatorPermission(criterion.getTable(), owner);
@@ -124,13 +118,6 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar os critérios.");
-        }
     }
 
     private SoilFertilityInterpretationCriteriaTableModel findTableByIdOrThrow(Long tableId) {
