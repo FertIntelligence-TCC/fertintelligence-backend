@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels;
+package com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels;
 
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
@@ -9,9 +9,9 @@ import lombok.*;
 @Builder
 @Entity
 @Data
-@Table(name = "ADUBOS_MINERAIS")
+@Table(name = "ADUBOS_MINERAIS_FORMULADOS")
 @EqualsAndHashCode
-public class MineralFertilizerModel {
+public class FormulatedMineralFertilizerModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
