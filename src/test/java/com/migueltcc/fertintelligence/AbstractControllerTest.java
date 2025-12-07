@@ -117,6 +117,9 @@ public abstract class AbstractControllerTest {
     @MockitoBean
     protected PlotAccessRequestRepository plotAccessRequestRepository;
 
+    @MockitoBean
+    protected SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
+
     // Mocks do UserControllerImplTest
     @MockitoBean
     protected PasswordEncoder passwordEncoder;
