@@ -34,6 +34,12 @@ public interface SimpleMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getSimpleMineralFertilizersByName(
+            @Parameter(description = "Nome (ou parte do nome) do adubo a ser buscado", required = true)
+            @RequestParam(name = "name") String name,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<SimpleMineralFertilizerResponseDto> updateSimpleMineralFertilizer(
             @Parameter(description = "ID do adubo mineral simples a ser atualizado", required = true)
             @RequestParam(name = "simpleMineralFertilizerId") Long simpleMineralFertilizerId,

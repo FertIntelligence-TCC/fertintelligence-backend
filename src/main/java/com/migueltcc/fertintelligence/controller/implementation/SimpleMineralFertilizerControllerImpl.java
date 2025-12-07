@@ -65,6 +65,19 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
     }
 
     @Override
+    @GetMapping("/get-by-name")
+    public ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getSimpleMineralFertilizersByName(
+            @RequestParam(name = "name") String name,
+            Authentication authentication) {
+
+        List<SimpleMineralFertilizerResponseDto> fertilizers = simpleMineralFertilizerService.getSimpleMineralFertilizersByName(
+                name,
+                authentication.getName()
+        );
+        return ResponseEntity.ok(fertilizers);
+    }
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<SimpleMineralFertilizerResponseDto> updateSimpleMineralFertilizer(
             @RequestParam(name = "simpleMineralFertilizerId") Long simpleMineralFertilizerId,

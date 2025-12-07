@@ -11,4 +11,7 @@ import java.util.List;
 public interface SimpleMineralFertilizerRepository extends JpaRepository<SimpleMineralFertilizerModel, Long> {
 
     List<SimpleMineralFertilizerModel> findAllByUser(UserModel user);
+
+    List<SimpleMineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
+
 }

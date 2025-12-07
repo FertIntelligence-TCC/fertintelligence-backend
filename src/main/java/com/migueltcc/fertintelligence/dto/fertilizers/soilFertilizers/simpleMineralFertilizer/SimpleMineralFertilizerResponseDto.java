@@ -13,6 +13,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SimpleMineralFertilizerResponseDto {
 
+    @Schema(example = "Fosfato Diamônio")
+    @JsonProperty("nome_adubo")
+    private String name;
+
     @Schema(example = "1")
     @JsonProperty("id")
     private Long id;

@@ -14,6 +14,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SimpleMineralFertilizerCreateRequestDto {
 
+    @JsonProperty("nome_adubo")
+    private String name;
+
     // Macronutrientes Primários
     @JsonProperty("n")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")

@@ -15,6 +15,8 @@ public interface SimpleMineralFertilizerService {
 
     List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByUser(String username);
 
+    List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username);
+
     SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(Long simpleMineralFertilizerId,
                                                                      SimpleMineralFertilizerPostRequestDto updateRequestDto,
                                                                      String username);

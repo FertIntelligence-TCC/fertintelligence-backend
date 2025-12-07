@@ -80,6 +80,18 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username) {
+        UserModel owner = findUserByUsernameOrThrow(username);
+        checkUserRole(owner);
+
+        return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+                .stream()
+                .map(SimpleMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(Long simpleMineralFertilizerId,
                                                                             SimpleMineralFertilizerPostRequestDto updateRequestDto,

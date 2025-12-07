@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -52,6 +54,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
 
     private SimpleMineralFertilizerCreateRequestDto createRequestDto() {
         return SimpleMineralFertilizerCreateRequestDto.builder()
+                .name("Adubo Teste")
                 .n(10.0)
                 .p2o5(5.0)
                 .k2o(8.0)
@@ -73,6 +76,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
         return SimpleMineralFertilizerModel.builder()
                 .id(id)
                 .user(owner)
+                .name("Adubo Teste")
                 .N(10.0)
                 .P2O5(5.0)
                 .K2O(8.0)
@@ -105,6 +109,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/simple-mineral-fertilizer/get?simpleMineralFertilizerId=1"))
                 .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.nome_adubo").value("Adubo Teste"))
                 .andExpect(jsonPath("$.n").value(10.0))
                 .andExpect(jsonPath("$.indice_salino").value(12.0));
     }
@@ -121,6 +126,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
                         .param("simpleMineralFertilizerId", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.nome_adubo").value("Adubo Teste"))
                 .andExpect(jsonPath("$.k2o").value(8.0));
     }
 
@@ -140,22 +146,50 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
 
     @Test
     @WithMockUser(username = "owner")
+    void getSimpleMineralFertilizersByNameSuccessfully() throws Exception {
+        SimpleMineralFertilizerModel model = createModel(6L);
+        String searchName = "Adubo";
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+                .thenReturn(List.of(model));
+
+        mockMvc.perform(get("/simple-mineral-fertilizer/get-by-name")
+                        .param("name", searchName))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(6L))
+                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Teste"));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
     void updateSimpleMineralFertilizerSuccessfully() throws Exception {
         SimpleMineralFertilizerModel existing = createModel(4L);
         SimpleMineralFertilizerPostRequestDto updateDto = SimpleMineralFertilizerPostRequestDto.builder()
+                .name("Adubo Atualizado")
                 .n(12.0)
                 .indiceAcidez(6.8)
                 .build();
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(simpleMineralFertilizerRepository.findById(4L)).thenReturn(Optional.of(existing));
-        when(simpleMineralFertilizerRepository.save(any(SimpleMineralFertilizerModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Simular o comportamento do save retornando o objeto atualizado
+        when(simpleMineralFertilizerRepository.save(any(SimpleMineralFertilizerModel.class))).thenAnswer(invocation -> {
+            SimpleMineralFertilizerModel arg = invocation.getArgument(0);
+            // Reflete a atualização feita no service
+            arg.setName("Adubo Atualizado");
+            arg.setN(12.0);
+            arg.setIndiceAcidez(6.8);
+            return arg;
+        });
 
         mockMvc.perform(put("/simple-mineral-fertilizer/update")
                         .param("simpleMineralFertilizerId", "4")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome_adubo").value("Adubo Atualizado"))
                 .andExpect(jsonPath("$.n").value(12.0))
                 .andExpect(jsonPath("$.indice_acidez").value(6.8));
     }

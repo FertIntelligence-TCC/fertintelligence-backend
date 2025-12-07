@@ -22,6 +22,9 @@ public class SimpleMineralFertilizerModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel user;
 
+    @Column(name = "NOME_ADUBO")
+    private String name;
+
     // Macronutrientes Primários
     @Column(name = "PORCENTAGEM_NITROGENIO")
     private double N;
@@ -71,6 +74,7 @@ public class SimpleMineralFertilizerModel {
     public SimpleMineralFertilizerResponseDto toDto() {
         return SimpleMineralFertilizerResponseDto.builder()
                 .id(this.id)
+                .name(this.name)
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)
