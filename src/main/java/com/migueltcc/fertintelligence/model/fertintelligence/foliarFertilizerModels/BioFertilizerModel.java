@@ -76,7 +76,6 @@ public class BioFertilizerModel {
         return BioFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
-                .c(this.C)
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)

@@ -1,6 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels;
 
-import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
+import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelatedFertilizer.ChelatedFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -71,11 +71,10 @@ public class ChelatedFertilizerModel {
     @Column(name = "INDICE_ACIDEZ")
     private Double indiceAcidez;
 
-    public BioFertilizerResponseDto toDto() {
-        return BioFertilizerResponseDto.builder()
+    public ChelatedFertilizerResponseDto toDto() {
+        return ChelatedFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
-                .c(this.C)
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)
