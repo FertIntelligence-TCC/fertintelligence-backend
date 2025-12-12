@@ -69,10 +69,8 @@ public class OrganoMineralFertilizerPostRequestDto {
     private Double zn;
 
     @JsonProperty("novo_indice_salino")
-    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double indiceSalino;
 
     @JsonProperty("novo_indice_acidez")
-    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double indiceAcidez;
 }

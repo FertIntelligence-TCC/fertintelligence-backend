@@ -81,13 +81,9 @@ public class GreenFertilizerCreateRequestDto {
 
     // Índices
     @JsonProperty("indice_salino")
-    @NotNull(message = "O índice salino é obrigatório")
-    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double indiceSalino;
 
     @JsonProperty("indice_acidez")
-    @NotNull(message = "O índice de acidez é obrigatório")
-    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double indiceAcidez;
 
 }
