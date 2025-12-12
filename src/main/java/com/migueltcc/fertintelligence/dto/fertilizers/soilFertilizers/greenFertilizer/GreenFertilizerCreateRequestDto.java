@@ -21,23 +21,19 @@ public class GreenFertilizerCreateRequestDto {
 
     // Componente Orgânico
     @JsonProperty("c")
-    @NotNull(message = "A porcentagem de Carbono (C) é obrigatória")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double c;
 
     // Macronutrientes Primários
     @JsonProperty("n")
-    @NotNull(message = "A porcentagem de Nitrogênio (N) é obrigatória")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double n;
 
     @JsonProperty("p2o5")
-    @NotNull(message = "A porcentagem de Fósforo (P2O5) é obrigatória")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double p2o5;
 
     @JsonProperty("k2o")
-    @NotNull(message = "A porcentagem de Potássio (K2O) é obrigatória")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double k2o;
 
