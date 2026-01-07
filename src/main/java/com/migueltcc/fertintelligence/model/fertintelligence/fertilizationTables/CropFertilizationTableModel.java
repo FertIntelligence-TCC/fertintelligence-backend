@@ -40,14 +40,17 @@ public class CropFertilizationTableModel {
     @Column(name = "ESPACAMENTOS_SUGERIDOS", nullable = false)
     private SpacingType suggested_spacing;
 
-    @Column(name = "VALOR_INICIAL", nullable = false)
+    @Column(name = "VALOR_INICIAL_ESPACAMENTO_SUGERIDO", nullable = false)
     private Double initial_value;
 
-    @Column(name = "VALOR_FINAL", nullable = false)
+    @Column(name = "VALOR_FINAL_ESPACAMENTO_SUGERIDO", nullable = false)
     private Double final_value;
 
+    @Column(name = "ESPACAMENTOS_USADOS", nullable = false)
+    private SpacingType used_spacing;
+
     @Column(name = "ESPACAMENTO_USADO", nullable = false)
-    private Double used_spacing;
+    private Double used_spacing_value;
 
     @Column(name = "PRODUTIVIDADE_REGIONAL", nullable = false)
     private Double regional_productivity; // kg/ha
@@ -92,6 +95,7 @@ public class CropFertilizationTableModel {
                 .initial_value(this.initial_value)
                 .final_value(this.final_value)
                 .used_spacing(this.used_spacing)
+                .used_spacing_value(this.used_spacing_value)
                 .regional_productivity(this.regional_productivity)
                 .expected_productivity(this.expected_productivity)
                 .criteria(this.criteria)

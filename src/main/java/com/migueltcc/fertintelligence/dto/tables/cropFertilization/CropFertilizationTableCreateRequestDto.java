@@ -46,7 +46,11 @@ public class CropFertilizationTableCreateRequestDto {
 
     @JsonProperty("espacamento_usado")
     @NotNull
-    private Double used_spacing;
+    private SpacingType used_spacing;
+
+    @JsonProperty("valor_espacamento_usado")
+    @NotNull
+    private Double used_spacing_value;
 
     @JsonProperty("produtividade_regional")
     @NotNull

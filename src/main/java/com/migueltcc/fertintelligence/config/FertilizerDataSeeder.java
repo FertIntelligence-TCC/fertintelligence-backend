@@ -1,19 +1,19 @@
 package com.migueltcc.fertintelligence.config;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.*;
 import com.migueltcc.fertintelligence.dto.fertilizers.attributes.FormulateDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.attributes.NPKrelationDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer.GreenFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.service.documentation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(3) // Garante que rode APÓS a criação do usuário (UserDataSeeder)
 public class FertilizerDataSeeder implements CommandLineRunner {
 
     @Autowired
@@ -28,18 +28,11 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     @Autowired
     private GreenFertilizerService greenService;
 
-    @Autowired
-    private UserService userService; // Injeção do serviço de usuário
-
+    // O usuário deve ter sido criado pelo UserDataSeeder (Order 1)
     private static final String SYSTEM_USER = "admin@fertintelligence.com";
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("Iniciando verificação de pré-requisitos (Usuário Admin)...");
-
-        // 1. Garante que o usuário existe antes de tentar criar os adubos
-        createSystemUserIfNotFound();
-
         System.out.println("Iniciando carga de dados dos adubos...");
 
         loadSimpleFertilizers();
@@ -47,38 +40,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
         loadOrganoMineralFertilizers();
         loadGreenFertilizers();
 
-        System.out.println("Carga finalizada.");
-    }
-
-    private void createSystemUserIfNotFound() {
-        try {
-            // Tenta buscar o usuário. Se lançar exceção ou retornar null, criamos.
-            userService.getUser(SYSTEM_USER);
-            System.out.println("Usuário admin já existe.");
-        } catch (Exception e) {
-            System.out.println("Usuário admin não encontrado. Criando...");
-
-            UserCreateRequestDto adminUser = UserCreateRequestDto.builder()
-                    .name("Administrador do Sistema")
-                    .username(SYSTEM_USER)
-                    .email(SYSTEM_USER)
-                    .password("admin123")
-                    .cpf("00000000000")
-                    .profissao("System Admin")
-                    .datanasc(new DataNasc(1, 1, 2000))
-                    .genero(Genero.OUTRO)
-                    .telefone(new Telefone("55", "11", "999999999"))
-                    .formacao(Formacao.DOUTORADO)
-                    .cargo(Cargo.PROPRIETARIO)
-                    .build();
-
-            try {
-                userService.createUser(adminUser);
-                System.out.println("Usuário admin criado com sucesso.");
-            } catch (Exception creationEx) {
-                System.err.println("Erro crítico: Não foi possível criar o usuário admin. " + creationEx.getMessage());
-            }
-        }
+        System.out.println("Carga de adubos finalizada.");
     }
 
     // ============================================================================================

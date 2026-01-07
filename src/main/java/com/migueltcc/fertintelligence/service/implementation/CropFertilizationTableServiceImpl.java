@@ -17,8 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 public class CropFertilizationTableServiceImpl implements CropFertilizationTableService {
@@ -31,7 +29,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
     @Override
     @Transactional
-    public CropFertilizationTableResponseDto createCropFertilizationTable(CropFertilizationTableCreateRequestDto createRequestDto, String username) {
+    public CropFertilizationTableResponseDto createCropFertilizationTable(
+            CropFertilizationTableCreateRequestDto createRequestDto,
+            String username
+    ) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         validateCropNames(createRequestDto.getCrop_common_name(), createRequestDto.getCrop_scientific_nome());
@@ -46,6 +47,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .initial_value(createRequestDto.getInitial_value())
                 .final_value(createRequestDto.getFinal_value())
                 .used_spacing(createRequestDto.getUsed_spacing())
+                .used_spacing_value(createRequestDto.getUsed_spacing_value())
                 .regional_productivity(createRequestDto.getRegional_productivity())
                 .expected_productivity(createRequestDto.getExpected_productivity())
                 .criteria(createRequestDto.getCriteria())
@@ -57,51 +59,65 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .observations(createRequestDto.getObservations())
                 .build();
 
-        CropFertilizationTableModel savedTable = cropFertilizationTableRepository.save(table);
-        return savedTable.toDto();
+        CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
+        return saved.toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public CropFertilizationTableResponseDto getCropFertilizationTableById(Long tableId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
-
+        assertIsCreator(table, requester);
         return table.toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CropFertilizationTableResponseDto> getAllCropFertilizationTablesByCreator(String username) {
+    public List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return cropFertilizationTableRepository.findAllByCreator(owner).stream()
+        return cropFertilizationTableRepository.findAllByCreator(owner)
+                .stream()
                 .map(CropFertilizationTableModel::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
-    public CropFertilizationTableResponseDto updateCropFertilizationTable(Long tableId, CropFertilizationTablePostRequestDto updateRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+    public CropFertilizationTableResponseDto updateCropFertilizationTable(
+            Long tableId,
+            CropFertilizationTablePostRequestDto updateRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        assertIsCreator(table, requester);
 
-        NomeComum updatedCommonName = updateRequestDto.getCrop_common_name() != null
-                ? updateRequestDto.getCrop_common_name()
-                : table.getCrop_common_name();
+        // Se o update alterar nome comum e/ou científico, valide a combinação final
+        if (updateRequestDto.getCrop_common_name() != null || updateRequestDto.getCrop_scientific_nome() != null) {
+            NomeComum common = updateRequestDto.getCrop_common_name() != null
+                    ? updateRequestDto.getCrop_common_name()
+                    : table.getCrop_common_name();
 
-        NomeCientifico updatedScientificName = updateRequestDto.getCrop_scientific_nome() != null
-                ? updateRequestDto.getCrop_scientific_nome()
-                : table.getCrop_scientific_nome();
+            NomeCientifico scientific = updateRequestDto.getCrop_scientific_nome() != null
+                    ? updateRequestDto.getCrop_scientific_nome()
+                    : table.getCrop_scientific_nome();
 
-        validateCropNames(updatedCommonName, updatedScientificName);
+            validateCropNames(common, scientific);
+        }
 
-        table.setCrop_common_name(updatedCommonName);
-        table.setCrop_scientific_nome(updatedScientificName);
+        if (updateRequestDto.getRegion() != null) {
+            table.setRegion(updateRequestDto.getRegion());
+        }
+
+        if (updateRequestDto.getCrop_common_name() != null) {
+            table.setCrop_common_name(updateRequestDto.getCrop_common_name());
+        }
+
+        if (updateRequestDto.getCrop_scientific_nome() != null) {
+            table.setCrop_scientific_nome(updateRequestDto.getCrop_scientific_nome());
+        }
 
         if (updateRequestDto.getCultivares() != null) {
             table.setCultivares(updateRequestDto.getCultivares());
@@ -121,6 +137,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         if (updateRequestDto.getUsed_spacing() != null) {
             table.setUsed_spacing(updateRequestDto.getUsed_spacing());
+        }
+
+        if (updateRequestDto.getUsed_spacing_value() != null) {
+            table.setUsed_spacing_value(updateRequestDto.getUsed_spacing_value());
         }
 
         if (updateRequestDto.getRegional_productivity() != null) {
@@ -159,51 +179,47 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             table.setObservations(updateRequestDto.getObservations());
         }
 
-        if (updateRequestDto.getRegion() != null) {
-            table.setRegion(updateRequestDto.getRegion());
-        }
-
-        CropFertilizationTableModel updatedTable = cropFertilizationTableRepository.save(table);
-        return updatedTable.toDto();
+        CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
+        return saved.toDto();
     }
 
     @Override
     @Transactional
     public void deleteCropFertilizationTable(Long tableId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        assertIsCreator(table, requester);
 
         cropFertilizationTableRepository.delete(table);
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
+        // Ajuste o método abaixo se o seu UserRepository usar outro nome (ex.: findByEmail).
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
     }
 
     private CropFertilizationTableModel findTableByIdOrThrow(Long tableId) {
         return cropFertilizationTableRepository.findById(tableId)
-                .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada com o ID: " + tableId));
+                .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada."));
     }
 
-    private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela de adubação.");
+    private void assertIsCreator(CropFertilizationTableModel table, UserModel requester) {
+        if (table.getCreator() == null || requester == null || table.getCreator().getId() == null) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+        if (!table.getCreator().getId().equals(requester.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para acessar esta tabela.");
         }
     }
 
     private void validateCropNames(NomeComum commonName, NomeCientifico scientificName) {
         if (commonName == null || scientificName == null) {
-            return;
+            throw new IllegalArgumentException("Nome comum e nome científico são obrigatórios.");
         }
 
         NomeCientifico expectedScientificName;
         switch (commonName) {
-            case ALGODAO -> expectedScientificName = NomeCientifico.Gossypium_hirsutum;
-            case AMENDOIM -> expectedScientificName = NomeCientifico.Arachis_hypogaea;
-            case CANA_DE_ACUCAR -> expectedScientificName = NomeCientifico.Saccharum_officinarum;
             case FEIJAO_CAUPI -> expectedScientificName = NomeCientifico.Vigna_unguiculata;
             case FEIJAO_COMUM -> expectedScientificName = NomeCientifico.Phaseolus_vulgaris;
             case GERGELIM -> expectedScientificName = NomeCientifico.Sesamum_indicum;

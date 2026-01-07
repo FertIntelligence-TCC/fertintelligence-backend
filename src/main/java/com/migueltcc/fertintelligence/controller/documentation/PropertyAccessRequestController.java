@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
+import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestDecisionRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestResponseDto;
@@ -32,6 +33,10 @@ public interface PropertyAccessRequestController {
     ResponseEntity<PropertyAccessRequestResponseDto> decideRequest(
             @Parameter(description = "ID da solicitação", required = true) @PathVariable(name = "requestId") Long requestId,
             @Parameter(description = "Decisão sobre a solicitação", required = true) @Valid @RequestBody PropertyAccessRequestDecisionRequestDto decisionRequestDto,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
+    ResponseEntity<List<PropertyResponseDto>> getMyApprovedProperties(
             @Parameter(hidden = true) Authentication authentication
     );
 }

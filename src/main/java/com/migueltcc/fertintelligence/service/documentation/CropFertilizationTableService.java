@@ -8,13 +8,23 @@ import java.util.List;
 
 public interface CropFertilizationTableService {
 
-    CropFertilizationTableResponseDto createCropFertilizationTable(CropFertilizationTableCreateRequestDto createRequestDto, String username);
+    CropFertilizationTableResponseDto createCropFertilizationTable(
+            CropFertilizationTableCreateRequestDto createRequestDto,
+            String username
+    );
 
-    CropFertilizationTableResponseDto getCropFertilizationTableById(Long tableId, String username);
+    CropFertilizationTableResponseDto getCropFertilizationTableById(
+            Long tableId,
+            String username
+    );
 
-    List<CropFertilizationTableResponseDto> getAllCropFertilizationTablesByCreator(String username);
+    List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username);
 
-    CropFertilizationTableResponseDto updateCropFertilizationTable(Long tableId, CropFertilizationTablePostRequestDto updateRequestDto, String username);
+    CropFertilizationTableResponseDto updateCropFertilizationTable(
+            Long tableId,
+            CropFertilizationTablePostRequestDto updateRequestDto,
+            String username
+    );
 
     void deleteCropFertilizationTable(Long tableId, String username);
 }

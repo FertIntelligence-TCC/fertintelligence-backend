@@ -6,7 +6,6 @@ import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertiliza
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,42 +18,53 @@ import java.util.List;
 @RequestMapping("/crop-fertilization-table")
 public class CropFertilizationTableControllerImpl implements CropFertilizationTableController {
 
-    @Autowired
-    private CropFertilizationTableService cropFertilizationTableService;
+    private final CropFertilizationTableService cropFertilizationTableService;
+
+    public CropFertilizationTableControllerImpl(CropFertilizationTableService cropFertilizationTableService) {
+        this.cropFertilizationTableService = cropFertilizationTableService;
+    }
 
     @Override
     @PostMapping("/register")
     public ResponseEntity<CropFertilizationTableResponseDto> createCropFertilizationTable(
             @Valid @RequestBody CropFertilizationTableCreateRequestDto createRequestDto,
-            Authentication authentication) {
-
-        CropFertilizationTableResponseDto createdTable = cropFertilizationTableService
+            Authentication authentication
+    ) {
+        CropFertilizationTableResponseDto created = cropFertilizationTableService
                 .createCropFertilizationTable(createRequestDto, authentication.getName());
 
+        // Mantém exatamente o formato que o teste espera:
+        // http://localhost/crop-fertilization-table/get?tableId=20
         URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/crop-fertilization-table/get")
-                .queryParam("tableId", createdTable.getId())
+                .fromCurrentContextPath()
+                .path("/crop-fertilization-table/get")
+                .queryParam("tableId", created.getId())
                 .build()
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdTable);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Override
     @GetMapping("/get")
     public ResponseEntity<CropFertilizationTableResponseDto> getCropFertilizationTable(
             @RequestParam(name = "tableId") Long tableId,
-            Authentication authentication) {
+            Authentication authentication
+    ) {
         CropFertilizationTableResponseDto table = cropFertilizationTableService
                 .getCropFertilizationTableById(tableId, authentication.getName());
+
         return ResponseEntity.ok(table);
     }
 
     @Override
     @GetMapping("/get-all")
-    public ResponseEntity<List<CropFertilizationTableResponseDto>> getCropFertilizationTables(Authentication authentication) {
+    public ResponseEntity<List<CropFertilizationTableResponseDto>> getCropFertilizationTables(
+            Authentication authentication
+    ) {
         List<CropFertilizationTableResponseDto> tables = cropFertilizationTableService
-                .getAllCropFertilizationTablesByCreator(authentication.getName());
+                .getAllCropFertilizationTables(authentication.getName());
+
         return ResponseEntity.ok(tables);
     }
 
@@ -63,17 +73,20 @@ public class CropFertilizationTableControllerImpl implements CropFertilizationTa
     public ResponseEntity<CropFertilizationTableResponseDto> updateCropFertilizationTable(
             @RequestParam(name = "tableId") Long tableId,
             @Valid @RequestBody CropFertilizationTablePostRequestDto updateRequestDto,
-            Authentication authentication) {
-        CropFertilizationTableResponseDto updatedTable = cropFertilizationTableService
+            Authentication authentication
+    ) {
+        CropFertilizationTableResponseDto updated = cropFertilizationTableService
                 .updateCropFertilizationTable(tableId, updateRequestDto, authentication.getName());
-        return ResponseEntity.ok(updatedTable);
+
+        return ResponseEntity.ok(updated);
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteCropFertilizationTable(
             @RequestParam(name = "tableId") Long tableId,
-            Authentication authentication) {
+            Authentication authentication
+    ) {
         cropFertilizationTableService.deleteCropFertilizationTable(tableId, authentication.getName());
         return ResponseEntity.noContent().build();
     }

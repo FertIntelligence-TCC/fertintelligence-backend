@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.controller.implementation.PropertyAccessRequestControllerImpl;
+import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestDecisionRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestResponseDto;
@@ -16,11 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
-
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -133,4 +133,26 @@ class PropertyAccessRequestControllerImplTest {
         // Verifica se o serviço foi chamado com o boolean extraído do DTO (true)
         Mockito.verify(propertyAccessRequestService).decideRequest(4L, true, "owner");
     }
+
+    @Test
+    @WithMockUser(username = "requester")
+    @DisplayName("Deve retornar as propriedades aprovadas para o usuário logado")
+    void shouldGetApprovedProperties() throws Exception {
+        PropertyResponseDto propertyDto = PropertyResponseDto.builder()
+                .id(10L)
+                .nome("Fazenda Aprovada")
+                .cnpj("12.345.678/0001-90")
+                .build();
+
+        Mockito.when(propertyAccessRequestService.getApprovedPropertiesForUser("requester"))
+                .thenReturn(Collections.singletonList(propertyDto));
+
+        mockMvc.perform(get("/property-access/my-approved-properties")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(10)))
+                .andExpect(jsonPath("$[0].nome", is("Fazenda Aprovada")));
+    }
+
 }

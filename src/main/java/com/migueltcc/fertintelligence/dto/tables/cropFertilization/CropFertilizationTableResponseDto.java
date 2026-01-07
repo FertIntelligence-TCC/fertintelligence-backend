@@ -42,7 +42,7 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("cultivares")
     private String cultivares;
 
-    @Schema(example = "BETWEEN_LINES_IN_METERS") // CORRIGIDO
+    @Schema(example = "BETWEEN_LINES_IN_METERS")
     @JsonProperty("espacamentos_sugeridos")
     private SpacingType suggested_spacing;
 
@@ -54,9 +54,13 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("valor_final")
     private Double final_value;
 
-    @Schema(example = "0.45")
+    @Schema(example = "BETWEEN_LINES_IN_METERS")
     @JsonProperty("espacamento_usado")
-    private Double used_spacing;
+    private SpacingType used_spacing;
+
+    @Schema(example = "0.45")
+    @JsonProperty("valor_espacamento_usado")
+    private Double used_spacing_value;
 
     @Schema(example = "3500.0")
     @JsonProperty("produtividade_regional")

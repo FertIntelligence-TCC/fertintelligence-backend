@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.PropertyAccessRequestController;
+import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestDecisionRequestDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestResponseDto;
@@ -47,4 +48,12 @@ public class PropertyAccessRequestControllerImpl implements PropertyAccessReques
         PropertyAccessRequestResponseDto responseDto = propertyAccessRequestService.decideRequest(requestId, decisionRequestDto.getApprove(), authentication.getName());
         return ResponseEntity.ok(responseDto);
     }
+
+    @Override
+    @GetMapping("/my-approved-properties")
+    public ResponseEntity<List<PropertyResponseDto>> getMyApprovedProperties(Authentication authentication) {
+        List<PropertyResponseDto> approvedProperties = propertyAccessRequestService.getApprovedPropertiesForUser(authentication.getName());
+        return ResponseEntity.ok(approvedProperties);
+    }
+
 }

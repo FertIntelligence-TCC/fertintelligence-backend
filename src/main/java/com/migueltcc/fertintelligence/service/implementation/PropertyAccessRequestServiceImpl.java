@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -14,7 +15,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,89 +33,91 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
     private UserRepository userRepository;
 
     @Override
-    @Transactional
     public PropertyAccessRequestResponseDto requestAccess(Long propertyId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
-        if (requester.getCargo() == Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Proprietários já possuem acesso às propriedades.");
-        }
-
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
 
         if (property.getOwner().getId().equals(requester.getId())) {
-            throw new AccessDeniedException("Você já é proprietário desta propriedade.");
+            throw new IllegalArgumentException("O proprietário já possui acesso à sua própria propriedade.");
         }
 
-        propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.PENDING)
-                .ifPresent(req -> {
-                    throw new AccessDeniedException("Já existe uma solicitação pendente para esta propriedade.");
-                });
+        boolean alreadyRequested = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property, requester, AccessRequestStatus.PENDING).isPresent();
 
-        PropertyAccessRequestModel accessRequest = PropertyAccessRequestModel.builder()
+        if (alreadyRequested) {
+            throw new IllegalArgumentException("Já existe uma solicitação pendente para esta propriedade.");
+        }
+
+        // Verifica se já está aprovado
+        boolean alreadyApproved = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property, requester, AccessRequestStatus.APPROVED).isPresent();
+        if (alreadyApproved) {
+            throw new IllegalArgumentException("Você já possui acesso aprovado a esta propriedade.");
+        }
+
+        PropertyAccessRequestModel request = PropertyAccessRequestModel.builder()
                 .property(property)
                 .requester(requester)
                 .status(AccessRequestStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        PropertyAccessRequestModel saved = propertyAccessRequestRepository.save(accessRequest);
-        return saved.toDto();
+        return propertyAccessRequestRepository.save(request).toDto();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<PropertyAccessRequestResponseDto> getRequestsForProperty(Long propertyId, String ownerUsername) {
         UserModel owner = findUserByUsernameOrThrow(ownerUsername);
+        PropertyModel property = findPropertyByIdOrThrow(propertyId);
+
+        checkOwnerPermission(property, owner);
         checkUserIsProprietario(owner);
 
-        PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        checkOwnerPermission(property, owner);
-
-        return propertyAccessRequestRepository.findAllByProperty(property).stream()
+        return propertyAccessRequestRepository.findAllByProperty(property)
+                .stream()
                 .map(PropertyAccessRequestModel::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional
     public PropertyAccessRequestResponseDto decideRequest(Long requestId, boolean approve, String ownerUsername) {
         UserModel owner = findUserByUsernameOrThrow(ownerUsername);
-        checkUserIsProprietario(owner);
 
         PropertyAccessRequestModel request = propertyAccessRequestRepository.findById(requestId)
                 .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada: " + requestId));
 
         checkOwnerPermission(request.getProperty(), owner);
+        checkUserIsProprietario(owner);
 
         if (request.getStatus() != AccessRequestStatus.PENDING) {
-            throw new AccessDeniedException("A solicitação já foi processada.");
+            throw new IllegalArgumentException("Esta solicitação já foi processada.");
         }
+
+        request.setStatus(approve ? AccessRequestStatus.APPROVED : AccessRequestStatus.REJECTED);
+        PropertyAccessRequestModel savedRequest = propertyAccessRequestRepository.save(request);
 
         if (approve) {
-            ensureManagerSlotAvailableIfNeeded(request);
-            request.setStatus(AccessRequestStatus.APPROVED);
-            PropertyAccessRequestModel saved = propertyAccessRequestRepository.save(request);
-            updatePropertyManagerIfNeeded(saved);
-            return saved.toDto();
+            updatePropertyManagerIfNeeded(savedRequest);
         }
 
-        request.setStatus(AccessRequestStatus.REJECTED);
-        PropertyAccessRequestResponseDto response = request.toDto();
-        propertyAccessRequestRepository.delete(request);
-        return response;
+        return savedRequest.toDto();
     }
 
-    private void ensureManagerSlotAvailableIfNeeded(PropertyAccessRequestModel request) {
-        if (request.getRequester().getCargo() != Cargo.GERENTE) {
-            return;
-        }
+    // --- NOVA IMPLEMENTAÇÃO ---
+    @Override
+    public List<PropertyResponseDto> getApprovedPropertiesForUser(String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
 
-        PropertyModel property = request.getProperty();
-        if (property.getManager() != null && !property.getManager().getId().equals(request.getRequester().getId())) {
-            throw new AccessDeniedException("A propriedade já possui um gerente atribuído.");
-        }
+        // Busca todas as solicitações deste usuário que foram APROVADAS
+        List<PropertyAccessRequestModel> approvedRequests = propertyAccessRequestRepository
+                .findAllByRequesterAndStatus(user, AccessRequestStatus.APPROVED);
+
+        // Mapeia de Solicitação -> Propriedade -> PropertyResponseDto
+        return approvedRequests.stream()
+                .map(request -> request.getProperty().toDto())
+                .collect(Collectors.toList());
     }
+    // --------------------------
 
     private void updatePropertyManagerIfNeeded(PropertyAccessRequestModel request) {
         if (request.getRequester().getCargo() != Cargo.GERENTE) {
@@ -123,7 +125,8 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         }
 
         PropertyModel property = request.getProperty();
-        if (property.getManager() == null || !property.getManager().getId().equals(request.getRequester().getId())) {
+        // Se a propriedade não tem gerente, ou se a lógica de negócio permitir sobrescrever
+        if (property.getManager() == null) {
             property.setManager(request.getRequester());
             propertyRepository.save(property);
         }

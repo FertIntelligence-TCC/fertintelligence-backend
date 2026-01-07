@@ -31,8 +31,13 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -85,7 +90,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
                 .initial_value(0.45)
                 .final_value(0.55)
-                .used_spacing(0.50)
+                .used_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .used_spacing_value(0.50)
                 .regional_productivity(8000.0)
                 .expected_productivity(9000.0)
                 .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
@@ -107,7 +113,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
                 .initial_value(0.45)
                 .final_value(0.55)
-                .used_spacing(0.50)
+                .used_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .used_spacing_value(0.50)
                 .regional_productivity(8000.0)
                 .expected_productivity(9000.0)
                 .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
@@ -152,6 +159,10 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.nome_comum_cultura").value("MILHO"))
                 .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
                 .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
+                .andExpect(jsonPath("$.valor_inicial").value(0.45))
+                .andExpect(jsonPath("$.valor_final").value(0.55))
+                .andExpect(jsonPath("$.espacamento_usado").value("BETWEEN_LINES_IN_METERS"))
+                .andExpect(jsonPath("$.valor_espacamento_usado").value(0.50))
                 .andExpect(jsonPath("$.observacoes").value("Observações iniciais"));
     }
 
@@ -203,7 +214,11 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerTable.getId()))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
-                .andExpect(jsonPath("$.regioes_cultura").value("SUL"));
+                .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
+                .andExpect(jsonPath("$.valor_inicial").value(0.45))
+                .andExpect(jsonPath("$.valor_final").value(0.55))
+                .andExpect(jsonPath("$.espacamento_usado").value("BETWEEN_LINES_IN_METERS"))
+                .andExpect(jsonPath("$.valor_espacamento_usado").value(0.50));
     }
 
     @Test
@@ -227,14 +242,19 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(cropFertilizationTableRepository.findAllByCreator(proprietarioUser)).thenReturn(List.of(ownerTable, otherTable));
+        when(cropFertilizationTableRepository.findAllByCreator(proprietarioUser))
+                .thenReturn(List.of(ownerTable, otherTable));
 
         mockMvc.perform(get("/crop-fertilization-table/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
                 .andExpect(jsonPath("$[1].observacoes").value("Outra tabela"))
                 .andExpect(jsonPath("$[0].regioes_cultura").value("SUL"))
-                .andExpect(jsonPath("$[1].regioes_cultura").value("CENTRO_OESTE"));
+                .andExpect(jsonPath("$[1].regioes_cultura").value("CENTRO_OESTE"))
+                .andExpect(jsonPath("$[0].valor_inicial").value(0.45))
+                .andExpect(jsonPath("$[0].valor_final").value(0.55))
+                .andExpect(jsonPath("$[0].espacamento_usado").value("BETWEEN_LINES_IN_METERS"))
+                .andExpect(jsonPath("$[0].valor_espacamento_usado").value(0.50));
     }
 
     @Test
@@ -254,7 +274,11 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.produtividade_esperada").value(9500.0))
                 .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"))
-                .andExpect(jsonPath("$.regioes_cultura").value("NORDESTE"));
+                .andExpect(jsonPath("$.regioes_cultura").value("NORDESTE"))
+                .andExpect(jsonPath("$.valor_inicial").value(0.45))
+                .andExpect(jsonPath("$.valor_final").value(0.55))
+                .andExpect(jsonPath("$.espacamento_usado").value("BETWEEN_LINES_IN_METERS"))
+                .andExpect(jsonPath("$.valor_espacamento_usado").value(0.50));
     }
 
     @Test
