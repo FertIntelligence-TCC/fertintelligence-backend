@@ -40,16 +40,16 @@ public class CropFertilizationTableModel {
     @Column(name = "ESPACAMENTOS_SUGERIDOS", nullable = false)
     private SpacingType suggested_spacing;
 
-    @Column(name = "VALOR_INICIAL_ESPACAMENTO_SUGERIDO", nullable = false)
+    @Column(name = "VALOR_INICIAL", nullable = false)
     private Double initial_value;
 
-    @Column(name = "VALOR_FINAL_ESPACAMENTO_SUGERIDO", nullable = false)
+    @Column(name = "VALOR_FINAL", nullable = false)
     private Double final_value;
 
-    @Column(name = "ESPACAMENTOS_USADOS", nullable = false)
+    @Column(name = "ESPACAMENTO_USADO", nullable = false)
     private SpacingType used_spacing;
 
-    @Column(name = "ESPACAMENTO_USADO", nullable = false)
+    @Column(name = "VALOR_ESPACAMENTO_USADO", nullable = false)
     private Double used_spacing_value;
 
     @Column(name = "PRODUTIVIDADE_REGIONAL", nullable = false)
