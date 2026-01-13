@@ -6,12 +6,15 @@ import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertiliza
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
+import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +24,23 @@ import java.util.List;
 @Service
 public class CropFertilizationTableServiceImpl implements CropFertilizationTableService {
 
-    @Autowired
-    private CropFertilizationTableRepository cropFertilizationTableRepository;
+    private final CropFertilizationTableRepository cropFertilizationTableRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    // Novos repositórios para gerenciar a exclusão dos filhos
+    private final ContentRangeRepository contentRangeRepository;
+    private final CoverageRepository coverageRepository;
+
+    public CropFertilizationTableServiceImpl(
+            CropFertilizationTableRepository cropFertilizationTableRepository,
+            UserRepository userRepository,
+            ContentRangeRepository contentRangeRepository,
+            CoverageRepository coverageRepository) {
+        this.cropFertilizationTableRepository = cropFertilizationTableRepository;
+        this.userRepository = userRepository;
+        this.contentRangeRepository = contentRangeRepository;
+        this.coverageRepository = coverageRepository;
+    }
 
     @Override
     @Transactional
@@ -94,7 +109,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         assertIsCreator(table, requester);
 
-        // Se o update alterar nome comum e/ou científico, valide a combinação final
         if (updateRequestDto.getCrop_common_name() != null || updateRequestDto.getCrop_scientific_nome() != null) {
             NomeComum common = updateRequestDto.getCrop_common_name() != null
                     ? updateRequestDto.getCrop_common_name()
@@ -107,77 +121,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             validateCropNames(common, scientific);
         }
 
-        if (updateRequestDto.getRegion() != null) {
-            table.setRegion(updateRequestDto.getRegion());
-        }
-
-        if (updateRequestDto.getCrop_common_name() != null) {
-            table.setCrop_common_name(updateRequestDto.getCrop_common_name());
-        }
-
-        if (updateRequestDto.getCrop_scientific_nome() != null) {
-            table.setCrop_scientific_nome(updateRequestDto.getCrop_scientific_nome());
-        }
-
-        if (updateRequestDto.getCultivares() != null) {
-            table.setCultivares(updateRequestDto.getCultivares());
-        }
-
-        if (updateRequestDto.getSuggested_spacing() != null) {
-            table.setSuggested_spacing(updateRequestDto.getSuggested_spacing());
-        }
-
-        if (updateRequestDto.getInitial_value() != null) {
-            table.setInitial_value(updateRequestDto.getInitial_value());
-        }
-
-        if (updateRequestDto.getFinal_value() != null) {
-            table.setFinal_value(updateRequestDto.getFinal_value());
-        }
-
-        if (updateRequestDto.getUsed_spacing() != null) {
-            table.setUsed_spacing(updateRequestDto.getUsed_spacing());
-        }
-
-        if (updateRequestDto.getUsed_spacing_value() != null) {
-            table.setUsed_spacing_value(updateRequestDto.getUsed_spacing_value());
-        }
-
-        if (updateRequestDto.getRegional_productivity() != null) {
-            table.setRegional_productivity(updateRequestDto.getRegional_productivity());
-        }
-
-        if (updateRequestDto.getExpected_productivity() != null) {
-            table.setExpected_productivity(updateRequestDto.getExpected_productivity());
-        }
-
-        if (updateRequestDto.getCriteria() != null) {
-            table.setCriteria(updateRequestDto.getCriteria());
-        }
-
-        if (updateRequestDto.getManure() != null) {
-            table.setManure(updateRequestDto.getManure());
-        }
-
-        if (updateRequestDto.getManure_qtd() != null) {
-            table.setManure_qtd(updateRequestDto.getManure_qtd());
-        }
-
-        if (updateRequestDto.getGessing() != null) {
-            table.setGessing(updateRequestDto.getGessing());
-        }
-
-        if (updateRequestDto.getMicronutrients() != null) {
-            table.setMicronutrients(updateRequestDto.getMicronutrients());
-        }
-
-        if (updateRequestDto.getNpk() != null) {
-            table.setNpk(updateRequestDto.getNpk());
-        }
-
-        if (updateRequestDto.getObservations() != null) {
-            table.setObservations(updateRequestDto.getObservations());
-        }
+        updateTableFields(table, updateRequestDto);
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
         return saved.toDto();
@@ -190,26 +134,65 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         assertIsCreator(table, requester);
 
+        // --- INÍCIO DA CORREÇÃO: Deleção Manual em Cascata ---
+
+        // 1. Busca todos os intervalos desta tabela
+        List<ContentRangeModel> ranges = contentRangeRepository.findAllByTableOrderByNutrientAscOrderAsc(table);
+
+        // 2. Para cada intervalo, busca e deleta suas coberturas
+        for (ContentRangeModel range : ranges) {
+            List<CoverageModel> coverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+            coverageRepository.deleteAll(coverages);
+        }
+
+        // 3. Deleta os intervalos
+        contentRangeRepository.deleteAll(ranges);
+
+        // 4. Finalmente, deleta a tabela pai
         cropFertilizationTableRepository.delete(table);
+
+        // --- FIM DA CORREÇÃO ---
+    }
+
+    // --- Métodos Privados ---
+
+    private void updateTableFields(CropFertilizationTableModel table, CropFertilizationTablePostRequestDto dto) {
+        if (dto.getRegion() != null) table.setRegion(dto.getRegion());
+        if (dto.getCrop_common_name() != null) table.setCrop_common_name(dto.getCrop_common_name());
+        if (dto.getCrop_scientific_nome() != null) table.setCrop_scientific_nome(dto.getCrop_scientific_nome());
+        if (dto.getCultivares() != null) table.setCultivares(dto.getCultivares());
+        if (dto.getSuggested_spacing() != null) table.setSuggested_spacing(dto.getSuggested_spacing());
+        if (dto.getInitial_value() != null) table.setInitial_value(dto.getInitial_value());
+        if (dto.getFinal_value() != null) table.setFinal_value(dto.getFinal_value());
+        if (dto.getUsed_spacing() != null) table.setUsed_spacing(dto.getUsed_spacing());
+        if (dto.getUsed_spacing_value() != null) table.setUsed_spacing_value(dto.getUsed_spacing_value());
+        if (dto.getRegional_productivity() != null) table.setRegional_productivity(dto.getRegional_productivity());
+        if (dto.getExpected_productivity() != null) table.setExpected_productivity(dto.getExpected_productivity());
+        if (dto.getCriteria() != null) table.setCriteria(dto.getCriteria());
+        if (dto.getManure() != null) table.setManure(dto.getManure());
+        if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
+        if (dto.getGessing() != null) table.setGessing(dto.getGessing());
+        if (dto.getMicronutrients() != null) table.setMicronutrients(dto.getMicronutrients());
+        if (dto.getNpk() != null) table.setNpk(dto.getNpk());
+        if (dto.getObservations() != null) table.setObservations(dto.getObservations());
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
-        // Ajuste o método abaixo se o seu UserRepository usar outro nome (ex.: findByEmail).
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
     private CropFertilizationTableModel findTableByIdOrThrow(Long tableId) {
         return cropFertilizationTableRepository.findById(tableId)
-                .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada."));
+                .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada com ID: " + tableId));
     }
 
     private void assertIsCreator(CropFertilizationTableModel table, UserModel requester) {
         if (table.getCreator() == null || requester == null || table.getCreator().getId() == null) {
-            throw new AccessDeniedException("Acesso negado.");
+            throw new AccessDeniedException("Acesso negado: Propriedades de criador inválidas.");
         }
         if (!table.getCreator().getId().equals(requester.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar esta tabela.");
+            throw new AccessDeniedException("Acesso negado: Você não tem permissão para modificar esta tabela.");
         }
     }
 
@@ -220,6 +203,9 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         NomeCientifico expectedScientificName;
         switch (commonName) {
+            case ALGODAO -> expectedScientificName = NomeCientifico.Gossypium_hirsutum;
+            case AMENDOIM -> expectedScientificName = NomeCientifico.Arachis_hypogaea;
+            case CANA_DE_ACUCAR -> expectedScientificName = NomeCientifico.Saccharum_officinarum;
             case FEIJAO_CAUPI -> expectedScientificName = NomeCientifico.Vigna_unguiculata;
             case FEIJAO_COMUM -> expectedScientificName = NomeCientifico.Phaseolus_vulgaris;
             case GERGELIM -> expectedScientificName = NomeCientifico.Sesamum_indicum;
@@ -227,11 +213,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             case MILHO -> expectedScientificName = NomeCientifico.Zea_mays;
             case SISAL -> expectedScientificName = NomeCientifico.Agave_sisalana;
             case SOJA -> expectedScientificName = NomeCientifico.Glycine_max;
-            default -> throw new IllegalArgumentException("Nome comum da cultura inválido.");
+            default -> throw new IllegalArgumentException("Nome comum da cultura inválido ou não suportado: " + commonName);
         }
 
         if (scientificName != expectedScientificName) {
-            throw new IllegalArgumentException("O nome científico informado não corresponde ao nome comum da cultura.");
+            throw new IllegalArgumentException(
+                    String.format("Inconsistência: O nome científico '%s' não corresponde à cultura '%s'. Esperado: '%s'.",
+                            scientificName, commonName, expectedScientificName)
+            );
         }
     }
 }
