@@ -29,13 +29,16 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
     @Override
     @Transactional
-    public SimpleMineralFertilizerResponseDto createSimpleMineralFertilizer(SimpleMineralFertilizerCreateRequestDto createRequestDto,
-                                                                            String username) {
+    public SimpleMineralFertilizerResponseDto createSimpleMineralFertilizer(
+            SimpleMineralFertilizerCreateRequestDto createRequestDto,
+            String username
+    ) {
         UserModel owner = findUserByUsernameOrThrow(username);
         checkUserRole(owner);
 
         SimpleMineralFertilizerModel fertilizer = SimpleMineralFertilizerModel.builder()
                 .user(owner)
+                .name(createRequestDto.getName())
                 .N(getOrDefault(createRequestDto.getN()))
                 .P2O5(getOrDefault(createRequestDto.getP2o5()))
                 .K2O(getOrDefault(createRequestDto.getK2o()))
@@ -52,29 +55,18 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .indiceAcidez(getOrDefault(createRequestDto.getIndiceAcidez()))
                 .build();
 
-        SimpleMineralFertilizerModel savedFertilizer = simpleMineralFertilizerRepository.save(fertilizer);
-        return savedFertilizer.toDto();
+        SimpleMineralFertilizerModel saved = simpleMineralFertilizerRepository.save(fertilizer);
+        return saved.toDto();
     }
 
+    // CORREÇÃO: Nome do método atualizado para getAllSimpleMineralFertilizers
     @Override
     @Transactional(readOnly = true)
-    public SimpleMineralFertilizerResponseDto getSimpleMineralFertilizerById(Long simpleMineralFertilizerId, String username) {
+    public List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
 
-        SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(simpleMineralFertilizerId);
-        checkOwnership(fertilizer, owner);
-
-        return fertilizer.toDto();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByUser(String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
-
-        return simpleMineralFertilizerRepository.findAllByUser(owner).stream()
+        return simpleMineralFertilizerRepository.findAllByUser(owner)
+                .stream()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -83,7 +75,6 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     @Transactional(readOnly = true)
     public List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
 
         return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
                 .stream()
@@ -93,69 +84,42 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
     @Override
     @Transactional
-    public SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(Long simpleMineralFertilizerId,
-                                                                            SimpleMineralFertilizerPostRequestDto updateRequestDto,
-                                                                            String username) {
+    public SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(
+            Long fertilizerId,
+            SimpleMineralFertilizerPostRequestDto dto,
+            String username
+    ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(fertilizerId);
 
-        SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(simpleMineralFertilizerId);
         checkOwnership(fertilizer, owner);
 
-        if (updateRequestDto.getN() != null) {
-            fertilizer.setN(updateRequestDto.getN());
-        }
-        if (updateRequestDto.getP2o5() != null) {
-            fertilizer.setP2O5(updateRequestDto.getP2o5());
-        }
-        if (updateRequestDto.getK2o() != null) {
-            fertilizer.setK2O(updateRequestDto.getK2o());
-        }
-        if (updateRequestDto.getCa() != null) {
-            fertilizer.setCa(updateRequestDto.getCa());
-        }
-        if (updateRequestDto.getMg() != null) {
-            fertilizer.setMg(updateRequestDto.getMg());
-        }
-        if (updateRequestDto.getS() != null) {
-            fertilizer.setS(updateRequestDto.getS());
-        }
-        if (updateRequestDto.getB() != null) {
-            fertilizer.setB(updateRequestDto.getB());
-        }
-        if (updateRequestDto.getCu() != null) {
-            fertilizer.setCu(updateRequestDto.getCu());
-        }
-        if (updateRequestDto.getFe() != null) {
-            fertilizer.setFe(updateRequestDto.getFe());
-        }
-        if (updateRequestDto.getMn() != null) {
-            fertilizer.setMn(updateRequestDto.getMn());
-        }
-        if (updateRequestDto.getMo() != null) {
-            fertilizer.setMo(updateRequestDto.getMo());
-        }
-        if (updateRequestDto.getZn() != null) {
-            fertilizer.setZn(updateRequestDto.getZn());
-        }
-        if (updateRequestDto.getIndiceSalino() != null) {
-            fertilizer.setIndiceSalino(updateRequestDto.getIndiceSalino());
-        }
-        if (updateRequestDto.getIndiceAcidez() != null) {
-            fertilizer.setIndiceAcidez(updateRequestDto.getIndiceAcidez());
-        }
+        if (dto.getName() != null) fertilizer.setName(dto.getName());
+        if (dto.getN() != null) fertilizer.setN(dto.getN());
+        if (dto.getP2o5() != null) fertilizer.setP2O5(dto.getP2o5());
+        if (dto.getK2o() != null) fertilizer.setK2O(dto.getK2o());
+        if (dto.getCa() != null) fertilizer.setCa(dto.getCa());
+        if (dto.getMg() != null) fertilizer.setMg(dto.getMg());
+        if (dto.getS() != null) fertilizer.setS(dto.getS());
+        if (dto.getB() != null) fertilizer.setB(dto.getB());
+        if (dto.getCu() != null) fertilizer.setCu(dto.getCu());
+        if (dto.getFe() != null) fertilizer.setFe(dto.getFe());
+        if (dto.getMn() != null) fertilizer.setMn(dto.getMn());
+        if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
+        if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
+        if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
+        if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
 
-        SimpleMineralFertilizerModel updatedFertilizer = simpleMineralFertilizerRepository.save(fertilizer);
-        return updatedFertilizer.toDto();
+        SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
+        return updated.toDto();
     }
 
     @Override
     @Transactional
-    public void deleteSimpleMineralFertilizer(Long simpleMineralFertilizerId, String username) {
+    public void deleteSimpleMineralFertilizer(Long fertilizerId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(fertilizerId);
 
-        SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(simpleMineralFertilizerId);
         checkOwnership(fertilizer, owner);
 
         simpleMineralFertilizerRepository.delete(fertilizer);

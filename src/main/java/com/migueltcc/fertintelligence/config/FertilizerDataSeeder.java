@@ -1,226 +1,269 @@
 package com.migueltcc.fertintelligence.config;
 
-import com.migueltcc.fertintelligence.dto.fertilizers.attributes.FormulateDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.attributes.NPKrelationDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer.GreenFertilizerCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerCreateRequestDto;
-import com.migueltcc.fertintelligence.service.documentation.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.Formulate;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.BioFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.ChelatedFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.MineralFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.*;
+import com.migueltcc.fertintelligence.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Component
-@Order(3) // Garante que rode APÓS a criação do usuário (UserDataSeeder)
+@Order(3) // Executa após a criação de Usuários
+@RequiredArgsConstructor
+@Slf4j
 public class FertilizerDataSeeder implements CommandLineRunner {
 
-    @Autowired
-    private SimpleMineralFertilizerService simpleService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private FormulatedMineralFertilizerService formulatedService;
+    // Repositórios Solo
+    private final SimpleMineralFertilizerRepository simpleRepository;
+    private final FormulatedMineralFertilizerRepository formulatedRepository;
+    private final OrganoMineralFertilizerRepository organoRepository;
+    private final GreenFertilizerRepository greenRepository;
 
-    @Autowired
-    private OrganoMineralFertilizerService organoService;
-
-    @Autowired
-    private GreenFertilizerService greenService;
-
-    // O usuário deve ter sido criado pelo UserDataSeeder (Order 1)
-    private static final String SYSTEM_USER = "admin@fertintelligence.com";
+    // Repositórios Foliares
+    private final MineralFertilizerRepository foliarMineralRepository;
+    private final ChelatedFertilizerRepository chelatedRepository;
+    private final BioFertilizerRepository bioRepository;
 
     @Override
-    public void run(String... args) throws Exception {
-        System.out.println("Iniciando carga de dados dos adubos...");
+    @Transactional
+    public void run(String... args) {
+        log.info("🧪 Iniciando o Seeding de Fertilizantes baseado na Tabela Oficial...");
 
-        loadSimpleFertilizers();
-        loadFormulatedFertilizers();
-        loadOrganoMineralFertilizers();
-        loadGreenFertilizers();
-
-        System.out.println("Carga de adubos finalizada.");
-    }
-
-    // ============================================================================================
-    // 1. ADUBOS MINERAIS SIMPLES
-    // ============================================================================================
-    private void loadSimpleFertilizers() {
-        // [Nome, N, P, K, Ca, Mg, S, B, Cu, Fe, Mn, Mo, Zn, Ind. Salino, Ind. Acidez]
-        createSimple("Fosfato Diamônio", 18.0, 46.0, null, null, null, null, null, null, null, null, null, null, null, -589.0);
-        createSimple("Fosfato Monoamônio", 11.0, 50.0, null, null, null, null, null, null, null, null, null, null, null, -635.0);
-        createSimple("Nitrato de Amônio", 33.0, null, null, null, null, null, null, null, null, null, null, null, null, -535.0);
-        createSimple("Nitrato de Cálcio", 15.0, null, null, 20.0, null, null, null, 0.0022, null, null, 0.0001, 0.0015, null, 181.0);
-        createSimple("Nitrato de Potássio", 13.0, null, 44.0, null, null, null, null, null, null, null, null, null, null, 236.0);
-        createSimple("Nitrocálcio", 22.0, null, null, 7.0, null, null, null, null, null, null, null, null, null, -280.0);
-        createSimple("Sulfato de Amônio", 21.0, null, null, null, null, 24.0, 0.0006, 0.0002, null, 0.0006, null, null, null, -996.0);
-        createSimple("Sulfonitrato de Amônio", 26.0, null, null, null, null, 15.0, null, null, null, null, null, null, null, -770.0);
-        createSimple("Uréia", 45.0, null, null, null, null, null, null, null, null, null, null, null, null, -840.0);
-        createSimple("Superfosfato Simples", null, 18.0, null, 19.0, null, 12.0, 0.0011, 0.0044, null, 0.0011, 0.0002, 0.0150, null, 0.0);
-        createSimple("Superfosfato Triplo", null, 45.0, null, 13.0, null, 2.0, null, null, null, null, null, null, null, 0.0);
-        createSimple("Fosfato Bicálcico", null, 30.0, null, 21.0, null, null, null, null, null, null, null, null, null, 0.0);
-        createSimple("Cloreto de Potássio", null, null, 60.0, null, null, null, null, null, null, null, null, null, null, 0.0);
-        createSimple("Sulfato de Potássio", null, null, 50.0, null, null, 17.0, 0.0004, 0.0004, null, 0.0006, null, 0.0002, null, 0.0);
-        createSimple("Sulfato de Potássio e Magnésio", null, null, 22.0, null, 11.0, 22.0, null, null, null, null, null, null, null, 0.0);
-        createSimple("Sulfato de Cálcio", null, null, null, 16.0, null, 13.0, null, null, null, null, null, null, null, 0.0);
-        createSimple("Gesso", null, null, null, 23.0, 19.0, null, null, null, null, null, null, null, null, 0.0);
-        createSimple("Sulfato de Magnésio", null, null, null, null, 9.0, 13.0, null, null, null, null, null, null, null, 0.0);
-        createSimple("Magnesita (Óxido de Magnésio)", null, null, null, null, 33.0, null, null, null, null, null, null, null, null, 1190.0);
-        createSimple("Carbonato de Magnésio", null, null, null, null, 26.0, null, null, null, null, null, null, null, null, 0.0);
-        createSimple("Bórax", null, null, null, null, null, null, 11.0, null, null, null, null, null, null, 0.0);
-        createSimple("Ácido Bórico", null, null, null, null, null, null, 17.0, null, null, null, null, null, null, 0.0);
-        createSimple("Pentaborato de Sódio", null, null, null, null, null, null, 18.0, null, null, null, null, null, null, 0.0);
-        createSimple("Sulfato de Cobre", null, null, null, null, null, null, null, 17.0, 13.0, null, null, null, null, 0.0);
-        createSimple("Quelato de Cobre", null, null, null, null, null, null, null, 5.0, null, null, null, null, null, 0.0);
-        createSimple("Sulfato férrico", null, null, null, null, null, null, null, null, 19.0, null, 23.0, null, null, 0.0);
-        createSimple("Quelato de Ferro", null, null, null, null, null, null, null, null, 5.0, null, null, null, null, 0.0);
-        createSimple("Sulfato Manganoso", null, null, null, null, null, null, null, null, null, 26.0, null, null, null, 0.0);
-        createSimple("Quelato de Manganês", null, null, null, null, null, null, null, null, null, 12.0, null, null, null, 0.0);
-        createSimple("Molibdato de Amônio", null, null, null, null, null, null, null, null, null, null, 54.0, null, null, 0.0);
-        createSimple("Molibdato de Sódio", null, null, null, null, null, null, null, null, null, null, 39.0, null, null, 0.0);
-        createSimple("Sulfato de Zinco", null, null, null, null, null, null, null, null, null, null, null, 20.0, null, 0.0);
-        createSimple("Óxido de Zinco", null, null, null, null, null, null, null, null, null, null, null, 50.0, null, 0.0);
-        createSimple("Quelato de Zinco", null, null, null, null, null, null, null, null, null, null, null, 7.0, null, 0.0);
-    }
-
-    private void createSimple(String nome, Double n, Double p, Double k,
-                              Double ca, Double mg, Double s,
-                              Double b, Double cu, Double fe, Double mn, Double mo, Double zn,
-                              Double indSalino, Double indAcidez) {
-        try {
-            SimpleMineralFertilizerCreateRequestDto dto = SimpleMineralFertilizerCreateRequestDto.builder()
-                    .name(nome)
-                    .n(n).p2o5(p).k2o(k)
-                    .ca(ca).mg(mg).s(s)
-                    .b(b).cu(cu).fe(fe).mn(mn).mo(mo).zn(zn)
-                    .indiceSalino(indSalino)
-                    .indiceAcidez(indAcidez)
-                    .build();
-            simpleService.createSimpleMineralFertilizer(dto, SYSTEM_USER);
-        } catch (Exception e) {
-            System.err.println("Erro ao criar adubo simples '" + nome + "': " + e.getMessage());
+        Optional<UserModel> creatorOpt = userRepository.findByEmail("admin@fertintelligence.com");
+        if (creatorOpt.isEmpty()) {
+            log.warn("⚠️ Usuário admin não encontrado. Pulando seeding.");
+            return;
         }
+        UserModel creator = creatorOpt.get();
+
+        loadSimpleMineralFromDoc(creator);
+        loadFormulatedMineral(creator);
+        loadOrganoMineral(creator);
+        loadGreen(creator);
+        loadFoliarMineral(creator);
+        loadChelated(creator);
+        loadBio(creator);
+
+        log.info("✅ Seeding de Fertilizantes concluído.");
     }
 
-    // ============================================================================================
-    // 2. ADUBOS FORMULADOS
-    // ============================================================================================
-    private void loadFormulatedFertilizers() {
-        createFormulated("04-14-08", 4, 14, 8, 1.0, 3.5, 2.0);
-        createFormulated("04-30-10", 4, 30, 10, 1.0, 7.5, 2.5);
-        createFormulated("04-30-16", 4, 30, 16, 1.0, 7.5, 4.0);
-        createFormulated("06-24-12", 6, 24, 12, 1.0, 4.0, 2.0);
-        createFormulated("08-30-10", 8, 30, 10, 1.0, 3.75, 1.25);
-        createFormulated("08-30-16", 8, 30, 16, 1.0, 3.75, 2.0);
-        createFormulated("08-30-20", 8, 30, 20, 1.0, 3.75, 5.0);
-        createFormulated("10-05-10", 10, 5, 10, 2.0, 1.0, 2.0);
-        createFormulated("10-10-10", 10, 10, 10, 1.0, 1.0, 1.0);
-        createFormulated("10-25-10", 10, 25, 10, 1.0, 2.5, 10.0);
-        createFormulated("10-28-20", 10, 28, 20, 1.0, 2.8, 2.0);
-        createFormulated("15-15-15", 15, 15, 15, 1.0, 1.0, 1.0);
-        createFormulated("20-10-20", 20, 10, 20, 2.0, 1.0, 2.0);
-        createFormulated("34-04-05", 34, 4, 5, 8.5, 1.0, 1.25);
+    // ==========================================
+    // 1. ADUBOS MINERAIS SIMPLES (Dados do DOCX)
+    // ==========================================
+    private void loadSimpleMineralFromDoc(UserModel user) {
+        // Verifica se já existem dados para não duplicar
+        if (simpleRepository.count() > 0) return;
 
-        createFormulatedFull("20-0-20", 20, 0, 20, 1.0, 0.0, 1.0, 2.0, 2.0, 4.0, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("20-0-10", 20, 0, 10, 2.0, 0.0, 1.0, 2.4, 2.0, 4.5, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("10-10-10 (com micro)", 10, 10, 10, 1.0, 1.0, 1.0, 8.8, 2.0, 5.2, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("10-10-20", 10, 10, 20, 1.0, 1.0, 2.0, 4.4, 2.0, 2.6, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("12-06-12", 12, 6, 12, 2.0, 1.0, 2.0, 6.8, 2.0, 6.4, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("10-05-20", 10, 5, 20, 2.0, 1.0, 4.0, 6.0, 2.0, 3.6, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("20-05-10", 20, 5, 10, 4.0, 1.0, 2.0, 3.2, 2.0, 2.0, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("20-05-20", 20, 5, 20, 4.0, 1.0, 4.0, 2.0, 1.0, 1.7, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("4-16-8", 4, 16, 8, 1.0, 4.0, 2.0, 12.0, 2.0, 7.2, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("4-16-16", 4, 16, 16, 1.0, 4.0, 4.0, 6.5, 2.0, 7.5, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("2-20-4", 2, 20, 4, 1.0, 10.0, 2.0, 13.4, 2.0, 8.0, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("2-20-8", 2, 20, 8, 1.0, 10.0, 4.0, 12.0, 2.0, 7.5, 0.2, null, null, null, null, 0.4);
-        createFormulatedFull("0-20-10", 0, 20, 10, 0.0, 2.0, 1.0, 13.0, 2.0, 6.8, null, null, null, null, null, 0.4);
-        createFormulatedFull("0-20-20", 0, 20, 20, 0.0, 1.0, 1.0, 9.0, 2.0, 5.0, null, null, null, null, null, 0.4);
-        createFormulatedFull("0-10-20", 0, 10, 20, 0.0, 1.0, 2.0, 11.0, 2.0, 6.6, null, null, null, null, null, 0.4);
-        createFormulatedFull("0-17-0", 0, 17, 0, 0.0, 1.0, 0.0, 19.0, 2.0, 11.0, 0.1, null, null, null, null, 0.4);
+        // Fosfato Diamônio (DAP)
+        // N:18, P:46, Acidez: -589
+        createSimple(user, "Fosfato Diamônio", 18.0, 46.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 34.0, -589.0);
+
+        // Fosfato Monoamônio (MAP)
+        // N:11, P:50, Acidez: -635
+        createSimple(user, "Fosfato Monoamônio", 11.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 30.0, -635.0);
+
+        // Nitrato de Amônio
+        // N:33, Acidez: -535
+        createSimple(user, "Nitrato de Amônio", 33.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 105.0, -535.0);
+
+        // Nitrato de Cálcio
+        // N:15, Ca:20, B:0.0022, Mo:0.0001, Zn:0.0015, Acidez: +181
+        createSimple(user, "Nitrato de Cálcio", 15.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0022, 0.0, 0.0, 0.0, 0.0001, 0.0015, 60.0, 181.0);
+
+        // Nitrato de Potássio
+        // N:13, K:44, Acidez: +236
+        createSimple(user, "Nitrato de Potássio", 13.0, 0.0, 44.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 74.0, 236.0);
+
+        // Nitrocálcio
+        // N:22, Ca:7, Acidez: -280
+        createSimple(user, "Nitrocálcio", 22.0, 0.0, 0.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -280.0);
+
+        // Sulfato de Amônio
+        // N:21, S:24, B:0.0006, Cu:0.0002, Mn:0.0006, Acidez: -996
+        createSimple(user, "Sulfato de Amônio", 21.0, 0.0, 0.0, 0.0, 0.0, 24.0, 0.0006, 0.0002, 0.0, 0.0006, 0.0, 0.0, 69.0, -996.0);
+
+        // Sulfonitrato de Amônio
+        // N:26, S:15, Acidez: -770
+        createSimple(user, "Sulfonitrato de Amônio", 26.0, 0.0, 0.0, 0.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -770.0);
+
+        // Uréia
+        // N:45, Acidez: -840
+        createSimple(user, "Uréia", 45.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 75.0, -840.0);
+
+        // Superfosfato Simples
+        // P:18, Ca:19, S:12, B:0.0011, Cu:0.0044, Mn:0.0011, Mo:0.0002, Zn:0.0150, Acidez: 0
+        createSimple(user, "Superfosfato Simples", 0.0, 18.0, 0.0, 19.0, 0.0, 12.0, 0.0011, 0.0044, 0.0, 0.0011, 0.0002, 0.0150, 10.0, 0.0);
+
+        // Superfosfato Triplo
+        // P:45, Ca:13, S:2, Acidez: 0
+        createSimple(user, "Superfosfato Triplo", 0.0, 45.0, 0.0, 13.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0);
+
+        // Fosfato Bicálcico
+        // P:30, Ca:21, Acidez: 0
+        createSimple(user, "Fosfato Bicálcico", 0.0, 30.0, 0.0, 21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        // Cloreto de Potássio (Adicionado como complemento comum, embora o doc corte)
+        createSimple(user, "Cloreto de Potássio", 0.0, 0.0, 60.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 116.0, 0.0);
     }
 
-    private void createFormulated(String formulaStr, Integer n, Integer p, Integer k, Double rN, Double rP, Double rK) {
-        createFormulatedFull(formulaStr, n, p, k, rN, rP, rK, null, null, null, null, null, null, null, null, null);
+    private void createSimple(UserModel user, String name, double n, double p, double k,
+                              double ca, double mg, double s,
+                              double b, double cu, double fe, double mn, double mo, double zn,
+                              double indiceSalino, double indiceAcidez) {
+
+        SimpleMineralFertilizerModel model = SimpleMineralFertilizerModel.builder()
+                .user(user)
+                .name(name)
+                // Macros Primários
+                .N(n).P2O5(p).K2O(k)
+                // Macros Secundários
+                .Ca(ca).Mg(mg).S(s)
+                // Micronutrientes
+                .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
+                // Índices
+                .indiceSalino(indiceSalino)
+                .indiceAcidez(indiceAcidez)
+                .build();
+
+        simpleRepository.save(model);
+        log.info("➕ Adubo Simples carregado: {}", name);
     }
 
-    private void createFormulatedFull(String formulaStr, Integer n, Integer p, Integer k,
-                                      Double rN, Double rP, Double rK,
-                                      Double ca, Double mg, Double s,
-                                      Double b, Double cu, Double fe, Double mn, Double mo, Double zn) {
-        try {
-            FormulatedMineralFertilizerCreateRequestDto dto = FormulatedMineralFertilizerCreateRequestDto.builder()
-                    .formulate(new FormulateDto(n, p, k))
-                    .relation(new NPKrelationDto(rN, rP, rK))
-                    .n(Double.valueOf(n))
-                    .p2o5(Double.valueOf(p))
-                    .k2o(Double.valueOf(k))
-                    .indicatedFormulaNumber(null)
-                    .ca(ca).mg(mg).s(s)
-                    .b(b).cu(cu).fe(fe).mn(mn).mo(mo).zn(zn)
-                    .build();
-            formulatedService.createFormulatedMineralFertilizer(dto, SYSTEM_USER);
-        } catch (Exception e) {
-            System.err.println("Erro ao criar formulado '" + formulaStr + "': " + e.getMessage());
-        }
+    // ==========================================
+    // 2. ADUBOS FORMULADOS (Exemplos Genéricos)
+    // ==========================================
+    private void loadFormulatedMineral(UserModel user) {
+        if (formulatedRepository.count() > 0) return;
+
+        createFormulated(user, 4, 14, 8, 101);
+        createFormulated(user, 10, 10, 10, 201);
+        createFormulated(user, 20, 5, 20, 301);
     }
 
-    // ============================================================================================
-    // 3. ADUBOS ORGANO-MINERAIS
-    // ============================================================================================
-    private void loadOrganoMineralFertilizers() {
-        createOrgano("Esterco de Cabra", null, 3.0, 2.0, 3.0, null, null, null, null, null, null, null, null, null);
-        createOrgano("Esterco de Boi (seco)", null, 1.3, 2.0, 1.1, 0.5, 0.6, 0.04, 0.01, null, null, 0.04, null, 0.05);
-        createOrgano("Esterco de Galinha", null, 2.95, 4.6, 2.2, 3.7, 0.6, 0.4, null, null, 0.04, null, 0.03, null);
-        createOrgano("Esterco de Cabra (V2)", null, 2.1, 1.0, 2.5, null, null, null, null, null, null, null, null, null);
-        createOrgano("Torta de algodão", null, 6.0, 3.0, 1.4, 0.2, 0.6, 0.3, null, null, null, null, 0.02, null);
-        createOrgano("Torta de Mamona", null, 5.0, 2.0, 1.0, 0.4, 0.5, 0.04, 0.01, null, null, 0.04, null, 0.05);
-        createOrgano("Torta misturada (casca e semente) Mamona", null, 2.0, 2.0, 1.0, 0.5, 0.02, null, null, null, null, null, null, null);
+    private void createFormulated(UserModel user, int n, int p, int k, int formulaNumber) {
+        Formulate formulate = new Formulate();
+        formulate.setN(n); formulate.setP(p); formulate.setK(k);
+
+        NPKrelation relation = new NPKrelation();
+        relation.setN(1.0); relation.setP(p > 0 ? p/n : 0); relation.setK(k > 0 ? k/n : 0);
+
+        FormulatedMineralFertilizerModel model = FormulatedMineralFertilizerModel.builder()
+                .user(user)
+                .formulate(formulate)
+                .relation(relation)
+                .indicatedFormulaNumber(formulaNumber)
+                .N(n).P2O5(p).K2O(k)
+                // Valores zerados para o resto
+                .Ca(0.0).Mg(0.0).S(0.0)
+                .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
+                .build();
+
+        formulatedRepository.save(model);
     }
 
-    private void createOrgano(String nome, Double c, Double n, Double p, Double k,
-                              Double ca, Double mg, Double s,
-                              Double b, Double cu, Double fe, Double mn, Double mo, Double zn) {
-        try {
-            OrganoMineralFertilizerCreateRequestDto dto = OrganoMineralFertilizerCreateRequestDto.builder()
-                    .name(nome)
-                    .c(c).n(n).p2o5(p).k2o(k)
-                    .ca(ca).mg(mg).s(s)
-                    .b(b).cu(cu).fe(fe).mn(mn).mo(mo).zn(zn)
-                    .indiceSalino(null).indiceAcidez(null)
-                    .build();
-            organoService.createOrganoMineralFertilizer(dto, SYSTEM_USER);
-        } catch (Exception e) {
-            System.err.println("Erro ao criar organo-mineral '" + nome + "': " + e.getMessage());
-        }
+    // ==========================================
+    // 3. ADUBOS ORGANOMINERAIS
+    // ==========================================
+    private void loadOrganoMineral(UserModel user) {
+        if (organoRepository.count() > 0) return;
+
+        OrganoMineralFertilizerModel model = OrganoMineralFertilizerModel.builder()
+                .user(user)
+                .name("Organomineral Aves Granulado")
+                .C(8.0)
+                .N(6.0).P2O5(12.0).K2O(6.0)
+                .Ca(2.0).Mg(1.0).S(1.0)
+                .B(0.1).Cu(0.0).Fe(0.5).Mn(0.0).Mo(0.0).Zn(0.2)
+                .indiceSalino(15.0).indiceAcidez(0.0)
+                .build();
+        organoRepository.save(model);
     }
 
-    // ============================================================================================
+    // ==========================================
     // 4. ADUBOS VERDES
-    // ============================================================================================
-    private void loadGreenFertilizers() {
-        createGreen("Feijão de Porco (Canavalia ensiforme)", 3.39, 10.0, 0.35, 2.65);
-        createGreen("Crotalária juncea", 1.80, 16.0, 0.24, 1.26);
-        createGreen("Guandu (Cajanus cajans)", 2.55, 15.0, 0.25, 1.57);
-        createGreen("Lab-Lab (Dolichos lab-lab)", 2.04, 25.0, 0.80, 2.11);
-        createGreen("Mucuna Preta (Stylozobium aterrimum)", 2.67, 14.0, 0.33, 1.95);
-        createGreen("Caupi (Vigna sinensis)", 2.73, 15.0, 0.23, 1.23);
-        createGreen("Stilosantes (Stylosantes guinensis)", 2.30, null, 0.27, 1.23);
+    // ==========================================
+    private void loadGreen(UserModel user) {
+        if (greenRepository.count() > 0) return;
+
+        createGreen(user, "Mucuna Preta", 40.0, 2.5);
+        createGreen(user, "Crotalária Juncea", 42.0, 2.0);
     }
 
-    private void createGreen(String nome, Double n, Double cnRatio, Double p, Double k) {
-        try {
-            GreenFertilizerCreateRequestDto dto = GreenFertilizerCreateRequestDto.builder()
-                    .name(nome)
-                    .c(null)
-                    .n(n).p2o5(p).k2o(k)
-                    .ca(null).mg(null).s(null)
-                    .b(null).cu(null).fe(null).mn(null).mo(null).zn(null)
-                    .indiceSalino(null).indiceAcidez(null)
-                    .build();
-            greenService.createGreenFertilizer(dto, SYSTEM_USER);
-        } catch (Exception e) {
-            System.err.println("Erro ao criar adubo verde '" + nome + "': " + e.getMessage());
-        }
+    private void createGreen(UserModel user, String name, double carbono, double nitrogenio) {
+        GreenFertilizerModel model = GreenFertilizerModel.builder()
+                .user(user)
+                .name(name)
+                .C(carbono)
+                .N(nitrogenio)
+                .P2O5(0.5).K2O(1.5)
+                .Ca(0.0).Mg(0.0).S(0.0)
+                .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
+                .indiceSalino(0.0).indiceAcidez(0.0)
+                .build();
+        greenRepository.save(model);
+    }
+
+    // ==========================================
+    // 5. ADUBOS FOLIARES (Mineral)
+    // ==========================================
+    private void loadFoliarMineral(UserModel user) {
+        if (foliarMineralRepository.count() > 0) return;
+
+        MineralFertilizerModel model = MineralFertilizerModel.builder()
+                .user(user)
+                .name("Foliar Nitro Full")
+                .N(30.0).P2O5(0.0).K2O(0.0)
+                .Ca(0.0).Mg(0.0).S(2.0)
+                .B(0.5).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.1).Zn(1.0)
+                .indiceSalino(10.0).indiceAcidez(5.0)
+                .build();
+        foliarMineralRepository.save(model);
+    }
+
+    // ==========================================
+    // 6. ADUBOS QUELATADOS
+    // ==========================================
+    private void loadChelated(UserModel user) {
+        if (chelatedRepository.count() > 0) return;
+
+        ChelatedFertilizerModel model = ChelatedFertilizerModel.builder()
+                .user(user)
+                .name("Quelato de Ferro EDTA 13%")
+                .N(0.0).P2O5(0.0).K2O(0.0)
+                .Fe(13.0)
+                .Ca(0.0).Mg(0.0).S(0.0)
+                .B(0.0).Cu(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
+                .indiceSalino(0.0).indiceAcidez(0.0)
+                .build();
+        chelatedRepository.save(model);
+    }
+
+    // ==========================================
+    // 7. BIOFERTILIZANTES
+    // ==========================================
+    private void loadBio(UserModel user) {
+        if (bioRepository.count() > 0) return;
+
+        BioFertilizerModel model = BioFertilizerModel.builder()
+                .user(user)
+                .name("Biofertilizante Líquido Super")
+                .N(2.0).P2O5(1.0).K2O(1.5)
+                .Ca(0.5).Mg(0.2).S(0.3)
+                .B(0.05).Cu(0.01).Fe(0.1).Mn(0.02).Mo(0.0).Zn(0.05)
+                .indiceSalino(5.0).indiceAcidez(6.5)
+                .build();
+        bioRepository.save(model);
     }
 }

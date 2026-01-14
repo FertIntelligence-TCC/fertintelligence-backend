@@ -8,17 +8,23 @@ import java.util.List;
 
 public interface FormulatedMineralFertilizerService {
 
-    FormulatedMineralFertilizerResponseDto createFormulatedMineralFertilizer(FormulatedMineralFertilizerCreateRequestDto createRequestDto,
-                                                                             String username);
+    FormulatedMineralFertilizerResponseDto createFormulatedMineralFertilizer(
+            FormulatedMineralFertilizerCreateRequestDto createRequestDto,
+            String username
+    );
 
-    FormulatedMineralFertilizerResponseDto getFormulatedMineralFertilizerById(Long formulatedMineralFertilizerId, String username);
+    FormulatedMineralFertilizerResponseDto getFormulatedMineralFertilizerById(
+            Long formulatedMineralFertilizerId,
+            String username
+    );
 
-    List<FormulatedMineralFertilizerResponseDto> getFormulatedMineralFertilizersByUser(String username);
+    List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username);
 
-    FormulatedMineralFertilizerResponseDto updateFormulatedMineralFertilizer(Long formulatedMineralFertilizerId,
-                                                                             FormulatedMineralFertilizerPostRequestDto updateRequestDto,
-                                                                             String username);
+    FormulatedMineralFertilizerResponseDto updateFormulatedMineralFertilizer(
+            Long formulatedMineralFertilizerId,
+            FormulatedMineralFertilizerPostRequestDto updateRequestDto,
+            String username
+    );
 
     void deleteFormulatedMineralFertilizer(Long formulatedMineralFertilizerId, String username);
-
 }

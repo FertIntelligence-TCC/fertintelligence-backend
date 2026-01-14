@@ -8,18 +8,24 @@ import java.util.List;
 
 public interface SimpleMineralFertilizerService {
 
-    SimpleMineralFertilizerResponseDto createSimpleMineralFertilizer(SimpleMineralFertilizerCreateRequestDto createRequestDto,
-                                                                     String username);
+    SimpleMineralFertilizerResponseDto createSimpleMineralFertilizer(
+            SimpleMineralFertilizerCreateRequestDto createRequestDto,
+            String username
+    );
 
-    SimpleMineralFertilizerResponseDto getSimpleMineralFertilizerById(Long simpleMineralFertilizerId, String username);
+    // CORREÇÃO: O nome aqui deve ser getAllSimpleMineralFertilizers para bater com o Controller
+    List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username);
 
-    List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByUser(String username);
+    List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(
+            String name,
+            String username
+    );
 
-    List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username);
+    SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(
+            Long fertilizerId,
+            SimpleMineralFertilizerPostRequestDto updateRequestDto,
+            String username
+    );
 
-    SimpleMineralFertilizerResponseDto updateSimpleMineralFertilizer(Long simpleMineralFertilizerId,
-                                                                     SimpleMineralFertilizerPostRequestDto updateRequestDto,
-                                                                     String username);
-
-    void deleteSimpleMineralFertilizer(Long simpleMineralFertilizerId, String username);
+    void deleteSimpleMineralFertilizer(Long fertilizerId, String username);
 }

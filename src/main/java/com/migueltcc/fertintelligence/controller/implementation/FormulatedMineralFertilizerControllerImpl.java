@@ -6,10 +6,11 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulated
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.FormulatedMineralFertilizerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -19,8 +20,20 @@ import java.util.List;
 @RequestMapping("/formulated-mineral-fertilizer")
 public class FormulatedMineralFertilizerControllerImpl implements FormulatedMineralFertilizerController {
 
-    @Autowired
-    private FormulatedMineralFertilizerService formulatedMineralFertilizerService;
+    private final FormulatedMineralFertilizerService formulatedMineralFertilizerService;
+
+    // Injeção via Construtor
+    public FormulatedMineralFertilizerControllerImpl(FormulatedMineralFertilizerService formulatedMineralFertilizerService) {
+        this.formulatedMineralFertilizerService = formulatedMineralFertilizerService;
+    }
+
+    // Helper para evitar NullPointerException e Erro 500
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -28,15 +41,16 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
             @Valid @RequestBody FormulatedMineralFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
+        String username = getAuthenticatedUsername(authentication);
+
         FormulatedMineralFertilizerResponseDto createdFertilizer = formulatedMineralFertilizerService.createFormulatedMineralFertilizer(
                 createRequestDto,
-                authentication.getName()
+                username
         );
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/formulated-mineral-fertilizer/get")
-                .queryParam("formulatedMineralFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdFertilizer.getId())
                 .toUri();
 
         return ResponseEntity.created(location).body(createdFertilizer);
@@ -47,19 +61,25 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
     public ResponseEntity<FormulatedMineralFertilizerResponseDto> getFormulatedMineralFertilizer(
             @RequestParam(name = "formulatedMineralFertilizerId") Long formulatedMineralFertilizerId,
             Authentication authentication) {
+
+        String username = getAuthenticatedUsername(authentication);
+
         FormulatedMineralFertilizerResponseDto fertilizer = formulatedMineralFertilizerService.getFormulatedMineralFertilizerById(
                 formulatedMineralFertilizerId,
-                authentication.getName()
+                username
         );
         return ResponseEntity.ok(fertilizer);
     }
 
     @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getFormulatedMineralFertilizersByUser(
+    @GetMapping("/get-all")
+    public ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getAllFormulatedMineralFertilizers(
             Authentication authentication) {
-        List<FormulatedMineralFertilizerResponseDto> fertilizers = formulatedMineralFertilizerService.getFormulatedMineralFertilizersByUser(
-                authentication.getName()
+
+        String username = getAuthenticatedUsername(authentication);
+
+        List<FormulatedMineralFertilizerResponseDto> fertilizers = formulatedMineralFertilizerService.getAllFormulatedMineralFertilizers(
+                username
         );
         return ResponseEntity.ok(fertilizers);
     }
@@ -70,10 +90,13 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
             @RequestParam(name = "formulatedMineralFertilizerId") Long formulatedMineralFertilizerId,
             @Valid @RequestBody FormulatedMineralFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
+
+        String username = getAuthenticatedUsername(authentication);
+
         FormulatedMineralFertilizerResponseDto updatedFertilizer = formulatedMineralFertilizerService.updateFormulatedMineralFertilizer(
                 formulatedMineralFertilizerId,
                 updateRequestDto,
-                authentication.getName()
+                username
         );
         return ResponseEntity.ok(updatedFertilizer);
     }
@@ -83,9 +106,12 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
     public ResponseEntity<Void> deleteFormulatedMineralFertilizer(
             @RequestParam(name = "formulatedMineralFertilizerId") Long formulatedMineralFertilizerId,
             Authentication authentication) {
+
+        String username = getAuthenticatedUsername(authentication);
+
         formulatedMineralFertilizerService.deleteFormulatedMineralFertilizer(
                 formulatedMineralFertilizerId,
-                authentication.getName()
+                username
         );
         return ResponseEntity.noContent().build();
     }

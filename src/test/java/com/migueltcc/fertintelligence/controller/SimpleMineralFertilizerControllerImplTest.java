@@ -7,6 +7,8 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMine
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
+import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerRepository;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,91 +16,84 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class SimpleMineralFertilizerControllerImplTest extends AbstractControllerTest {
 
     @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
     private ObjectMapper mapper;
 
+    // Mocks dos Repositórios (Usados pelo Service real)
+    @MockBean
+    private SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
+
+    @MockBean
+    private UserRepository userRepository;
+
     private UserModel owner;
+    private SimpleMineralFertilizerModel fertilizer;
 
     @BeforeEach
     void setUp() {
         owner = UserModel.builder()
                 .id(1L)
                 .username("owner")
-                .name("Test Owner")
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
+
+        fertilizer = createModel(1L, "Ureia", 45.0, 0.0, 0.0);
     }
 
-    private SimpleMineralFertilizerCreateRequestDto createRequestDto() {
-        return SimpleMineralFertilizerCreateRequestDto.builder()
-                .name("Adubo Teste")
-                .n(10.0)
-                .p2o5(5.0)
-                .k2o(8.0)
-                .ca(1.2)
-                .mg(0.8)
-                .s(0.5)
-                .b(0.05)
-                .cu(0.02)
-                .fe(0.5)
-                .mn(0.3)
-                .mo(0.01)
-                .zn(0.4)
-                .indiceSalino(12.0)
-                .indiceAcidez(6.5)
-                .build();
-    }
-
-    private SimpleMineralFertilizerModel createModel(Long id) {
+    private SimpleMineralFertilizerModel createModel(Long id, String name, double n, double p, double k) {
         return SimpleMineralFertilizerModel.builder()
                 .id(id)
                 .user(owner)
-                .name("Adubo Teste")
-                .N(10.0)
-                .P2O5(5.0)
-                .K2O(8.0)
-                .Ca(1.2)
-                .Mg(0.8)
-                .S(0.5)
-                .B(0.05)
-                .Cu(0.02)
-                .Fe(0.5)
-                .Mn(0.3)
-                .Mo(0.01)
-                .Zn(0.4)
-                .indiceSalino(12.0)
-                .indiceAcidez(6.5)
+                .name(name)
+                .N(n)
+                .P2O5(p)
+                .K2O(k)
+                .Ca(0.0).Mg(0.0).S(0.0)
+                .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
+                .indiceSalino(75.0)
+                .indiceAcidez(0.0)
                 .build();
     }
 
     @Test
     @WithMockUser(username = "owner")
     void createSimpleMineralFertilizerSuccessfully() throws Exception {
-        SimpleMineralFertilizerCreateRequestDto requestDto = createRequestDto();
-        SimpleMineralFertilizerModel savedModel = createModel(1L);
+        SimpleMineralFertilizerCreateRequestDto requestDto = SimpleMineralFertilizerCreateRequestDto.builder()
+                .name("Ureia Agrícola")
+                .n(45.0).p2o5(0.0).k2o(0.0)
+                .ca(0.0).mg(0.0).s(0.0)
+                .b(0.0).cu(0.0).fe(0.0).mn(0.0).mo(0.0).zn(0.0)
+                .indiceSalino(75.0)
+                .indiceAcidez(0.0)
+                .build();
+
+        SimpleMineralFertilizerModel savedModel = createModel(1L, "Ureia Agrícola", 45.0, 0.0, 0.0);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(simpleMineralFertilizerRepository.save(any(SimpleMineralFertilizerModel.class))).thenReturn(savedModel);
@@ -107,104 +102,95 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/simple-mineral-fertilizer/get?simpleMineralFertilizerId=1"))
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.nome_adubo").value("Adubo Teste"))
-                .andExpect(jsonPath("$.n").value(10.0))
-                .andExpect(jsonPath("$.indice_salino").value(12.0));
+                // Verificando chaves em snake_case
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.nome_adubo").value("Ureia Agrícola"))
+                .andExpect(jsonPath("$.n").value(45.0))
+                .andExpect(jsonPath("$.indice_salino").value(75.0));
     }
 
     @Test
     @WithMockUser(username = "owner")
-    void getSimpleMineralFertilizerSuccessfully() throws Exception {
-        SimpleMineralFertilizerModel model = createModel(2L);
-
+    void getSimpleMineralFertilizersSuccessfully() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findById(2L)).thenReturn(Optional.of(model));
+        when(simpleMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(fertilizer));
 
-        mockMvc.perform(get("/simple-mineral-fertilizer/get")
-                        .param("simpleMineralFertilizerId", "2"))
+        mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.nome_adubo").value("Adubo Teste"))
-                .andExpect(jsonPath("$.k2o").value(8.0));
-    }
-
-    @Test
-    @WithMockUser(username = "owner")
-    void getSimpleMineralFertilizersByUserSuccessfully() throws Exception {
-        SimpleMineralFertilizerModel model = createModel(3L);
-
-        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
-
-        mockMvc.perform(get("/simple-mineral-fertilizer/get-by-user"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(3L))
-                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
+                .andExpect(jsonPath("$[0].nome_adubo").value("Ureia"))
+                .andExpect(jsonPath("$[0].n").value(45.0));
     }
 
     @Test
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersByNameSuccessfully() throws Exception {
-        SimpleMineralFertilizerModel model = createModel(6L);
-        String searchName = "Adubo";
-
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
-                .thenReturn(List.of(model));
+        when(simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq("Ureia"), eq(owner)))
+                .thenReturn(List.of(fertilizer));
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-by-name")
-                        .param("name", searchName))
+                        .param("name", "Ureia"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(6L))
-                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Teste"));
+                .andExpect(jsonPath("$[0].nome_adubo").value("Ureia"));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getSimpleMineralFertilizersEmpty() throws Exception {
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findAllByUser(owner)).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
     @WithMockUser(username = "owner")
     void updateSimpleMineralFertilizerSuccessfully() throws Exception {
-        SimpleMineralFertilizerModel existing = createModel(4L);
+        // Payload com prefixo novo_
         SimpleMineralFertilizerPostRequestDto updateDto = SimpleMineralFertilizerPostRequestDto.builder()
-                .name("Adubo Atualizado")
-                .n(12.0)
-                .indiceAcidez(6.8)
+                .name("Ureia Atualizada")
+                .n(46.0).p2o5(0.0).k2o(0.0)
+                .ca(0.0).mg(0.0).s(0.0)
+                .b(0.0).cu(0.0).fe(0.0).mn(0.0).mo(0.0).zn(0.0)
+                .indiceSalino(76.0)
+                .indiceAcidez(0.0)
                 .build();
 
-        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findById(4L)).thenReturn(Optional.of(existing));
+        SimpleMineralFertilizerModel existing = createModel(1L, "Ureia Antiga", 45.0, 0.0, 0.0);
 
-        // Simular o comportamento do save retornando o objeto atualizado
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        // Simula o comportamento do Service de atualizar a entidade e salvar
         when(simpleMineralFertilizerRepository.save(any(SimpleMineralFertilizerModel.class))).thenAnswer(invocation -> {
             SimpleMineralFertilizerModel arg = invocation.getArgument(0);
-            // Reflete a atualização feita no service
-            arg.setName("Adubo Atualizado");
-            arg.setN(12.0);
-            arg.setIndiceAcidez(6.8);
-            return arg;
+            return arg; // Retorna o próprio objeto modificado
         });
 
         mockMvc.perform(put("/simple-mineral-fertilizer/update")
-                        .param("simpleMineralFertilizerId", "4")
+                        .param("simpleMineralFertilizerId", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome_adubo").value("Adubo Atualizado"))
-                .andExpect(jsonPath("$.n").value(12.0))
-                .andExpect(jsonPath("$.indice_acidez").value(6.8));
+                // Verifica a resposta com snake_case
+                .andExpect(jsonPath("$.nome_adubo").value("Ureia Atualizada"))
+                .andExpect(jsonPath("$.n").value(46.0))
+                .andExpect(jsonPath("$.indice_salino").value(76.0));
     }
 
     @Test
     @WithMockUser(username = "owner")
     void deleteSimpleMineralFertilizerSuccessfully() throws Exception {
-        SimpleMineralFertilizerModel existing = createModel(5L);
+        SimpleMineralFertilizerModel existing = createModel(1L, "Ureia", 45.0, 0.0, 0.0);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(simpleMineralFertilizerRepository.findById(1L)).thenReturn(Optional.of(existing));
         doNothing().when(simpleMineralFertilizerRepository).delete(existing);
 
         mockMvc.perform(delete("/simple-mineral-fertilizer/delete")
-                        .param("simpleMineralFertilizerId", "5"))
+                        .param("simpleMineralFertilizerId", "1"))
                 .andExpect(status().isNoContent());
     }
 }

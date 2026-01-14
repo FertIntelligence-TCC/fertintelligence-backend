@@ -7,10 +7,12 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMine
 import com.migueltcc.fertintelligence.service.documentation.SimpleMineralFertilizerService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -22,45 +24,44 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
     @Autowired
     private SimpleMineralFertilizerService simpleMineralFertilizerService;
 
+    // Helper para validar autenticação e evitar erro 500 (NPE)
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
+
     @Override
     @PostMapping("/register")
     public ResponseEntity<SimpleMineralFertilizerResponseDto> createSimpleMineralFertilizer(
             @Valid @RequestBody SimpleMineralFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
+        String username = getAuthenticatedUsername(authentication);
+
         SimpleMineralFertilizerResponseDto createdFertilizer = simpleMineralFertilizerService.createSimpleMineralFertilizer(
                 createRequestDto,
-                authentication.getName()
+                username
         );
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/simple-mineral-fertilizer/get")
-                .queryParam("simpleMineralFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdFertilizer.getId())
                 .toUri();
 
         return ResponseEntity.created(location).body(createdFertilizer);
     }
 
     @Override
-    @GetMapping("/get")
-    public ResponseEntity<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizer(
-            @RequestParam(name = "simpleMineralFertilizerId") Long simpleMineralFertilizerId,
+    @GetMapping("/get-all")
+    public ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getSimpleMineralFertilizers(
             Authentication authentication) {
-        SimpleMineralFertilizerResponseDto fertilizer = simpleMineralFertilizerService.getSimpleMineralFertilizerById(
-                simpleMineralFertilizerId,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizer);
-    }
 
-    @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getSimpleMineralFertilizersByUser(
-            Authentication authentication) {
-        List<SimpleMineralFertilizerResponseDto> fertilizers = simpleMineralFertilizerService.getSimpleMineralFertilizersByUser(
-                authentication.getName()
-        );
+        // CORREÇÃO DO ERRO 500: Valida se authentication existe antes de usar
+        String username = getAuthenticatedUsername(authentication);
+
+        List<SimpleMineralFertilizerResponseDto> fertilizers = simpleMineralFertilizerService.getAllSimpleMineralFertilizers(username);
         return ResponseEntity.ok(fertilizers);
     }
 
@@ -70,9 +71,11 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
             @RequestParam(name = "name") String name,
             Authentication authentication) {
 
+        String username = getAuthenticatedUsername(authentication);
+
         List<SimpleMineralFertilizerResponseDto> fertilizers = simpleMineralFertilizerService.getSimpleMineralFertilizersByName(
                 name,
-                authentication.getName()
+                username
         );
         return ResponseEntity.ok(fertilizers);
     }
@@ -83,10 +86,13 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
             @RequestParam(name = "simpleMineralFertilizerId") Long simpleMineralFertilizerId,
             @Valid @RequestBody SimpleMineralFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
+
+        String username = getAuthenticatedUsername(authentication);
+
         SimpleMineralFertilizerResponseDto updatedFertilizer = simpleMineralFertilizerService.updateSimpleMineralFertilizer(
                 simpleMineralFertilizerId,
                 updateRequestDto,
-                authentication.getName()
+                username
         );
         return ResponseEntity.ok(updatedFertilizer);
     }
@@ -96,9 +102,12 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
     public ResponseEntity<Void> deleteSimpleMineralFertilizer(
             @RequestParam(name = "simpleMineralFertilizerId") Long simpleMineralFertilizerId,
             Authentication authentication) {
+
+        String username = getAuthenticatedUsername(authentication);
+
         simpleMineralFertilizerService.deleteSimpleMineralFertilizer(
                 simpleMineralFertilizerId,
-                authentication.getName()
+                username
         );
         return ResponseEntity.noContent().build();
     }
