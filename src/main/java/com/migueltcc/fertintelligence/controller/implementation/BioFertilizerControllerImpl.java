@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFerti
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.BioFertilizerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -19,8 +22,19 @@ import java.util.List;
 @RequestMapping("/bio-fertilizer")
 public class BioFertilizerControllerImpl implements BioFertilizerController {
 
-    @Autowired
-    private BioFertilizerService bioFertilizerService;
+    private static final Logger logger = LoggerFactory.getLogger(BioFertilizerControllerImpl.class);
+    private final BioFertilizerService service;
+
+    public BioFertilizerControllerImpl(BioFertilizerService service) {
+        this.service = service;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -28,39 +42,40 @@ public class BioFertilizerControllerImpl implements BioFertilizerController {
             @Valid @RequestBody BioFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        BioFertilizerResponseDto createdFertilizer = bioFertilizerService.createBioFertilizer(
-                createRequestDto,
-                authentication.getName()
-        );
+        String username = getAuthenticatedUsername(authentication);
+        BioFertilizerResponseDto created = service.createBioFertilizer(createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/bio-fertilizer/get")
-                .queryParam("bioFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdFertilizer);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Override
     @GetMapping("/get")
     public ResponseEntity<BioFertilizerResponseDto> getBioFertilizer(
-            @RequestParam(name = "bioFertilizerId") Long bioFertilizerId,
+            @RequestParam(name = "bioFertilizerId") Long id,
             Authentication authentication) {
-        BioFertilizerResponseDto fertilizer = bioFertilizerService.getBioFertilizerById(
-                bioFertilizerId,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getBioFertilizerById(id, username));
     }
 
     @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<BioFertilizerResponseDto>> getBioFertilizersByUser(Authentication authentication) {
-        List<BioFertilizerResponseDto> fertilizers = bioFertilizerService.getBioFertilizersByUser(
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+    @GetMapping("/get-all")
+    public ResponseEntity<List<BioFertilizerResponseDto>> getAllBioFertilizers(
+            Authentication authentication) {
+
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<BioFertilizerResponseDto> list = service.getAllBioFertilizers(username);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            logger.error("Erro ao listar biofertilizantes: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -69,36 +84,29 @@ public class BioFertilizerControllerImpl implements BioFertilizerController {
             @RequestParam(name = "name") String name,
             Authentication authentication) {
 
-        List<BioFertilizerResponseDto> fertilizers = bioFertilizerService.getBioFertilizersByName(
-                name,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getBioFertilizersByName(name, username));
     }
 
     @Override
     @PutMapping("/update")
     public ResponseEntity<BioFertilizerResponseDto> updateBioFertilizer(
-            @RequestParam(name = "bioFertilizerId") Long bioFertilizerId,
+            @RequestParam(name = "bioFertilizerId") Long id,
             @Valid @RequestBody BioFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
-        BioFertilizerResponseDto updatedFertilizer = bioFertilizerService.updateBioFertilizer(
-                bioFertilizerId,
-                updateRequestDto,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(updatedFertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.updateBioFertilizer(id, updateRequestDto, username));
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteBioFertilizer(
-            @RequestParam(name = "bioFertilizerId") Long bioFertilizerId,
+            @RequestParam(name = "bioFertilizerId") Long id,
             Authentication authentication) {
-        bioFertilizerService.deleteBioFertilizer(
-                bioFertilizerId,
-                authentication.getName()
-        );
+
+        String username = getAuthenticatedUsername(authentication);
+        service.deleteBioFertilizer(id, username);
         return ResponseEntity.noContent().build();
     }
 }

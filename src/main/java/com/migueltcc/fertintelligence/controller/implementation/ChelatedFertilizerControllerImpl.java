@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelated
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelatedFertilizer.ChelatedFertilizerResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.ChelatedFertilizerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -19,8 +22,19 @@ import java.util.List;
 @RequestMapping("/chelated-fertilizer")
 public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerController {
 
-    @Autowired
-    private ChelatedFertilizerService chelatedFertilizerService;
+    private static final Logger logger = LoggerFactory.getLogger(ChelatedFertilizerControllerImpl.class);
+    private final ChelatedFertilizerService service;
+
+    public ChelatedFertilizerControllerImpl(ChelatedFertilizerService service) {
+        this.service = service;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -28,40 +42,40 @@ public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerContr
             @Valid @RequestBody ChelatedFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        ChelatedFertilizerResponseDto createdFertilizer = chelatedFertilizerService.createChelatedFertilizer(
-                createRequestDto,
-                authentication.getName()
-        );
+        String username = getAuthenticatedUsername(authentication);
+        ChelatedFertilizerResponseDto created = service.createChelatedFertilizer(createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/chelated-fertilizer/get")
-                .queryParam("chelatedFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdFertilizer);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Override
     @GetMapping("/get")
     public ResponseEntity<ChelatedFertilizerResponseDto> getChelatedFertilizer(
-            @RequestParam(name = "chelatedFertilizerId") Long chelatedFertilizerId,
+            @RequestParam(name = "chelatedFertilizerId") Long id,
             Authentication authentication) {
-        ChelatedFertilizerResponseDto fertilizer = chelatedFertilizerService.getChelatedFertilizerById(
-                chelatedFertilizerId,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getChelatedFertilizerById(id, username));
     }
 
     @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<ChelatedFertilizerResponseDto>> getChelatedFertilizersByUser(
+    @GetMapping("/get-all")
+    public ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllChelatedFertilizers(
             Authentication authentication) {
-        List<ChelatedFertilizerResponseDto> fertilizers = chelatedFertilizerService.getChelatedFertilizersByUser(
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<ChelatedFertilizerResponseDto> list = service.getAllChelatedFertilizers(username);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            logger.error("Erro ao listar adubos quelatados: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -70,36 +84,29 @@ public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerContr
             @RequestParam(name = "name") String name,
             Authentication authentication) {
 
-        List<ChelatedFertilizerResponseDto> fertilizers = chelatedFertilizerService.getChelatedFertilizersByName(
-                name,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getChelatedFertilizersByName(name, username));
     }
 
     @Override
     @PutMapping("/update")
     public ResponseEntity<ChelatedFertilizerResponseDto> updateChelatedFertilizer(
-            @RequestParam(name = "chelatedFertilizerId") Long chelatedFertilizerId,
+            @RequestParam(name = "chelatedFertilizerId") Long id,
             @Valid @RequestBody ChelatedFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
-        ChelatedFertilizerResponseDto updatedFertilizer = chelatedFertilizerService.updateChelatedFertilizer(
-                chelatedFertilizerId,
-                updateRequestDto,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(updatedFertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.updateChelatedFertilizer(id, updateRequestDto, username));
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteChelatedFertilizer(
-            @RequestParam(name = "chelatedFertilizerId") Long chelatedFertilizerId,
+            @RequestParam(name = "chelatedFertilizerId") Long id,
             Authentication authentication) {
-        chelatedFertilizerService.deleteChelatedFertilizer(
-                chelatedFertilizerId,
-                authentication.getName()
-        );
+
+        String username = getAuthenticatedUsername(authentication);
+        service.deleteChelatedFertilizer(id, username);
         return ResponseEntity.noContent().build();
     }
 }

@@ -8,18 +8,28 @@ import java.util.List;
 
 public interface OrganoMineralFertilizerService {
 
-    OrganoMineralFertilizerResponseDto createOrganoMineralFertilizer(OrganoMineralFertilizerCreateRequestDto createRequestDto,
-                                                                     String username);
+    OrganoMineralFertilizerResponseDto createOrganoMineralFertilizer(
+            OrganoMineralFertilizerCreateRequestDto createRequestDto,
+            String username
+    );
 
-    OrganoMineralFertilizerResponseDto getOrganoMineralFertilizerById(Long organoMineralFertilizerId, String username);
+    OrganoMineralFertilizerResponseDto getOrganoMineralFertilizerById(
+            Long organoMineralFertilizerId,
+            String username
+    );
 
-    List<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizersByUser(String username);
+    List<OrganoMineralFertilizerResponseDto> getAllOrganoMineralFertilizers(String username);
 
-    List<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizersByName(String name, String username);
+    List<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizersByName(
+            String name,
+            String username
+    );
 
-    OrganoMineralFertilizerResponseDto updateOrganoMineralFertilizer(Long organoMineralFertilizerId,
-                                                                     OrganoMineralFertilizerPostRequestDto updateRequestDto,
-                                                                     String username);
+    OrganoMineralFertilizerResponseDto updateOrganoMineralFertilizer(
+            Long organoMineralFertilizerId,
+            OrganoMineralFertilizerPostRequestDto updateRequestDto,
+            String username
+    );
 
     void deleteOrganoMineralFertilizer(Long organoMineralFertilizerId, String username);
 }

@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralF
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer.MineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.MineralFertilizerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -19,8 +22,19 @@ import java.util.List;
 @RequestMapping("/mineral-fertilizer")
 public class MineralFertilizerControllerImpl implements MineralFertilizerController {
 
-    @Autowired
-    private MineralFertilizerService mineralFertilizerService;
+    private static final Logger logger = LoggerFactory.getLogger(MineralFertilizerControllerImpl.class);
+    private final MineralFertilizerService service;
+
+    public MineralFertilizerControllerImpl(MineralFertilizerService service) {
+        this.service = service;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -28,40 +42,40 @@ public class MineralFertilizerControllerImpl implements MineralFertilizerControl
             @Valid @RequestBody MineralFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        MineralFertilizerResponseDto createdFertilizer = mineralFertilizerService.createMineralFertilizer(
-                createRequestDto,
-                authentication.getName()
-        );
+        String username = getAuthenticatedUsername(authentication);
+        MineralFertilizerResponseDto created = service.createMineralFertilizer(createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/mineral-fertilizer/get")
-                .queryParam("mineralFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdFertilizer);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Override
     @GetMapping("/get")
     public ResponseEntity<MineralFertilizerResponseDto> getMineralFertilizer(
-            @RequestParam(name = "mineralFertilizerId") Long mineralFertilizerId,
+            @RequestParam(name = "mineralFertilizerId") Long id,
             Authentication authentication) {
-        MineralFertilizerResponseDto fertilizer = mineralFertilizerService.getMineralFertilizerById(
-                mineralFertilizerId,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getMineralFertilizerById(id, username));
     }
 
     @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<MineralFertilizerResponseDto>> getMineralFertilizersByUser(
+    @GetMapping("/get-all")
+    public ResponseEntity<List<MineralFertilizerResponseDto>> getAllMineralFertilizers(
             Authentication authentication) {
-        List<MineralFertilizerResponseDto> fertilizers = mineralFertilizerService.getMineralFertilizersByUser(
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<MineralFertilizerResponseDto> list = service.getAllMineralFertilizers(username);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            logger.error("Erro ao listar adubos minerais foliares: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -70,36 +84,29 @@ public class MineralFertilizerControllerImpl implements MineralFertilizerControl
             @RequestParam(name = "name") String name,
             Authentication authentication) {
 
-        List<MineralFertilizerResponseDto> fertilizers = mineralFertilizerService.getMineralFertilizersByName(
-                name,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getMineralFertilizersByName(name, username));
     }
 
     @Override
     @PutMapping("/update")
     public ResponseEntity<MineralFertilizerResponseDto> updateMineralFertilizer(
-            @RequestParam(name = "mineralFertilizerId") Long mineralFertilizerId,
+            @RequestParam(name = "mineralFertilizerId") Long id,
             @Valid @RequestBody MineralFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
-        MineralFertilizerResponseDto updatedFertilizer = mineralFertilizerService.updateMineralFertilizer(
-                mineralFertilizerId,
-                updateRequestDto,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(updatedFertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.updateMineralFertilizer(id, updateRequestDto, username));
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteMineralFertilizer(
-            @RequestParam(name = "mineralFertilizerId") Long mineralFertilizerId,
+            @RequestParam(name = "mineralFertilizerId") Long id,
             Authentication authentication) {
-        mineralFertilizerService.deleteMineralFertilizer(
-                mineralFertilizerId,
-                authentication.getName()
-        );
+
+        String username = getAuthenticatedUsername(authentication);
+        service.deleteMineralFertilizer(id, username);
         return ResponseEntity.noContent().build();
     }
 }

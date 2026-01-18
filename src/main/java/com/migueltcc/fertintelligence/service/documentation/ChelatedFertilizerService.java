@@ -12,7 +12,7 @@ public interface ChelatedFertilizerService {
 
     ChelatedFertilizerResponseDto getChelatedFertilizerById(Long chelatedFertilizerId, String username);
 
-    List<ChelatedFertilizerResponseDto> getChelatedFertilizersByUser(String username);
+    List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username);
 
     List<ChelatedFertilizerResponseDto> getChelatedFertilizersByName(String name, String username);
 

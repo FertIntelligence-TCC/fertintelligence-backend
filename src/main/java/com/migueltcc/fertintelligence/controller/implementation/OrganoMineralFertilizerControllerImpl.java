@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMine
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.OrganoMineralFertilizerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -19,8 +22,20 @@ import java.util.List;
 @RequestMapping("/organo-mineral-fertilizer")
 public class OrganoMineralFertilizerControllerImpl implements OrganoMineralFertilizerController {
 
-    @Autowired
-    private OrganoMineralFertilizerService organoMineralFertilizerService;
+    private static final Logger logger = LoggerFactory.getLogger(OrganoMineralFertilizerControllerImpl.class);
+    private final OrganoMineralFertilizerService service;
+
+    // Injeção via Construtor
+    public OrganoMineralFertilizerControllerImpl(OrganoMineralFertilizerService service) {
+        this.service = service;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -28,40 +43,31 @@ public class OrganoMineralFertilizerControllerImpl implements OrganoMineralFerti
             @Valid @RequestBody OrganoMineralFertilizerCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        OrganoMineralFertilizerResponseDto createdFertilizer = organoMineralFertilizerService.createOrganoMineralFertilizer(
-                createRequestDto,
-                authentication.getName()
-        );
+        String username = getAuthenticatedUsername(authentication);
+        OrganoMineralFertilizerResponseDto created = service.createOrganoMineralFertilizer(createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/organo-mineral-fertilizer/get")
-                .queryParam("organoMineralFertilizerId", createdFertilizer.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdFertilizer);
+        return ResponseEntity.created(location).body(created);
     }
 
     @Override
-    @GetMapping("/get")
-    public ResponseEntity<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizer(
-            @RequestParam(name = "organoMineralFertilizerId") Long organoMineralFertilizerId,
+    @GetMapping("/get-all")
+    public ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getAllOrganoMineralFertilizers(
             Authentication authentication) {
-        OrganoMineralFertilizerResponseDto fertilizer = organoMineralFertilizerService.getOrganoMineralFertilizerById(
-                organoMineralFertilizerId,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizer);
-    }
 
-    @Override
-    @GetMapping("/get-by-user")
-    public ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getOrganoMineralFertilizersByUser(
-            Authentication authentication) {
-        List<OrganoMineralFertilizerResponseDto> fertilizers = organoMineralFertilizerService.getOrganoMineralFertilizersByUser(
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<OrganoMineralFertilizerResponseDto> list = service.getAllOrganoMineralFertilizers(username);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            // LOG DO ERRO 500 PARA DEBUG
+            logger.error("Erro ao listar adubos organominerais: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -70,36 +76,29 @@ public class OrganoMineralFertilizerControllerImpl implements OrganoMineralFerti
             @RequestParam(name = "name") String name,
             Authentication authentication) {
 
-        List<OrganoMineralFertilizerResponseDto> fertilizers = organoMineralFertilizerService.getOrganoMineralFertilizersByName(
-                name,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(fertilizers);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.getOrganoMineralFertilizersByName(name, username));
     }
 
     @Override
     @PutMapping("/update")
     public ResponseEntity<OrganoMineralFertilizerResponseDto> updateOrganoMineralFertilizer(
-            @RequestParam(name = "organoMineralFertilizerId") Long organoMineralFertilizerId,
+            @RequestParam(name = "organoMineralFertilizerId") Long id,
             @Valid @RequestBody OrganoMineralFertilizerPostRequestDto updateRequestDto,
             Authentication authentication) {
-        OrganoMineralFertilizerResponseDto updatedFertilizer = organoMineralFertilizerService.updateOrganoMineralFertilizer(
-                organoMineralFertilizerId,
-                updateRequestDto,
-                authentication.getName()
-        );
-        return ResponseEntity.ok(updatedFertilizer);
+
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(service.updateOrganoMineralFertilizer(id, updateRequestDto, username));
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteOrganoMineralFertilizer(
-            @RequestParam(name = "organoMineralFertilizerId") Long organoMineralFertilizerId,
+            @RequestParam(name = "organoMineralFertilizerId") Long id,
             Authentication authentication) {
-        organoMineralFertilizerService.deleteOrganoMineralFertilizer(
-                organoMineralFertilizerId,
-                authentication.getName()
-        );
+
+        String username = getAuthenticatedUsername(authentication);
+        service.deleteOrganoMineralFertilizer(id, username);
         return ResponseEntity.noContent().build();
     }
 }

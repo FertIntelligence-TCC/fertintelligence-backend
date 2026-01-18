@@ -12,7 +12,7 @@ public interface BioFertilizerService {
 
     BioFertilizerResponseDto getBioFertilizerById(Long bioFertilizerId, String username);
 
-    List<BioFertilizerResponseDto> getBioFertilizersByUser(String username);
+    List<BioFertilizerResponseDto> getAllBioFertilizers(String username);
 
     List<BioFertilizerResponseDto> getBioFertilizersByName(String name, String username);
 

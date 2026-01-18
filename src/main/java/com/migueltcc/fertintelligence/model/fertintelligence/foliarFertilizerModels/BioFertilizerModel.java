@@ -1,7 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels;
 
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
-import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer.GreenFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,18 +11,19 @@ import lombok.*;
 @Entity
 @Data
 @Table(name = "BIO_FERTILIZANTES")
-@EqualsAndHashCode
 public class BioFertilizerModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UserModel user;
 
-    @Column(name = "NOME_ADUBO")
+    @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
     // Macronutrientes Primários
@@ -76,23 +76,21 @@ public class BioFertilizerModel {
         return BioFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
-                .n(this.N)
-                .p2o5(this.P2O5)
-                .k2o(this.K2O)
-                .ca(this.Ca)
-                .mg(this.Mg)
-                .s(this.S)
-                .b(this.B)
-                .cu(this.Cu)
-                .fe(this.Fe)
-                .mn(this.Mn)
-                .mo(this.Mo)
-                .zn(this.Zn)
-                .indiceSalino(this.indiceSalino)
-                .indiceAcidez(this.indiceAcidez)
-                .userId(this.user != null ? this.user.getId() : null)
-                .userNome(this.user != null ? this.user.getName() : null)
+                // Tratamento seguro de nulos (Null-Safe)
+                .n(this.N != null ? this.N : 0.0)
+                .p2o5(this.P2O5 != null ? this.P2O5 : 0.0)
+                .k2o(this.K2O != null ? this.K2O : 0.0)
+                .ca(this.Ca != null ? this.Ca : 0.0)
+                .mg(this.Mg != null ? this.Mg : 0.0)
+                .s(this.S != null ? this.S : 0.0)
+                .b(this.B != null ? this.B : 0.0)
+                .cu(this.Cu != null ? this.Cu : 0.0)
+                .fe(this.Fe != null ? this.Fe : 0.0)
+                .mn(this.Mn != null ? this.Mn : 0.0)
+                .mo(this.Mo != null ? this.Mo : 0.0)
+                .zn(this.Zn != null ? this.Zn : 0.0)
+                .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
+                .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
                 .build();
     }
-
 }
