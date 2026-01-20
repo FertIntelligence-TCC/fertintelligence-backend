@@ -1,8 +1,8 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,7 +26,15 @@ public class SoilFertilityInterpretationCriteriaTableResponseDto {
     @JsonProperty("nome_criador")
     private String creator_name;
 
-    @Schema(example = "SUL") // Exemplo hipotético, depende do Enum Regiao
+    @Schema(example = "SUL")
     @JsonProperty("regiao")
     private Regiao region;
+
+    @Schema(example = "Critérios de Interpretação de Fertilidade - Safra 2025")
+    @JsonProperty("nome_criterios")
+    private String name;
+
+    @Schema(example = "Tabelas baseadas no Manual de Adubação e Calagem para os estados do Rio Grande do Sul e Santa Catarina, focada em culturas de grãos.")
+    @JsonProperty("descricao_criterios")
+    private String description;
 }

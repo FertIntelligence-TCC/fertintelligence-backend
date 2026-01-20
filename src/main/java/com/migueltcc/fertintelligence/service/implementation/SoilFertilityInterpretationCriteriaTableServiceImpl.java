@@ -36,6 +36,8 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .creator(owner)
+                .name(createRequestDto.getName())
+                .description(createRequestDto.getDescription())
                 .region(createRequestDto.getRegion())
                 .build();
 
@@ -79,6 +81,8 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         checkCreatorPermission(table, owner);
 
         if (updateRequestDto.getRegion() != null) {
+            table.setName(updateRequestDto.getName());
+            table.setDescription(updateRequestDto.getDescription());
             table.setRegion(updateRequestDto.getRegion());
         }
 

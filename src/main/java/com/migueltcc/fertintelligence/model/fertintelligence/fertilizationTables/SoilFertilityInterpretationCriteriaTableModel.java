@@ -23,6 +23,12 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 
+    @Column(name = "NOME_INTERPRETACAO_FERTLIDADE_SOLO", nullable = false)
+    private String name;
+
+    @Column(name = "DESCRICAO_INTERPRETACAO_FERTLIDADE_SOLO")
+    private String description;
+
     @Column(name = "REGIAO_INTERPRETACAO_FERTLIDADE_SOLO", nullable = false)
     private Regiao region;
 
@@ -65,6 +71,8 @@ public class SoilFertilityInterpretationCriteriaTableModel {
                 .id(this.id)
                 .creator_id(this.creator != null ? this.creator.getId() : null)
                 .creator_name(this.creator != null ? this.creator.getName() : null)
+                .name(this.name)
+                .description(this.description)
                 .region(this.region)
                 .build();
     }
