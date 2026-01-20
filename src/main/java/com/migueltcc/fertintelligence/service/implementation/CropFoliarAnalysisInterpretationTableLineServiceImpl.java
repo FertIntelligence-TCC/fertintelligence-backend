@@ -12,7 +12,6 @@ import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretatio
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableLineService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,14 +24,18 @@ import java.util.stream.Collectors;
 public class CropFoliarAnalysisInterpretationTableLineServiceImpl
         implements CropFoliarAnalysisInterpretationTableLineService {
 
-    @Autowired
-    private CropFoliarAnalysisInterpretationTableLineRepository tableLineRepository;
+    private final CropFoliarAnalysisInterpretationTableLineRepository tableLineRepository;
+    private final CropFoliarAnalysisInterpretationTableRepository tableRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private CropFoliarAnalysisInterpretationTableRepository tableRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    public CropFoliarAnalysisInterpretationTableLineServiceImpl(
+            CropFoliarAnalysisInterpretationTableLineRepository tableLineRepository,
+            CropFoliarAnalysisInterpretationTableRepository tableRepository,
+            UserRepository userRepository) {
+        this.tableLineRepository = tableLineRepository;
+        this.tableRepository = tableRepository;
+        this.userRepository = userRepository;
+    }
 
     @Override
     @Transactional
@@ -41,20 +44,19 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             CropFoliarAnalysisInterpretationTableLineCreateRequestDto createRequestDto,
             String username) {
 
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkCreatorPermission(table, requestUser);
 
-        NomeComum crop = createRequestDto.getCrop();
-        ensureUniqueCropForTable(table, crop, null);
+        validateUniqueCropInTable(table, createRequestDto.getCrop(), null);
 
         CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
                 .table(table)
-                .crop(crop)
+                .crop(createRequestDto.getCrop())
                 .n_content(createRequestDto.getN_content())
                 .p_content(createRequestDto.getP_content())
                 .k_content(createRequestDto.getK_content())
+                .ca_content(createRequestDto.getCa_content())
                 .mg_content(createRequestDto.getMg_content())
                 .s_content(createRequestDto.getS_content())
                 .b_content(createRequestDto.getB_content())
@@ -75,25 +77,26 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             Long lineId,
             String username) {
 
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        checkCreatorPermission(line.getTable(), owner);
+        checkCreatorPermission(line.getTable(), requestUser);
 
         return line.toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CropFoliarAnalysisInterpretationTableLineResponseDto>
-    getAllCropFoliarAnalysisInterpretationTableLinesByTable(Long tableId, String username) {
+    public List<CropFoliarAnalysisInterpretationTableLineResponseDto> getAllCropFoliarAnalysisInterpretationTableLinesByTable(
+            Long tableId,
+            String username) {
 
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkCreatorPermission(table, requestUser);
 
-        return tableLineRepository.findAllByTable(table).stream()
+        List<CropFoliarAnalysisInterpretationTableLineModel> lines = tableLineRepository.findAllByTable(table);
+
+        return lines.stream()
                 .map(CropFoliarAnalysisInterpretationTableLineModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -105,60 +108,29 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             CropFoliarAnalysisInterpretationTableLinePostRequestDto updateRequestDto,
             String username) {
 
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        CropFoliarAnalysisInterpretationTableModel table = line.getTable();
-        checkCreatorPermission(table, owner);
+        checkCreatorPermission(line.getTable(), requestUser);
 
-        if (updateRequestDto.getCrop() != null) {
-            ensureUniqueCropForTable(table, updateRequestDto.getCrop(), line.getId());
+        if (updateRequestDto.getCrop() != null && !updateRequestDto.getCrop().equals(line.getCrop())) {
+            validateUniqueCropInTable(line.getTable(), updateRequestDto.getCrop(), line.getId());
             line.setCrop(updateRequestDto.getCrop());
         }
 
-        if (updateRequestDto.getN_content() != null) {
-            line.setN_content(updateRequestDto.getN_content());
-        }
+        // Atualização de nutrientes (se presentes no DTO)
+        if (updateRequestDto.getN_content() != null) line.setN_content(updateRequestDto.getN_content());
+        if (updateRequestDto.getP_content() != null) line.setP_content(updateRequestDto.getP_content());
+        if (updateRequestDto.getK_content() != null) line.setK_content(updateRequestDto.getK_content());
+        if (updateRequestDto.getCa_content() != null) line.setCa_content(updateRequestDto.getCa_content());
+        if (updateRequestDto.getMg_content() != null) line.setMg_content(updateRequestDto.getMg_content());
+        if (updateRequestDto.getS_content() != null) line.setS_content(updateRequestDto.getS_content());
 
-        if (updateRequestDto.getP_content() != null) {
-            line.setP_content(updateRequestDto.getP_content());
-        }
-
-        if (updateRequestDto.getK_content() != null) {
-            line.setK_content(updateRequestDto.getK_content());
-        }
-
-        if (updateRequestDto.getMg_content() != null) {
-            line.setMg_content(updateRequestDto.getMg_content());
-        }
-
-        if (updateRequestDto.getS_content() != null) {
-            line.setS_content(updateRequestDto.getS_content());
-        }
-
-        if (updateRequestDto.getB_content() != null) {
-            line.setB_content(updateRequestDto.getB_content());
-        }
-
-        if (updateRequestDto.getCu_content() != null) {
-            line.setCu_content(updateRequestDto.getCu_content());
-        }
-
-        if (updateRequestDto.getFe_content() != null) {
-            line.setFe_content(updateRequestDto.getFe_content());
-        }
-
-        if (updateRequestDto.getMn_content() != null) {
-            line.setMn_content(updateRequestDto.getMn_content());
-        }
-
-        if (updateRequestDto.getMo_content() != null) {
-            line.setMo_content(updateRequestDto.getMo_content());
-        }
-
-        if (updateRequestDto.getZn_content() != null) {
-            line.setZn_content(updateRequestDto.getZn_content());
-        }
+        if (updateRequestDto.getB_content() != null) line.setB_content(updateRequestDto.getB_content());
+        if (updateRequestDto.getCu_content() != null) line.setCu_content(updateRequestDto.getCu_content());
+        if (updateRequestDto.getFe_content() != null) line.setFe_content(updateRequestDto.getFe_content());
+        if (updateRequestDto.getMn_content() != null) line.setMn_content(updateRequestDto.getMn_content());
+        if (updateRequestDto.getMo_content() != null) line.setMo_content(updateRequestDto.getMo_content());
+        if (updateRequestDto.getZn_content() != null) line.setZn_content(updateRequestDto.getZn_content());
 
         CropFoliarAnalysisInterpretationTableLineModel updatedLine = tableLineRepository.save(line);
         return updatedLine.toDto();
@@ -167,26 +139,14 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
     @Override
     @Transactional
     public void deleteCropFoliarAnalysisInterpretationTableLine(Long lineId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-
+        UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        CropFoliarAnalysisInterpretationTableModel table = line.getTable();
-        checkCreatorPermission(table, owner);
-
-        long totalLines = tableLineRepository.countByTable(table);
-        if (totalLines <= 1) {
-            throw new IllegalArgumentException(
-                    "A tabela de interpretação deve possuir ao menos uma linha. Não é possível remover a última linha.");
-        }
+        checkCreatorPermission(line.getTable(), requestUser);
 
         tableLineRepository.delete(line);
     }
 
-    private void ensureUniqueCropForTable(CropFoliarAnalysisInterpretationTableModel table, NomeComum crop, Long currentLineId) {
-        if (crop == null) {
-            throw new IllegalArgumentException("O nome da cultura é obrigatório para criar ou atualizar a linha.");
-        }
-
+    private void validateUniqueCropInTable(CropFoliarAnalysisInterpretationTableModel table, NomeComum crop, Long currentLineId) {
         tableLineRepository.findByTableAndCrop(table, crop).ifPresent(existingLine -> {
             if (!Objects.equals(existingLine.getId(), currentLineId)) {
                 throw new IllegalArgumentException(

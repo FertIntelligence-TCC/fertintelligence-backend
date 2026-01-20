@@ -28,6 +28,9 @@ public class CropFoliarAnalysisInterpretationTableLinePostRequestDto {
     @JsonProperty("novo_teores_k")
     private MenorMaiorTeores k_content;
 
+    @JsonProperty("novo_teores_ca")
+    private MenorMaiorTeores ca_content;
+
     @JsonProperty("novo_teores_mg")
     private MenorMaiorTeores mg_content;
 

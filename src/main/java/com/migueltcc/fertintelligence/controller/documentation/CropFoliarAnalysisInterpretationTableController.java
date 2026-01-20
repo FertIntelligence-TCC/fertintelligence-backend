@@ -3,14 +3,14 @@ package com.migueltcc.fertintelligence.controller.documentation;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,6 +19,8 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public interface CropFoliarAnalysisInterpretationTableController {
 
+    @Operation(summary = "Criar nova tabela de interpretação")
+    @PostMapping("/register")
     ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>
     createCropFoliarAnalysisInterpretationTable(
             @Parameter(description = "Dados para criação da tabela de interpretação", required = true)
@@ -26,6 +28,8 @@ public interface CropFoliarAnalysisInterpretationTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Buscar tabela por ID")
+    @GetMapping("/get")
     ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>
     getCropFoliarAnalysisInterpretationTable(
             @Parameter(description = "ID da tabela de interpretação", required = true)
@@ -33,11 +37,15 @@ public interface CropFoliarAnalysisInterpretationTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar todas as tabelas do usuário")
+    @GetMapping("/get-all")
     ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>>
     getCropFoliarAnalysisInterpretationTables(
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Atualizar tabela")
+    @PutMapping("/update")
     ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>
     updateCropFoliarAnalysisInterpretationTable(
             @Parameter(description = "ID da tabela de interpretação a ser atualizada", required = true)
@@ -47,6 +55,8 @@ public interface CropFoliarAnalysisInterpretationTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Deletar tabela")
+    @DeleteMapping("/delete")
     ResponseEntity<Void> deleteCropFoliarAnalysisInterpretationTable(
             @Parameter(description = "ID da tabela de interpretação a ser removida", required = true)
             @RequestParam(name = "tableId") Long tableId,

@@ -4,10 +4,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Men
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,6 +20,8 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
 
     @ManyToOne
     @JoinColumn(name = "ID_TABELA_INTERPRETACAO", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     CropFoliarAnalysisInterpretationTableModel table;
 
     /**
@@ -59,6 +58,15 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
             @AttributeOverride(name = "unity", column = @Column(name = "K_UNIDADE_TEORES"))
     })
     private MenorMaiorTeores k_content;
+
+    // --- CÁLCIO (Ca) ---
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "menor", column = @Column(name = "Ca_MENOR_TEOR")),
+            @AttributeOverride(name = "maior", column = @Column(name = "Ca_MAIOR_TEOR")),
+            @AttributeOverride(name = "unity", column = @Column(name = "Ca_UNIDADE_TEORES"))
+    })
+    private MenorMaiorTeores ca_content;
 
     // --- MAGNÉSIO (Mg) ---
     @Embedded
@@ -140,6 +148,7 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
                 .n_content(this.n_content)
                 .p_content(this.p_content)
                 .k_content(this.k_content)
+                .ca_content(this.ca_content)
                 .mg_content(this.mg_content)
                 .s_content(this.s_content)
                 .b_content(this.b_content)

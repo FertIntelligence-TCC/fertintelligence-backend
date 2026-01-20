@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretatio
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -17,11 +20,23 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/crop-foliar-analysis-interpretation-table")
+@CrossOrigin(origins = "*")
 public class CropFoliarAnalysisInterpretationTableControllerImpl
         implements CropFoliarAnalysisInterpretationTableController {
 
-    @Autowired
-    private CropFoliarAnalysisInterpretationTableService tableService;
+    private static final Logger logger = LoggerFactory.getLogger(CropFoliarAnalysisInterpretationTableControllerImpl.class);
+    private final CropFoliarAnalysisInterpretationTableService tableService;
+
+    public CropFoliarAnalysisInterpretationTableControllerImpl(CropFoliarAnalysisInterpretationTableService tableService) {
+        this.tableService = tableService;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -30,16 +45,16 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
             @Valid @RequestBody CropFoliarAnalysisInterpretationTableCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        CropFoliarAnalysisInterpretationTableResponseDto createdTable = tableService
-                .createCropFoliarAnalysisInterpretationTable(createRequestDto, authentication.getName());
+        String username = getAuthenticatedUsername(authentication);
+        CropFoliarAnalysisInterpretationTableResponseDto table = tableService
+                .createCropFoliarAnalysisInterpretationTable(createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/crop-foliar-analysis-interpretation-table/get")
-                .queryParam("tableId", createdTable.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(table.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdTable);
+        return ResponseEntity.created(location).body(table);
     }
 
     @Override
@@ -49,9 +64,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
             @RequestParam(name = "tableId") Long tableId,
             Authentication authentication) {
 
-        CropFoliarAnalysisInterpretationTableResponseDto table = tableService
-                .getCropFoliarAnalysisInterpretationTableById(tableId, authentication.getName());
-        return ResponseEntity.ok(table);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(tableService.getCropFoliarAnalysisInterpretationTableById(tableId, username));
     }
 
     @Override
@@ -59,9 +73,15 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
     public ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>>
     getCropFoliarAnalysisInterpretationTables(Authentication authentication) {
 
-        List<CropFoliarAnalysisInterpretationTableResponseDto> tables = tableService
-                .getAllCropFoliarAnalysisInterpretationTablesByCreator(authentication.getName());
-        return ResponseEntity.ok(tables);
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<CropFoliarAnalysisInterpretationTableResponseDto> tables = tableService
+                    .getAllCropFoliarAnalysisInterpretationTablesByCreator(username);
+            return ResponseEntity.ok(tables);
+        } catch (Exception e) {
+            logger.error("Erro ao listar tabelas de interpretação foliar: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -72,9 +92,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
             @Valid @RequestBody CropFoliarAnalysisInterpretationTablePostRequestDto updateRequestDto,
             Authentication authentication) {
 
-        CropFoliarAnalysisInterpretationTableResponseDto updatedTable = tableService
-                .updateCropFoliarAnalysisInterpretationTable(tableId, updateRequestDto, authentication.getName());
-        return ResponseEntity.ok(updatedTable);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(tableService.updateCropFoliarAnalysisInterpretationTable(tableId, updateRequestDto, username));
     }
 
     @Override
@@ -83,8 +102,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
             @RequestParam(name = "tableId") Long tableId,
             Authentication authentication) {
 
-        tableService.deleteCropFoliarAnalysisInterpretationTable(tableId, authentication.getName());
+        String username = getAuthenticatedUsername(authentication);
+        tableService.deleteCropFoliarAnalysisInterpretationTable(tableId, username);
         return ResponseEntity.noContent().build();
     }
 }
-

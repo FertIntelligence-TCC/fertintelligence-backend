@@ -42,6 +42,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         CropFoliarAnalysisInterpretationTableModel table = CropFoliarAnalysisInterpretationTableModel.builder()
                 .creator(owner)
                 .region(createRequestDto.getRegion())
+                .name(createRequestDto.getName())
                 .build();
 
         CropFoliarAnalysisInterpretationTableModel savedTable = tableRepository.save(table);
@@ -88,6 +89,11 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
 
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
+        }
+
+        // <--- CORREÇÃO: Atualizando o nome
+        if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
+            table.setName(updateRequestDto.getName());
         }
 
         CropFoliarAnalysisInterpretationTableModel updatedTable = tableRepository.save(table);

@@ -33,6 +33,9 @@ public class CropFoliarAnalysisInterpretationTableLineCreateRequestDto {
     @JsonProperty("teores_k")
     private MenorMaiorTeores k_content;
 
+    @JsonProperty("teores_ca")
+    private MenorMaiorTeores ca_content;
+
     @JsonProperty("teores_mg")
     private MenorMaiorTeores mg_content;
 

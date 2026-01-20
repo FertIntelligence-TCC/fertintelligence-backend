@@ -6,10 +6,13 @@ import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretatio
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableLineService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -17,11 +20,23 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/crop-foliar-analysis-interpretation-table-line")
+@CrossOrigin(origins = "*") // FIX: Permite requisições do frontend (CORS)
 public class CropFoliarAnalysisInterpretationTableLineControllerImpl
         implements CropFoliarAnalysisInterpretationTableLineController {
 
-    @Autowired
-    private CropFoliarAnalysisInterpretationTableLineService tableLineService;
+    private static final Logger logger = LoggerFactory.getLogger(CropFoliarAnalysisInterpretationTableLineControllerImpl.class);
+    private final CropFoliarAnalysisInterpretationTableLineService tableLineService;
+
+    public CropFoliarAnalysisInterpretationTableLineControllerImpl(CropFoliarAnalysisInterpretationTableLineService tableLineService) {
+        this.tableLineService = tableLineService;
+    }
+
+    private String getAuthenticatedUsername(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        return authentication.getName();
+    }
 
     @Override
     @PostMapping("/register")
@@ -31,16 +46,16 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImpl
             @Valid @RequestBody CropFoliarAnalysisInterpretationTableLineCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        CropFoliarAnalysisInterpretationTableLineResponseDto createdLine = tableLineService
-                .createCropFoliarAnalysisInterpretationTableLine(tableId, createRequestDto, authentication.getName());
+        String username = getAuthenticatedUsername(authentication);
+        CropFoliarAnalysisInterpretationTableLineResponseDto line = tableLineService
+                .createCropFoliarAnalysisInterpretationTableLine(tableId, createRequestDto, username);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/crop-foliar-analysis-interpretation-table-line/get")
-                .queryParam("lineId", createdLine.getId())
-                .build()
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(line.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(createdLine);
+        return ResponseEntity.created(location).body(line);
     }
 
     @Override
@@ -50,21 +65,26 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImpl
             @RequestParam(name = "lineId") Long lineId,
             Authentication authentication) {
 
-        CropFoliarAnalysisInterpretationTableLineResponseDto line = tableLineService
-                .getCropFoliarAnalysisInterpretationTableLineById(lineId, authentication.getName());
-        return ResponseEntity.ok(line);
+        String username = getAuthenticatedUsername(authentication);
+        return ResponseEntity.ok(tableLineService.getCropFoliarAnalysisInterpretationTableLineById(lineId, username));
     }
 
     @Override
-    @GetMapping("/get-by-table")
+    @GetMapping("/get-by-table") // FIX: Nome da rota corrigida para evitar erro 404/500
     public ResponseEntity<List<CropFoliarAnalysisInterpretationTableLineResponseDto>>
     getCropFoliarAnalysisInterpretationTableLinesByTable(
             @RequestParam(name = "tableId") Long tableId,
             Authentication authentication) {
 
-        List<CropFoliarAnalysisInterpretationTableLineResponseDto> lines = tableLineService
-                .getAllCropFoliarAnalysisInterpretationTableLinesByTable(tableId, authentication.getName());
-        return ResponseEntity.ok(lines);
+        try {
+            String username = getAuthenticatedUsername(authentication);
+            List<CropFoliarAnalysisInterpretationTableLineResponseDto> lines = tableLineService
+                    .getAllCropFoliarAnalysisInterpretationTableLinesByTable(tableId, username);
+            return ResponseEntity.ok(lines);
+        } catch (Exception e) {
+            logger.error("Erro ao listar linhas da tabela foliar: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
     }
 
     @Override
@@ -75,8 +95,9 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImpl
             @Valid @RequestBody CropFoliarAnalysisInterpretationTableLinePostRequestDto updateRequestDto,
             Authentication authentication) {
 
+        String username = getAuthenticatedUsername(authentication);
         CropFoliarAnalysisInterpretationTableLineResponseDto updatedLine = tableLineService
-                .updateCropFoliarAnalysisInterpretationTableLine(lineId, updateRequestDto, authentication.getName());
+                .updateCropFoliarAnalysisInterpretationTableLine(lineId, updateRequestDto, username);
         return ResponseEntity.ok(updatedLine);
     }
 
@@ -86,7 +107,8 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImpl
             @RequestParam(name = "lineId") Long lineId,
             Authentication authentication) {
 
-        tableLineService.deleteCropFoliarAnalysisInterpretationTableLine(lineId, authentication.getName());
+        String username = getAuthenticatedUsername(authentication);
+        tableLineService.deleteCropFoliarAnalysisInterpretationTableLine(lineId, username);
         return ResponseEntity.noContent().build();
     }
 }

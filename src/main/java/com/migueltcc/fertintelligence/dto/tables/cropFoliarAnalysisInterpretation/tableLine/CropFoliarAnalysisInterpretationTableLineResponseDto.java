@@ -33,6 +33,9 @@ public class CropFoliarAnalysisInterpretationTableLineResponseDto {
     @JsonProperty("teores_p")
     private MenorMaiorTeores p_content;
 
+    @JsonProperty("teores_ca")
+    private MenorMaiorTeores ca_content;
+
     @JsonProperty("teores_k")
     private MenorMaiorTeores k_content;
 

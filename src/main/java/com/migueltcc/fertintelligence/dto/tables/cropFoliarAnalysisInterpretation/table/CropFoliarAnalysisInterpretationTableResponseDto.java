@@ -18,6 +18,9 @@ public class CropFoliarAnalysisInterpretationTableResponseDto {
     @JsonProperty("id")
     private Long id;
 
+    @JsonProperty("nome_tabela")
+    private String name;
+
     @Schema(example = "5")
     @JsonProperty("id_criador")
     private Long creator_id;
@@ -29,5 +32,11 @@ public class CropFoliarAnalysisInterpretationTableResponseDto {
     @Schema(example = "SUL")
     @JsonProperty("regiao_analise_foliar_culturas")
     private Regiao region;
+
+    // Getter extra para facilitar o frontend se necessário
+    @JsonProperty("region")
+    public Regiao getRegionSimple() {
+        return region;
+    }
 
 }

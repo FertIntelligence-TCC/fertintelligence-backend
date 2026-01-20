@@ -1,7 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -10,16 +9,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@JsonSerialize
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class CropFoliarAnalysisInterpretationTableCreateRequestDto {
 
-    @JsonProperty("regiao_analise_foliar_culturas")
-    @Schema(example = "SUL")
-    @NotNull
-    private Regiao region;
+    @JsonProperty("nome_tabela")
+    private String name;
 
+    @JsonProperty("region")
+    @Schema(example = "SUL")
+    @NotNull(message = "A região é obrigatória")
+    private Regiao region;
 }
