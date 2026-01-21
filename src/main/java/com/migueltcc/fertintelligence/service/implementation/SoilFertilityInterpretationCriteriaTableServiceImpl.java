@@ -32,12 +32,13 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     public SoilFertilityInterpretationCriteriaTableResponseDto createSoilFertilityInterpretationCriteriaTable(
             SoilFertilityInterpretationCriteriaTableCreateRequestDto createRequestDto,
             String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+
+        UserModel creator = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
-                .creator(owner)
+                .creator(creator)
                 .name(createRequestDto.getName())
-                .description(createRequestDto.getDescription())
+                .description(createRequestDto.getDescription()) // <--- AGORA SALVA A DESCRIÇÃO
                 .region(createRequestDto.getRegion())
                 .build();
 
@@ -50,10 +51,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     public SoilFertilityInterpretationCriteriaTableResponseDto getSoilFertilityInterpretationCriteriaTableById(
             Long tableId,
             String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
 
+        UserModel user = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkCreatorPermission(table, user);
 
         return table.toDto();
     }
@@ -62,9 +63,11 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     @Transactional(readOnly = true)
     public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
             String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
 
-        return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(owner).stream()
+        UserModel creator = findUserByUsernameOrThrow(username);
+        List<SoilFertilityInterpretationCriteriaTableModel> tables = soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator);
+
+        return tables.stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -75,14 +78,18 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             Long tableId,
             SoilFertilityInterpretationCriteriaTablePostRequestDto updateRequestDto,
             String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
 
+        UserModel user = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkCreatorPermission(table, user);
 
-        if (updateRequestDto.getRegion() != null) {
+        if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
             table.setName(updateRequestDto.getName());
+        }
+        if (updateRequestDto.getDescription() != null) {
             table.setDescription(updateRequestDto.getDescription());
+        }
+        if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
         }
 
@@ -113,7 +120,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
     private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
         if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela de critérios de interpretação da fertilidade do solo.");
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
         }
     }
 }

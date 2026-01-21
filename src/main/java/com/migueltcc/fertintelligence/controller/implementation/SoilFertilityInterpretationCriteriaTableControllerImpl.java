@@ -6,10 +6,14 @@ import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCrit
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.SoilFertilityInterpretationCriteriaTableService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -17,7 +21,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/soil-fertility-interpretation-criteria-table")
+@CrossOrigin(origins = "*")
 public class SoilFertilityInterpretationCriteriaTableControllerImpl implements SoilFertilityInterpretationCriteriaTableController {
+
+    private static final Logger logger = LoggerFactory.getLogger(SoilFertilityInterpretationCriteriaTableControllerImpl.class);
 
     @Autowired
     private SoilFertilityInterpretationCriteriaTableService soilFertilityInterpretationCriteriaTableService;
@@ -28,16 +35,20 @@ public class SoilFertilityInterpretationCriteriaTableControllerImpl implements S
             @Valid @RequestBody SoilFertilityInterpretationCriteriaTableCreateRequestDto createRequestDto,
             Authentication authentication) {
 
-        SoilFertilityInterpretationCriteriaTableResponseDto createdTable = soilFertilityInterpretationCriteriaTableService
-                .createSoilFertilityInterpretationCriteriaTable(createRequestDto, authentication.getName());
+        try {
+            SoilFertilityInterpretationCriteriaTableResponseDto table = soilFertilityInterpretationCriteriaTableService
+                    .createSoilFertilityInterpretationCriteriaTable(createRequestDto, authentication.getName());
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentContextPath().path("/soil-fertility-interpretation-criteria-table/get")
-                .queryParam("tableId", createdTable.getId())
-                .build()
-                .toUri();
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                    .path("/{id}")
+                    .buildAndExpand(table.getId())
+                    .toUri();
 
-        return ResponseEntity.created(location).body(createdTable);
+            return ResponseEntity.created(location).body(table);
+        } catch (Exception e) {
+            logger.error("Erro ao criar tabela de critérios: ", e);
+            throw e;
+        }
     }
 
     @Override
@@ -45,9 +56,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImpl implements S
     public ResponseEntity<SoilFertilityInterpretationCriteriaTableResponseDto> getSoilFertilityInterpretationCriteriaTable(
             @RequestParam(name = "tableId") Long tableId,
             Authentication authentication) {
-        SoilFertilityInterpretationCriteriaTableResponseDto table = soilFertilityInterpretationCriteriaTableService
-                .getSoilFertilityInterpretationCriteriaTableById(tableId, authentication.getName());
-        return ResponseEntity.ok(table);
+        return ResponseEntity.ok(soilFertilityInterpretationCriteriaTableService
+                .getSoilFertilityInterpretationCriteriaTableById(tableId, authentication.getName()));
     }
 
     @Override

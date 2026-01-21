@@ -15,17 +15,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SoilFertilityInterpretationCriteriaTableCreateRequestDto {
 
-    @JsonProperty("nome")
-    @NotNull
+    @JsonProperty("nome_criterios")
+    @NotNull(message = "O nome é obrigatório")
     @Schema(example = "Critérios de Interpretação de Fertilidade - Safra 2025")
     private String name;
 
-    @JsonProperty("descricao")
-    @Schema(example = "Tabelas baseadas no Manual de Adubação e Calagem para os estados do Rio Grande do Sul e Santa Catarina, focada em culturas de grãos.")
+    @JsonProperty("descricao_criterios")
+    @Schema(example = "Tabelas baseadas no Manual de Adubação e Calagem...")
     private String description;
 
     @JsonProperty("regiao")
-    @NotNull
+    @NotNull(message = "A região é obrigatória")
     @Schema(example = "NORDESTE")
     private Regiao region;
 }
