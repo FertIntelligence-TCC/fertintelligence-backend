@@ -110,7 +110,7 @@ public class UserDataSeeder implements CommandLineRunner {
                     .genero(Genero.FEMININO)
                     .telefone(new Telefone("55", "83", "991518440"))
                     .formacao(Formacao.ENSINO_MEDIO)
-                    .cargo(Cargo.SECRETARIO)
+                    .cargo(Cargo.SUPERVISOR_DE_AREA)
                     .build();
 
             try {
@@ -121,6 +121,7 @@ public class UserDataSeeder implements CommandLineRunner {
             }
 
             try {
+                System.out.println("UserDataSeeder: Criando usuários de Gilvan e filhos...");
                 userService.createUser(gilvanUser);
                 System.out.println("UserDataSeeder: Usuário de Gilvan criado com sucesso.");
                 userService.createUser(miguelUser);
