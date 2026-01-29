@@ -42,11 +42,97 @@ public class UserDataSeeder implements CommandLineRunner {
                     .formacao(Formacao.DOUTORADO)
                     .cargo(Cargo.PROPRIETARIO)
                     .build();
+
+            UserCreateRequestDto gilvanUser = UserCreateRequestDto.builder()
+                    .name("Gilvan Barbosa Ferreira")
+                    .username("gilvan@email.com")
+                    .email("gilvan@email.com")
+                    .password("gilvan123")
+                    .cpf("11111111111")
+                    .profissao("Engenheiro Agrônomo")
+                    .datanasc(new DataNasc(30, 05, 1972))
+                    .genero(Genero.MASCULINO)
+                    .telefone(new Telefone("55", "83", "991070613"))
+                    .formacao(Formacao.DOUTORADO)
+                    .cargo(Cargo.GERENTE)
+                    .build();
+
+            UserCreateRequestDto miguelUser = UserCreateRequestDto.builder()
+                    .name("Miguel Macedo Ferreira")
+                    .username("miguel@email.com")
+                    .email("miguel@email.com")
+                    .password("miguel123")
+                    .cpf("22222222222")
+                    .profissao("Engenheiro de Software")
+                    .datanasc(new DataNasc(8, 5, 2001))
+                    .genero(Genero.MASCULINO)
+                    .telefone(new Telefone("55", "83", "991214231"))
+                    .formacao(Formacao.GRADUACAO)
+                    .cargo(Cargo.AGRONOMO_RESIDENTE)
+                    .build();
+
+            UserCreateRequestDto mateusUser = UserCreateRequestDto.builder()
+                    .name("Mateus Macedo Ferreira")
+                    .username("mateus@email.com")
+                    .email("mateus@email.com")
+                    .password("mateus123")
+                    .cpf("33333333333")
+                    .profissao("Engenheiro de Software")
+                    .datanasc(new DataNasc(3, 11, 2002))
+                    .genero(Genero.MASCULINO)
+                    .telefone(new Telefone("55", "83", "993810404"))
+                    .formacao(Formacao.GRADUACAO)
+                    .cargo(Cargo.AGRONOMO_CONSULTOR)
+                    .build();
+
+            UserCreateRequestDto marcosUser = UserCreateRequestDto.builder()
+                    .name("Marcos Macedo Ferreira")
+                    .username("marcos@email.com")
+                    .email("marcos@email.com")
+                    .password("marcos123")
+                    .cpf("44444444444")
+                    .profissao("Engenheiro de Finanças")
+                    .datanasc(new DataNasc(25, 4, 2005))
+                    .genero(Genero.MASCULINO)
+                    .telefone(new Telefone("55", "83", "987071130"))
+                    .formacao(Formacao.ENSINO_MEDIO)
+                    .cargo(Cargo.SECRETARIO)
+                    .build();
+
+            UserCreateRequestDto rebecaUser = UserCreateRequestDto.builder()
+                    .name("Rebeca dos Santos Ferreira")
+                    .username("rebeca@email.com")
+                    .email("rebeca@email.com")
+                    .password("rebeca123")
+                    .cpf("55555555555")
+                    .profissao("Médica & Veterinária")
+                    .datanasc(new DataNasc(24, 11, 2014))
+                    .genero(Genero.FEMININO)
+                    .telefone(new Telefone("55", "83", "991518440"))
+                    .formacao(Formacao.ENSINO_MEDIO)
+                    .cargo(Cargo.SECRETARIO)
+                    .build();
+
             try {
                 userService.createUser(adminUser);
                 System.out.println("UserDataSeeder: Admin criado com sucesso.");
             } catch (Exception ex) {
                 System.err.println("Erro ao criar admin: " + ex.getMessage());
+            }
+
+            try {
+                userService.createUser(gilvanUser);
+                System.out.println("UserDataSeeder: Usuário de Gilvan criado com sucesso.");
+                userService.createUser(miguelUser);
+                System.out.println("UserDataSeeder: Usuário de Miguel criado com sucesso.");
+                userService.createUser(mateusUser);
+                System.out.println("UserDataSeeder: Usuário de Mateus criado com sucesso.");
+                userService.createUser(marcosUser);
+                System.out.println("UserDataSeeder: Usuário de Marcos criado com sucesso.");
+                userService.createUser(rebecaUser);
+                System.out.println("UserDataSeeder: Usuário de Rebeca criado com sucesso.");
+            } catch (Exception gm) {
+                System.err.println("Erro ao criar Usuários de Gilvan e filhos: " + gm.getMessage());
             }
         }
     }
