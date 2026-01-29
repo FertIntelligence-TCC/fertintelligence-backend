@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
@@ -112,7 +113,7 @@ public class CropServiceImpl implements CropService {
         CropModel crop = findCropByIdOrThrow(cropId);
         checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
-        String newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
+        NomeComum newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
         String newVariety = Optional.ofNullable(updateRequestDto.getVariety()).orElse(crop.getVariety());
 
         if (!newName.equals(crop.getName()) || !newVariety.equals(crop.getVariety())) {

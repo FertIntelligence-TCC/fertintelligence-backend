@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
@@ -138,7 +139,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     private CropCreateRequestDto createCreateRequestDto() {
         return CropCreateRequestDto.builder()
                 .cultivationType(CultivationType.SAFRA)
-                .name("Soja")
+                .name(NomeComum.SOJA)
                 .variety("TMG 7062 IPRO")
                 .cycle(180)
                 .distanceBetweenLines(0.45)
@@ -157,7 +158,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     private CropPostRequestDto createPostRequestDto() {
         return CropPostRequestDto.builder()
                 .cultivationType(CultivationType.SAFRINHA)
-                .name("Trigo")
+                .name(NomeComum.MILHO)
                 .variety("TBIO Toruk")
                 .cycle(135)
                 .distanceBetweenLines(0.17)
@@ -173,7 +174,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
-    private CropModel createCropModel(Long id, String name, String variety, AnnualCropFolderModel folder) {
+    private CropModel createCropModel(Long id, NomeComum name, String variety, AnnualCropFolderModel folder) {
         return CropModel.builder()
                 .id(id)
                 .folder(folder)
@@ -373,7 +374,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getCropSuccessfully() throws Exception {
-        CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
@@ -397,7 +398,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
         PlotModel otherPlot = PlotModel.builder().id(200L).property(otherProperty).build();
         AnnualCropFolderModel otherFolder = AnnualCropFolderModel.builder().id(2000L).plot(otherPlot).build();
 
-        CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", otherFolder);
+        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", otherFolder);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
@@ -421,8 +422,8 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getCropsByFolderSuccessfully() throws Exception {
-        CropModel crop1 = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
-        CropModel crop2 = createCropModel(2L, "Milho", "AG 8088", ownerFolder);
+        CropModel crop1 = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
+        CropModel crop2 = createCropModel(2L, NomeComum.MILHO, "AG 8088", ownerFolder);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1000L)).thenReturn(Optional.of(ownerFolder));
@@ -439,7 +440,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void updateCropSuccessfully() throws Exception {
-        CropModel existingCrop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        CropModel existingCrop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
         CropPostRequestDto updateRequestDto = createPostRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -471,7 +472,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
         PlotModel otherPlot = PlotModel.builder().id(200L).property(otherProperty).build();
         AnnualCropFolderModel otherFolder = AnnualCropFolderModel.builder().id(2000L).plot(otherPlot).build();
 
-        CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", otherFolder);
+        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", otherFolder);
         CropPostRequestDto updateRequestDto = createPostRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -487,7 +488,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void updateCropFails_WhenCropAlreadyExists() throws Exception {
-        CropModel existingCrop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        CropModel existingCrop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
         CropPostRequestDto updateRequestDto = createPostRequestDto();
         CropModel otherCrop = createCropModel(2L, updateRequestDto.getName(), updateRequestDto.getVariety(), ownerFolder);
 
@@ -506,7 +507,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void deleteCropSuccessfully() throws Exception {
-        CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
@@ -520,7 +521,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "secretaryuser")
     void deleteCropFails_WhenUserIsSecretaryEvenWithAccess() throws Exception {
-        CropModel crop = createCropModel(1L, "Soja", "TMG 7062 IPRO", ownerFolder);
+        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
         UserModel secretary = secretarioUser.builder()
                 .username("secretaryuser")
                 .build();

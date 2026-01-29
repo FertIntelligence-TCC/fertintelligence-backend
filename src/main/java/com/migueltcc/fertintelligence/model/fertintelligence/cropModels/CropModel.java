@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.model.fertintelligence.cropModels;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import jakarta.persistence.*;
@@ -25,10 +26,12 @@ public class CropModel {
     AnnualCropFolderModel folder;
 
     @Column(name = "TIPO_CULTIVO", nullable = false)
+    @Enumerated(EnumType.STRING)
     CultivationType cultivationType;
 
     @Column(name = "NOME", nullable = false)
-    String name;
+    @Enumerated(EnumType.STRING)
+    NomeComum name;
 
     @Column(name = "VARIEDADE", nullable = false)
     String variety;

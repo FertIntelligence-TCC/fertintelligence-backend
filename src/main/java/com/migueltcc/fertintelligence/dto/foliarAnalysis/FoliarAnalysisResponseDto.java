@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.dto.foliarAnalysis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,7 +42,7 @@ public class FoliarAnalysisResponseDto {
 
     @Schema(example = "Soja")
     @JsonProperty("nome_cultura")
-    String cropName;
+    NomeComum cropName;
 
     @Schema(example = "TMG 7062 IPRO")
     @JsonProperty("variedade_cultura")

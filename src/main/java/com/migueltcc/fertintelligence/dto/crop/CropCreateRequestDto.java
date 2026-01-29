@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.dto.crop;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +22,7 @@ public class CropCreateRequestDto {
 
     @JsonProperty("nome")
     @NotNull
-    String name;
+    NomeComum name;
 
     @JsonProperty("variedade")
     @NotNull

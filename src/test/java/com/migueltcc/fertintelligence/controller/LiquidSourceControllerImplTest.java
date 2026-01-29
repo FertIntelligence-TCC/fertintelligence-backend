@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -173,7 +174,7 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .id(300L)
                 .folder(ownerFolder)
                 .cultivationType(null)
-                .name("Algodão")
+                .name(NomeComum.ALGODAO)
                 .variety("BRS 432")
                 .cycle(150)
                 .distanceBetweenLines(0.45)
@@ -192,7 +193,7 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .id(301L)
                 .folder(otherFolder)
                 .cultivationType(null)
-                .name("Milho")
+                .name(NomeComum.MILHO)
                 .variety("AG 8088")
                 .cycle(140)
                 .distanceBetweenLines(0.5)

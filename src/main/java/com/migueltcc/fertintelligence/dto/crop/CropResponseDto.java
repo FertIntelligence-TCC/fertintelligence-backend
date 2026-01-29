@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.dto.crop;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +26,7 @@ public class CropResponseDto {
 
     @Schema(example = "Soja")
     @JsonProperty("nome")
-    String name;
+    NomeComum name;
 
     @Schema(example = "TMG 7062 IPRO")
     @JsonProperty("variedade")
