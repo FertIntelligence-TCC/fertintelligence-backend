@@ -15,7 +15,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -81,29 +80,27 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
     }
 
     @Override
-    @Transactional
     public PropertyAccessRequestResponseDto decideRequest(Long requestId, boolean approve, String ownerUsername) {
-        PropertyAccessRequestModel request = propertyAccessRequestRepository.findById(requestId)
-                .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada"));
+        UserModel owner = findUserByUsernameOrThrow(ownerUsername);
 
-        // Validação de segurança: verificar se quem decide é o dono
-        if (!request.getProperty().getOwner().getUsername().equals(ownerUsername)) {
-            throw new AccessDeniedException("Não autorizado");
+        PropertyAccessRequestModel request = propertyAccessRequestRepository.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada: " + requestId));
+
+        checkOwnerPermission(request.getProperty(), owner);
+        checkUserIsProprietario(owner);
+
+        if (request.getStatus() != AccessRequestStatus.PENDING) {
+            throw new IllegalArgumentException("Esta solicitação já foi processada.");
         }
+
+        request.setStatus(approve ? AccessRequestStatus.APPROVED : AccessRequestStatus.REJECTED);
+        PropertyAccessRequestModel savedRequest = propertyAccessRequestRepository.save(request);
 
         if (approve) {
-            request.setStatus(AccessRequestStatus.APPROVED);
-            // Lógica adicional de vincular gerente se necessário...
-            return propertyAccessRequestRepository.save(request).toDto();
-        } else {
-            // Se rejeitado, remove do banco de dados
-            propertyAccessRequestRepository.delete(request);
-
-            // Retorna o DTO com status REJECTED apenas para o frontend saber o que aconteceu
-            PropertyAccessRequestResponseDto response = request.toDto();
-            response.setStatus(AccessRequestStatus.REJECTED);
-            return response;
+            updatePropertyManagerIfNeeded(savedRequest);
         }
+
+        return savedRequest.toDto();
     }
 
     // --- NOVA IMPLEMENTAÇÃO ---
@@ -119,49 +116,6 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         return approvedRequests.stream()
                 .map(request -> request.getProperty().toDto())
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<PropertyAccessRequestResponseDto> getReceivedRequests(String ownerUsername) {
-        return propertyAccessRequestRepository.findAllByProperty_Owner_Username(ownerUsername)
-                .stream()
-                .map(PropertyAccessRequestModel::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional
-    public void revokeAccess(Long propertyId, String username) {
-        PropertyAccessRequestModel request = propertyAccessRequestRepository
-                .findByPropertyIdAndRequesterUsernameAndStatus(propertyId, username, AccessRequestStatus.APPROVED)
-                .orElseThrow(() -> new EntityNotFoundException("Vínculo de acesso não encontrado para esta propriedade."));
-
-        // Se o solicitante for um GERENTE, removemos ele do cargo de gerente na propriedade ao revogar
-        if (request.getRequester().getCargo() == Cargo.GERENTE) {
-            PropertyModel property = request.getProperty();
-            if (property.getManager() != null && property.getManager().getUsername().equals(username)) {
-                property.setManager(null);
-                propertyRepository.save(property);
-            }
-        }
-
-        propertyAccessRequestRepository.delete(request);
-    }
-
-    @Override
-    public boolean hasAccessToProperty(Long propertyId, String username) {
-        // 1. Verifica se o usuário é o dono
-        PropertyModel property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada"));
-
-        if (property.getOwner().getUsername().equals(username)) {
-            return true;
-        }
-
-        // 2. Verifica se existe uma solicitação com status APPROVED
-        return propertyAccessRequestRepository.findByPropertyIdAndRequesterUsernameAndStatus(
-                propertyId, username, AccessRequestStatus.APPROVED
-        ).isPresent();
     }
     // --------------------------
 

@@ -35,7 +35,8 @@ public class AnnualCropFolderControllerImpl implements AnnualCropFolderControlle
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/annual-crop-folder/get")
                 .queryParam("annualCropFolderId", createdAnnualCropFolder.getId())
-                .build().toUri();
+                .build()
+                .toUri();
 
         return ResponseEntity.created(location).body(createdAnnualCropFolder);
     }
@@ -55,9 +56,8 @@ public class AnnualCropFolderControllerImpl implements AnnualCropFolderControlle
     public ResponseEntity<List<AnnualCropFolderResponseDto>> getAnnualCropFoldersByPlot(
             @RequestParam(name = "plotId") Long plotId,
             Authentication authentication) {
-        // ATUALIZADO: Usa o novo método com permissão de leitura
         List<AnnualCropFolderResponseDto> annualCropFolders = annualCropFolderService
-                .getAllByPlotId(plotId, authentication.getName());
+                .getAllAnnualCropFoldersByPlot(plotId, authentication.getName());
         return ResponseEntity.ok(annualCropFolders);
     }
 

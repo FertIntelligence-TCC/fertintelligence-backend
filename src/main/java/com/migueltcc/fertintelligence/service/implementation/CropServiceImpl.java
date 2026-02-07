@@ -17,7 +17,6 @@ import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropService;
-import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +30,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class CropServiceImpl implements CropService {
-
-    @Autowired
-    private PropertyAccessRequestService propertyAccessRequestService;
 
     @Autowired
     private CropRepository cropRepository;
@@ -193,22 +189,6 @@ public class CropServiceImpl implements CropService {
         checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
         cropRepository.delete(crop);
-    }
-
-    @Override
-    public List<CropResponseDto> getAllByAnnualCropFolderId(Long folderId, String username) {
-        AnnualCropFolderModel folder = annualCropFolderRepository.findById(folderId)
-                .orElseThrow(() -> new EntityNotFoundException("Pasta não encontrada: " + folderId));
-
-        Long propertyId = folder.getPlot().getProperty().getId();
-
-        if (!propertyAccessRequestService.hasAccessToProperty(propertyId, username)) {
-            throw new AccessDeniedException("Acesso negado para visualizar culturas nesta pasta.");
-        }
-
-        return cropRepository.findAllByAnnualCropFolderId(folderId).stream()
-                .map(CropModel::toDto)
-                .collect(Collectors.toList());
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

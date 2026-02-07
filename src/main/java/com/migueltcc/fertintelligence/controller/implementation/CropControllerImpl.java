@@ -34,7 +34,8 @@ public class CropControllerImpl implements CropController {
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/crop/get")
                 .queryParam("cropId", createdCrop.getId())
-                .build().toUri();
+                .build()
+                .toUri();
 
         return ResponseEntity.created(location).body(createdCrop);
     }
@@ -53,8 +54,7 @@ public class CropControllerImpl implements CropController {
     public ResponseEntity<List<CropResponseDto>> getCropsByFolder(
             @RequestParam(name = "folderId") Long folderId,
             Authentication authentication) {
-        // ATUALIZADO: Usa o novo método que valida permissão via Propriedade
-        List<CropResponseDto> crops = cropService.getAllByAnnualCropFolderId(folderId, authentication.getName());
+        List<CropResponseDto> crops = cropService.getAllCropsByFolder(folderId, authentication.getName());
         return ResponseEntity.ok(crops);
     }
 

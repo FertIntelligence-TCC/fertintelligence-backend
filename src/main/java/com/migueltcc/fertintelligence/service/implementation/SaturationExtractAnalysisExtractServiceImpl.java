@@ -11,8 +11,12 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Range
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.*;
-import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
+import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
+import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SaturationExtractAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +30,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class SaturationExtractAnalysisExtractServiceImpl implements SaturationExtractAnalysisExtractService {
-
-    @Autowired
-    private PropertyAccessRequestService propertyAccessRequestService;
 
     @Autowired
     private SaturationExtractAnalysisExtractRepository saturationExtractAnalysisExtractRepository;
@@ -47,9 +48,6 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private PlotRepository plotRepository;
 
     @Override
     @Transactional
@@ -187,20 +185,6 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         checkPermission(resolvePlot(analysisExtract), requester);
 
         saturationExtractAnalysisExtractRepository.delete(analysisExtract);
-    }
-
-    @Override
-    public List<SaturationExtractAnalysisExtractResponseDto> getAllByPlotId(Long plotId, String username) {
-        PlotModel plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
-
-        if (!propertyAccessRequestService.hasAccessToProperty(plot.getProperty().getId(), username)) {
-            throw new AccessDeniedException("Você não tem permissão para visualizar análises deste talhão.");
-        }
-
-        return saturationExtractAnalysisExtractRepository.findAllByPlot_Id(plotId).stream()
-                .map(SaturationExtractAnalysisExtractModel::toDto) // <--- CORREÇÃO AQUI
-                .collect(Collectors.toList());
     }
 
     private void updateField(Double value, Consumer<Double> setter) {

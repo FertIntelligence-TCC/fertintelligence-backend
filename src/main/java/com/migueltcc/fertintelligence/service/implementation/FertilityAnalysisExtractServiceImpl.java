@@ -11,9 +11,13 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Range
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.*;
+import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
+import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FertilityAnalysisExtractService;
-import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,9 +30,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExtractService {
-
-    @Autowired
-    private PropertyAccessRequestService propertyAccessRequestService;
 
     @Autowired
     private FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
@@ -44,9 +45,6 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
     @Autowired
     private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private PlotRepository plotRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -184,20 +182,6 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         checkOwnerPermission(resolvePlot(analysisExtract), owner);
 
         fertilityAnalysisExtractRepository.delete(analysisExtract);
-    }
-
-    @Override
-    public List<FertilityAnalysisExtractResponseDto> getAllByPlotId(Long plotId, String username) {
-        PlotModel plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
-
-        if (!propertyAccessRequestService.hasAccessToProperty(plot.getProperty().getId(), username)) {
-            throw new AccessDeniedException("Você não tem permissão para visualizar análises deste talhão.");
-        }
-
-        return fertilityAnalysisExtractRepository.findAllByPlot_Id(plotId).stream()
-                .map(FertilityAnalysisExtractModel::toDto)
-                .collect(Collectors.toList());
     }
 
     private void updateField(Double value, Consumer<Double> setter) {

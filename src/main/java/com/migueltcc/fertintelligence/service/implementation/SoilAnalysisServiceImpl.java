@@ -16,7 +16,6 @@ import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
 import com.migueltcc.fertintelligence.service.documentation.SoilAnalysisService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -32,9 +31,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class SoilAnalysisServiceImpl implements SoilAnalysisService {
-
-    @Autowired
-    private PropertyAccessRequestService propertyAccessRequestService;
 
     @Autowired
     private SoilAnalysisRepository soilAnalysisRepository;
@@ -175,20 +171,6 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
 
         // 4. Finalmente, deletar a Análise Pai
         soilAnalysisRepository.delete(soilAnalysis);
-    }
-
-    @Override
-    public List<SoilAnalysisResponseDto> getAllByPlotId(Long plotId, String username) {
-        PlotModel plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado"));
-
-        if (!propertyAccessRequestService.hasAccessToProperty(plot.getProperty().getId(), username)) {
-            throw new AccessDeniedException("Você não tem permissão para visualizar as análises.");
-        }
-
-        return soilAnalysisRepository.findAllByPlotId(plotId).stream()
-                .map(SoilAnalysisModel::toDto) // <--- CORREÇÃO AQUI
-                .collect(Collectors.toList());
     }
 
     // Método auxiliar para deletar das tabelas finais

@@ -16,8 +16,6 @@ public interface AnnualCropFolderService {
 
     List<AnnualCropFolderResponseDto> getAllAnnualCropFoldersByPlot(Long plotId, String username);
 
-    List<AnnualCropFolderResponseDto> getAllByPlotId(Long plotId, String username);
-
     AnnualCropFolderResponseDto updateAnnualCropFolder(Long annualCropFolderId,
                                                        AnnualCropFolderPostRequestDto updateRequestDto,
                                                        String username);

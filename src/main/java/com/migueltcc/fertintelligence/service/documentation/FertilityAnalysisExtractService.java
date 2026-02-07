@@ -15,8 +15,6 @@ public interface FertilityAnalysisExtractService {
 
     FertilityAnalysisExtractResponseDto getFertilityAnalysisExtractById(Long fertilityAnalysisExtractId, String username);
 
-    List<FertilityAnalysisExtractResponseDto> getAllByPlotId(Long plotId, String username);
-
     List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByRange(Long rangeExtractId, String username);
 
     List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByLayer(Long layerExtractId, String username);
