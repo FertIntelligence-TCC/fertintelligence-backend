@@ -15,4 +15,9 @@ public interface PropertyAccessRequestService {
 
     List<PropertyResponseDto> getApprovedPropertiesForUser(String username);
 
+    List<PropertyAccessRequestResponseDto> getReceivedRequests(String ownerUsername);
+
+    void revokeAccess(Long propertyId, String username);
+
+    boolean hasAccessToProperty(Long propertyId, String username);
 }

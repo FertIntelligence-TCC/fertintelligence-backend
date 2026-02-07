@@ -59,6 +59,9 @@ public class UserModel {
     @Column(name = "NOME", nullable = false)
     private String name;
 
+    @Column(name = "ID_FOTO")
+    private String idfoto;
+
     public UserResponseDto toDto() {
         return UserResponseDto.builder()
                 .id(this.id)
@@ -79,6 +82,7 @@ public class UserModel {
                         this.telefone.getDdd(),
                         this.telefone.getNumero()
                 ))
+                .idfoto(this.idfoto)
                 .build();
     }
 

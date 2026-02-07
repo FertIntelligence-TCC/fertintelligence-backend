@@ -58,4 +58,8 @@ public class UserPostRequestDto {
     @JsonProperty("nova_senha")
     private String password;
 
+    @Schema(defaultValue = "idfoto")
+    @JsonProperty("novo_idfoto")
+    private String idfoto;
+
 }

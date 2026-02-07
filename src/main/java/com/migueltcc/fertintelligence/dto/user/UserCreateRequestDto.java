@@ -58,4 +58,8 @@ public class UserCreateRequestDto {
     @JsonProperty("name")
     @NotBlank
     private String name;
+
+    @JsonProperty("idfoto")
+    private String idfoto;
+
 }

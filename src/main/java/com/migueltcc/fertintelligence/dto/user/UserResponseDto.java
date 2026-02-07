@@ -57,4 +57,8 @@ public class UserResponseDto {
     @JsonProperty("name")
     private String nome;
 
+    @Schema(example = "Id de uma foto no MongoDB")
+    @JsonProperty("idfoto")
+    private String idfoto;
+
 }

@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
                 .cargo(userDTO.getCargo())
                 .password(passwordEncoder.encode(userDTO.getPassword()))
                 .name(userDTO.getName())
+                .idfoto(userDTO.getIdfoto())
                 .build();
 
         userRepository.save(user);
@@ -63,6 +64,7 @@ public class UserServiceImpl implements UserService {
         user.setProfissao(userDTO.getProfissao() == null ? user.getProfissao() : userDTO.getProfissao());
         user.setCargo(userDTO.getCargo() == null ? user.getCargo() : userDTO.getCargo());
         user.setPassword(userDTO.getPassword() == null ? user.getPassword() : passwordEncoder.encode(userDTO.getPassword()));
+        user.setIdfoto(userDTO.getIdfoto() == null ? user.getIdfoto() : userDTO.getIdfoto());
 
         userRepository.save(user);
         return "User updated successfully!";
