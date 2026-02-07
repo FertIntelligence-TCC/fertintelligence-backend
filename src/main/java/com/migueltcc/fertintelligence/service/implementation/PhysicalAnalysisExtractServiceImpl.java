@@ -11,12 +11,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Range
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
-import com.migueltcc.fertintelligence.repository.PhysicalAnalysisExtractRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.*;
 import com.migueltcc.fertintelligence.service.documentation.PhysicalAnalysisExtractService;
+import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -31,6 +28,9 @@ import java.util.stream.Collectors;
 public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtractService {
 
     @Autowired
+    private PropertyAccessRequestService propertyAccessRequestService;
+
+    @Autowired
     private PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
 
     @Autowired
@@ -41,6 +41,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
 
     @Autowired
     private PlotAccessRequestRepository plotAccessRequestRepository;
+
+    @Autowired
+    private PlotRepository plotRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -164,6 +167,20 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         checkPlotPermission(resolvePlot(analysisExtract), requestingUser);
 
         physicalAnalysisExtractRepository.delete(analysisExtract);
+    }
+
+    @Override
+    public List<PhysicalAnalysisExtractResponseDto> getAllByPlotId(Long plotId, String username) {
+        PlotModel plot = plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
+
+        if (!propertyAccessRequestService.hasAccessToProperty(plot.getProperty().getId(), username)) {
+            throw new AccessDeniedException("Você não tem permissão para visualizar análises deste talhão.");
+        }
+
+        return physicalAnalysisExtractRepository.findAllByPlot_Id(plotId).stream()
+                .map(PhysicalAnalysisExtractModel::toDto) // <--- CORREÇÃO AQUI
+                .collect(Collectors.toList());
     }
 
     private double valueOrZero(Double value) {

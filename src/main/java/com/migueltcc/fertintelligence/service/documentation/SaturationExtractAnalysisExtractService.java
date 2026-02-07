@@ -16,6 +16,8 @@ public interface SaturationExtractAnalysisExtractService {
     SaturationExtractAnalysisExtractResponseDto getSaturationExtractAnalysisExtractById(Long saturationExtractAnalysisExtractId,
                                                                                         String username);
 
+    List<SaturationExtractAnalysisExtractResponseDto> getAllByPlotId(Long plotId, String username);
+
     List<SaturationExtractAnalysisExtractResponseDto> getSaturationExtractAnalysisExtractsByRange(Long rangeExtractId,
                                                                                                   String username);
 

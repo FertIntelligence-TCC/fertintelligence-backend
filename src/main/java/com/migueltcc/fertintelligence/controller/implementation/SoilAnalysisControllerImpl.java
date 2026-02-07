@@ -33,8 +33,7 @@ public class SoilAnalysisControllerImpl implements SoilAnalysisController {
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/soil-analysis/get")
                 .queryParam("analysisId", createdAnalysis.getId())
-                .build()
-                .toUri();
+                .build().toUri();
 
         return ResponseEntity.created(location).body(createdAnalysis);
     }
@@ -53,7 +52,8 @@ public class SoilAnalysisControllerImpl implements SoilAnalysisController {
     public ResponseEntity<List<SoilAnalysisResponseDto>> getSoilAnalysesByPlot(
             @RequestParam(name = "plotId") Long plotId,
             Authentication authentication) {
-        List<SoilAnalysisResponseDto> analyses = soilAnalysisService.getAllSoilAnalysesByPlot(plotId, authentication.getName());
+        // ATUALIZADO: Chama getAllByPlotId que possui a permissão de visualização correta
+        List<SoilAnalysisResponseDto> analyses = soilAnalysisService.getAllByPlotId(plotId, authentication.getName());
         return ResponseEntity.ok(analyses);
     }
 

@@ -14,4 +14,6 @@ public interface SaturationExtractAnalysisExtractRepository extends JpaRepositor
     List<SaturationExtractAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<SaturationExtractAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    List<SaturationExtractAnalysisExtractModel> findAllByPlot_Id(Long plotId);
 }

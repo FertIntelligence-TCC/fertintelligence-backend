@@ -14,6 +14,8 @@ public interface CropService {
 
     List<CropResponseDto> getAllCropsByFolder(Long folderId, String username);
 
+    List<CropResponseDto> getAllByAnnualCropFolderId(Long folderId, String username);
+
     CropResponseDto updateCrop(Long cropId, CropPostRequestDto updateRequestDto, String username);
 
     void deleteCrop(Long cropId, String username);

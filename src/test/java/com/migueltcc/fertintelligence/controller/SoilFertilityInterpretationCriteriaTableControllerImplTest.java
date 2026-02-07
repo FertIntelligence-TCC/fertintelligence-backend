@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -10,15 +9,11 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,20 +21,18 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ExtendWith(MockitoExtension.class)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends AbstractControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private UserModel proprietarioUser;
     private UserModel otherProprietarioUser;
@@ -89,18 +82,29 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
         ownerTable = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .name("Critérios Base")
+                .description("Tabela base para testes")
                 .region(Regiao.NORDESTE)
                 .build();
     }
 
+    /**
+     * IMPORTANTE:
+     * O endpoint /register valida name obrigatório (vide log: "name: O nome é obrigatório").
+     * Portanto este DTO precisa ter name + description preenchidos para retornar 201.
+     */
     private SoilFertilityInterpretationCriteriaTableCreateRequestDto createRequestDto() {
         return SoilFertilityInterpretationCriteriaTableCreateRequestDto.builder()
+                .name("Critérios de Fertilidade do Solo - SUL")
+                .description("Critérios para interpretação de fertilidade do solo na região SUL.")
                 .region(Regiao.SUL)
                 .build();
     }
 
     private SoilFertilityInterpretationCriteriaTablePostRequestDto updateRequestDto() {
         return SoilFertilityInterpretationCriteriaTablePostRequestDto.builder()
+                .name("Critérios Atualizados - Centro Oeste")
+                .description("Atualização dos critérios para a região Centro-Oeste.")
                 .region(Regiao.CENTRO_OESTE)
                 .build();
     }
@@ -110,20 +114,22 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     void createSoilFertilityInterpretationCriteriaTableSuccessfully() throws Exception {
         SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
 
-        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
-                .id(20L)
-                .region(Regiao.SUL)
-                .build();
-
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
-                .thenReturn(savedTable);
+                .thenAnswer(invocation -> {
+                    SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
+                    model.setId(20L);
+                    model.setCreator(proprietarioUser);
+                    return model;
+                });
 
         mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/soil-fertility-interpretation-criteria-table/get?tableId=20"))
+                // Ajuste este Location caso o seu controller retorne outro padrão.
+                .andExpect(header().string("Location",
+                        "http://localhost/soil-fertility-interpretation-criteria-table/register/20"))
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
                 .andExpect(jsonPath("$.regiao").value("SUL"));
@@ -134,22 +140,22 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     void createSoilFertilityInterpretationCriteriaTableAsGerenteSuccessfully() throws Exception {
         SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
 
-        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
-                .id(21L)
-                .creator(gerenteUser)
-                .region(Regiao.SUL)
-                .build();
-
         when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
         when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
-                .thenReturn(savedTable);
+                .thenAnswer(invocation -> {
+                    SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
+                    model.setId(21L);
+                    model.setCreator(gerenteUser);
+                    return model;
+                });
 
         mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(21L))
-                .andExpect(jsonPath("$.nome_criador").value("Gerente"));
+                .andExpect(jsonPath("$.nome_criador").value("Gerente"))
+                .andExpect(jsonPath("$.regiao").value("SUL"));
     }
 
     @Test
@@ -157,22 +163,22 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     void createSoilFertilityInterpretationCriteriaTableAsResidenteSuccessfully() throws Exception {
         SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
 
-        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
-                .id(22L)
-                .creator(residenteUser)
-                .region(Regiao.SUL)
-                .build();
-
         when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
         when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
-                .thenReturn(savedTable);
+                .thenAnswer(invocation -> {
+                    SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
+                    model.setId(22L);
+                    model.setCreator(residenteUser);
+                    return model;
+                });
 
         mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(22L))
-                .andExpect(jsonPath("$.nome_criador").value("Agrônomo Residente"));
+                .andExpect(jsonPath("$.nome_criador").value("Agrônomo Residente"))
+                .andExpect(jsonPath("$.regiao").value("SUL"));
     }
 
     @Test
@@ -180,29 +186,30 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     void createSoilFertilityInterpretationCriteriaTableAsSecretarioSuccessfully() throws Exception {
         SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto();
 
-        SoilFertilityInterpretationCriteriaTableModel savedTable = ownerTable.toBuilder()
-                .id(23L)
-                .creator(secretarioUser)
-                .region(Regiao.SUL)
-                .build();
-
         when(userRepository.findByUsername("secretario")).thenReturn(Optional.of(secretarioUser));
         when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
-                .thenReturn(savedTable);
+                .thenAnswer(invocation -> {
+                    SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
+                    model.setId(23L);
+                    model.setCreator(secretarioUser);
+                    return model;
+                });
 
         mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(23L))
-                .andExpect(jsonPath("$.nome_criador").value("Secretário"));
+                .andExpect(jsonPath("$.nome_criador").value("Secretário"))
+                .andExpect(jsonPath("$.regiao").value("SUL"));
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void getSoilFertilityInterpretationCriteriaTableSuccessfully() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
 
         mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get")
                         .param("tableId", ownerTable.getId().toString()))
@@ -216,7 +223,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     @WithMockUser(username = "otheruser")
     void getSoilFertilityInterpretationCriteriaTableFails_WhenUserIsNotCreator() throws Exception {
         when(userRepository.findByUsername("otheruser")).thenReturn(Optional.of(otherProprietarioUser));
-        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
 
         mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get")
                         .param("tableId", ownerTable.getId().toString()))
@@ -238,8 +246,9 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
         mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$[1].regiao").value("SUL"))
-                .andExpect(jsonPath("$[0].regiao").value("NORDESTE"));
+                .andExpect(jsonPath("$[0].regiao").value("NORDESTE"))
+                .andExpect(jsonPath("$[1].id").value(11L))
+                .andExpect(jsonPath("$[1].regiao").value("SUL"));
     }
 
     @Test
@@ -248,7 +257,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
         SoilFertilityInterpretationCriteriaTablePostRequestDto requestDto = updateRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
         when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -264,11 +274,32 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     @WithMockUser(username = "testuser")
     void deleteSoilFertilityInterpretationCriteriaTableSuccessfully() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
         doNothing().when(soilFertilityInterpretationCriteriaTableRepository).delete(ownerTable);
 
         mockMvc.perform(delete("/soil-fertility-interpretation-criteria-table/delete")
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createSoilFertilityInterpretationCriteriaTableFails_WhenNameIsMissing() throws Exception {
+        // garante o cenário do log: name obrigatório -> 400
+        SoilFertilityInterpretationCriteriaTableCreateRequestDto invalid =
+                SoilFertilityInterpretationCriteriaTableCreateRequestDto.builder()
+                        .name(null)
+                        .description(null)
+                        .region(Regiao.SUL)
+                        .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+
+        mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation Error"));
     }
 }

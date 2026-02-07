@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller.documentation;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropPostRequestDto;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public interface CropController {
 
+    @Operation(summary = "Criar uma nova cultura em uma pasta")
     ResponseEntity<CropResponseDto> createCrop(
             @Parameter(description = "ID da pasta de culturas anuais", required = true)
             @RequestParam(name = "folderId") Long folderId,
@@ -26,18 +28,21 @@ public interface CropController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Buscar uma cultura pelo ID")
     ResponseEntity<CropResponseDto> getCrop(
             @Parameter(description = "ID da cultura a ser buscada", required = true)
             @RequestParam(name = "cropId") Long cropId,
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar culturas de uma pasta")
     ResponseEntity<List<CropResponseDto>> getCropsByFolder(
             @Parameter(description = "ID da pasta de culturas anuais", required = true)
             @RequestParam(name = "folderId") Long folderId,
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Atualizar uma cultura")
     ResponseEntity<CropResponseDto> updateCrop(
             @Parameter(description = "ID da cultura a ser atualizada", required = true)
             @RequestParam(name = "cropId") Long cropId,
@@ -46,6 +51,7 @@ public interface CropController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Deletar uma cultura")
     ResponseEntity<Void> deleteCrop(
             @Parameter(description = "ID da cultura a ser removida", required = true)
             @RequestParam(name = "cropId") Long cropId,

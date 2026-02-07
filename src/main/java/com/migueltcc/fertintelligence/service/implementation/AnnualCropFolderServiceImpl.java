@@ -15,6 +15,7 @@ import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.AnnualCropFolderService;
+import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
+
+    @Autowired
+    private PropertyAccessRequestService propertyAccessRequestService;
 
     @Autowired
     private AnnualCropFolderRepository annualCropFolderRepository;
@@ -132,6 +136,20 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
         checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
 
         annualCropFolderRepository.delete(annualCropFolder);
+    }
+
+    @Override
+    public List<AnnualCropFolderResponseDto> getAllByPlotId(Long plotId, String username) {
+        PlotModel plot = plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado: " + plotId));
+
+        if (!propertyAccessRequestService.hasAccessToProperty(plot.getProperty().getId(), username)) {
+            throw new AccessDeniedException("Acesso negado para visualizar pastas de cultura.");
+        }
+
+        return annualCropFolderRepository.findAllByPlotId(plotId).stream()
+                .map(AnnualCropFolderModel::toDto) // <--- CORREÇÃO AQUI
+                .collect(Collectors.toList());
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

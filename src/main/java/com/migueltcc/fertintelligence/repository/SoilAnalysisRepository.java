@@ -14,4 +14,6 @@ public interface SoilAnalysisRepository extends JpaRepository<SoilAnalysisModel,
     Optional<SoilAnalysisModel> findByPlotAndAnalysisYear(PlotModel plot, Integer analysisYear);
 
     List<SoilAnalysisModel> findAllByPlot(PlotModel plot);
+
+    List<SoilAnalysisModel> findAllByPlotId(Long plotId);
 }

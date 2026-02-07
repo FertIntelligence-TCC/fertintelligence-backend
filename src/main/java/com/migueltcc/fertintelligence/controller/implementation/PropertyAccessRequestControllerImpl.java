@@ -56,4 +56,19 @@ public class PropertyAccessRequestControllerImpl implements PropertyAccessReques
         return ResponseEntity.ok(approvedProperties);
     }
 
+    @GetMapping("/received")
+    public ResponseEntity<List<PropertyAccessRequestResponseDto>> getReceivedRequests(Authentication authentication) {
+        return ResponseEntity.ok(propertyAccessRequestService.getReceivedRequests(authentication.getName()));
+    }
+
+    @Override
+    @DeleteMapping("/revoke/{propertyId}")
+    public ResponseEntity<Void> revokeAccess(
+            @PathVariable Long propertyId,
+            Authentication authentication) {
+
+        propertyAccessRequestService.revokeAccess(propertyId, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
 }

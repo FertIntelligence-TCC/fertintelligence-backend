@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
@@ -19,21 +18,13 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
-import com.migueltcc.fertintelligence.repository.PlotRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +40,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
@@ -61,6 +51,7 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     private UserModel gerenteUser;
     private UserModel residenteUser;
     private UserModel consultorUser;
+
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
 
@@ -82,6 +73,13 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
                 .cargo(Cargo.SECRETARIO)
                 .build();
 
+        otherProprietarioUser = UserModel.builder()
+                .id(3L)
+                .username("otheruser")
+                .name("Other User Proprietario")
+                .cargo(Cargo.PROPRIETARIO)
+                .build();
+
         gerenteUser = UserModel.builder()
                 .id(4L)
                 .username("manager")
@@ -101,13 +99,6 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
                 .username("consultor")
                 .name("Agronomo Consultor")
                 .cargo(Cargo.AGRONOMO_CONSULTOR)
-                .build();
-
-        otherProprietarioUser = UserModel.builder()
-                .id(3L)
-                .username("otheruser")
-                .name("Other User Proprietario")
-                .cargo(Cargo.PROPRIETARIO)
                 .build();
 
         ownerProperty = createProperty(10L, "Fazenda Santa Clara", proprietarioUser);
@@ -177,6 +168,11 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    private void stubPropertyExists(PropertyModel property) {
+        // Correção principal: o controller/serviço valida existência da propriedade.
+        when(propertyRepository.findById(property.getId())).thenReturn(Optional.of(property));
+    }
+
     // --- TESTES DE CRIAÇÃO (CREATE) ---
     @Test
     @WithMockUser(username = "testuser")
@@ -186,6 +182,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
+        stubPropertyExists(ownerProperty);
+
         when(annualCropFolderRepository.findByPlotAndCropsYear(ownerPlot, requestDto.getCropsYear()))
                 .thenReturn(Optional.empty());
         when(annualCropFolderRepository.save(any(AnnualCropFolderModel.class))).thenReturn(savedAnnualCropFolder);
@@ -209,6 +207,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
+        stubPropertyExists(ownerProperty);
+
         when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
                 .thenReturn(Optional.of(createPlotAccessRequest(ownerPlot, funcionarioUser)));
         when(annualCropFolderRepository.findByPlotAndCropsYear(any(), any()))
@@ -233,6 +233,7 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(otherPlot.getId())).thenReturn(Optional.of(otherPlot));
+        stubPropertyExists(otherProperty);
 
         mockMvc.perform(post("/annual-crop-folder/register")
                         .param("plotId", otherPlot.getId().toString())
@@ -264,6 +265,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
+        stubPropertyExists(ownerProperty);
+
         when(annualCropFolderRepository.findByPlotAndCropsYear(ownerPlot, requestDto.getCropsYear()))
                 .thenReturn(Optional.of(existingAnnualCropFolder));
 
@@ -282,6 +285,7 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(annualCropFolder));
+        stubPropertyExists(ownerProperty);
 
         mockMvc.perform(get("/annual-crop-folder/get")
                         .param("annualCropFolderId", "1"))
@@ -296,11 +300,11 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     void getAnnualCropFolderFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel otherProperty = createProperty(20L, "Fazenda Secreta", otherProprietarioUser);
         PlotModel otherPlot = createPlotModel(200L, "Talhao 02", otherProperty);
-
         AnnualCropFolderModel annualCropFolder = createAnnualCropFolderModel(1L, 2023, otherPlot);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(annualCropFolder));
+        stubPropertyExists(otherProperty);
 
         mockMvc.perform(get("/annual-crop-folder/get")
                         .param("annualCropFolderId", "1"))
@@ -326,6 +330,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
+        stubPropertyExists(ownerProperty);
+
         when(annualCropFolderRepository.findAllByPlot(ownerPlot))
                 .thenReturn(List.of(folder2022, folder2023));
 
@@ -345,6 +351,7 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(otherPlot.getId())).thenReturn(Optional.of(otherPlot));
+        stubPropertyExists(otherProperty);
 
         mockMvc.perform(get("/annual-crop-folder/get-by-plot")
                         .param("plotId", otherPlot.getId().toString()))
@@ -360,6 +367,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(existingAnnualCropFolder));
+        stubPropertyExists(ownerProperty);
+
         when(annualCropFolderRepository.findByPlotAndCropsYear(ownerPlot, updateRequestDto.getCropsYear()))
                 .thenReturn(Optional.empty());
         when(annualCropFolderRepository.save(existingAnnualCropFolder)).thenReturn(existingAnnualCropFolder);
@@ -381,6 +390,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(existingAnnualCropFolder));
+        stubPropertyExists(ownerProperty);
+
         when(annualCropFolderRepository.findByPlotAndCropsYear(ownerPlot, updateRequestDto.getCropsYear()))
                 .thenReturn(Optional.of(conflictingAnnualCropFolder));
 
@@ -396,11 +407,11 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     void updateAnnualCropFolderFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel otherProperty = createProperty(20L, "Fazenda Secreta", otherProprietarioUser);
         PlotModel otherPlot = createPlotModel(200L, "Talhao 02", otherProperty);
-
         AnnualCropFolderModel annualCropFolder = createAnnualCropFolderModel(1L, 2023, otherPlot);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(annualCropFolder));
+        stubPropertyExists(otherProperty);
 
         mockMvc.perform(put("/annual-crop-folder/update")
                         .param("annualCropFolderId", "1")
@@ -417,6 +428,8 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(annualCropFolder));
+        stubPropertyExists(ownerProperty);
+
         doNothing().when(annualCropFolderRepository).delete(annualCropFolder);
 
         mockMvc.perform(delete("/annual-crop-folder/delete")
@@ -429,11 +442,11 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     void deleteAnnualCropFolderFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel otherProperty = createProperty(20L, "Fazenda Secreta", otherProprietarioUser);
         PlotModel otherPlot = createPlotModel(200L, "Talhao 02", otherProperty);
-
         AnnualCropFolderModel annualCropFolder = createAnnualCropFolderModel(1L, 2023, otherPlot);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(annualCropFolderRepository.findById(1L)).thenReturn(Optional.of(annualCropFolder));
+        stubPropertyExists(otherProperty);
 
         mockMvc.perform(delete("/annual-crop-folder/delete")
                         .param("annualCropFolderId", "1"))
@@ -444,7 +457,10 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "testuser")
     void deleteAnnualCropFolderFails_WhenUserIsNotProprietario() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
-        when(annualCropFolderRepository.findById(anyLong())).thenReturn(Optional.of(createAnnualCropFolderModel(1L, 2023, ownerPlot)));
+
+        AnnualCropFolderModel folder = createAnnualCropFolderModel(1L, 2023, ownerPlot);
+        when(annualCropFolderRepository.findById(anyLong())).thenReturn(Optional.of(folder));
+        stubPropertyExists(ownerProperty);
 
         mockMvc.perform(delete("/annual-crop-folder/delete")
                         .param("annualCropFolderId", "1"))

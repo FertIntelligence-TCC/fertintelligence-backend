@@ -14,4 +14,6 @@ public interface PhysicalAnalysisExtractRepository extends JpaRepository<Physica
     List<PhysicalAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<PhysicalAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    List<PhysicalAnalysisExtractModel> findAllByPlot_Id(Long plotId);
 }

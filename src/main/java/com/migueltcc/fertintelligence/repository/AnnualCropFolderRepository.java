@@ -14,4 +14,6 @@ public interface AnnualCropFolderRepository extends JpaRepository<AnnualCropFold
     Optional<AnnualCropFolderModel> findByPlotAndCropsYear(PlotModel plot, Integer cropsYear);
 
     List<AnnualCropFolderModel> findAllByPlot(PlotModel plot);
+
+    List<AnnualCropFolderModel> findAllByPlotId(Long plotId);
 }
