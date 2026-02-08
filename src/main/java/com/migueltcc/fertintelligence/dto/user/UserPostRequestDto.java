@@ -46,7 +46,7 @@ public class UserPostRequestDto {
     @JsonProperty("nova_formacao")
     private Formacao formacao;
 
-    @Schema(defaultValue = "genero")
+    @Schema(defaultValue = "profissao")
     @JsonProperty("nova_profissao")
     private String profissao;
 
