@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
                 .cargo(userDTO.getCargo())
                 .password(passwordEncoder.encode(userDTO.getPassword()))
                 .name(userDTO.getName())
+                .idfoto(userDTO.getIdfoto())
                 .build();
 
         userRepository.save(user);
@@ -50,6 +51,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String updateUser(String Username, UserPostRequestDto userDTO) {
+        System.out.println("Esse é o id da foto: "+userDTO.getIdfoto());
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
@@ -63,6 +65,7 @@ public class UserServiceImpl implements UserService {
         user.setProfissao(userDTO.getProfissao() == null ? user.getProfissao() : userDTO.getProfissao());
         user.setCargo(userDTO.getCargo() == null ? user.getCargo() : userDTO.getCargo());
         user.setPassword(userDTO.getPassword() == null ? user.getPassword() : passwordEncoder.encode(userDTO.getPassword()));
+        user.setIdfoto(userDTO.getIdfoto() == null ? user.getIdfoto() : userDTO.getIdfoto());
 
         userRepository.save(user);
         return "User updated successfully!";

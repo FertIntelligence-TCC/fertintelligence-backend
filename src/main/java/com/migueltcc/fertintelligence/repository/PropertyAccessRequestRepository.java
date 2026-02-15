@@ -19,4 +19,8 @@ public interface PropertyAccessRequestRepository extends JpaRepository<PropertyA
 
     List<PropertyAccessRequestModel> findAllByRequesterAndStatus(UserModel requester, AccessRequestStatus status);
 
+    List<PropertyAccessRequestModel> findAllByProperty_Owner_Username(String username);
+
+    Optional<PropertyAccessRequestModel> findByPropertyIdAndRequesterUsernameAndStatus(
+            Long propertyId, String requesterUsername, AccessRequestStatus status);
 }

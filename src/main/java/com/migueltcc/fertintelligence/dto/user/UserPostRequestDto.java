@@ -46,7 +46,7 @@ public class UserPostRequestDto {
     @JsonProperty("nova_formacao")
     private Formacao formacao;
 
-    @Schema(defaultValue = "genero")
+    @Schema(defaultValue = "profissao")
     @JsonProperty("nova_profissao")
     private String profissao;
 
@@ -57,5 +57,9 @@ public class UserPostRequestDto {
     @Schema(defaultValue = "senha")
     @JsonProperty("nova_senha")
     private String password;
+
+    @Schema(defaultValue = "idfoto")
+    @JsonProperty("novo_idfoto")
+    private String idfoto;
 
 }
