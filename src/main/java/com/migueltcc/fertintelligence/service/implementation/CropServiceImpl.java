@@ -12,13 +12,11 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
-import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.*;
 import com.migueltcc.fertintelligence.service.documentation.CropService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -29,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CropServiceImpl implements CropService {
 
     @Autowired
@@ -42,6 +41,18 @@ public class CropServiceImpl implements CropService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FoliarAnalysisRepository foliarAnalysisRepository;
+
+    @Autowired
+    private LiquidSourceRepository liquidSourceRepository;
+
+    @Autowired
+    private SolidSourceRepository solidSourceRepository;
+
+    @Autowired
+    private TopDressingFertilizationRepository topDressingFertilizationRepository;
 
     @Override
     @Transactional
@@ -183,11 +194,21 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public void deleteCrop(Long cropId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        CropModel crop = cropRepository.findById(cropId)
+                .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada."));
 
-        CropModel crop = findCropByIdOrThrow(cropId);
+        UserModel requestingUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+
         checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
+        // Limpeza em cascata
+        foliarAnalysisRepository.deleteAllByCropId(crop.getId());
+        liquidSourceRepository.deleteAllByCropId(crop.getId());
+        solidSourceRepository.deleteAllByCropId(crop.getId());
+        topDressingFertilizationRepository.deleteAllByCropId(crop.getId());
+
+        // Deleção da Cultura
         cropRepository.delete(crop);
     }
 

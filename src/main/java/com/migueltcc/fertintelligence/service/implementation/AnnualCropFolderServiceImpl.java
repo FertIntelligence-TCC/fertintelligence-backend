@@ -21,6 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.migueltcc.fertintelligence.repository.CropRepository;
+import com.migueltcc.fertintelligence.service.documentation.CropService;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import org.springframework.context.annotation.Lazy;
+import java.util.List;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +47,12 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CropRepository cropRepository;
+
+    @Autowired
+    private CropService cropService;
 
     @Override
     @Transactional
@@ -124,14 +135,21 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
     @Override
     @Transactional
-    public void deleteAnnualCropFolder(Long annualCropFolderId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+    public void deleteAnnualCropFolder(Long id, String username) { // Mantenha a assinatura que você já usa
+        AnnualCropFolderModel folder = annualCropFolderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada."));
+
+        UserModel requestingUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+
+        checkPlotPermission(folder.getPlot(), requestingUser);
         checkUserHasAllowedRole(requestingUser);
 
-        AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
-
-        annualCropFolderRepository.delete(annualCropFolder);
+        List<CropModel> crops = cropRepository.findAllByFolderId(folder.getId());
+        for (CropModel crop : crops) {
+            cropService.deleteCrop(crop.getId(), username);
+        }
+        annualCropFolderRepository.delete(folder);
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
