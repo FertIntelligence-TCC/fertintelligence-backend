@@ -28,7 +28,10 @@ public class PropertyPostRequestDto {
 
     @Schema(defaultValue = "cnpj")
     @JsonProperty("novo_cnpj")
-    @Pattern(regexp = "^\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}$", message = "CNPJ deve estar no formato XX.XXX.XXX/0001-XX")
+    @Pattern(
+            regexp = "^\\d{14}$",
+            message = "CNPJ deve conter 14 dígitos numéricos"
+    )
     private String cnpj;
 
     @Schema(defaultValue = "localizacao")

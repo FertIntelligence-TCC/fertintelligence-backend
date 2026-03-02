@@ -135,7 +135,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
     @Override
     @Transactional
-    public void deleteAnnualCropFolder(Long id, String username) { // Mantenha a assinatura que você já usa
+    public void deleteAnnualCropFolder(Long id, String username) {
         AnnualCropFolderModel folder = annualCropFolderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada."));
 
@@ -149,6 +149,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
         for (CropModel crop : crops) {
             cropService.deleteCrop(crop.getId(), username);
         }
+        cropRepository.flush();
         annualCropFolderRepository.delete(folder);
     }
 

@@ -12,6 +12,7 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Component
-@Order(4) // Executa APÓS UserDataSeeder
+@Order(4)
 @RequiredArgsConstructor
 @Slf4j
 public class CropFertilizationTableDataSeeder implements CommandLineRunner {
