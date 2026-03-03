@@ -9,97 +9,86 @@ import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderMod
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
+import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.AnnualCropFolderService;
+import com.migueltcc.fertintelligence.service.documentation.CropService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.service.documentation.CropService;
-import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
-import org.springframework.context.annotation.Lazy;
-import java.util.List;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
-    @Autowired
-    private AnnualCropFolderRepository annualCropFolderRepository;
+    private final AnnualCropFolderRepository annualCropFolderRepository;
+    private final PlotRepository plotRepository;
+    private final PlotAccessRequestRepository plotAccessRequestRepository;
+    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
+    private final UserRepository userRepository;
+    private final CropRepository cropRepository;
 
-    @Autowired
-    private PlotRepository plotRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
-    private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private CropRepository cropRepository;
-
-    @Autowired
-    private CropService cropService;
+    // evita possíveis ciclos de dependência (folder -> cropService -> folderService)
+    private final @Lazy CropService cropService;
 
     @Override
     @Transactional
-    public AnnualCropFolderResponseDto createAnnualCropFolder(Long plotId,
-                                                              AnnualCropFolderCreateRequestDto createRequestDto,
-                                                              String username) {
+    public AnnualCropFolderResponseDto createAnnualCropFolder(
+            Long plotId,
+            AnnualCropFolderCreateRequestDto createRequestDto,
+            String username
+    ) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(requestingUser);
-
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkPlotPermission(plot, requestingUser);
+
+        authorizePlotAccess(plot, requestingUser);
 
         annualCropFolderRepository.findByPlotAndCropsYear(plot, createRequestDto.getCropsYear())
                 .ifPresent(existing -> {
-                    throw new EntityExistsException("Já existe uma pasta de cultura anual para o ano informado neste talhão: "
-                            + createRequestDto.getCropsYear());
+                    throw new EntityExistsException(
+                            "Já existe uma pasta de cultura anual para o ano informado neste talhão: "
+                                    + createRequestDto.getCropsYear()
+                    );
                 });
 
-        AnnualCropFolderModel annualCropFolder = AnnualCropFolderModel.builder()
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder()
                 .plot(plot)
                 .cropsYear(createRequestDto.getCropsYear())
                 .build();
 
-        AnnualCropFolderModel savedAnnualCropFolder = annualCropFolderRepository.save(annualCropFolder);
-        return savedAnnualCropFolder.toDto();
+        return annualCropFolderRepository.save(folder).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public AnnualCropFolderResponseDto getAnnualCropFolderById(Long annualCropFolderId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(requestingUser);
+        AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
 
-        AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
+        authorizePlotAccess(folder.getPlot(), requestingUser);
 
-        return annualCropFolder.toDto();
+        return folder.toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AnnualCropFolderResponseDto> getAllAnnualCropFoldersByPlot(Long plotId, String username) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(requestingUser);
-
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        checkPlotPermission(plot, requestingUser);
+
+        authorizePlotAccess(plot, requestingUser);
 
         return annualCropFolderRepository.findAllByPlot(plot).stream()
                 .map(AnnualCropFolderModel::toDto)
@@ -108,49 +97,98 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
     @Override
     @Transactional
-    public AnnualCropFolderResponseDto updateAnnualCropFolder(Long annualCropFolderId,
-                                                              AnnualCropFolderPostRequestDto updateRequestDto,
-                                                              String username) {
+    public AnnualCropFolderResponseDto updateAnnualCropFolder(
+            Long annualCropFolderId,
+            AnnualCropFolderPostRequestDto updateRequestDto,
+            String username
+    ) {
         UserModel requestingUser = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(requestingUser);
+        AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
 
-        AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
-        checkPlotPermission(annualCropFolder.getPlot(), requestingUser);
+        authorizePlotAccess(folder.getPlot(), requestingUser);
 
-        if (updateRequestDto.getCropsYear() != null
-                && !updateRequestDto.getCropsYear().equals(annualCropFolder.getCropsYear())) {
-            annualCropFolderRepository.findByPlotAndCropsYear(annualCropFolder.getPlot(), updateRequestDto.getCropsYear())
+        Integer newYear = updateRequestDto.getCropsYear();
+        if (newYear != null && !newYear.equals(folder.getCropsYear())) {
+            annualCropFolderRepository.findByPlotAndCropsYear(folder.getPlot(), newYear)
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(annualCropFolderId)) {
-                            throw new EntityExistsException("Já existe uma pasta de cultura anual para o ano informado neste talhão: "
-                                    + updateRequestDto.getCropsYear());
+                            throw new EntityExistsException(
+                                    "Já existe uma pasta de cultura anual para o ano informado neste talhão: " + newYear
+                            );
                         }
                     });
-            annualCropFolder.setCropsYear(updateRequestDto.getCropsYear());
+            folder.setCropsYear(newYear);
         }
 
-        AnnualCropFolderModel updatedAnnualCropFolder = annualCropFolderRepository.save(annualCropFolder);
-        return updatedAnnualCropFolder.toDto();
+        return annualCropFolderRepository.save(folder).toDto();
     }
 
     @Override
     @Transactional
     public void deleteAnnualCropFolder(Long id, String username) {
-        AnnualCropFolderModel folder = annualCropFolderRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada."));
+        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(id);
 
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+        authorizePlotAccess(folder.getPlot(), requestingUser);
 
-        checkPlotPermission(folder.getPlot(), requestingUser);
-        checkUserHasAllowedRole(requestingUser);
+        deleteAllCropsFromFolder(folder.getId(), username);
 
-        List<CropModel> crops = cropRepository.findAllByFolderId(folder.getId());
+        annualCropFolderRepository.delete(folder);
+    }
+
+    private void deleteAllCropsFromFolder(Long folderId, String username) {
+        List<CropModel> crops = cropRepository.findAllByFolderId(folderId);
         for (CropModel crop : crops) {
             cropService.deleteCrop(crop.getId(), username);
         }
         cropRepository.flush();
-        annualCropFolderRepository.delete(folder);
+    }
+
+    private void authorizePlotAccess(PlotModel plot, UserModel requestingUser) {
+        ensureAllowedRole(requestingUser);
+        ensureHasPlotAccess(plot, requestingUser);
+    }
+
+    private void ensureAllowedRole(UserModel user) {
+        Cargo cargo = user.getCargo();
+        boolean allowed =
+                cargo == Cargo.PROPRIETARIO
+                        || cargo == Cargo.GERENTE
+                        || cargo == Cargo.AGRONOMO_RESIDENTE
+                        || cargo == Cargo.AGRONOMO_CONSULTOR
+                        || cargo == Cargo.SUPERVISOR_DE_AREA
+                        || cargo == Cargo.SECRETARIO;
+
+        if (!allowed) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta pasta de cultura anual.");
+        }
+    }
+
+    private void ensureHasPlotAccess(PlotModel plot, UserModel requestingUser) {
+        PropertyModel property = plot.getProperty();
+
+        if (property.getOwner().getId().equals(requestingUser.getId())) return;
+
+        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) return;
+
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean hasPropertyApproval = propertyAccessRequestRepository
+                    .findByPropertyAndRequesterAndStatus(property, requestingUser, AccessRequestStatus.APPROVED)
+                    .isPresent();
+
+            if (!hasPropertyApproval) {
+                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            }
+            return;
+        }
+
+        boolean hasPlotApproval = plotAccessRequestRepository
+                .findByPlotAndRequesterAndStatus(plot, requestingUser, AccessRequestStatus.APPROVED)
+                .isPresent();
+
+        if (!hasPlotApproval) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -165,51 +203,8 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long annualCropFolderId) {
         return annualCropFolderRepository.findById(annualCropFolderId)
-                .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + annualCropFolderId));
-    }
-
-    private void checkUserHasAllowedRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
-                && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && user.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta pasta de cultura anual.");
-        }
-    }
-
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser) {
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasApprovedAccess) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Pasta de cultura anual não encontrada com o ID: " + annualCropFolderId
+                ));
     }
 }

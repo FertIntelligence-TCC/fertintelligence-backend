@@ -5,12 +5,12 @@ import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
@@ -60,7 +60,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         UserModel requester = findUserByUsernameOrThrow(username);
 
         ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
-        checkPermission(extractContext.plot(), requester);
+        checkPermission(extractContext.plot(), requester, true);
 
         SaturationExtractAnalysisExtractModel analysisExtract = SaturationExtractAnalysisExtractModel.builder()
                 .rangeExtract(extractContext.rangeExtract())
@@ -83,7 +83,9 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 .pst(createRequestDto.getPst())
                 .build();
 
-        SaturationExtractAnalysisExtractModel savedExtract = saturationExtractAnalysisExtractRepository.save(analysisExtract);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                saturationExtractAnalysisExtractRepository.save(analysisExtract);
+
         return savedExtract.toDto();
     }
 
@@ -98,7 +100,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkPermission(resolvePlot(analysisExtract), requester);
+        checkPermission(resolvePlot(analysisExtract), requester, false);
 
         return analysisExtract.toDto();
     }
@@ -112,7 +114,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         UserModel requester = findUserByUsernameOrThrow(username);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        checkPermission(rangeExtract.getAnalysis().getPlot(), requester);
+        checkPermission(rangeExtract.getAnalysis().getPlot(), requester, false);
 
         return saturationExtractAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
@@ -129,7 +131,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        checkPermission(layerExtract.getAnalysis().getPlot(), requester);
+        checkPermission(layerExtract.getAnalysis().getPlot(), requester, false);
 
         return saturationExtractAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
@@ -149,7 +151,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkPermission(resolvePlot(analysisExtract), requester);
+        checkPermission(resolvePlot(analysisExtract), requester, true);
 
         updateField(updateRequestDto.getPh(), analysisExtract::setPh);
         updateField(updateRequestDto.getCe(), analysisExtract::setCe);
@@ -182,7 +184,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         SaturationExtractAnalysisExtractModel analysisExtract =
                 findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
 
-        checkPermission(resolvePlot(analysisExtract), requester);
+        checkPermission(resolvePlot(analysisExtract), requester, true);
 
         saturationExtractAnalysisExtractRepository.delete(analysisExtract);
     }
@@ -216,45 +218,61 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         throw new IllegalStateException("Extrato de análise de saturação não possui extrato base associado.");
     }
 
-    private void checkPermission(PlotModel plot, UserModel requestingUser) {
-        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
-                && requestingUser.getCargo() != Cargo.GERENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
+    /**
+     * Regras refatoradas:
+     * - Cargos permitidos: PROPRIETARIO, GERENTE, AGRONOMO_RESIDENTE, AGRONOMO_CONSULTOR, SECRETARIO
+     * - Dono/gerente: sempre liberados (read/edit)
+     * - Aprovado na PROPRIEDADE (PropertyAccessRequest APPROVED): liberado para READ
+     * - Para EDIT: somente AGRONOMO_RESIDENTE (além de dono/gerente) — ajuste aqui se quiser abrir para outros cargos
+     *
+     * Obs: PlotAccessRequest continua existindo, mas não deve bloquear leitura se já existe aprovação na propriedade.
+     */
+    private void checkPermission(PlotModel plot, UserModel requestingUser, boolean requireEdit) {
+        checkUserHasAllowedRole(requestingUser);
 
         PropertyModel property = plot.getProperty();
 
+        // Dono
         if (property.getOwner().getId().equals(requestingUser.getId())) {
             return;
         }
 
+        // Gerente
         if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
             return;
         }
 
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
+        // Precisa ter aprovação na propriedade para qualquer acesso (read/edit)
+        boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property,
                 requestingUser,
                 AccessRequestStatus.APPROVED
         ).isPresent();
 
-        if (!hasPlotApproval) {
+        if (!hasPropertyApproval) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        // Leitura: aprovação na propriedade já basta
+        if (!requireEdit) {
+            return;
+        }
+
+        // Edição: restringe (ajuste conforme sua regra)
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            return;
+        }
+
+        throw new AccessDeniedException("Você não tem permissão para modificar este recurso.");
+    }
+
+    private void checkUserHasAllowedRole(UserModel requestingUser) {
+        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.GERENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requestingUser.getCargo() != Cargo.SECRETARIO
+                && requestingUser.getCargo() != Cargo.SUPERVISOR_DE_AREA) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }
@@ -278,9 +296,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 );
     }
 
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(
-            Long id
-    ) {
+    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {
         return saturationExtractAnalysisExtractRepository.findById(id)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id)

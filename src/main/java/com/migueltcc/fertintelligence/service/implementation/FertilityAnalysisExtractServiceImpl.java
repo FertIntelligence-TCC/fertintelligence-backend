@@ -5,12 +5,12 @@ import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
@@ -19,51 +19,53 @@ import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FertilityAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExtractService {
 
-    @Autowired
-    private FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
+    private static final Set<Cargo> ALLOWED_ROLES = EnumSet.of(
+            Cargo.PROPRIETARIO,
+            Cargo.GERENTE,
+            Cargo.AGRONOMO_RESIDENTE,
+            Cargo.AGRONOMO_CONSULTOR,
+            Cargo.SUPERVISOR_DE_AREA,
+            Cargo.SECRETARIO
+    );
 
-    @Autowired
-    private RangeExtractRepository rangeExtractRepository;
-
-    @Autowired
-    private LayerExtractRepository layerExtractRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
-    private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
+    private final RangeExtractRepository rangeExtractRepository;
+    private final LayerExtractRepository layerExtractRepository;
+    private final PlotAccessRequestRepository plotAccessRequestRepository;
+    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
-    public FertilityAnalysisExtractResponseDto createFertilityAnalysisExtract(Long rangeExtractId,
-                                                                              Long layerExtractId,
-                                                                              FertilityAnalysisExtractCreateRequestDto createRequestDto,
-                                                                              String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+    public FertilityAnalysisExtractResponseDto createFertilityAnalysisExtract(
+            Long rangeExtractId,
+            Long layerExtractId,
+            FertilityAnalysisExtractCreateRequestDto createRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
-        ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
-        checkOwnerPermission(extractContext.plot(), owner);
+        ExtractContext ctx = resolveExtractContext(rangeExtractId, layerExtractId);
+        assertHasAccessToPlot(ctx.plot(), requester);
 
         FertilityAnalysisExtractModel analysisExtract = FertilityAnalysisExtractModel.builder()
-                .rangeExtract(extractContext.rangeExtract())
-                .layerExtract(extractContext.layerExtract())
+                .rangeExtract(ctx.rangeExtract())
+                .layerExtract(ctx.layerExtract())
                 .phAgua(createRequestDto.getPhAgua())
                 .phCacl2(createRequestDto.getPhCacl2())
                 .calcio(createRequestDto.getCalcio())
@@ -89,18 +91,16 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                 .zinco(createRequestDto.getZinco())
                 .build();
 
-        FertilityAnalysisExtractModel savedExtract = fertilityAnalysisExtractRepository.save(analysisExtract);
-        return savedExtract.toDto();
+        return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public FertilityAnalysisExtractResponseDto getFertilityAnalysisExtractById(Long fertilityAnalysisExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
 
         return analysisExtract.toDto();
     }
@@ -108,13 +108,13 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Override
     @Transactional(readOnly = true)
     public List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByRange(Long rangeExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        checkOwnerPermission(rangeExtract.getAnalysis().getPlot(), owner);
+        assertHasAccessToPlot(rangeExtract.getAnalysis().getPlot(), requester);
 
-        return fertilityAnalysisExtractRepository.findAllByRangeExtract(rangeExtract).stream()
+        return fertilityAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
+                .stream()
                 .map(FertilityAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -122,76 +122,76 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     @Override
     @Transactional(readOnly = true)
     public List<FertilityAnalysisExtractResponseDto> getFertilityAnalysisExtractsByLayer(Long layerExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
+        assertHasAccessToPlot(layerExtract.getAnalysis().getPlot(), requester);
 
-        return fertilityAnalysisExtractRepository.findAllByLayerExtract(layerExtract).stream()
+        return fertilityAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
+                .stream()
                 .map(FertilityAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public FertilityAnalysisExtractResponseDto updateFertilityAnalysisExtract(Long fertilityAnalysisExtractId,
-                                                                              FertilityAnalysisExtractPostRequestDto updateRequestDto,
-                                                                              String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+    public FertilityAnalysisExtractResponseDto updateFertilityAnalysisExtract(
+            Long fertilityAnalysisExtractId,
+            FertilityAnalysisExtractPostRequestDto updateRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
 
-        updateField(updateRequestDto.getPhAgua(), analysisExtract::setPhAgua);
-        updateField(updateRequestDto.getPhCacl2(), analysisExtract::setPhCacl2);
-        updateField(updateRequestDto.getCalcio(), analysisExtract::setCalcio);
-        updateField(updateRequestDto.getMagnesio(), analysisExtract::setMagnesio);
-        updateField(updateRequestDto.getPotassio(), analysisExtract::setPotassio);
-        updateField(updateRequestDto.getSodio(), analysisExtract::setSodio);
-        updateField(updateRequestDto.getAluminio(), analysisExtract::setAluminio);
-        updateField(updateRequestDto.getAluminioMaisHidrogenio(), analysisExtract::setAluminioMaisHidrogenio);
-        updateField(updateRequestDto.getSomaBases(), analysisExtract::setSomaBases);
-        updateField(updateRequestDto.getCtcEfetiva(), analysisExtract::setCtcEfetiva);
-        updateField(updateRequestDto.getCtcPh7(), analysisExtract::setCtcPh7);
-        updateField(updateRequestDto.getSaturacaoBasesV(), analysisExtract::setSaturacaoBasesV);
-        updateField(updateRequestDto.getSaturacaoAluminioM(), analysisExtract::setSaturacaoAluminioM);
-        updateField(updateRequestDto.getFosforoMehlich1(), analysisExtract::setFosforoMehlich1);
-        updateField(updateRequestDto.getFosforoResina(), analysisExtract::setFosforoResina);
-        updateField(updateRequestDto.getEnxofre(), analysisExtract::setEnxofre);
-        updateField(updateRequestDto.getMateriaOrganica(), analysisExtract::setMateriaOrganica);
-        updateField(updateRequestDto.getBoro(), analysisExtract::setBoro);
-        updateField(updateRequestDto.getCobre(), analysisExtract::setCobre);
-        updateField(updateRequestDto.getFerro(), analysisExtract::setFerro);
-        updateField(updateRequestDto.getManganes(), analysisExtract::setManganes);
-        updateField(updateRequestDto.getMolibdenio(), analysisExtract::setMolibdenio);
-        updateField(updateRequestDto.getZinco(), analysisExtract::setZinco);
+        updateIfNotNull(updateRequestDto.getPhAgua(), analysisExtract::setPhAgua);
+        updateIfNotNull(updateRequestDto.getPhCacl2(), analysisExtract::setPhCacl2);
+        updateIfNotNull(updateRequestDto.getCalcio(), analysisExtract::setCalcio);
+        updateIfNotNull(updateRequestDto.getMagnesio(), analysisExtract::setMagnesio);
+        updateIfNotNull(updateRequestDto.getPotassio(), analysisExtract::setPotassio);
+        updateIfNotNull(updateRequestDto.getSodio(), analysisExtract::setSodio);
+        updateIfNotNull(updateRequestDto.getAluminio(), analysisExtract::setAluminio);
+        updateIfNotNull(updateRequestDto.getAluminioMaisHidrogenio(), analysisExtract::setAluminioMaisHidrogenio);
+        updateIfNotNull(updateRequestDto.getSomaBases(), analysisExtract::setSomaBases);
+        updateIfNotNull(updateRequestDto.getCtcEfetiva(), analysisExtract::setCtcEfetiva);
+        updateIfNotNull(updateRequestDto.getCtcPh7(), analysisExtract::setCtcPh7);
+        updateIfNotNull(updateRequestDto.getSaturacaoBasesV(), analysisExtract::setSaturacaoBasesV);
+        updateIfNotNull(updateRequestDto.getSaturacaoAluminioM(), analysisExtract::setSaturacaoAluminioM);
+        updateIfNotNull(updateRequestDto.getFosforoMehlich1(), analysisExtract::setFosforoMehlich1);
+        updateIfNotNull(updateRequestDto.getFosforoResina(), analysisExtract::setFosforoResina);
+        updateIfNotNull(updateRequestDto.getEnxofre(), analysisExtract::setEnxofre);
+        updateIfNotNull(updateRequestDto.getMateriaOrganica(), analysisExtract::setMateriaOrganica);
+        updateIfNotNull(updateRequestDto.getBoro(), analysisExtract::setBoro);
+        updateIfNotNull(updateRequestDto.getCobre(), analysisExtract::setCobre);
+        updateIfNotNull(updateRequestDto.getFerro(), analysisExtract::setFerro);
+        updateIfNotNull(updateRequestDto.getManganes(), analysisExtract::setManganes);
+        updateIfNotNull(updateRequestDto.getMolibdenio(), analysisExtract::setMolibdenio);
+        updateIfNotNull(updateRequestDto.getZinco(), analysisExtract::setZinco);
 
-        FertilityAnalysisExtractModel updatedExtract = fertilityAnalysisExtractRepository.save(analysisExtract);
-        return updatedExtract.toDto();
+        return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
     }
 
     @Override
     @Transactional
     public void deleteFertilityAnalysisExtract(Long fertilityAnalysisExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        checkOwnerPermission(resolvePlot(analysisExtract), owner);
+        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
 
         fertilityAnalysisExtractRepository.delete(analysisExtract);
     }
 
-    private void updateField(Double value, Consumer<Double> setter) {
-        if (value != null) {
-            setter.accept(value);
-        }
+    private void updateIfNotNull(Double value, Consumer<Double> setter) {
+        if (value != null) setter.accept(value);
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {
-        if ((rangeExtractId == null && layerExtractId == null) || (rangeExtractId != null && layerExtractId != null)) {
+        boolean noneProvided = (rangeExtractId == null && layerExtractId == null);
+        boolean bothProvided = (rangeExtractId != null && layerExtractId != null);
+
+        if (noneProvided || bothProvided) {
             throw new IllegalArgumentException("Informe exatamente um extrato base (intervalo ou camada).");
         }
 
@@ -208,55 +208,44 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         if (analysisExtract.getRangeExtract() != null) {
             return analysisExtract.getRangeExtract().getAnalysis().getPlot();
         }
-
         if (analysisExtract.getLayerExtract() != null) {
             return analysisExtract.getLayerExtract().getAnalysis().getPlot();
         }
-
         throw new IllegalStateException("Extrato de análise de fertilidade não possui extrato base associado.");
     }
 
-    private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
-                && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && user.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
+    private void assertHasAccessToPlot(PlotModel plot, UserModel requester) {
+        assertAllowedRole(requester);
 
-    private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
         PropertyModel property = plot.getProperty();
 
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
+        if (property.getOwner().getId().equals(requester.getId())) return;
+        if (property.getManager() != null && property.getManager().getId().equals(requester.getId())) return;
 
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
+        // Regra especial: Agrônomo Residente acessa via aprovação na PROPRIEDADE
+        if (requester.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean approvedOnProperty = propertyAccessRequestRepository
+                    .findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.APPROVED)
+                    .isPresent();
 
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasApprovedPropertyAccess = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasApprovedPropertyAccess) {
+            if (!approvedOnProperty) {
                 throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
             }
             return;
         }
 
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
+        // Demais perfis não-donos: exige aprovação no TALHÃO
+        boolean approvedOnPlot = plotAccessRequestRepository
+                .findByPlotAndRequesterAndStatus(plot, requester, AccessRequestStatus.APPROVED)
+                .isPresent();
 
-        if (!hasApprovedAccess) {
+        if (!approvedOnPlot) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+    }
+
+    private void assertAllowedRole(UserModel requester) {
+        if (!ALLOWED_ROLES.contains(requester.getCargo())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }
@@ -266,21 +255,20 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private RangeExtractModel findRangeExtractByIdOrThrow(Long rangeExtractId) {
-        return rangeExtractRepository.findById(rangeExtractId)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato por intervalo não encontrado com o ID: " + rangeExtractId));
+    private RangeExtractModel findRangeExtractByIdOrThrow(Long id) {
+        return rangeExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato por intervalo não encontrado com o ID: " + id));
     }
 
-    private LayerExtractModel findLayerExtractByIdOrThrow(Long layerExtractId) {
-        return layerExtractRepository.findById(layerExtractId)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + layerExtractId));
+    private LayerExtractModel findLayerExtractByIdOrThrow(Long id) {
+        return layerExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + id));
     }
 
-    private FertilityAnalysisExtractModel findFertilityAnalysisExtractByIdOrThrow(Long fertilityAnalysisExtractId) {
-        return fertilityAnalysisExtractRepository.findById(fertilityAnalysisExtractId)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de fertilidade não encontrado com o ID: " + fertilityAnalysisExtractId));
+    private FertilityAnalysisExtractModel findFertilityAnalysisExtractByIdOrThrow(Long id) {
+        return fertilityAnalysisExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de fertilidade não encontrado com o ID: " + id));
     }
 
-    private record ExtractContext(RangeExtractModel rangeExtract, LayerExtractModel layerExtract, PlotModel plot) {
-    }
+    private record ExtractContext(RangeExtractModel rangeExtract, LayerExtractModel layerExtract, PlotModel plot) {}
 }

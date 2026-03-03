@@ -17,7 +17,6 @@ import com.migueltcc.fertintelligence.service.documentation.CropService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,75 +29,57 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CropServiceImpl implements CropService {
 
-    @Autowired
-    private CropRepository cropRepository;
+    private final CropRepository cropRepository;
+    private final AnnualCropFolderRepository annualCropFolderRepository;
+    private final PlotAccessRequestRepository plotAccessRequestRepository;
+    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private AnnualCropFolderRepository annualCropFolderRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private FoliarAnalysisRepository foliarAnalysisRepository;
-
-    @Autowired
-    private LiquidSourceRepository liquidSourceRepository;
-
-    @Autowired
-    private SolidSourceRepository solidSourceRepository;
-
-    @Autowired
-    private TopDressingFertilizationRepository topDressingFertilizationRepository;
+    private final FoliarAnalysisRepository foliarAnalysisRepository;
+    private final LiquidSourceRepository liquidSourceRepository;
+    private final SolidSourceRepository solidSourceRepository;
+    private final TopDressingFertilizationRepository topDressingFertilizationRepository;
 
     @Override
     @Transactional
-    public CropResponseDto createCrop(Long folderId, CropCreateRequestDto createRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+    public CropResponseDto createCrop(Long folderId, CropCreateRequestDto dto, String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
+        AnnualCropFolderModel folder = findFolderByIdOrThrow(folderId);
 
-        AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkPlotPermission(folder.getPlot(), requestingUser, true);
+        ensureUserHasAllowedRole(user);
+        ensurePlotAccess(folder.getPlot(), user, true);
 
-        cropRepository.findByNameAndVarietyAndFolder(
-                        createRequestDto.getName(),
-                        createRequestDto.getVariety(),
-                        folder)
-                .ifPresent(existing -> {
-                    throw new EntityExistsException("Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais.");
-                });
+        ensureUniqueCrop(folder, dto.getName(), dto.getVariety(), null);
 
         CropModel crop = CropModel.builder()
                 .folder(folder)
-                .cultivationType(createRequestDto.getCultivationType())
-                .name(createRequestDto.getName())
-                .variety(createRequestDto.getVariety())
-                .cycle(createRequestDto.getCycle())
-                .distanceBetweenLines(createRequestDto.getDistanceBetweenLines())
-                .plantsPerMeter(createRequestDto.getPlantsPerMeter())
-                .expectedProductivity(createRequestDto.getExpectedProductivity())
-                .obtainedProductivity(createRequestDto.getObtainedProductivity())
-                .usedAreaInThePlot(createRequestDto.getUsedAreaInThePlot())
-                .plantingDate(copyDate(createRequestDto.getPlantingDate()))
-                .emergenceDate(copyDate(createRequestDto.getEmergenceDate()))
-                .buttoningDate(copyDate(createRequestDto.getButtoningDate()))
-                .floweringDate(copyDate(createRequestDto.getFloweringDate()))
-                .harvestDate(copyDate(createRequestDto.getHarvestDate()))
+                .cultivationType(dto.getCultivationType())
+                .name(dto.getName())
+                .variety(dto.getVariety())
+                .cycle(dto.getCycle())
+                .distanceBetweenLines(dto.getDistanceBetweenLines())
+                .plantsPerMeter(dto.getPlantsPerMeter())
+                .expectedProductivity(dto.getExpectedProductivity())
+                .obtainedProductivity(dto.getObtainedProductivity())
+                .usedAreaInThePlot(dto.getUsedAreaInThePlot())
+                .plantingDate(copyDate(dto.getPlantingDate()))
+                .emergenceDate(copyDate(dto.getEmergenceDate()))
+                .buttoningDate(copyDate(dto.getButtoningDate()))
+                .floweringDate(copyDate(dto.getFloweringDate()))
+                .harvestDate(copyDate(dto.getHarvestDate()))
                 .build();
 
-        CropModel savedCrop = cropRepository.save(crop);
-        return savedCrop.toDto();
+        return cropRepository.save(crop).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public CropResponseDto getCropById(Long cropId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-
+        UserModel user = findUserByUsernameOrThrow(username);
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, false);
+
+        ensureUserHasAllowedRole(user);
+        ensurePlotAccess(crop.getFolder().getPlot(), user, false);
 
         return crop.toDto();
     }
@@ -106,110 +87,126 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional(readOnly = true)
     public List<CropResponseDto> getAllCropsByFolder(Long folderId, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
+        UserModel user = findUserByUsernameOrThrow(username);
+        AnnualCropFolderModel folder = findFolderByIdOrThrow(folderId);
 
-        AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        checkPlotPermission(folder.getPlot(), requestingUser, false);
+        ensureUserHasAllowedRole(user);
+        ensurePlotAccess(folder.getPlot(), user, false);
 
-        return cropRepository.findAllByFolder(folder).stream()
+        return cropRepository.findAllByFolder(folder)
+                .stream()
                 .map(CropModel::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public CropResponseDto updateCrop(Long cropId, CropPostRequestDto updateRequestDto, String username) {
-        UserModel requestingUser = findUserByUsernameOrThrow(username);
-
+    public CropResponseDto updateCrop(Long cropId, CropPostRequestDto dto, String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
 
-        NomeComum newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
-        String newVariety = Optional.ofNullable(updateRequestDto.getVariety()).orElse(crop.getVariety());
+        ensureUserHasAllowedRole(user);
+        ensurePlotAccess(crop.getFolder().getPlot(), user, true);
+
+        NomeComum newName = Optional.ofNullable(dto.getName()).orElse(crop.getName());
+        String newVariety = Optional.ofNullable(dto.getVariety()).orElse(crop.getVariety());
 
         if (!newName.equals(crop.getName()) || !newVariety.equals(crop.getVariety())) {
-            cropRepository.findByNameAndVarietyAndFolder(newName, newVariety, crop.getFolder())
-                    .ifPresent(existing -> {
-                        if (!existing.getId().equals(cropId)) {
-                            throw new EntityExistsException("Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais.");
-                        }
-                    });
+            ensureUniqueCrop(crop.getFolder(), newName, newVariety, cropId);
         }
 
-        if (updateRequestDto.getCultivationType() != null) {
-            crop.setCultivationType(updateRequestDto.getCultivationType());
-        }
-
+        if (dto.getCultivationType() != null) crop.setCultivationType(dto.getCultivationType());
         crop.setName(newName);
         crop.setVariety(newVariety);
 
-        if (updateRequestDto.getCycle() != null) {
-            crop.setCycle(updateRequestDto.getCycle());
-        }
+        if (dto.getCycle() != null) crop.setCycle(dto.getCycle());
+        if (dto.getDistanceBetweenLines() != null) crop.setDistanceBetweenLines(dto.getDistanceBetweenLines());
+        if (dto.getPlantsPerMeter() != null) crop.setPlantsPerMeter(dto.getPlantsPerMeter());
+        if (dto.getExpectedProductivity() != null) crop.setExpectedProductivity(dto.getExpectedProductivity());
+        if (dto.getObtainedProductivity() != null) crop.setObtainedProductivity(dto.getObtainedProductivity());
+        if (dto.getUsedAreaInThePlot() != null) crop.setUsedAreaInThePlot(dto.getUsedAreaInThePlot());
 
-        if (updateRequestDto.getDistanceBetweenLines() != null) {
-            crop.setDistanceBetweenLines(updateRequestDto.getDistanceBetweenLines());
-        }
+        if (dto.getPlantingDate() != null) crop.setPlantingDate(copyDate(dto.getPlantingDate()));
+        if (dto.getEmergenceDate() != null) crop.setEmergenceDate(copyDate(dto.getEmergenceDate()));
+        if (dto.getButtoningDate() != null) crop.setButtoningDate(copyDate(dto.getButtoningDate()));
+        if (dto.getFloweringDate() != null) crop.setFloweringDate(copyDate(dto.getFloweringDate()));
+        if (dto.getHarvestDate() != null) crop.setHarvestDate(copyDate(dto.getHarvestDate()));
 
-        if (updateRequestDto.getPlantsPerMeter() != null) {
-            crop.setPlantsPerMeter(updateRequestDto.getPlantsPerMeter());
-        }
-
-        if (updateRequestDto.getExpectedProductivity() != null) {
-            crop.setExpectedProductivity(updateRequestDto.getExpectedProductivity());
-        }
-
-        if (updateRequestDto.getObtainedProductivity() != null) {
-            crop.setObtainedProductivity(updateRequestDto.getObtainedProductivity());
-        }
-
-        if (updateRequestDto.getUsedAreaInThePlot() != null) {
-            crop.setUsedAreaInThePlot(updateRequestDto.getUsedAreaInThePlot());
-        }
-
-        if (updateRequestDto.getPlantingDate() != null) {
-            crop.setPlantingDate(copyDate(updateRequestDto.getPlantingDate()));
-        }
-
-        if (updateRequestDto.getEmergenceDate() != null) {
-            crop.setEmergenceDate(copyDate(updateRequestDto.getEmergenceDate()));
-        }
-
-        if (updateRequestDto.getButtoningDate() != null) {
-            crop.setButtoningDate(copyDate(updateRequestDto.getButtoningDate()));
-        }
-
-        if (updateRequestDto.getFloweringDate() != null) {
-            crop.setFloweringDate(copyDate(updateRequestDto.getFloweringDate()));
-        }
-
-        if (updateRequestDto.getHarvestDate() != null) {
-            crop.setHarvestDate(copyDate(updateRequestDto.getHarvestDate()));
-        }
-
-        CropModel updatedCrop = cropRepository.save(crop);
-        return updatedCrop.toDto();
+        return cropRepository.save(crop).toDto();
     }
 
     @Override
     @Transactional
     public void deleteCrop(Long cropId, String username) {
-        CropModel crop = cropRepository.findById(cropId)
-                .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada."));
+        UserModel user = findUserByUsernameOrThrow(username);
+        CropModel crop = findCropByIdOrThrow(cropId);
 
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+        ensureUserHasAllowedRole(user);
+        ensurePlotAccess(crop.getFolder().getPlot(), user, true);
 
-        checkPlotPermission(crop.getFolder().getPlot(), requestingUser, true);
+        // limpeza em cascata (por id)
+        foliarAnalysisRepository.deleteAllByCropId(cropId);
+        liquidSourceRepository.deleteAllByCropId(cropId);
+        solidSourceRepository.deleteAllByCropId(cropId);
+        topDressingFertilizationRepository.deleteAllByCropId(cropId);
 
-        // Limpeza em cascata
-        foliarAnalysisRepository.deleteAllByCropId(crop.getId());
-        liquidSourceRepository.deleteAllByCropId(crop.getId());
-        solidSourceRepository.deleteAllByCropId(crop.getId());
-        topDressingFertilizationRepository.deleteAllByCropId(crop.getId());
-
-        // Deleção da Cultura
         cropRepository.delete(crop);
+    }
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+
+    private void ensureUniqueCrop(AnnualCropFolderModel folder, NomeComum name, String variety, Long currentCropId) {
+        cropRepository.findByNameAndVarietyAndFolder(name, variety, folder)
+                .ifPresent(existing -> {
+                    if (currentCropId == null || !existing.getId().equals(currentCropId)) {
+                        throw new EntityExistsException(
+                                "Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais."
+                        );
+                    }
+                });
+    }
+
+    private void ensureUserHasAllowedRole(UserModel user) {
+        Cargo c = user.getCargo();
+        if (c != Cargo.PROPRIETARIO
+                && c != Cargo.GERENTE
+                && c != Cargo.AGRONOMO_RESIDENTE
+                && c != Cargo.AGRONOMO_CONSULTOR
+                && c != Cargo.SUPERVISOR_DE_AREA
+                && c != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar este recurso.");
+        }
+    }
+
+    private void ensurePlotAccess(PlotModel plot, UserModel user, boolean requireEditPermission) {
+        if (requireEditPermission && user.getCargo() == Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas.");
+        }
+
+        PropertyModel property = plot.getProperty();
+
+        // dono/gerente: ok
+        if (property.getOwner().getId().equals(user.getId())) return;
+        if (property.getManager() != null && property.getManager().getId().equals(user.getId())) return;
+
+        // AGRONOMO_RESIDENTE: permissão por propriedade (aprovada)
+        if (user.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            boolean ok = propertyAccessRequestRepository
+                    .findByPropertyAndRequesterAndStatus(property, user, AccessRequestStatus.APPROVED)
+                    .isPresent();
+
+            if (!ok) throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+            return;
+        }
+
+        // Demais cargos permitidos: permissão por talhão (aprovada)
+        boolean ok = plotAccessRequestRepository
+                .findByPlotAndRequesterAndStatus(plot, user, AccessRequestStatus.APPROVED)
+                .isPresent();
+
+        if (!ok) throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -217,7 +214,7 @@ public class CropServiceImpl implements CropService {
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long folderId) {
+    private AnnualCropFolderModel findFolderByIdOrThrow(Long folderId) {
         return annualCropFolderRepository.findById(folderId)
                 .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + folderId));
     }
@@ -227,42 +224,8 @@ public class CropServiceImpl implements CropService {
                 .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + cropId));
     }
 
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser, boolean requireEditPermission) {
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            ensureEditAllowed(requestingUser, requireEditPermission);
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            ensureEditAllowed(requestingUser, requireEditPermission);
-            return;
-        }
-
-        boolean hasApprovedAccess = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasApprovedAccess) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-
-        ensureEditAllowed(requestingUser, requireEditPermission);
-    }
-
-    private void ensureEditAllowed(UserModel requestingUser, boolean requireEditPermission) {
-        if (requireEditPermission && requestingUser.getCargo() == Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas.");
-        }
-    }
-
     private Date copyDate(Date source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
     }
 }

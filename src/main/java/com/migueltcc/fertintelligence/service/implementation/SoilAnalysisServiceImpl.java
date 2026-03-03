@@ -9,8 +9,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
@@ -27,10 +25,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class SoilAnalysisServiceImpl implements SoilAnalysisService {
+
+    private static final Set<Cargo> ALLOWED_ROLES = Set.of(
+            Cargo.PROPRIETARIO,
+            Cargo.GERENTE,
+            Cargo.AGRONOMO_RESIDENTE,
+            Cargo.AGRONOMO_CONSULTOR,
+            Cargo.SUPERVISOR_DE_AREA,
+            Cargo.SECRETARIO
+    );
 
     @Autowired
     private SoilAnalysisRepository soilAnalysisRepository;
@@ -52,23 +61,21 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
 
     @Override
     @Transactional
-    public SoilAnalysisResponseDto createSoilAnalysis(SoilAnalysisCreateRequestDto createRequestDto, String username) {
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+    public SoilAnalysisResponseDto createSoilAnalysis(SoilAnalysisCreateRequestDto dto, String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
+        PlotModel plot = findPlotByIdOrThrow(dto.getPlotId());
 
-        PlotModel plot = plotRepository.findById(createRequestDto.getPlotId())
-                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado."));
+        // CREATE/EDIT: mantém a mesma política que você já vinha usando (ajuste aqui se quiser regra mais rígida)
+        assertCanAccessPlot(user, plot, true);
 
-        validateUserAccess(requestingUser, plot);
-
-        if (!plot.getIdentification().equals(createRequestDto.getPlotIdentification())) {
+        if (!Objects.equals(plot.getIdentification(), dto.getPlotIdentification())) {
             throw new IllegalArgumentException("A identificação do talhão informada não corresponde ao talhão selecionado.");
         }
 
         SoilAnalysisModel soilAnalysis = SoilAnalysisModel.builder()
-                .analysisYear(createRequestDto.getAnalysisYear())
-                .responsibleLaboratory(createRequestDto.getResponsibleLaboratory())
-                .extractType(createRequestDto.getExtractType())
+                .analysisYear(dto.getAnalysisYear())
+                .responsibleLaboratory(dto.getResponsibleLaboratory())
+                .extractType(dto.getExtractType())
                 .plot(plot)
                 .build();
 
@@ -78,13 +85,11 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional(readOnly = true)
     public SoilAnalysisResponseDto getSoilAnalysisById(Long soilAnalysisId, String username) {
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+        UserModel user = findUserByUsernameOrThrow(username);
+        SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
 
-        SoilAnalysisModel soilAnalysis = soilAnalysisRepository.findById(soilAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada."));
-
-        validateUserAccess(requestingUser, soilAnalysis.getPlot());
+        // READ: permite por aprovação da PROPRIEDADE também (corrige teu cenário)
+        assertCanAccessPlot(user, soilAnalysis.getPlot(), false);
 
         return soilAnalysis.toDto();
     }
@@ -92,13 +97,11 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional(readOnly = true)
     public List<SoilAnalysisResponseDto> getAllSoilAnalysesByPlot(Long plotId, String username) {
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+        UserModel user = findUserByUsernameOrThrow(username);
+        PlotModel plot = findPlotByIdOrThrow(plotId);
 
-        PlotModel plot = plotRepository.findById(plotId)
-                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado."));
-
-        validateUserAccess(requestingUser, plot);
+        // READ: permite por aprovação da PROPRIEDADE também
+        assertCanAccessPlot(user, plot, false);
 
         return soilAnalysisRepository.findAllByPlot(plot).stream()
                 .map(SoilAnalysisModel::toDto)
@@ -107,23 +110,20 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
 
     @Override
     @Transactional
-    public SoilAnalysisResponseDto updateSoilAnalysis(Long soilAnalysisId, SoilAnalysisPostRequestDto updateRequestDto, String username) {
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+    public SoilAnalysisResponseDto updateSoilAnalysis(Long soilAnalysisId, SoilAnalysisPostRequestDto dto, String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
+        SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
 
-        SoilAnalysisModel soilAnalysis = soilAnalysisRepository.findById(soilAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada."));
+        assertCanAccessPlot(user, soilAnalysis.getPlot(), true);
 
-        validateUserAccess(requestingUser, soilAnalysis.getPlot());
-
-        if (updateRequestDto.getAnalysisYear() != null) {
-            soilAnalysis.setAnalysisYear(updateRequestDto.getAnalysisYear());
+        if (dto.getAnalysisYear() != null) {
+            soilAnalysis.setAnalysisYear(dto.getAnalysisYear());
         }
-        if (updateRequestDto.getResponsibleLaboratory() != null && !updateRequestDto.getResponsibleLaboratory().isBlank()) {
-            soilAnalysis.setResponsibleLaboratory(updateRequestDto.getResponsibleLaboratory());
+        if (dto.getResponsibleLaboratory() != null && !dto.getResponsibleLaboratory().isBlank()) {
+            soilAnalysis.setResponsibleLaboratory(dto.getResponsibleLaboratory());
         }
-        if (updateRequestDto.getExtractType() != null) {
-            soilAnalysis.setExtractType(updateRequestDto.getExtractType());
+        if (dto.getExtractType() != null) {
+            soilAnalysis.setExtractType(dto.getExtractType());
         }
 
         return soilAnalysisRepository.save(soilAnalysis).toDto();
@@ -132,48 +132,46 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Override
     @Transactional
     public void deleteSoilAnalysis(Long soilAnalysisId, String username) {
-        UserModel requestingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+        UserModel user = findUserByUsernameOrThrow(username);
+        SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
 
-        SoilAnalysisModel soilAnalysis = soilAnalysisRepository.findById(soilAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada."));
-
-        validateUserAccess(requestingUser, soilAnalysis.getPlot());
+        assertCanAccessPlot(user, soilAnalysis.getPlot(), true);
 
         // --- DELEÇÃO MANUAL EM CASCATA ---
 
-        // 1. Buscar IDs dos Extratos de Camada vinculados
+        // 1) IDs de LayerExtract
         TypedQuery<Long> layerQuery = entityManager.createQuery(
-                "SELECT l.id FROM LayerExtractModel l WHERE l.analysis.id = :id", Long.class);
+                "SELECT l.id FROM LayerExtractModel l WHERE l.analysis.id = :id", Long.class
+        );
         layerQuery.setParameter("id", soilAnalysisId);
         List<Long> layerIds = layerQuery.getResultList();
 
-        // 2. Buscar IDs dos Extratos de Intervalo vinculados
+        // 2) IDs de RangeExtract
         TypedQuery<Long> rangeQuery = entityManager.createQuery(
-                "SELECT r.id FROM RangeExtractModel r WHERE r.analysis.id = :id", Long.class);
+                "SELECT r.id FROM RangeExtractModel r WHERE r.analysis.id = :id", Long.class
+        );
         rangeQuery.setParameter("id", soilAnalysisId);
         List<Long> rangeIds = rangeQuery.getResultList();
 
-        // 3. Deletar dados filhos (Physical/Fertility/Saturation) baseados nos IDs encontrados
+        // 3) deletar filhos e extratos
         if (!layerIds.isEmpty()) {
             deleteChildData(layerIds, "layerExtract");
-            // Deletar os extratos de camada
             entityManager.createQuery("DELETE FROM LayerExtractModel l WHERE l.id IN :ids")
-                    .setParameter("ids", layerIds).executeUpdate();
+                    .setParameter("ids", layerIds)
+                    .executeUpdate();
         }
 
         if (!rangeIds.isEmpty()) {
             deleteChildData(rangeIds, "rangeExtract");
-            // Deletar os extratos de intervalo
             entityManager.createQuery("DELETE FROM RangeExtractModel r WHERE r.id IN :ids")
-                    .setParameter("ids", rangeIds).executeUpdate();
+                    .setParameter("ids", rangeIds)
+                    .executeUpdate();
         }
 
-        // 4. Finalmente, deletar a Análise Pai
+        // 4) deletar a análise pai
         soilAnalysisRepository.delete(soilAnalysis);
     }
 
-    // Método auxiliar para deletar das tabelas finais
     private void deleteChildData(List<Long> extractIds, String fieldName) {
         String[] childEntities = {
                 "PhysicalAnalysisExtractModel",
@@ -189,46 +187,71 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
         }
     }
 
-    private void validateUserAccess(UserModel requestingUser, PlotModel plot) {
-        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
-                && requestingUser.getCargo() != Cargo.GERENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+    /* ======================================================
+       Access control (corrigido e padronizado)
+    ====================================================== */
+
+    private void assertCanAccessPlot(UserModel user, PlotModel plot, boolean requireEdit) {
+        assertAllowedRole(user);
+
+        // regra opcional (igual ao que você fez em Crop): secretário não edita/cria
+        if (requireEdit && user.getCargo() == Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Secretários não têm permissão para criar, editar ou excluir análises.");
         }
 
         PropertyModel property = plot.getProperty();
 
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
+        // Owner
+        if (property.getOwner() != null && property.getOwner().getId().equals(user.getId())) {
             return;
         }
 
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+        // Manager
+        if (property.getManager() != null && property.getManager().getId().equals(user.getId())) {
             return;
         }
 
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
+        // ✅ CORREÇÃO: se tem aprovação na PROPRIEDADE, pode acessar (ao menos para leitura).
+        boolean hasApprovedPropertyAccess = propertyAccessRequestRepository
+                .findByPropertyAndRequesterAndStatus(property, user, AccessRequestStatus.APPROVED)
+                .isPresent();
 
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
+        if (hasApprovedPropertyAccess) {
             return;
         }
 
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
+        // fallback: aprovação específica no TALHÃO
+        boolean hasApprovedPlotAccess = plotAccessRequestRepository
+                .findByPlotAndRequesterAndStatus(plot, user, AccessRequestStatus.APPROVED)
+                .isPresent();
 
-        if (!hasPlotApproval) {
+        if (!hasApprovedPlotAccess) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
+    }
+
+    private void assertAllowedRole(UserModel user) {
+        if (user.getCargo() == null || !ALLOWED_ROLES.contains(user.getCargo())) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+    }
+
+    /* ======================================================
+       Finders
+    ====================================================== */
+
+    private UserModel findUserByUsernameOrThrow(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
+    }
+
+    private PlotModel findPlotByIdOrThrow(Long plotId) {
+        return plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
+    }
+
+    private SoilAnalysisModel findSoilAnalysisByIdOrThrow(Long id) {
+        return soilAnalysisRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada com o ID: " + id));
     }
 }

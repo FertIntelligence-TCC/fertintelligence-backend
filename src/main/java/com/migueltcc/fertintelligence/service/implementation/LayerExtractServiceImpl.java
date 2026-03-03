@@ -1,18 +1,17 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
-import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -36,9 +35,6 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     private SoilAnalysisRepository soilAnalysisRepository;
 
     @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
     private PropertyAccessRequestRepository propertyAccessRequestRepository;
 
     @Autowired
@@ -46,11 +42,16 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
     @Override
     @Transactional
-    public LayerExtractResponseDto createLayerExtract(Long analysisId, LayerExtractCreateRequestDto createRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+    public LayerExtractResponseDto createLayerExtract(
+            Long analysisId,
+            LayerExtractCreateRequestDto createRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
-        checkOwnerPermission(analysis.getPlot(), owner);
+
+        checkPermission(analysis.getPlot(), requester, true);
         ensureAnalysisSupportsLayers(analysis);
 
         validateDepthRange(createRequestDto.getInitialDepth(), createRequestDto.getFinalDepth());
@@ -70,11 +71,13 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Override
     @Transactional(readOnly = true)
     public LayerExtractResponseDto getLayerExtractById(Long layerExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
-        ensureAnalysisSupportsLayers(layerExtract.getAnalysis());
+        SoilAnalysisModel analysis = layerExtract.getAnalysis();
+
+        checkPermission(analysis.getPlot(), requester, false);
+        ensureAnalysisSupportsLayers(analysis);
 
         return layerExtract.toDto();
     }
@@ -82,10 +85,11 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Override
     @Transactional(readOnly = true)
     public List<LayerExtractResponseDto> getAllLayerExtractsByAnalysis(Long analysisId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
-        checkOwnerPermission(analysis.getPlot(), owner);
+
+        checkPermission(analysis.getPlot(), requester, false);
         ensureAnalysisSupportsLayers(analysis);
 
         return layerExtractRepository.findAllByAnalysis(analysis).stream()
@@ -95,17 +99,23 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
     @Override
     @Transactional
-    public LayerExtractResponseDto updateLayerExtract(Long layerExtractId, LayerExtractPostRequestDto updateRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+    public LayerExtractResponseDto updateLayerExtract(
+            Long layerExtractId,
+            LayerExtractPostRequestDto updateRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
         SoilAnalysisModel analysis = layerExtract.getAnalysis();
-        checkOwnerPermission(analysis.getPlot(), owner);
+
+        checkPermission(analysis.getPlot(), requester, true);
         ensureAnalysisSupportsLayers(analysis);
 
         Integer updatedInitialDepth = updateRequestDto.getInitialDepth() != null
                 ? updateRequestDto.getInitialDepth()
                 : layerExtract.getProfundidade_inicial();
+
         Integer updatedFinalDepth = updateRequestDto.getFinalDepth() != null
                 ? updateRequestDto.getFinalDepth()
                 : layerExtract.getProfundidade_final();
@@ -130,19 +140,77 @@ public class LayerExtractServiceImpl implements LayerExtractService {
     @Override
     @Transactional
     public void deleteLayerExtract(Long layerExtractId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        checkOwnerPermission(layerExtract.getAnalysis().getPlot(), owner);
-        ensureAnalysisSupportsLayers(layerExtract.getAnalysis());
+        SoilAnalysisModel analysis = layerExtract.getAnalysis();
+
+        checkPermission(analysis.getPlot(), requester, true);
+        ensureAnalysisSupportsLayers(analysis);
 
         layerExtractRepository.delete(layerExtract);
     }
 
-    private void validateDepthRange(Integer initialDepth, Integer finalDepth) {
-        if (initialDepth == null || finalDepth == null) {
+    /* =========================
+       Permission rules
+       ========================= */
+
+    private void checkPermission(PlotModel plot, UserModel requester, boolean requireEdit) {
+        checkUserHasAllowedRole(requester);
+
+        PropertyModel property = plot.getProperty();
+
+        // Dono
+        if (property.getOwner().getId().equals(requester.getId())) {
             return;
         }
+
+        // Gerente
+        if (property.getManager() != null && property.getManager().getId().equals(requester.getId())) {
+            return;
+        }
+
+        // Precisa ter aprovação na propriedade para acessar (read/edit)
+        boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property,
+                requester,
+                AccessRequestStatus.APPROVED
+        ).isPresent();
+
+        if (!hasPropertyApproval) {
+            throw new AccessDeniedException("Você não tem permissão para acessar este recurso.");
+        }
+
+        // Leitura: aprovação na propriedade basta
+        if (!requireEdit) {
+            return;
+        }
+
+        // Escrita: regra atual (ajuste aqui se quiser abrir para outros cargos)
+        if (requester.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            return;
+        }
+
+        throw new AccessDeniedException("Você não tem permissão para modificar este recurso.");
+    }
+
+    private void checkUserHasAllowedRole(UserModel requester) {
+        if (requester.getCargo() != Cargo.PROPRIETARIO
+                && requester.getCargo() != Cargo.GERENTE
+                && requester.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && requester.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && requester.getCargo() != Cargo.SUPERVISOR_DE_AREA
+                && requester.getCargo() != Cargo.SECRETARIO) {
+            throw new AccessDeniedException("Você não tem permissão para acessar este recurso.");
+        }
+    }
+
+    /* =========================
+       Business validations
+       ========================= */
+
+    private void validateDepthRange(Integer initialDepth, Integer finalDepth) {
+        if (initialDepth == null || finalDepth == null) return;
 
         if (initialDepth < 0 || finalDepth < 0) {
             throw new IllegalArgumentException("As profundidades devem ser valores não negativos.");
@@ -159,6 +227,10 @@ public class LayerExtractServiceImpl implements LayerExtractService {
         }
     }
 
+    /* =========================
+       Finders
+       ========================= */
+
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
@@ -166,54 +238,15 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
     private SoilAnalysisModel findAnalysisByIdOrThrow(Long analysisId) {
         return soilAnalysisRepository.findById(analysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada com o ID: " + analysisId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Análise de solo não encontrada com o ID: " + analysisId
+                ));
     }
 
     private LayerExtractModel findLayerExtractByIdOrThrow(Long layerExtractId) {
         return layerExtractRepository.findById(layerExtractId)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato de camada não encontrado com o ID: " + layerExtractId));
-    }
-
-    private void checkOwnerPermission(PlotModel plot, UserModel requestingUser) {
-        PropertyModel property = plot.getProperty();
-
-        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
-                && requestingUser.getCargo() != Cargo.GERENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasPlotApproval) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Extrato de camada não encontrado com o ID: " + layerExtractId
+                ));
     }
 }

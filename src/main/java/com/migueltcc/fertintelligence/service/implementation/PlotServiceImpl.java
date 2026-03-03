@@ -8,11 +8,11 @@ import com.migueltcc.fertintelligence.dto.plot.PlotResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.PlotRepository;
-import com.migueltcc.fertintelligence.repository.PropertyRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PlotRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PropertyRepository;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.PlotService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -179,48 +179,57 @@ public class PlotServiceImpl implements PlotService {
                 .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + plotId));
     }
 
+    /**
+     * Regras (refatorado):
+     * - Dono e gerente: sempre liberados (read/edit)
+     * - Usuário aprovado na propriedade (PropertyAccessRequest APPROVED): liberado para READ (listar/ver)
+     * - Edit (create/update/delete): restrito a dono, gerente e agrônomo residente (desde que aprovado na propriedade)
+     * - PlotAccessRequest permanece útil caso você queira permissões por talhão no futuro (ou para cargos específicos),
+     *   mas NÃO deve bloquear a listagem de talhões se o usuário já foi aceito na propriedade.
+     */
     private void checkPermission(PropertyModel property, PlotModel plot, UserModel requestingUser, boolean requireEdit) {
         if (requestingUser.getCargo() != Cargo.PROPRIETARIO
                 && requestingUser.getCargo() != Cargo.GERENTE
                 && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
                 && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO) {
+                && requestingUser.getCargo() != Cargo.SECRETARIO
+                && requestingUser.getCargo() != Cargo.SUPERVISOR_DE_AREA
+        ) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
 
+        // dono
         if (property.getOwner().getId().equals(requestingUser.getId())) {
             return;
         }
 
+        // gerente da propriedade
         if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
             return;
         }
 
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        if (plot == null) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
+        // A partir daqui: não é dono/gerente
+        boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                property,
                 requestingUser,
                 AccessRequestStatus.APPROVED
         ).isPresent();
 
-        if (!hasPlotApproval) {
+        if (!hasPropertyApproval) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
+
+        // Se é apenas leitura, aprovação na propriedade já basta (corrige o bug da listagem)
+        if (!requireEdit) {
+            return;
+        }
+
+        // Se é edição: restringe a agrônomo residente (além de dono/gerente que já retornaram acima)
+        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            return;
+        }
+
+        // Se quiser permitir edição para outros cargos aprovados, altere aqui (ex: CONSULTOR/SECRETARIO)
+        throw new AccessDeniedException("Você não tem permissão para modificar este recurso.");
     }
 }
