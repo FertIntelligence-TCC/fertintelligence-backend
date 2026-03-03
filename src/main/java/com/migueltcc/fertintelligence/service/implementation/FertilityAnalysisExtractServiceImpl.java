@@ -1,32 +1,25 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.FertilityAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -34,21 +27,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExtractService {
 
-    private static final Set<Cargo> ALLOWED_ROLES = EnumSet.of(
-            Cargo.PROPRIETARIO,
-            Cargo.GERENTE,
-            Cargo.AGRONOMO_RESIDENTE,
-            Cargo.AGRONOMO_CONSULTOR,
-            Cargo.SUPERVISOR_DE_AREA,
-            Cargo.SECRETARIO
-    );
-
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
     private final RangeExtractRepository rangeExtractRepository;
     private final LayerExtractRepository layerExtractRepository;
-    private final PlotAccessRequestRepository plotAccessRequestRepository;
-    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
     private final UserRepository userRepository;
+    private final PermissionManager permissionManager;
 
     @Override
     @Transactional
@@ -61,7 +44,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         ExtractContext ctx = resolveExtractContext(rangeExtractId, layerExtractId);
-        assertHasAccessToPlot(ctx.plot(), requester);
+        permissionManager.assertCanWrite(ctx.plot(), requester);
 
         FertilityAnalysisExtractModel analysisExtract = FertilityAnalysisExtractModel.builder()
                 .rangeExtract(ctx.rangeExtract())
@@ -100,7 +83,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanRead(resolvePlot(analysisExtract), requester);
 
         return analysisExtract.toDto();
     }
@@ -111,7 +94,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        assertHasAccessToPlot(rangeExtract.getAnalysis().getPlot(), requester);
+        permissionManager.assertCanRead(rangeExtract.getAnalysis().getPlot(), requester);
 
         return fertilityAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
@@ -125,7 +108,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        assertHasAccessToPlot(layerExtract.getAnalysis().getPlot(), requester);
+        permissionManager.assertCanRead(layerExtract.getAnalysis().getPlot(), requester);
 
         return fertilityAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
@@ -143,7 +126,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
 
         updateIfNotNull(updateRequestDto.getPhAgua(), analysisExtract::setPhAgua);
         updateIfNotNull(updateRequestDto.getPhCacl2(), analysisExtract::setPhCacl2);
@@ -178,7 +161,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        assertHasAccessToPlot(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
 
         fertilityAnalysisExtractRepository.delete(analysisExtract);
     }
@@ -212,42 +195,6 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
             return analysisExtract.getLayerExtract().getAnalysis().getPlot();
         }
         throw new IllegalStateException("Extrato de análise de fertilidade não possui extrato base associado.");
-    }
-
-    private void assertHasAccessToPlot(PlotModel plot, UserModel requester) {
-        assertAllowedRole(requester);
-
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requester.getId())) return;
-        if (property.getManager() != null && property.getManager().getId().equals(requester.getId())) return;
-
-        // Regra especial: Agrônomo Residente acessa via aprovação na PROPRIEDADE
-        if (requester.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean approvedOnProperty = propertyAccessRequestRepository
-                    .findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.APPROVED)
-                    .isPresent();
-
-            if (!approvedOnProperty) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        // Demais perfis não-donos: exige aprovação no TALHÃO
-        boolean approvedOnPlot = plotAccessRequestRepository
-                .findByPlotAndRequesterAndStatus(plot, requester, AccessRequestStatus.APPROVED)
-                .isPresent();
-
-        if (!approvedOnPlot) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
-    private void assertAllowedRole(UserModel requester) {
-        if (!ALLOWED_ROLES.contains(requester.getCargo())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

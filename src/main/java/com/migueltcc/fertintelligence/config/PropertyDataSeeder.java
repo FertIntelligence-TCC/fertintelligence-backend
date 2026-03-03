@@ -4,14 +4,16 @@ import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirect
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.dto.property.LocalizacaoDto;
 import com.migueltcc.fertintelligence.dto.property.PropertyCreateRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.service.documentation.PropertyService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @Order(2)
@@ -20,13 +22,28 @@ public class PropertyDataSeeder implements CommandLineRunner {
 
     private final PropertyService propertyService;
     private final PropertyRepository propertyRepository;
+    private final PlatformTransactionManager transactionManager;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final String SYSTEM_USER = "admin@fertintelligence.com";
+
+    // Pelo seu log, é esse nome (sem "c")
+    private static final String TBL_PROPERTY_ACCESS_REQUEST = "solitacoes_de_acesso_a_propriedades";
+    private static final String TBL_PROPERTIES = "propriedades";
 
     @Override
     public void run(String... args) {
         System.out.println("🔄 Resetando propriedades...");
-        resetDatabase();
+
+        // ✅ garante transação mesmo com self-call
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.execute(status -> {
+            resetDatabase();
+            return null;
+        });
+
         seedProperties();
         System.out.println("✅ Propriedades carregadas com sucesso.");
     }
@@ -35,8 +52,38 @@ public class PropertyDataSeeder implements CommandLineRunner {
        RESET
     ====================================================== */
 
-    private void resetDatabase() {
-        propertyRepository.deleteAll();
+    protected void resetDatabase() {
+
+        // 1) TRUNCATE (mais limpo / evita FK)
+        try {
+            entityManager.createNativeQuery("""
+                TRUNCATE TABLE
+                    %s,
+                    %s
+                RESTART IDENTITY
+                CASCADE
+            """.formatted(TBL_PROPERTY_ACCESS_REQUEST, TBL_PROPERTIES)).executeUpdate();
+
+            entityManager.flush();
+            System.out.println("🧹 Reset via TRUNCATE (requests + propriedades) concluído.");
+            return;
+
+        } catch (Exception e) {
+            System.out.println("⚠️ TRUNCATE falhou, tentando DELETE ordenado. Motivo: "
+                    + e.getClass().getSimpleName() + " - " + e.getMessage());
+        }
+
+        // 2) Fallback seguro: DELETE na ordem certa (dependente -> pai)
+        try {
+            entityManager.createNativeQuery("DELETE FROM " + TBL_PROPERTY_ACCESS_REQUEST).executeUpdate();
+            entityManager.createNativeQuery("DELETE FROM " + TBL_PROPERTIES).executeUpdate();
+            entityManager.flush();
+            System.out.println("🧹 Reset via DELETE (requests -> propriedades) concluído.");
+        } catch (Exception e) {
+            System.out.println("❌ Reset via DELETE também falhou: "
+                    + e.getClass().getSimpleName() + " - " + e.getMessage());
+            throw e;
+        }
     }
 
     /* ======================================================
@@ -45,70 +92,70 @@ public class PropertyDataSeeder implements CommandLineRunner {
 
     private void seedProperties() {
 
-        create("Fazenda Vale do Sol",
+        createIfNotExists("Fazenda Vale do Sol",
                 "Rodovia BR-163, km 740, Zona Rural, Sorriso - MT",
                 "10000000000101",
                 12.5420, LatitudeDirection.SUL,
                 55.7210, LongitudeDirection.OESTE,
                 365.0);
 
-        create("Sítio Recanto Verde",
+        createIfNotExists("Sítio Recanto Verde",
                 "Estrada Municipal Ribeirão Preto, s/n, Ribeirão Preto - SP",
                 "20000000000102",
                 21.1704, LatitudeDirection.SUL,
                 47.8103, LongitudeDirection.OESTE,
                 546.0);
 
-        create("Estância das Águas Claras",
+        createIfNotExists("Estância das Águas Claras",
                 "Rodovia do Café, km 45, Varginha - MG",
                 "30000000000103",
                 21.5544, LatitudeDirection.SUL,
                 45.4312, LongitudeDirection.OESTE,
                 980.0);
 
-        create("Agropecuária Terra Fértil",
+        createIfNotExists("Agropecuária Terra Fértil",
                 "BR-060, km 120, Rio Verde - GO",
                 "40000000000104",
                 17.7915, LatitudeDirection.SUL,
                 50.9197, LongitudeDirection.OESTE,
                 748.0);
 
-        create("Fazenda Boa Safra",
+        createIfNotExists("Fazenda Boa Safra",
                 "Linha das Palmeiras, Zona Rural, Cascavel - PR",
                 "50000000000105",
                 24.9573, LatitudeDirection.SUL,
                 53.4590, LongitudeDirection.OESTE,
                 781.0);
 
-        create("Rancho da Serra Gaúcha",
+        createIfNotExists("Rancho da Serra Gaúcha",
                 "Estrada dos Vinhedos, Bento Gonçalves - RS",
                 "60000000000106",
                 29.1691, LatitudeDirection.SUL,
                 51.5178, LongitudeDirection.OESTE,
                 691.0);
 
-        create("Chácara Santa Luzia",
+        createIfNotExists("Chácara Santa Luzia",
                 "Anel da Soja, Barreiras - BA",
                 "70000000000107",
                 12.1485, LatitudeDirection.SUL,
                 44.9922, LongitudeDirection.OESTE,
                 452.0);
 
-        create("Sítio Horizonte Azul",
+        createIfNotExists("Sítio Horizonte Azul",
                 "Serra do Rio do Rastro, São Joaquim - SC",
                 "80000000000108",
                 28.2933, LatitudeDirection.SUL,
                 49.9324, LongitudeDirection.OESTE,
                 1360.0);
 
-        create("Fazenda Ouro Branco",
+        createIfNotExists("Fazenda Ouro Branco",
                 "Estrada Boiadeira, km 10, Campo Grande - MS",
                 "90000000000109",
                 20.4697, LatitudeDirection.SUL,
                 54.6201, LongitudeDirection.OESTE,
                 532.0);
 
-        create("Estância Vida Nova",
+        createIfNotExists("Estância Vida Nova",
                 "PB-079, Zona Rural, Alagoa Grande - PB",
                 "99000000000110",
                 7.0512, LatitudeDirection.SUL,
@@ -120,37 +167,30 @@ public class PropertyDataSeeder implements CommandLineRunner {
        CREATE HELPER
     ====================================================== */
 
-    private void create(String nome,
-                        String endereco,
-                        String cnpj,
-                        Double lat,
-                        LatitudeDirection latDir,
-                        Double lon,
-                        LongitudeDirection lonDir,
-                        Double alt) {
+    private void createIfNotExists(String nome,
+                                   String endereco,
+                                   String cnpj,
+                                   Double lat,
+                                   LatitudeDirection latDir,
+                                   Double lon,
+                                   LongitudeDirection lonDir,
+                                   Double alt) {
 
-        try {
-
-            LocalizacaoDto localizacao = new LocalizacaoDto(
-                    lat,
-                    latDir,
-                    lon,
-                    lonDir,
-                    alt
-            );
-
-            PropertyCreateRequestDto dto =
-                    PropertyCreateRequestDto.builder()
-                            .nome(nome)
-                            .endereco(endereco)
-                            .cnpj(cnpj) // já sem máscara
-                            .localizacao(localizacao)
-                            .build();
-
-            propertyService.createProperty(dto, SYSTEM_USER);
-
-        } catch (Exception e) {
-            System.err.println("❌ Erro ao criar '" + nome + "': " + e.getMessage());
+        if (propertyRepository.existsByCnpj(cnpj)) {
+            System.out.println("↩️ Propriedade já existe (cnpj=" + cnpj + "): " + nome);
+            return;
         }
+
+        LocalizacaoDto localizacao = new LocalizacaoDto(lat, latDir, lon, lonDir, alt);
+
+        PropertyCreateRequestDto dto = PropertyCreateRequestDto.builder()
+                .nome(nome)
+                .endereco(endereco)
+                .cnpj(cnpj)
+                .localizacao(localizacao)
+                .build();
+
+        propertyService.createProperty(dto, SYSTEM_USER);
+        System.out.println("➕ Criada: " + nome);
     }
 }

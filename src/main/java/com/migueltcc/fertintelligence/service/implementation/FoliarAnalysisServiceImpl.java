@@ -1,8 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
@@ -12,22 +10,17 @@ import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisPostReque
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisResponseDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.MacronutrientsContentDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.MicronutrientsContentDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.FoliarAnalysisService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,30 +29,21 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
 
-    @Autowired
-    private FoliarAnalysisRepository foliarAnalysisRepository;
-
-    @Autowired
-    private CropRepository cropRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
-
-    @Autowired
-    private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final FoliarAnalysisRepository foliarAnalysisRepository;
+    private final CropRepository cropRepository;
+    private final UserRepository userRepository;
+    private final PermissionManager permissionManager;
 
     @Override
     @Transactional
     public FoliarAnalysisResponseDto createFoliarAnalysis(Long cropId, FoliarAnalysisCreateRequestDto createRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), owner, true);
+        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
 
         foliarAnalysisRepository.findByCropAndCollectDate(crop, createRequestDto.getCollectDate())
                 .ifPresent(existing -> {
@@ -76,17 +60,16 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
                 .elements(copyBeneficialElementsContent(createRequestDto.getElements()))
                 .build();
 
-        FoliarAnalysisModel savedAnalysis = foliarAnalysisRepository.save(foliarAnalysis);
-        return savedAnalysis.toDto();
+        return foliarAnalysisRepository.save(foliarAnalysis).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public FoliarAnalysisResponseDto getFoliarAnalysisById(Long foliarAnalysisId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        checkPlotPermission(foliarAnalysis.getCrop().getFolder().getPlot(), owner, false);
+        permissionManager.assertCanRead(foliarAnalysis.getCrop().getFolder().getPlot(), requester);
 
         return foliarAnalysis.toDto();
     }
@@ -94,13 +77,12 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Override
     @Transactional(readOnly = true)
     public List<FoliarAnalysisResponseDto> getAllFoliarAnalysesByCrop(Long cropId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPlotPermission(crop.getFolder().getPlot(), owner, false);
+        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
 
-        List<FoliarAnalysisModel> analyses = foliarAnalysisRepository.findAllByCrop(crop);
-        return analyses.stream()
+        return foliarAnalysisRepository.findAllByCrop(crop).stream()
                 .map(FoliarAnalysisModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -108,14 +90,16 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Override
     @Transactional
     public FoliarAnalysisResponseDto updateFoliarAnalysis(Long foliarAnalysisId, FoliarAnalysisPostRequestDto updateRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
         CropModel crop = foliarAnalysis.getCrop();
-        checkPlotPermission(crop.getFolder().getPlot(), owner, true);
+
+        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
 
         if (updateRequestDto.getCollectDate() != null
                 && !Objects.equals(updateRequestDto.getCollectDate(), foliarAnalysis.getCollectDate())) {
+
             foliarAnalysisRepository.findByCropAndCollectDate(crop, updateRequestDto.getCollectDate())
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(foliarAnalysisId)) {
@@ -123,36 +107,33 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
                                     + formatDate(updateRequestDto.getCollectDate()));
                         }
                     });
+
             foliarAnalysis.setCollectDate(copyDate(updateRequestDto.getCollectDate()));
         }
 
         if (updateRequestDto.getLaboratory() != null) {
             foliarAnalysis.setLaboratory(updateRequestDto.getLaboratory());
         }
-
         if (updateRequestDto.getMicronutrients() != null) {
             foliarAnalysis.setMicronutrients(copyMicronutrientsContent(updateRequestDto.getMicronutrients()));
         }
-
         if (updateRequestDto.getMacronutrients() != null) {
             foliarAnalysis.setMacronutrients(copyMacronutrientsContent(updateRequestDto.getMacronutrients()));
         }
-
         if (updateRequestDto.getElements() != null) {
             foliarAnalysis.setElements(copyBeneficialElementsContent(updateRequestDto.getElements()));
         }
 
-        FoliarAnalysisModel updatedAnalysis = foliarAnalysisRepository.save(foliarAnalysis);
-        return updatedAnalysis.toDto();
+        return foliarAnalysisRepository.save(foliarAnalysis).toDto();
     }
 
     @Override
     @Transactional
     public void deleteFoliarAnalysis(Long foliarAnalysisId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        checkPlotPermission(foliarAnalysis.getCrop().getFolder().getPlot(), owner, true);
+        permissionManager.assertCanWrite(foliarAnalysis.getCrop().getFolder().getPlot(), requester);
 
         foliarAnalysisRepository.delete(foliarAnalysis);
     }
@@ -172,106 +153,49 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
                 .orElseThrow(() -> new EntityNotFoundException("Análise foliar não encontrada com o ID: " + foliarAnalysisId));
     }
 
-    private void checkPlotPermission(PlotModel plot, UserModel requestingUser, boolean requireEditPermission) {
-        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
-                && requestingUser.getCargo() != Cargo.GERENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-
-        if (requireEditPermission && requestingUser.getCargo() == Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas ou suas análises.");
-        }
-
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasPlotApproval) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
     private Date copyDate(Date source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
     }
 
     private String formatDate(Date date) {
-        if (date == null) {
-            return "";
-        }
+        if (date == null) return "";
         return String.format("%02d/%02d/%04d", date.getDay(), date.getMonth(), date.getYear());
     }
 
-    private MicronutrientsContent copyMicronutrientsContent(MicronutrientsContentDto micronutrientsDto) {
-        if (micronutrientsDto == null) {
-            return null;
-        }
+    private MicronutrientsContent copyMicronutrientsContent(MicronutrientsContentDto dto) {
+        if (dto == null) return null;
         return new MicronutrientsContent(
-                micronutrientsDto.getB_content(),
-                micronutrientsDto.getCu_content(),
-                micronutrientsDto.getFe_content(),
-                micronutrientsDto.getNi_content(),
-                micronutrientsDto.getMn_content(),
-                micronutrientsDto.getMo_content(),
-                micronutrientsDto.getZn_content()
+                dto.getB_content(),
+                dto.getCu_content(),
+                dto.getFe_content(),
+                dto.getNi_content(),
+                dto.getMn_content(),
+                dto.getMo_content(),
+                dto.getZn_content()
         );
     }
 
-    private MacronutrientsContent copyMacronutrientsContent(MacronutrientsContentDto macronutrientsDto) {
-        if (macronutrientsDto == null) {
-            return null;
-        }
+    private MacronutrientsContent copyMacronutrientsContent(MacronutrientsContentDto dto) {
+        if (dto == null) return null;
         return new MacronutrientsContent(
-                macronutrientsDto.getN_content(),
-                macronutrientsDto.getP_content(),
-                macronutrientsDto.getK_content(),
-                macronutrientsDto.getCa_content(),
-                macronutrientsDto.getMg_content(),
-                macronutrientsDto.getS_content()
+                dto.getN_content(),
+                dto.getP_content(),
+                dto.getK_content(),
+                dto.getCa_content(),
+                dto.getMg_content(),
+                dto.getS_content()
         );
     }
 
-    private BeneficialElementsContent copyBeneficialElementsContent(BeneficialElementsContentDto beneficialElementsDto) {
-        if (beneficialElementsDto == null) {
-            return null;
-        }
+    private BeneficialElementsContent copyBeneficialElementsContent(BeneficialElementsContentDto dto) {
+        if (dto == null) return null;
         return new BeneficialElementsContent(
-                beneficialElementsDto.getNa_content(),
-                beneficialElementsDto.getSi_content(),
-                beneficialElementsDto.getV_content(),
-                beneficialElementsDto.getCo_content(),
-                beneficialElementsDto.getSe_content()
+                dto.getNa_content(),
+                dto.getSi_content(),
+                dto.getV_content(),
+                dto.getCo_content(),
+                dto.getSe_content()
         );
     }
 }

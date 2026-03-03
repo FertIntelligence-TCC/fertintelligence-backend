@@ -1,27 +1,20 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationPostRequestDto;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.TopdressingFertilizationModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.TopDressingFertilizationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.TopDressingFertilizationService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,33 +23,25 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TopDressingFertilizationServiceImpl implements TopDressingFertilizationService {
 
-    @Autowired
-    private TopDressingFertilizationRepository topDressingFertilizationRepository;
-
-    @Autowired
-    private CropRepository cropRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
+    private final TopDressingFertilizationRepository topDressingFertilizationRepository;
+    private final CropRepository cropRepository;
+    private final UserRepository userRepository;
+    private final PermissionManager permissionManager;
 
     @Override
     @Transactional
-    public TopDressingFertilizationResponseDto createTopDressingFertilization(Long cropId,
-                                                                              TopDressingFertilizationCreateRequestDto createRequestDto,
-                                                                              String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+    public TopDressingFertilizationResponseDto createTopDressingFertilization(
+            Long cropId,
+            TopDressingFertilizationCreateRequestDto createRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder(), owner);
+        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
 
         topDressingFertilizationRepository.findByCropAndOrder(crop, createRequestDto.getOrder())
                 .ifPresent(existing -> {
@@ -77,18 +62,16 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
                 .monoammonium_phosphate(createRequestDto.getMonoammonium_phosphate())
                 .build();
 
-        TopdressingFertilizationModel savedFertilization = topDressingFertilizationRepository.save(fertilization);
-        return savedFertilization.toDto();
+        return topDressingFertilizationRepository.save(fertilization).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public TopDressingFertilizationResponseDto getTopDressingFertilizationById(Long fertilizationId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
-        checkOwnerPermission(fertilization.getCrop().getFolder(), owner);
+        permissionManager.assertCanRead(fertilization.getCrop().getFolder().getPlot(), requester);
 
         return fertilization.toDto();
     }
@@ -96,11 +79,10 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     @Override
     @Transactional(readOnly = true)
     public List<TopDressingFertilizationResponseDto> getAllTopDressingFertilizationsByCrop(Long cropId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkOwnerPermission(crop.getFolder(), owner);
+        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
 
         return topDressingFertilizationRepository.findAllByCrop(crop).stream()
                 .map(TopdressingFertilizationModel::toDto)
@@ -109,15 +91,17 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
 
     @Override
     @Transactional
-    public TopDressingFertilizationResponseDto updateTopDressingFertilization(Long fertilizationId,
-                                                                              TopDressingFertilizationPostRequestDto updateRequestDto,
-                                                                              String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+    public TopDressingFertilizationResponseDto updateTopDressingFertilization(
+            Long fertilizationId,
+            TopDressingFertilizationPostRequestDto updateRequestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
         CropModel crop = fertilization.getCrop();
-        checkOwnerPermission(crop.getFolder(), owner);
+
+        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
 
         if (updateRequestDto.getOrder() != null && !Objects.equals(updateRequestDto.getOrder(), fertilization.getOrder())) {
             topDressingFertilizationRepository.findByCropAndOrder(crop, updateRequestDto.getOrder())
@@ -130,62 +114,27 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
             fertilization.setOrder(updateRequestDto.getOrder());
         }
 
-        if (updateRequestDto.getDate() != null) {
-            fertilization.setDate(copyDate(updateRequestDto.getDate()));
-        }
+        if (updateRequestDto.getDate() != null) fertilization.setDate(copyDate(updateRequestDto.getDate()));
+        if (updateRequestDto.getFormulated() != null) fertilization.setFormulated(updateRequestDto.getFormulated());
+        if (updateRequestDto.getAmmonium_sulfate() != null) fertilization.setAmmonium_sulfate(updateRequestDto.getAmmonium_sulfate());
+        if (updateRequestDto.getUrea() != null) fertilization.setUrea(updateRequestDto.getUrea());
+        if (updateRequestDto.getPotassium_chloride() != null) fertilization.setPotassium_chloride(updateRequestDto.getPotassium_chloride());
+        if (updateRequestDto.getTriple_superphosphate() != null) fertilization.setTriple_superphosphate(updateRequestDto.getTriple_superphosphate());
+        if (updateRequestDto.getSimple_superphosphate() != null) fertilization.setSimple_superphosphate(updateRequestDto.getSimple_superphosphate());
+        if (updateRequestDto.getMonoammonium_phosphate() != null) fertilization.setMonoammonium_phosphate(updateRequestDto.getMonoammonium_phosphate());
 
-        if (updateRequestDto.getFormulated() != null) {
-            fertilization.setFormulated(updateRequestDto.getFormulated());
-        }
-
-        if (updateRequestDto.getAmmonium_sulfate() != null) {
-            fertilization.setAmmonium_sulfate(updateRequestDto.getAmmonium_sulfate());
-        }
-
-        if (updateRequestDto.getUrea() != null) {
-            fertilization.setUrea(updateRequestDto.getUrea());
-        }
-
-        if (updateRequestDto.getPotassium_chloride() != null) {
-            fertilization.setPotassium_chloride(updateRequestDto.getPotassium_chloride());
-        }
-
-        if (updateRequestDto.getTriple_superphosphate() != null) {
-            fertilization.setTriple_superphosphate(updateRequestDto.getTriple_superphosphate());
-        }
-
-        if (updateRequestDto.getSimple_superphosphate() != null) {
-            fertilization.setSimple_superphosphate(updateRequestDto.getSimple_superphosphate());
-        }
-
-        if (updateRequestDto.getMonoammonium_phosphate() != null) {
-            fertilization.setMonoammonium_phosphate(updateRequestDto.getMonoammonium_phosphate());
-        }
-
-        TopdressingFertilizationModel updatedFertilization = topDressingFertilizationRepository.save(fertilization);
-        return updatedFertilization.toDto();
+        return topDressingFertilizationRepository.save(fertilization).toDto();
     }
 
     @Override
     @Transactional
     public void deleteTopDressingFertilization(Long fertilizationId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
-        checkOwnerPermission(fertilization.getCrop().getFolder(), owner);
+        permissionManager.assertCanWrite(fertilization.getCrop().getFolder().getPlot(), requester);
 
         topDressingFertilizationRepository.delete(fertilization);
-    }
-
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
-                && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && user.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Acesso negado. Você não tem permissão para gerenciar adubações de cobertura.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -203,46 +152,8 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
                 .orElseThrow(() -> new EntityNotFoundException("Adubação de cobertura não encontrada com o ID: " + fertilizationId));
     }
 
-    private void checkOwnerPermission(AnnualCropFolderModel folder, UserModel requestingUser) {
-        PlotModel plot = folder.getPlot();
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasPlotApproval) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
     private Date copyDate(Date source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
     }
 }

@@ -1,67 +1,37 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PhysicalAnalysisExtractRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.PhysicalAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtractService {
-
-    private static final EnumSet<Cargo> ALLOWED_ROLES = EnumSet.of(
-            Cargo.PROPRIETARIO,
-            Cargo.GERENTE,
-            Cargo.AGRONOMO_RESIDENTE,
-            Cargo.AGRONOMO_CONSULTOR,
-            Cargo.SUPERVISOR_DE_AREA,
-            Cargo.SECRETARIO
-    );
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final RangeExtractRepository rangeExtractRepository;
     private final LayerExtractRepository layerExtractRepository;
-    private final PlotAccessRequestRepository plotAccessRequestRepository;
-    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
     private final UserRepository userRepository;
-
-    public PhysicalAnalysisExtractServiceImpl(
-            PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
-            RangeExtractRepository rangeExtractRepository,
-            LayerExtractRepository layerExtractRepository,
-            PlotAccessRequestRepository plotAccessRequestRepository,
-            PropertyAccessRequestRepository propertyAccessRequestRepository,
-            UserRepository userRepository
-    ) {
-        this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
-        this.rangeExtractRepository = rangeExtractRepository;
-        this.layerExtractRepository = layerExtractRepository;
-        this.plotAccessRequestRepository = plotAccessRequestRepository;
-        this.propertyAccessRequestRepository = propertyAccessRequestRepository;
-        this.userRepository = userRepository;
-    }
+    private final PermissionManager permissionManager;
 
     @Override
     @Transactional
@@ -72,10 +42,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
             String username
     ) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         ExtractContext ctx = resolveExtractContext(rangeExtractId, layerExtractId);
-        assertPlotPermission(ctx.plot(), requester);
+        permissionManager.assertCanWrite(ctx.plot(), requester);
 
         PhysicalAnalysisExtractModel analysisExtract = PhysicalAnalysisExtractModel.builder()
                 .rangeExtract(ctx.rangeExtract())
@@ -105,10 +74,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public PhysicalAnalysisExtractResponseDto getPhysicalAnalysisExtractById(Long physicalAnalysisExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
-        assertPlotPermission(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanRead(resolvePlot(analysisExtract), requester);
 
         return analysisExtract.toDto();
     }
@@ -117,10 +85,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByRange(Long rangeExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        assertPlotPermission(rangeExtract.getAnalysis().getPlot(), requester);
+        permissionManager.assertCanRead(rangeExtract.getAnalysis().getPlot(), requester);
 
         return physicalAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
@@ -132,10 +99,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional(readOnly = true)
     public List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByLayer(Long layerExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        assertPlotPermission(layerExtract.getAnalysis().getPlot(), requester);
+        permissionManager.assertCanRead(layerExtract.getAnalysis().getPlot(), requester);
 
         return physicalAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
@@ -151,10 +117,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
             String username
     ) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
-        assertPlotPermission(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
 
         applyIfNonNull(updateRequestDto.getTeorAreia(), analysisExtract::setTeorAreia);
         applyIfNonNull(updateRequestDto.getTeorSilte(), analysisExtract::setTeorSilte);
@@ -180,10 +145,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     @Transactional
     public void deletePhysicalAnalysisExtract(Long physicalAnalysisExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-        assertAllowedRole(requester);
 
         PhysicalAnalysisExtractModel analysisExtract = findPhysicalAnalysisExtractByIdOrThrow(physicalAnalysisExtractId);
-        assertPlotPermission(resolvePlot(analysisExtract), requester);
+        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
 
         physicalAnalysisExtractRepository.delete(analysisExtract);
     }
@@ -221,39 +185,6 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
             return analysisExtract.getLayerExtract().getAnalysis().getPlot();
         }
         throw new IllegalStateException("Extrato de análise física não possui extrato base associado.");
-    }
-
-    private void assertPlotPermission(PlotModel plot, UserModel requester) {
-        assertAllowedRole(requester);
-
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requester.getId())) return;
-        if (property.getManager() != null && property.getManager().getId().equals(requester.getId())) return;
-
-        if (requester.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository
-                    .findByPropertyAndRequesterAndStatus(property, requester, AccessRequestStatus.APPROVED)
-                    .isPresent();
-
-            if (hasPropertyApproval) return;
-
-            // se não tem acesso por propriedade, cai para a regra padrão do talhão
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository
-                .findByPlotAndRequesterAndStatus(plot, requester, AccessRequestStatus.APPROVED)
-                .isPresent();
-
-        if (!hasPlotApproval) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
-    private void assertAllowedRole(UserModel requester) {
-        if (!ALLOWED_ROLES.contains(requester.getCargo())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

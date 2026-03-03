@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface PropertyRepository extends JpaRepository<PropertyModel, Long> {
 
     Optional<PropertyModel> findByCnpj(String cnpj);
+    boolean existsByCnpj(String cnpj);
     Optional<PropertyModel> findByNome(String nome);
     List<PropertyModel> findAllByOwner(UserModel owner);
     List<PropertyModel> findByNomeContainingIgnoreCase(String nome);

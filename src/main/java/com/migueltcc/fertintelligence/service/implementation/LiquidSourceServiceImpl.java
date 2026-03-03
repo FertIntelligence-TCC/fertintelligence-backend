@@ -1,26 +1,19 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
-import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourcePostRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceResponseDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.LiquidSourceModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.LiquidSourceRepository;
-import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
-import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.LiquidSourceService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,31 +21,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class LiquidSourceServiceImpl implements LiquidSourceService {
 
-    @Autowired
-    private LiquidSourceRepository liquidSourceRepository;
-
-    @Autowired
-    private CropRepository cropRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PropertyAccessRequestRepository propertyAccessRequestRepository;
-
-    @Autowired
-    private PlotAccessRequestRepository plotAccessRequestRepository;
+    private final LiquidSourceRepository liquidSourceRepository;
+    private final CropRepository cropRepository;
+    private final UserRepository userRepository;
+    private final PermissionManager permissionManager;
 
     @Override
     @Transactional
     public LiquidSourceResponseDto createLiquidSource(Long cropId, LiquidSourceCreateRequestDto createRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(owner, true);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPermission(crop.getFolder(), owner, true);
+        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
 
         LiquidSourceModel liquidSource = LiquidSourceModel.builder()
                 .crop(crop)
@@ -65,18 +48,16 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
                 .tail_volume(createRequestDto.getTail_volume())
                 .build();
 
-        LiquidSourceModel savedSource = liquidSourceRepository.save(liquidSource);
-        return savedSource.toDto();
+        return liquidSourceRepository.save(liquidSource).toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public LiquidSourceResponseDto getLiquidSourceById(Long liquidSourceId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(owner, false);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        checkPermission(liquidSource.getCrop().getFolder(), owner, false);
+        permissionManager.assertCanRead(liquidSource.getCrop().getFolder().getPlot(), requester);
 
         return liquidSource.toDto();
     }
@@ -84,11 +65,10 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
     @Override
     @Transactional(readOnly = true)
     public List<LiquidSourceResponseDto> getAllLiquidSourcesByCrop(Long cropId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(owner, false);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        checkPermission(crop.getFolder(), owner, false);
+        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
 
         return liquidSourceRepository.findAllByCrop(crop).stream()
                 .map(LiquidSourceModel::toDto)
@@ -98,63 +78,31 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
     @Override
     @Transactional
     public LiquidSourceResponseDto updateLiquidSource(Long liquidSourceId, LiquidSourcePostRequestDto updateRequestDto, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(owner, true);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        CropModel crop = liquidSource.getCrop();
-        checkPermission(crop.getFolder(), owner, true);
+        permissionManager.assertCanWrite(liquidSource.getCrop().getFolder().getPlot(), requester);
 
-        if (updateRequestDto.getDate() != null) {
-            liquidSource.setDate(copyDate(updateRequestDto.getDate()));
-        }
-        if (updateRequestDto.getMicronutrient() != null) {
-            liquidSource.setMicronutrient(updateRequestDto.getMicronutrient());
-        }
-        if (updateRequestDto.getSource() != null) {
-            liquidSource.setSource(updateRequestDto.getSource());
-        }
-        if (updateRequestDto.getConcentration() != null) {
-            liquidSource.setConcentration(updateRequestDto.getConcentration());
-        }
-        if (updateRequestDto.getDensity() != null) {
-            liquidSource.setDensity(updateRequestDto.getDensity());
-        }
-        if (updateRequestDto.getApplied_volume() != null) {
-            liquidSource.setApplied_volume(updateRequestDto.getApplied_volume());
-        }
-        if (updateRequestDto.getTail_volume() != null) {
-            liquidSource.setTail_volume(updateRequestDto.getTail_volume());
-        }
+        if (updateRequestDto.getDate() != null) liquidSource.setDate(copyDate(updateRequestDto.getDate()));
+        if (updateRequestDto.getMicronutrient() != null) liquidSource.setMicronutrient(updateRequestDto.getMicronutrient());
+        if (updateRequestDto.getSource() != null) liquidSource.setSource(updateRequestDto.getSource());
+        if (updateRequestDto.getConcentration() != null) liquidSource.setConcentration(updateRequestDto.getConcentration());
+        if (updateRequestDto.getDensity() != null) liquidSource.setDensity(updateRequestDto.getDensity());
+        if (updateRequestDto.getApplied_volume() != null) liquidSource.setApplied_volume(updateRequestDto.getApplied_volume());
+        if (updateRequestDto.getTail_volume() != null) liquidSource.setTail_volume(updateRequestDto.getTail_volume());
 
-        LiquidSourceModel updatedSource = liquidSourceRepository.save(liquidSource);
-        return updatedSource.toDto();
+        return liquidSourceRepository.save(liquidSource).toDto();
     }
 
     @Override
     @Transactional
     public void deleteLiquidSource(Long liquidSourceId, String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserHasAllowedRole(owner, true);
+        UserModel requester = findUserByUsernameOrThrow(username);
 
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        checkPermission(liquidSource.getCrop().getFolder(), owner, true);
+        permissionManager.assertCanWrite(liquidSource.getCrop().getFolder().getPlot(), requester);
 
         liquidSourceRepository.delete(liquidSource);
-    }
-
-    private void checkUserHasAllowedRole(UserModel user, boolean requireEditPermission) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
-                && user.getCargo() != Cargo.GERENTE
-                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && user.getCargo() != Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Acesso negado. Você não tem permissão para gerenciar fontes líquidas de adubação foliar.");
-        }
-
-        if (requireEditPermission && user.getCargo() == Cargo.SECRETARIO) {
-            throw new AccessDeniedException("Secretários não têm permissão para criar ou editar culturas ou suas aplicações de adubação foliar.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -172,48 +120,8 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
                 .orElseThrow(() -> new EntityNotFoundException("Fonte líquida não encontrada com o ID: " + liquidSourceId));
     }
 
-    private void checkPermission(AnnualCropFolderModel folder, UserModel requestingUser, boolean requireEditPermission) {
-        checkUserHasAllowedRole(requestingUser, requireEditPermission);
-
-        PlotModel plot = folder.getPlot();
-        PropertyModel property = plot.getProperty();
-
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
-            return;
-        }
-
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            boolean hasPropertyApproval = propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
-                    property,
-                    requestingUser,
-                    AccessRequestStatus.APPROVED
-            ).isPresent();
-
-            if (!hasPropertyApproval) {
-                throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-            }
-            return;
-        }
-
-        boolean hasPlotApproval = plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot,
-                requestingUser,
-                AccessRequestStatus.APPROVED
-        ).isPresent();
-
-        if (!hasPlotApproval) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
-        }
-    }
-
     private Date copyDate(Date source) {
-        if (source == null) {
-            return null;
-        }
+        if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
     }
 }
