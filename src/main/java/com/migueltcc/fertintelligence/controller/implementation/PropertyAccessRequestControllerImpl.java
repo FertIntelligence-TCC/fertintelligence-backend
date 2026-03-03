@@ -56,4 +56,14 @@ public class PropertyAccessRequestControllerImpl implements PropertyAccessReques
         return ResponseEntity.ok(approvedProperties);
     }
 
+    @Override
+    @DeleteMapping("/leave")
+    public ResponseEntity<Void> leaveProperty(
+            @RequestParam(name = "propertyId") Long propertyId,
+            Authentication authentication) {
+
+        propertyAccessRequestService.leaveProperty(propertyId, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
 }

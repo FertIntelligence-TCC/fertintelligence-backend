@@ -163,6 +163,36 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
                 propertyId, username, AccessRequestStatus.APPROVED
         ).isPresent();
     }
+
+    @Override
+    @Transactional
+    public void leaveProperty(Long propertyId, String username) {
+
+        PropertyModel property = findPropertyByIdOrThrow(propertyId);
+
+        // Owner não pode "sair" da própria propriedade
+        if (property.getOwner() != null && property.getOwner().getUsername().equals(username)) {
+            throw new AccessDeniedException("O proprietário não pode se desvincular da própria propriedade.");
+        }
+
+        // 1) Se tiver vínculo aprovado, revoga (já remove gerente se for o caso)
+        boolean hasApproved = propertyAccessRequestRepository
+                .findByPropertyIdAndRequesterUsernameAndStatus(propertyId, username, AccessRequestStatus.APPROVED)
+                .isPresent();
+
+        if (hasApproved) {
+            revokeAccess(propertyId, username);
+            return;
+        }
+
+        // 2) Se tiver solicitação pendente, cancela (deleta)
+        propertyAccessRequestRepository
+                .findByPropertyIdAndRequesterUsernameAndStatus(propertyId, username, AccessRequestStatus.PENDING)
+                .ifPresentOrElse(
+                        propertyAccessRequestRepository::delete,
+                        () -> { throw new EntityNotFoundException("Nenhum vínculo ou solicitação encontrada para esta propriedade."); }
+                );
+    }
     // --------------------------
 
     private void updatePropertyManagerIfNeeded(PropertyAccessRequestModel request) {

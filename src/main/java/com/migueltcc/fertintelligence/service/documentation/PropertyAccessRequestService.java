@@ -20,4 +20,7 @@ public interface PropertyAccessRequestService {
     void revokeAccess(Long propertyId, String username);
 
     boolean hasAccessToProperty(Long propertyId, String username);
+
+    void leaveProperty(Long propertyId, String username);
+
 }

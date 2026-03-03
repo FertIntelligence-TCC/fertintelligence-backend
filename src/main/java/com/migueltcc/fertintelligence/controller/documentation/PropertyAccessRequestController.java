@@ -39,4 +39,10 @@ public interface PropertyAccessRequestController {
     ResponseEntity<List<PropertyResponseDto>> getMyApprovedProperties(
             @Parameter(hidden = true) Authentication authentication
     );
+
+    ResponseEntity<Void> leaveProperty(
+            @RequestParam(name = "propertyId") Long propertyId,
+            Authentication authentication
+    );
+
 }
