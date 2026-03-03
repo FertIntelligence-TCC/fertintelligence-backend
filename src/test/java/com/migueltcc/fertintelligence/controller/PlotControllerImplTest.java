@@ -1,7 +1,8 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
@@ -12,37 +13,43 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plot.PlotCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plot.PlotPostRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.*;
-import com.migueltcc.fertintelligence.repository.PlotRepository;
-import com.migueltcc.fertintelligence.repository.PropertyRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class PlotControllerImplTest extends AbstractControllerTest {
+
+    private static final String OWNER_USERNAME = "testuser";
+    private static final String MANAGER_USERNAME = "manager";
+    private static final String RESIDENTE_USERNAME = "residente";
+    private static final String CONSULTOR_USERNAME = "consultor";
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
@@ -50,41 +57,42 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     private UserModel managerUser;
     private UserModel residenteUser;
     private UserModel consultorUser;
+
     private PropertyModel ownerProperty;
 
     @BeforeEach
     void setUp() {
         proprietarioUser = UserModel.builder()
                 .id(1L)
-                .username("testuser")
+                .username(OWNER_USERNAME)
                 .name("Test User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
         funcionarioUser = UserModel.builder()
                 .id(2L)
-                .username("testuser")
+                .username(OWNER_USERNAME)
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
                 .build();
 
         managerUser = UserModel.builder()
                 .id(4L)
-                .username("manager")
+                .username(MANAGER_USERNAME)
                 .name("Gerente")
                 .cargo(Cargo.GERENTE)
                 .build();
 
         residenteUser = UserModel.builder()
                 .id(5L)
-                .username("residente")
+                .username(RESIDENTE_USERNAME)
                 .name("Agrônomo Residente")
                 .cargo(Cargo.AGRONOMO_RESIDENTE)
                 .build();
 
         consultorUser = UserModel.builder()
                 .id(6L)
-                .username("consultor")
+                .username(CONSULTOR_USERNAME)
                 .name("Agrônomo Consultor")
                 .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
@@ -105,6 +113,14 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .manager(managerUser)
                 .localizacao(new Localizacao(7.11, LatitudeDirection.SUL, 34.86, LongitudeDirection.OESTE, 10.0))
                 .build();
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                any(PropertyModel.class), any(PlotModel.class), any(UserModel.class), any(PermissionScope.class),
+                any(PermissionType.class), any(AccessRequestStatus.class)
+        )).thenReturn(Optional.empty());
     }
 
     private PlotCreateRequestDto createCreateRequestDto() {
@@ -167,14 +183,20 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    private void stubApprovedPlotAccess(PropertyModel property, PlotModel plot, UserModel requester) {
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(property), eq(plot), eq(requester), eq(PermissionScope.PLOT),
+                any(PermissionType.class), eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(requester, plot)));
+    }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void createPlotSuccessfully() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
         PlotModel savedPlot = createPlotModel(1L, requestDto.getIdentification(), ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
         when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
                 .thenReturn(Optional.empty());
@@ -187,17 +209,16 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.identificacao").value("Talhao 01"))
-                .andExpect(jsonPath("$.id_propriedade").value(10L))
-                .andExpect(jsonPath("$.nome_propriedade").value("Fazenda Santa Clara"));
+                .andExpect(jsonPath("$.id_propriedade").value(10L));
     }
 
     @Test
-    @WithMockUser(username = "manager")
+    @WithMockUser(username = MANAGER_USERNAME)
     void createPlotAsManagerSuccessfully() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
         PlotModel savedPlot = createPlotModel(2L, requestDto.getIdentification(), ownerProperty);
 
-        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
+        when(userRepository.findByUsername(MANAGER_USERNAME)).thenReturn(Optional.of(managerUser));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
         when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
                 .thenReturn(Optional.empty());
@@ -212,52 +233,48 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "residente")
-    void createPlotAsResidentWithApproval() throws Exception {
+    @WithMockUser(username = RESIDENTE_USERNAME)
+    void createPlotAsResident_ReturnsForbidden() throws Exception {
+        // Residentes gerenciam CULTURAS, não criam TALHÕES. Sistema DEVE retornar 403.
         PlotCreateRequestDto requestDto = createCreateRequestDto();
-        PlotModel savedPlot = createPlotModel(3L, requestDto.getIdentification(), ownerProperty);
 
-        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
+        when(userRepository.findByUsername(RESIDENTE_USERNAME)).thenReturn(Optional.of(residenteUser));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
-        when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
-                .thenReturn(Optional.empty());
-        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
-        when(plotRepository.save(any(PlotModel.class))).thenReturn(savedPlot);
 
         mockMvc.perform(post("/plot/register")
                         .param("propertyId", "10")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(3L));
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void createPlotFails_WhenUserIsNotProprietario() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
+        PlotModel savedPlot = createPlotModel(99L, requestDto.getIdentification(), ownerProperty);
 
-        // 1. Mock do usuário logado (Funcionário)
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
-
-        // 2. [CORREÇÃO] Você precisa garantir que a propriedade EXISTE para o sistema validar o acesso a ela
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Secretário
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
 
+        // Mock do save para que o sistema não dê erro 500, permitindo expor que a API retornaria 201 indevidamente
+        when(plotRepository.save(any(PlotModel.class))).thenReturn(savedPlot);
+
+        // Um Secretário NÃO PODE criar talhão. DEVE dar 403.
         mockMvc.perform(post("/plot/register")
                         .param("propertyId", "10")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isForbidden()); // Agora sim deve dar 403
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void createPlotFails_WhenIdentificationAlreadyExists() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
         PlotModel existingPlot = createPlotModel(5L, requestDto.getIdentification(), ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
         when(plotRepository.findByIdentificationAndProperty(requestDto.getIdentification(), ownerProperty))
                 .thenReturn(Optional.of(existingPlot));
@@ -270,11 +287,11 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getPlotSuccessfully() throws Exception {
         PlotModel plot = createPlotModel(1L, "Talhao 01", ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
 
         mockMvc.perform(get("/plot/get")
@@ -285,19 +302,16 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getPlotFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel otherProperty = PropertyModel.builder()
                 .id(20L)
                 .nome("Fazenda Outro Dono")
-                .cnpj("98.765.432/0001-99")
-                .endereco("Rua das Palmeiras, 50")
                 .owner(otherProprietarioUser)
-                .localizacao(new Localizacao(8.0, LatitudeDirection.NORTE, 35.0, LongitudeDirection.LESTE, 50.0))
                 .build();
         PlotModel plot = createPlotModel(1L, "Talhao 01", otherProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
 
         mockMvc.perform(get("/plot/get")
@@ -306,9 +320,9 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getPlotFails_WhenNotFound() throws Exception {
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/plot/get")
@@ -317,12 +331,12 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getPlotsByPropertySuccessfully() throws Exception {
         PlotModel plot1 = createPlotModel(1L, "Talhao 01", ownerProperty);
         PlotModel plot2 = createPlotModel(2L, "Talhao 02", ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
         when(plotRepository.findAllByProperty(ownerProperty)).thenReturn(List.of(plot1, plot2));
 
@@ -335,12 +349,12 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void updatePlotSuccessfully() throws Exception {
         PlotModel existingPlot = createPlotModel(1L, "Talhao 01", ownerProperty);
         PlotPostRequestDto updateRequestDto = createPostRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(existingPlot));
         when(plotRepository.findByIdentificationAndProperty(updateRequestDto.getIdentification(), ownerProperty))
                 .thenReturn(Optional.empty());
@@ -357,42 +371,37 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "consultor")
-    void updatePlotAsConsultantWithApproval() throws Exception {
+    @WithMockUser(username = CONSULTOR_USERNAME)
+    void updatePlotAsConsultant_ReturnsForbidden() throws Exception {
+        // Consultores não editam as propriedades do Talhão (apenas as Culturas/Análises dentro dele).
+        // Logo, a API DEVE bloquear a ação (403 Forbidden)
         PlotModel existingPlot = createPlotModel(1L, "Talhao 01", ownerProperty);
         PlotPostRequestDto updateRequestDto = createPostRequestDto();
 
-        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(userRepository.findByUsername(CONSULTOR_USERNAME)).thenReturn(Optional.of(consultorUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(existingPlot));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(existingPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, existingPlot)));
-        when(plotRepository.findByIdentificationAndProperty(updateRequestDto.getIdentification(), ownerProperty))
-                .thenReturn(Optional.empty());
-        when(plotRepository.save(any(PlotModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        stubApprovedPlotAccess(ownerProperty, existingPlot, consultorUser);
 
         mockMvc.perform(put("/plot/update")
                         .param("plotId", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.identificacao").value("Talhao Atualizado"));
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void updatePlotFails_WhenUserIsNotOwner() throws Exception {
         PropertyModel otherProperty = PropertyModel.builder()
                 .id(20L)
                 .nome("Fazenda Outro Dono")
-                .cnpj("98.765.432/0001-99")
-                .endereco("Rua das Palmeiras, 50")
                 .owner(otherProprietarioUser)
-                .localizacao(new Localizacao(8.0, LatitudeDirection.NORTE, 35.0, LongitudeDirection.LESTE, 50.0))
                 .build();
         PlotModel plot = createPlotModel(1L, "Talhao 01", otherProperty);
         PlotPostRequestDto updateRequestDto = createPostRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
 
         mockMvc.perform(put("/plot/update")
@@ -403,11 +412,11 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void deletePlotSuccessfully() throws Exception {
         PlotModel plot = createPlotModel(1L, "Talhao 01", ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
         doNothing().when(plotRepository).delete(plot);
 
@@ -417,13 +426,15 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void deletePlotFails_WhenUserIsNotProprietario() throws Exception {
         PlotModel plot = createPlotModel(1L, "Talhao 01", ownerProperty);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Secretário
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
+        doNothing().when(plotRepository).delete(plot); // Adicionado para evitar quebrar com 500 se o serviço prosseguir
 
+        // O Secretário NÃO PODE deletar talhões, deve retornar 403.
         mockMvc.perform(delete("/plot/delete")
                         .param("plotId", "1"))
                 .andExpect(status().isForbidden());

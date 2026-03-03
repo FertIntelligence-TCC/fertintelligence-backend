@@ -12,7 +12,6 @@ import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractReposit
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.FertilityAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +43,10 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         ExtractContext ctx = resolveExtractContext(rangeExtractId, layerExtractId);
-        permissionManager.assertCanWrite(ctx.plot(), requester);
+        PlotModel plot = ctx.plot();
+
+        // WRITE (ANÁLISES)
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, requester);
 
         FertilityAnalysisExtractModel analysisExtract = FertilityAnalysisExtractModel.builder()
                 .rangeExtract(ctx.rangeExtract())
@@ -82,8 +84,13 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     public FertilityAnalysisExtractResponseDto getFertilityAnalysisExtractById(Long fertilityAnalysisExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        permissionManager.assertCanRead(resolvePlot(analysisExtract), requester);
+        FertilityAnalysisExtractModel analysisExtract =
+                findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
+
+        PlotModel plot = resolvePlot(analysisExtract);
+
+        // READ
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return analysisExtract.toDto();
     }
@@ -94,7 +101,10 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        permissionManager.assertCanRead(rangeExtract.getAnalysis().getPlot(), requester);
+        PlotModel plot = rangeExtract.getAnalysis().getPlot();
+
+        // READ
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return fertilityAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
@@ -108,7 +118,10 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         UserModel requester = findUserByUsernameOrThrow(username);
 
         LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        permissionManager.assertCanRead(layerExtract.getAnalysis().getPlot(), requester);
+        PlotModel plot = layerExtract.getAnalysis().getPlot();
+
+        // READ
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return fertilityAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
@@ -125,8 +138,13 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     ) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
+        FertilityAnalysisExtractModel analysisExtract =
+                findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
+
+        PlotModel plot = resolvePlot(analysisExtract);
+
+        // WRITE (ANÁLISES)
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, requester);
 
         updateIfNotNull(updateRequestDto.getPhAgua(), analysisExtract::setPhAgua);
         updateIfNotNull(updateRequestDto.getPhCacl2(), analysisExtract::setPhCacl2);
@@ -160,10 +178,16 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     public void deleteFertilityAnalysisExtract(Long fertilityAnalysisExtractId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        FertilityAnalysisExtractModel analysisExtract = findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
-        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
+        FertilityAnalysisExtractModel analysisExtract =
+                findFertilityAnalysisExtractByIdOrThrow(fertilityAnalysisExtractId);
+
+        PlotModel plot = resolvePlot(analysisExtract);
+
+        // WRITE (ANÁLISES)
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, requester);
 
         fertilityAnalysisExtractRepository.delete(analysisExtract);
+        fertilityAnalysisExtractRepository.flush();
     }
 
     private void updateIfNotNull(Double value, Consumer<Double> setter) {

@@ -10,7 +10,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.Topdress
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.TopDressingFertilizationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.TopDressingFertilizationService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,10 +36,11 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
             TopDressingFertilizationCreateRequestDto createRequestDto,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        CropModel crop = findCrop(cropId);
 
-        CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+        var plot = crop.getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         topDressingFertilizationRepository.findByCropAndOrder(crop, createRequestDto.getOrder())
                 .ifPresent(existing -> {
@@ -68,10 +67,11 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     @Override
     @Transactional(readOnly = true)
     public TopDressingFertilizationResponseDto getTopDressingFertilizationById(Long fertilizationId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        TopdressingFertilizationModel fertilization = findFertilization(fertilizationId);
 
-        TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
-        permissionManager.assertCanRead(fertilization.getCrop().getFolder().getPlot(), requester);
+        var plot = fertilization.getCrop().getFolder().getPlot();
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return fertilization.toDto();
     }
@@ -79,14 +79,16 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     @Override
     @Transactional(readOnly = true)
     public List<TopDressingFertilizationResponseDto> getAllTopDressingFertilizationsByCrop(Long cropId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        CropModel crop = findCrop(cropId);
 
-        CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
+        var plot = crop.getFolder().getPlot();
+        permissionManager.assertCanReadPlot(plot, requester);
 
-        return topDressingFertilizationRepository.findAllByCrop(crop).stream()
+        return topDressingFertilizationRepository.findAllByCrop(crop)
+                .stream()
                 .map(TopdressingFertilizationModel::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -96,12 +98,12 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
             TopDressingFertilizationPostRequestDto updateRequestDto,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
-
-        TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
+        UserModel requester = findUser(username);
+        TopdressingFertilizationModel fertilization = findFertilization(fertilizationId);
         CropModel crop = fertilization.getCrop();
 
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+        var plot = crop.getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         if (updateRequestDto.getOrder() != null && !Objects.equals(updateRequestDto.getOrder(), fertilization.getOrder())) {
             topDressingFertilizationRepository.findByCropAndOrder(crop, updateRequestDto.getOrder())
@@ -129,25 +131,30 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
     @Override
     @Transactional
     public void deleteTopDressingFertilization(Long fertilizationId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        TopdressingFertilizationModel fertilization = findFertilization(fertilizationId);
 
-        TopdressingFertilizationModel fertilization = findFertilizationByIdOrThrow(fertilizationId);
-        permissionManager.assertCanWrite(fertilization.getCrop().getFolder().getPlot(), requester);
+        var plot = fertilization.getCrop().getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         topDressingFertilizationRepository.delete(fertilization);
     }
 
-    private UserModel findUserByUsernameOrThrow(String username) {
+    /* =========================
+       Finders
+       ========================= */
+
+    private UserModel findUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private CropModel findCropByIdOrThrow(Long cropId) {
+    private CropModel findCrop(Long cropId) {
         return cropRepository.findById(cropId)
                 .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + cropId));
     }
 
-    private TopdressingFertilizationModel findFertilizationByIdOrThrow(Long fertilizationId) {
+    private TopdressingFertilizationModel findFertilization(Long fertilizationId) {
         return topDressingFertilizationRepository.findById(fertilizationId)
                 .orElseThrow(() -> new EntityNotFoundException("Adubação de cobertura não encontrada com o ID: " + fertilizationId));
     }

@@ -10,7 +10,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFe
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.SolidSourceRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.SolidSourceService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,11 +29,16 @@ public class SolidSourceServiceImpl implements SolidSourceService {
 
     @Override
     @Transactional
-    public SolidSourceResponseDto createSolidSource(Long cropId, SolidSourceCreateRequestDto createRequestDto, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+    public SolidSourceResponseDto createSolidSource(
+            Long cropId,
+            SolidSourceCreateRequestDto createRequestDto,
+            String username
+    ) {
+        UserModel requester = findUser(username);
+        CropModel crop = findCrop(cropId);
 
-        CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+        var plot = crop.getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         SolidSourceModel solidSource = SolidSourceModel.builder()
                 .crop(crop)
@@ -52,10 +55,11 @@ public class SolidSourceServiceImpl implements SolidSourceService {
     @Override
     @Transactional(readOnly = true)
     public SolidSourceResponseDto getSolidSourceById(Long solidSourceId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        SolidSourceModel solidSource = findSolidSource(solidSourceId);
 
-        SolidSourceModel solidSource = findSolidSourceByIdOrThrow(solidSourceId);
-        permissionManager.assertCanRead(solidSource.getCrop().getFolder().getPlot(), requester);
+        var plot = solidSource.getCrop().getFolder().getPlot();
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return solidSource.toDto();
     }
@@ -63,23 +67,30 @@ public class SolidSourceServiceImpl implements SolidSourceService {
     @Override
     @Transactional(readOnly = true)
     public List<SolidSourceResponseDto> getAllSolidSourcesByCrop(Long cropId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        CropModel crop = findCrop(cropId);
 
-        CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
+        var plot = crop.getFolder().getPlot();
+        permissionManager.assertCanReadPlot(plot, requester);
 
-        return solidSourceRepository.findAllByCrop(crop).stream()
+        return solidSourceRepository.findAllByCrop(crop)
+                .stream()
                 .map(SolidSourceModel::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
-    public SolidSourceResponseDto updateSolidSource(Long solidSourceId, SolidSourcePostRequestDto updateRequestDto, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+    public SolidSourceResponseDto updateSolidSource(
+            Long solidSourceId,
+            SolidSourcePostRequestDto updateRequestDto,
+            String username
+    ) {
+        UserModel requester = findUser(username);
+        SolidSourceModel solidSource = findSolidSource(solidSourceId);
 
-        SolidSourceModel solidSource = findSolidSourceByIdOrThrow(solidSourceId);
-        permissionManager.assertCanWrite(solidSource.getCrop().getFolder().getPlot(), requester);
+        var plot = solidSource.getCrop().getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         if (updateRequestDto.getDate() != null) solidSource.setDate(copyDate(updateRequestDto.getDate()));
         if (updateRequestDto.getMicronutrient() != null) solidSource.setMicronutrient(updateRequestDto.getMicronutrient());
@@ -93,25 +104,30 @@ public class SolidSourceServiceImpl implements SolidSourceService {
     @Override
     @Transactional
     public void deleteSolidSource(Long solidSourceId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
+        SolidSourceModel solidSource = findSolidSource(solidSourceId);
 
-        SolidSourceModel solidSource = findSolidSourceByIdOrThrow(solidSourceId);
-        permissionManager.assertCanWrite(solidSource.getCrop().getFolder().getPlot(), requester);
+        var plot = solidSource.getCrop().getFolder().getPlot();
+        permissionManager.assertCanEditCrops(plot.getProperty(), plot, requester);
 
         solidSourceRepository.delete(solidSource);
     }
 
-    private UserModel findUserByUsernameOrThrow(String username) {
+    /* =========================
+       Finders
+       ========================= */
+
+    private UserModel findUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private CropModel findCropByIdOrThrow(Long cropId) {
+    private CropModel findCrop(Long cropId) {
         return cropRepository.findById(cropId)
                 .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + cropId));
     }
 
-    private SolidSourceModel findSolidSourceByIdOrThrow(Long solidSourceId) {
+    private SolidSourceModel findSolidSource(Long solidSourceId) {
         return solidSourceRepository.findById(solidSourceId)
                 .orElseThrow(() -> new EntityNotFoundException("Fonte sólida não encontrada com o ID: " + solidSourceId));
     }

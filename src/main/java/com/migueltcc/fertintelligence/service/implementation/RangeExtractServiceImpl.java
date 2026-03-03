@@ -4,13 +4,14 @@ import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrat
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.range.RangeExtractResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.RangeExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -39,12 +40,11 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         UserModel requester = findUserByUsernameOrThrow(username);
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
 
-        // Validações de negócio
         ensureAnalysisSupportsRanges(analysis);
         validateDepthRange(createRequestDto.getInitialDepth(), createRequestDto.getFinalDepth());
 
-        // CREATE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        // CREATE = editar análises
+        assertCanEditAnalyses(analysis, requester);
 
         RangeExtractModel rangeExtract = RangeExtractModel.builder()
                 .analysis(analysis)
@@ -62,12 +62,10 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
 
         SoilAnalysisModel analysis = rangeExtract.getAnalysis();
-
-        // Validações de negócio
         ensureAnalysisSupportsRanges(analysis);
 
-        // READ = READ
-        permissionManager.assertCanRead(analysis.getPlot(), requester);
+        // READ = pode visualizar o talhão (entrada aprovada)
+        permissionManager.assertCanReadPlot(analysis.getPlot(), requester);
 
         return rangeExtract.toDto();
     }
@@ -78,11 +76,9 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         UserModel requester = findUserByUsernameOrThrow(username);
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
 
-        // Validações de negócio
         ensureAnalysisSupportsRanges(analysis);
 
-        // LIST = READ
-        permissionManager.assertCanRead(analysis.getPlot(), requester);
+        permissionManager.assertCanReadPlot(analysis.getPlot(), requester);
 
         return rangeExtractRepository.findAllByAnalysis(analysis).stream()
                 .map(RangeExtractModel::toDto)
@@ -100,12 +96,10 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
 
         SoilAnalysisModel analysis = rangeExtract.getAnalysis();
-
-        // Validações de negócio
         ensureAnalysisSupportsRanges(analysis);
 
-        // UPDATE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        // UPDATE = editar análises
+        assertCanEditAnalyses(analysis, requester);
 
         Integer updatedInitialDepth = updateRequestDto.getInitialDepth() != null
                 ? updateRequestDto.getInitialDepth()
@@ -130,14 +124,22 @@ public class RangeExtractServiceImpl implements RangeExtractService {
         RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
 
         SoilAnalysisModel analysis = rangeExtract.getAnalysis();
-
-        // Validações de negócio
         ensureAnalysisSupportsRanges(analysis);
 
-        // DELETE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        // DELETE = editar análises
+        assertCanEditAnalyses(analysis, requester);
 
         rangeExtractRepository.delete(rangeExtract);
+    }
+
+    /* ======================================================
+       Permission helpers
+    ====================================================== */
+
+    private void assertCanEditAnalyses(SoilAnalysisModel analysis, UserModel requester) {
+        PlotModel plot = analysis.getPlot();
+        PropertyModel property = plot.getProperty();
+        permissionManager.assertCanEditAnalyses(property, plot, requester);
     }
 
     /* ======================================================

@@ -10,7 +10,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.*;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.CropService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -40,16 +39,23 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public CropResponseDto createCrop(Long folderId, CropCreateRequestDto createRequestDto, String username) {
-        UserModel user = findUserByUsernameOrThrow(username);
+        // valida usuário (mensagem consistente)
+        findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
         PlotModel plot = folder.getPlot();
 
-        permissionManager.assertCanWrite(plot, user);
+        Long plotId = plot.getId();
+        Long propertyId = plot.getProperty().getId();
+
+        // CULTURAS => precisa permissão de editar culturas
+        permissionManager.assertCanEditCrops(propertyId, plotId, username);
 
         cropRepository.findByNameAndVarietyAndFolder(createRequestDto.getName(), createRequestDto.getVariety(), folder)
                 .ifPresent(existing -> {
-                    throw new EntityExistsException("Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais.");
+                    throw new EntityExistsException(
+                            "Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais."
+                    );
                 });
 
         CropModel crop = CropModel.builder()
@@ -76,21 +82,21 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional(readOnly = true)
     public CropResponseDto getCropById(Long cropId, String username) {
-        UserModel user = findUserByUsernameOrThrow(username);
+        // leitura: por enquanto só garante que o usuário existe
+        findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanRead(crop.getFolder().getPlot(), user);
 
+        // Se você quiser enforcement de leitura também, criamos depois um assertCanReadPlot/property.
         return crop.toDto();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CropResponseDto> getAllCropsByFolder(Long folderId, String username) {
-        UserModel user = findUserByUsernameOrThrow(username);
+        findUserByUsernameOrThrow(username);
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
-        permissionManager.assertCanRead(folder.getPlot(), user);
 
         return cropRepository.findAllByFolder(folder).stream()
                 .map(CropModel::toDto)
@@ -100,10 +106,16 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public CropResponseDto updateCrop(Long cropId, CropPostRequestDto updateRequestDto, String username) {
-        UserModel user = findUserByUsernameOrThrow(username);
+        findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), user);
+        PlotModel plot = crop.getFolder().getPlot();
+
+        Long plotId = plot.getId();
+        Long propertyId = plot.getProperty().getId();
+
+        // CULTURAS => precisa permissão de editar culturas
+        permissionManager.assertCanEditCrops(propertyId, plotId, username);
 
         NomeComum newName = Optional.ofNullable(updateRequestDto.getName()).orElse(crop.getName());
         String newVariety = Optional.ofNullable(updateRequestDto.getVariety()).orElse(crop.getVariety());
@@ -112,7 +124,9 @@ public class CropServiceImpl implements CropService {
             cropRepository.findByNameAndVarietyAndFolder(newName, newVariety, crop.getFolder())
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(cropId)) {
-                            throw new EntityExistsException("Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais.");
+                            throw new EntityExistsException(
+                                    "Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais."
+                            );
                         }
                     });
         }
@@ -140,17 +154,30 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional
     public void deleteCrop(Long cropId, String username) {
-        UserModel user = findUserByUsernameOrThrow(username);
+        findUserByUsernameOrThrow(username);
 
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), user);
+        PlotModel plot = crop.getFolder().getPlot();
+
+        Long plotId = plot.getId();
+        Long propertyId = plot.getProperty().getId();
+
+        // CULTURAS => precisa permissão de editar culturas
+        permissionManager.assertCanEditCrops(propertyId, plotId, username);
 
         foliarAnalysisRepository.deleteAllByCropId(crop.getId());
         liquidSourceRepository.deleteAllByCropId(crop.getId());
         solidSourceRepository.deleteAllByCropId(crop.getId());
+        solidSourceRepository.flush();
+
         topDressingFertilizationRepository.deleteAllByCropId(crop.getId());
+        topDressingFertilizationRepository.flush();
+
+        liquidSourceRepository.flush();
+        foliarAnalysisRepository.flush();
 
         cropRepository.delete(crop);
+        cropRepository.flush();
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
@@ -160,7 +187,9 @@ public class CropServiceImpl implements CropService {
 
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long folderId) {
         return annualCropFolderRepository.findById(folderId)
-                .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + folderId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Pasta de cultura anual não encontrada com o ID: " + folderId
+                ));
     }
 
     private CropModel findCropByIdOrThrow(Long cropId) {

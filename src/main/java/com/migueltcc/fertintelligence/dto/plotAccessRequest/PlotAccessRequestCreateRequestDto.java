@@ -1,11 +1,9 @@
 package com.migueltcc.fertintelligence.dto.plotAccessRequest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +16,8 @@ public class PlotAccessRequestCreateRequestDto {
     private Long propertyId;
 
     @JsonProperty("id_talhao")
-    private Long plotId;
+    private Long plotId; // null => todos os talhões (residente)
 
+    @JsonProperty("tipo_permissao")
+    private PermissionType permissionType; // ✅ agora pode ser null (inferido pelo cargo)
 }

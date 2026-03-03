@@ -82,4 +82,11 @@ public class PropertyControllerImpl implements PropertyController {
         return ResponseEntity.ok(properties);
     }
 
+    @Override
+    @GetMapping("/get-manageable-properties")
+    public ResponseEntity<List<PropertyResponseDto>> getManageableProperties(Authentication authentication) {
+        List<PropertyResponseDto> properties = propertyService.getManageableProperties(authentication.getName());
+        return ResponseEntity.ok(properties);
+    }
+
 }

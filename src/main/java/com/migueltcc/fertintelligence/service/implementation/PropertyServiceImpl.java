@@ -144,6 +144,31 @@ public class PropertyServiceImpl implements PropertyService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<PropertyResponseDto> getManageableProperties(String username) {
+
+        UserModel user = findUserByUsernameOrThrow(username);
+
+        if (user.getCargo() == Cargo.PROPRIETARIO) {
+            return propertyRepository.findAllByOwner(user)
+                    .stream()
+                    .map(PropertyModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        if (user.getCargo() == Cargo.GERENTE) {
+            return propertyRepository.findAllByManager(user)
+                    .stream()
+                    .map(PropertyModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        throw new AccessDeniedException(
+                "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' ou 'GERENTE' podem acessar esta lista."
+        );
+    }
+
     /* ======================================================
        PRIVATE UPDATE HELPERS
     ====================================================== */

@@ -1,10 +1,11 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationCreateRequestDto;
@@ -17,21 +18,15 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.TopdressingFertilizationModel;
-import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.repository.TopDressingFertilizationRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
@@ -205,6 +200,19 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .floweringDate(new Date(10, 3, 2024))
                 .harvestDate(new Date(25, 5, 2024))
                 .build();
+
+        // Defaults (evita repetir stubs):
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                any(PropertyModel.class),
+                any(PlotModel.class),
+                any(UserModel.class),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                any(AccessRequestStatus.class)
+        )).thenReturn(Optional.empty());
     }
 
     private TopDressingFertilizationCreateRequestDto createCreateRequestDto() {
@@ -268,6 +276,29 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .requester(requester)
                 .status(AccessRequestStatus.APPROVED)
                 .build();
+    }
+
+    // ✅ helper: substitui findByPlotAndRequesterAndStatus(...)
+    private void stubApprovedPlotAccess(UserModel requester, PlotModel plot) {
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(plot.getProperty()),
+                eq(plot),
+                eq(requester),
+                eq(PermissionScope.PLOT),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(requester, plot)));
+    }
+
+    private void stubNoPlotAccess(UserModel requester, PlotModel plot) {
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(plot.getProperty()),
+                eq(plot),
+                eq(requester),
+                eq(PermissionScope.PLOT),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.empty());
     }
 
     @Test
@@ -345,8 +376,10 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+
+        // ✅ CORREÇÃO: método novo
+        stubApprovedPlotAccess(consultorUser, ownerPlot);
+
         when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
         when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
 
@@ -365,8 +398,10 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.empty());
+
+        // ✅ CORREÇÃO: método novo retornando empty
+        stubNoPlotAccess(consultorUser, ownerPlot);
+
         when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/top-dressing-fertilization/register")

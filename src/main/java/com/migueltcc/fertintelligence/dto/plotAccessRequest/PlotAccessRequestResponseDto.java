@@ -2,6 +2,8 @@ package com.migueltcc.fertintelligence.dto.plotAccessRequest;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -66,4 +68,10 @@ public class PlotAccessRequestResponseDto {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
+
+    @JsonProperty("Escopo")
+    private PermissionScope scope;
+
+    @JsonProperty("tipo_permissao")
+    private PermissionType permissionType;
 }

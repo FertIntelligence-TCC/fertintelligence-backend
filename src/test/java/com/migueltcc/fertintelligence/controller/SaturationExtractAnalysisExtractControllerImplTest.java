@@ -1,7 +1,8 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
@@ -11,36 +12,28 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
-import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
-import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
-import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -51,21 +44,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class SaturationExtractAnalysisExtractControllerImplTest extends AbstractControllerTest {
+
+    private static final String OWNER_USERNAME = "testuser";
+    private static final String MANAGER_USERNAME = "manager";
+    private static final String RESIDENTE_USERNAME = "residente";
+    private static final String CONSULTOR_USERNAME = "consultor";
+    private static final String SECRETARIO_USERNAME = "secretario";
 
     private UserModel proprietarioUser;
     private UserModel gerenteUser;
     private UserModel residenteUser;
     private UserModel consultorUser;
     private UserModel secretarioUser;
+
     private PropertyModel ownerProperty;
     private PlotModel ownerPlot;
+
     private SoilAnalysisModel ownerRangeAnalysis;
     private SoilAnalysisModel ownerLayerAnalysis;
+
     private RangeExtractModel ownerRangeExtract;
     private LayerExtractModel ownerLayerExtract;
 
@@ -73,35 +74,35 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     void setUp() {
         proprietarioUser = UserModel.builder()
                 .id(1L)
-                .username("testuser")
+                .username(OWNER_USERNAME)
                 .name("Test User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
         gerenteUser = UserModel.builder()
                 .id(2L)
-                .username("manager")
+                .username(MANAGER_USERNAME)
                 .name("Gerente da Propriedade")
                 .cargo(Cargo.GERENTE)
                 .build();
 
         residenteUser = UserModel.builder()
                 .id(3L)
-                .username("residente")
+                .username(RESIDENTE_USERNAME)
                 .name("Agrônomo Residente")
                 .cargo(Cargo.AGRONOMO_RESIDENTE)
                 .build();
 
         consultorUser = UserModel.builder()
                 .id(4L)
-                .username("consultor")
+                .username(CONSULTOR_USERNAME)
                 .name("Agrônomo Consultor")
                 .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
         secretarioUser = UserModel.builder()
                 .id(5L)
-                .username("secretario")
+                .username(SECRETARIO_USERNAME)
                 .name("Secretário da Propriedade")
                 .cargo(Cargo.SECRETARIO)
                 .build();
@@ -163,6 +164,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .build();
     }
 
+    // -------------------- DTOs / Models --------------------
+
     private SaturationExtractAnalysisExtractCreateRequestDto createCreateRequestDto() {
         return SaturationExtractAnalysisExtractCreateRequestDto.builder()
                 .ph(7.2)
@@ -217,16 +220,6 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .build();
     }
 
-    private PlotAccessRequestModel approvedPlotAccess(UserModel requester, PlotModel plot) {
-        return PlotAccessRequestModel.builder()
-                .id(50L)
-                .property(plot.getProperty())
-                .plot(plot)
-                .requester(requester)
-                .status(AccessRequestStatus.APPROVED)
-                .build();
-    }
-
     private PropertyAccessRequestModel approvedPropertyAccess(UserModel requester, PropertyModel property) {
         return PropertyAccessRequestModel.builder()
                 .id(60L)
@@ -236,36 +229,107 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .build();
     }
 
+    private PlotAccessRequestModel approvedPlotAccess(UserModel requester,
+                                                      PropertyModel property,
+                                                      PlotModel plot,
+                                                      PermissionScope scope,
+                                                      PermissionType permissionType) {
+        return PlotAccessRequestModel.builder()
+                .id(50L)
+                .property(property)
+                .plot(plot)
+                .requester(requester)
+                .scope(scope)
+                .permissionType(permissionType)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+    }
+
+    // -------------------- Stubs helpers --------------------
+
+    private void stubUser(String username, UserModel user) {
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+    }
+
+    private void stubRangeExtractExists(RangeExtractModel rangeExtract) {
+        when(rangeExtractRepository.findById(rangeExtract.getId())).thenReturn(Optional.of(rangeExtract));
+    }
+
+    private void stubLayerExtractExists(LayerExtractModel layerExtract) {
+        when(layerExtractRepository.findById(layerExtract.getId())).thenReturn(Optional.of(layerExtract));
+    }
+
+    /**
+     * IMPORTANTE: seu PlotAccessRequestRepository não possui mais
+     * findByPlotAndRequesterAndStatus(plot, requester, status).
+     *
+     * Conforme a interface que você mostrou antes, o método correto é:
+     * findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(...)
+     *
+     * Aqui centralizamos o stub para evitar repetir e quebrar testes no futuro.
+     */
+    private void stubApprovedPlotAccess(PropertyModel property, PlotModel plot, UserModel requester) {
+        when(plotAccessRequestRepository
+                .findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                        eq(property),
+                        eq(plot),
+                        eq(requester),
+                        eq(PermissionScope.PLOT),
+                        any(PermissionType.class),
+                        eq(AccessRequestStatus.APPROVED)
+                ))
+                .thenReturn(Optional.of(
+                        approvedPlotAccess(
+                                requester,
+                                property,
+                                plot,
+                                PermissionScope.PLOT,
+                                PermissionType.EDIT_ANALYSES // valor “default”; o matcher usa any(PermissionType.class)
+                        )
+                ));
+    }
+
+    // -------------------- TESTS --------------------
+
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void createSaturationExtractAnalysisExtractWithRangeSuccessfully() throws Exception {
         SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+        stubUser(OWNER_USERNAME, proprietarioUser);
+        stubRangeExtractExists(ownerRangeExtract);
+
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenReturn(savedExtract);
 
         mockMvc.perform(post("/saturation-extract-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/saturation-extract-analysis-extract/get?saturationExtractAnalysisExtractId=1"))
+                .andExpect(header().string(
+                        "Location",
+                        "http://localhost/saturation-extract-analysis-extract/get?saturationExtractAnalysisExtractId=1"
+                ))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.ph").value(7.2));
     }
 
     @Test
-    @WithMockUser(username = "manager")
+    @WithMockUser(username = MANAGER_USERNAME)
     void createSaturationExtractAnalysisExtractWithRangeAsGerenteSuccessfully() throws Exception {
         SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(2L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                createSaturationExtractAnalysisExtractModel(2L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("manager")).thenReturn(Optional.of(gerenteUser));
-        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+        stubUser(MANAGER_USERNAME, gerenteUser);
+        stubRangeExtractExists(ownerRangeExtract);
+
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenReturn(savedExtract);
 
         mockMvc.perform(post("/saturation-extract-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
@@ -276,16 +340,20 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "residente")
+    @WithMockUser(username = RESIDENTE_USERNAME)
     void createSaturationExtractAnalysisExtractWithRangeAsResidenteWithApproval() throws Exception {
         SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(3L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                createSaturationExtractAnalysisExtractModel(3L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
-        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
+        stubUser(RESIDENTE_USERNAME, residenteUser);
+        stubRangeExtractExists(ownerRangeExtract);
+
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
                 .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenReturn(savedExtract);
 
         mockMvc.perform(post("/saturation-extract-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
@@ -296,16 +364,20 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "consultor")
+    @WithMockUser(username = CONSULTOR_USERNAME)
     void createSaturationExtractAnalysisExtractWithLayerAsConsultorWithApproval() throws Exception {
         SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(4L, null, ownerLayerExtract);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                createSaturationExtractAnalysisExtractModel(4L, null, ownerLayerExtract);
 
-        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
-        when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+        stubUser(CONSULTOR_USERNAME, consultorUser);
+        stubLayerExtractExists(ownerLayerExtract);
+
+        // CORREÇÃO: método do repo refatorado
+        stubApprovedPlotAccess(ownerProperty, ownerPlot, consultorUser);
+
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenReturn(savedExtract);
 
         mockMvc.perform(post("/saturation-extract-analysis-extract/register")
                         .param("layerExtractId", ownerLayerExtract.getId().toString())
@@ -317,16 +389,20 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "secretario")
+    @WithMockUser(username = SECRETARIO_USERNAME)
     void createSaturationExtractAnalysisExtractWithLayerAsSecretarioWithApproval() throws Exception {
         SaturationExtractAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        SaturationExtractAnalysisExtractModel savedExtract = createSaturationExtractAnalysisExtractModel(5L, null, ownerLayerExtract);
+        SaturationExtractAnalysisExtractModel savedExtract =
+                createSaturationExtractAnalysisExtractModel(5L, null, ownerLayerExtract);
 
-        when(userRepository.findByUsername("secretario")).thenReturn(Optional.of(secretarioUser));
-        when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, secretarioUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(secretarioUser, ownerPlot)));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenReturn(savedExtract);
+        stubUser(SECRETARIO_USERNAME, secretarioUser);
+        stubLayerExtractExists(ownerLayerExtract);
+
+        // CORREÇÃO: método do repo refatorado
+        stubApprovedPlotAccess(ownerProperty, ownerPlot, secretarioUser);
+
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenReturn(savedExtract);
 
         mockMvc.perform(post("/saturation-extract-analysis-extract/register")
                         .param("layerExtractId", ownerLayerExtract.getId().toString())
@@ -337,11 +413,12 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel analysisExtract =
+                createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        stubUser(OWNER_USERNAME, proprietarioUser);
         when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(analysisExtract));
 
         mockMvc.perform(get("/saturation-extract-analysis-extract/get")
@@ -352,13 +429,16 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getSaturationExtractAnalysisExtractsByRangeSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel analysisExtract =
+                createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(saturationExtractAnalysisExtractRepository.findAllByRangeExtract(ownerRangeExtract)).thenReturn(List.of(analysisExtract));
+        stubUser(OWNER_USERNAME, proprietarioUser);
+        stubRangeExtractExists(ownerRangeExtract);
+
+        when(saturationExtractAnalysisExtractRepository.findAllByRangeExtract(ownerRangeExtract))
+                .thenReturn(List.of(analysisExtract));
 
         mockMvc.perform(get("/saturation-extract-analysis-extract/get-by-range")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString()))
@@ -368,13 +448,16 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void getSaturationExtractAnalysisExtractsByLayerSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel analysisExtract = createSaturationExtractAnalysisExtractModel(2L, null, ownerLayerExtract);
+        SaturationExtractAnalysisExtractModel analysisExtract =
+                createSaturationExtractAnalysisExtractModel(2L, null, ownerLayerExtract);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
-        when(layerExtractRepository.findById(ownerLayerExtract.getId())).thenReturn(Optional.of(ownerLayerExtract));
-        when(saturationExtractAnalysisExtractRepository.findAllByLayerExtract(ownerLayerExtract)).thenReturn(List.of(analysisExtract));
+        stubUser(OWNER_USERNAME, proprietarioUser);
+        stubLayerExtractExists(ownerLayerExtract);
+
+        when(saturationExtractAnalysisExtractRepository.findAllByLayerExtract(ownerLayerExtract))
+                .thenReturn(List.of(analysisExtract));
 
         mockMvc.perform(get("/saturation-extract-analysis-extract/get-by-layer")
                         .param("layerExtractId", ownerLayerExtract.getId().toString()))
@@ -385,14 +468,16 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void updateSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel existingExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel existingExtract =
+                createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
         SaturationExtractAnalysisExtractPostRequestDto updateRequestDto = createUpdateRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        stubUser(OWNER_USERNAME, proprietarioUser);
         when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
-        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put("/saturation-extract-analysis-extract/update")
                         .param("saturationExtractAnalysisExtractId", "1")
@@ -404,11 +489,12 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = OWNER_USERNAME)
     void deleteSaturationExtractAnalysisExtractSuccessfully() throws Exception {
-        SaturationExtractAnalysisExtractModel existingExtract = createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
+        SaturationExtractAnalysisExtractModel existingExtract =
+                createSaturationExtractAnalysisExtractModel(1L, ownerRangeExtract, null);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        stubUser(OWNER_USERNAME, proprietarioUser);
         when(saturationExtractAnalysisExtractRepository.findById(1L)).thenReturn(Optional.of(existingExtract));
         doNothing().when(saturationExtractAnalysisExtractRepository).delete(existingExtract);
 

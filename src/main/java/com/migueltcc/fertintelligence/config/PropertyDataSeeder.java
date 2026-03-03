@@ -9,7 +9,10 @@ import com.migueltcc.fertintelligence.service.documentation.PropertyService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,6 +20,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @Order(2)
+@Profile("!test")
+@ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class PropertyDataSeeder implements CommandLineRunner {
 
@@ -33,24 +38,30 @@ public class PropertyDataSeeder implements CommandLineRunner {
     private static final String TBL_PROPERTY_ACCESS_REQUEST = "solitacoes_de_acesso_a_propriedades";
     private static final String TBL_PROPERTIES = "propriedades";
 
+    /**
+     * ⚠️ Por padrão: NÃO reseta.
+     * Se você quiser resetar em dev/local, ligue:
+     * app.seed.reset-properties=true
+     */
+    @Value("${app.seed.reset-properties:false}")
+    private boolean resetProperties;
+
     @Override
     public void run(String... args) {
-        System.out.println("🔄 Resetando propriedades...");
-
-        // ✅ garante transação mesmo com self-call
-        TransactionTemplate tx = new TransactionTemplate(transactionManager);
-        tx.execute(status -> {
-            resetDatabase();
-            return null;
-        });
+        if (resetProperties) {
+            System.out.println("🔄 Resetando propriedades (habilitado por config)...");
+            TransactionTemplate tx = new TransactionTemplate(transactionManager);
+            tx.execute(status -> {
+                resetDatabase();
+                return null;
+            });
+        } else {
+            System.out.println("ℹ️ Reset de propriedades desativado (app.seed.reset-properties=false).");
+        }
 
         seedProperties();
-        System.out.println("✅ Propriedades carregadas com sucesso.");
+        System.out.println("✅ Propriedades carregadas com sucesso (se necessário).");
     }
-
-    /* ======================================================
-       RESET
-    ====================================================== */
 
     protected void resetDatabase() {
 

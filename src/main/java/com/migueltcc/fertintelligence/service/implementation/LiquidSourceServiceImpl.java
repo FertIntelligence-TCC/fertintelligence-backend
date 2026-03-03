@@ -4,13 +4,14 @@ import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourcePostRequestDto;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.LiquidSourceModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.LiquidSourceRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.LiquidSourceService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,11 +31,18 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
 
     @Override
     @Transactional
-    public LiquidSourceResponseDto createLiquidSource(Long cropId, LiquidSourceCreateRequestDto createRequestDto, String username) {
+    public LiquidSourceResponseDto createLiquidSource(
+            Long cropId,
+            LiquidSourceCreateRequestDto createRequestDto,
+            String username
+    ) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(crop);
+
+        // WRITE em LiquidSource = edição de CULTURAS
+        permissionManager.assertCanEditCrops(ctx.property(), ctx.plot(), requester);
 
         LiquidSourceModel liquidSource = LiquidSourceModel.builder()
                 .crop(crop)
@@ -55,9 +62,12 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
     @Transactional(readOnly = true)
     public LiquidSourceResponseDto getLiquidSourceById(Long liquidSourceId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        permissionManager.assertCanRead(liquidSource.getCrop().getFolder().getPlot(), requester);
+
+        PlotModel plot = liquidSource.getCrop().getFolder().getPlot();
+
+        // READ = visualizar recursos do talhão
+        permissionManager.assertCanReadPlot(plot, requester);
 
         return liquidSource.toDto();
     }
@@ -66,22 +76,33 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
     @Transactional(readOnly = true)
     public List<LiquidSourceResponseDto> getAllLiquidSourcesByCrop(Long cropId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
 
-        return liquidSourceRepository.findAllByCrop(crop).stream()
+        PlotModel plot = crop.getFolder().getPlot();
+
+        // LIST = READ
+        permissionManager.assertCanReadPlot(plot, requester);
+
+        return liquidSourceRepository.findAllByCrop(crop)
+                .stream()
                 .map(LiquidSourceModel::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
-    public LiquidSourceResponseDto updateLiquidSource(Long liquidSourceId, LiquidSourcePostRequestDto updateRequestDto, String username) {
+    public LiquidSourceResponseDto updateLiquidSource(
+            Long liquidSourceId,
+            LiquidSourcePostRequestDto updateRequestDto,
+            String username
+    ) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        permissionManager.assertCanWrite(liquidSource.getCrop().getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(liquidSource.getCrop());
+
+        // UPDATE = edição de CULTURAS
+        permissionManager.assertCanEditCrops(ctx.property(), ctx.plot(), requester);
 
         if (updateRequestDto.getDate() != null) liquidSource.setDate(copyDate(updateRequestDto.getDate()));
         if (updateRequestDto.getMicronutrient() != null) liquidSource.setMicronutrient(updateRequestDto.getMicronutrient());
@@ -98,12 +119,36 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
     @Transactional
     public void deleteLiquidSource(Long liquidSourceId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         LiquidSourceModel liquidSource = findLiquidSourceByIdOrThrow(liquidSourceId);
-        permissionManager.assertCanWrite(liquidSource.getCrop().getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(liquidSource.getCrop());
+
+        // DELETE = edição de CULTURAS
+        permissionManager.assertCanEditCrops(ctx.property(), ctx.plot(), requester);
 
         liquidSourceRepository.delete(liquidSource);
+        liquidSourceRepository.flush();
     }
+
+    /* =========================
+       Permission Context
+       ========================= */
+
+    private PermissionContext resolvePermissionContext(CropModel crop) {
+        PlotModel plot = crop.getFolder().getPlot();
+        PropertyModel property = plot.getProperty();
+
+        if (plot == null || plot.getId() == null || property == null || property.getId() == null) {
+            throw new IllegalStateException("Não foi possível resolver plot/property para validação de permissões.");
+        }
+        return new PermissionContext(property, plot);
+    }
+
+    private record PermissionContext(PropertyModel property, PlotModel plot) {}
+
+    /* =========================
+       Finders
+       ========================= */
 
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
@@ -119,6 +164,10 @@ public class LiquidSourceServiceImpl implements LiquidSourceService {
         return liquidSourceRepository.findById(liquidSourceId)
                 .orElseThrow(() -> new EntityNotFoundException("Fonte líquida não encontrada com o ID: " + liquidSourceId));
     }
+
+    /* =========================
+       Helpers
+       ========================= */
 
     private Date copyDate(Date source) {
         if (source == null) return null;

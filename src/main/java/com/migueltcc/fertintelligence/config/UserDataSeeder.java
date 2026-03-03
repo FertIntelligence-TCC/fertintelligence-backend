@@ -5,12 +5,15 @@ import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
 @Order(1)
+@Profile("!test")
+@ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class UserDataSeeder implements CommandLineRunner {
 
     @Autowired

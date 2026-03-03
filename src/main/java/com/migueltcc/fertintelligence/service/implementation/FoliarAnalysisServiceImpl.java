@@ -10,13 +10,14 @@ import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisPostReque
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.FoliarAnalysisResponseDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.MacronutrientsContentDto;
 import com.migueltcc.fertintelligence.dto.foliarAnalysis.MicronutrientsContentDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.FoliarAnalysisService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -39,16 +40,23 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
 
     @Override
     @Transactional
-    public FoliarAnalysisResponseDto createFoliarAnalysis(Long cropId, FoliarAnalysisCreateRequestDto createRequestDto, String username) {
+    public FoliarAnalysisResponseDto createFoliarAnalysis(
+            Long cropId,
+            FoliarAnalysisCreateRequestDto createRequestDto,
+            String username
+    ) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(crop);
+        permissionManager.assertCanEditAnalyses(ctx.property(), ctx.plot(), requester);
 
         foliarAnalysisRepository.findByCropAndCollectDate(crop, createRequestDto.getCollectDate())
                 .ifPresent(existing -> {
-                    throw new EntityExistsException("Já existe uma análise foliar para a data informada nesta cultura: "
-                            + formatDate(createRequestDto.getCollectDate()));
+                    throw new EntityExistsException(
+                            "Já existe uma análise foliar para a data informada nesta cultura: "
+                                    + formatDate(createRequestDto.getCollectDate())
+                    );
                 });
 
         FoliarAnalysisModel foliarAnalysis = FoliarAnalysisModel.builder()
@@ -67,9 +75,10 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional(readOnly = true)
     public FoliarAnalysisResponseDto getFoliarAnalysisById(Long foliarAnalysisId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        permissionManager.assertCanRead(foliarAnalysis.getCrop().getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(foliarAnalysis.getCrop());
+        permissionManager.assertCanReadPlot(ctx.plot(), requester);
 
         return foliarAnalysis.toDto();
     }
@@ -78,9 +87,10 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional(readOnly = true)
     public List<FoliarAnalysisResponseDto> getAllFoliarAnalysesByCrop(Long cropId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         CropModel crop = findCropByIdOrThrow(cropId);
-        permissionManager.assertCanRead(crop.getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(crop);
+        permissionManager.assertCanReadPlot(ctx.plot(), requester);
 
         return foliarAnalysisRepository.findAllByCrop(crop).stream()
                 .map(FoliarAnalysisModel::toDto)
@@ -89,13 +99,18 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
 
     @Override
     @Transactional
-    public FoliarAnalysisResponseDto updateFoliarAnalysis(Long foliarAnalysisId, FoliarAnalysisPostRequestDto updateRequestDto, String username) {
+    public FoliarAnalysisResponseDto updateFoliarAnalysis(
+            Long foliarAnalysisId,
+            FoliarAnalysisPostRequestDto updateRequestDto,
+            String username
+    ) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
         CropModel crop = foliarAnalysis.getCrop();
 
-        permissionManager.assertCanWrite(crop.getFolder().getPlot(), requester);
+        PermissionContext ctx = resolvePermissionContext(crop);
+        permissionManager.assertCanEditAnalyses(ctx.property(), ctx.plot(), requester);
 
         if (updateRequestDto.getCollectDate() != null
                 && !Objects.equals(updateRequestDto.getCollectDate(), foliarAnalysis.getCollectDate())) {
@@ -103,8 +118,10 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
             foliarAnalysisRepository.findByCropAndCollectDate(crop, updateRequestDto.getCollectDate())
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(foliarAnalysisId)) {
-                            throw new EntityExistsException("Já existe uma análise foliar para a data informada nesta cultura: "
-                                    + formatDate(updateRequestDto.getCollectDate()));
+                            throw new EntityExistsException(
+                                    "Já existe uma análise foliar para a data informada nesta cultura: "
+                                            + formatDate(updateRequestDto.getCollectDate())
+                            );
                         }
                     });
 
@@ -131,12 +148,33 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     @Transactional
     public void deleteFoliarAnalysis(Long foliarAnalysisId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
-
         FoliarAnalysisModel foliarAnalysis = findFoliarAnalysisByIdOrThrow(foliarAnalysisId);
-        permissionManager.assertCanWrite(foliarAnalysis.getCrop().getFolder().getPlot(), requester);
+
+        PermissionContext ctx = resolvePermissionContext(foliarAnalysis.getCrop());
+        permissionManager.assertCanEditAnalyses(ctx.property(), ctx.plot(), requester);
 
         foliarAnalysisRepository.delete(foliarAnalysis);
     }
+
+    /* ======================================================
+       PERMISSION CONTEXT (models)
+    ====================================================== */
+
+    private PermissionContext resolvePermissionContext(CropModel crop) {
+        PlotModel plot = crop.getFolder().getPlot();
+        PropertyModel property = plot.getProperty();
+
+        if (plot == null || plot.getId() == null || property == null || property.getId() == null) {
+            throw new IllegalStateException("Não foi possível resolver plot/property para validação de permissões.");
+        }
+        return new PermissionContext(property, plot);
+    }
+
+    private record PermissionContext(PropertyModel property, PlotModel plot) {}
+
+    /* ======================================================
+       FINDERS
+    ====================================================== */
 
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)
@@ -152,6 +190,10 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
         return foliarAnalysisRepository.findById(foliarAnalysisId)
                 .orElseThrow(() -> new EntityNotFoundException("Análise foliar não encontrada com o ID: " + foliarAnalysisId));
     }
+
+    /* ======================================================
+       HELPERS
+    ====================================================== */
 
     private Date copyDate(Date source) {
         if (source == null) return null;

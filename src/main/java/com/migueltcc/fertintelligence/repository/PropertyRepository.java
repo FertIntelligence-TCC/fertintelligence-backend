@@ -16,5 +16,6 @@ public interface PropertyRepository extends JpaRepository<PropertyModel, Long> {
     Optional<PropertyModel> findByNome(String nome);
     List<PropertyModel> findAllByOwner(UserModel owner);
     List<PropertyModel> findByNomeContainingIgnoreCase(String nome);
+    List<PropertyModel> findAllByManager(UserModel manager);
 
 }

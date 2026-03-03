@@ -14,4 +14,10 @@ public interface PlotRepository extends JpaRepository<PlotModel, Long> {
     Optional<PlotModel> findByIdentificationAndProperty(String identification, PropertyModel property);
 
     List<PlotModel> findAllByProperty(PropertyModel property);
+
+    /**
+     * Melhoria: garante que o plot pertence à propriedade já no acesso ao banco.
+     * Usado pelo PermissionManager para evitar buscar um plot "de outra propriedade".
+     */
+    Optional<PlotModel> findByIdAndPropertyId(Long id, Long propertyId);
 }

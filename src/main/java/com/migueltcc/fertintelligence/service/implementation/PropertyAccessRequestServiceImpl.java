@@ -93,9 +93,11 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
 
         if (approve) {
             request.setStatus(AccessRequestStatus.APPROVED);
-            // Lógica adicional de vincular gerente se necessário...
+            // ✅ Se quem está sendo aprovado é GERENTE, vincula na propriedade (se possível)
+            updatePropertyManagerIfNeeded(request);
             return propertyAccessRequestRepository.save(request).toDto();
-        } else {
+        }
+        else {
             // Se rejeitado, remove do banco de dados
             propertyAccessRequestRepository.delete(request);
 
@@ -196,16 +198,19 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
     // --------------------------
 
     private void updatePropertyManagerIfNeeded(PropertyAccessRequestModel request) {
-        if (request.getRequester().getCargo() != Cargo.GERENTE) {
-            return;
-        }
+        if (request.getRequester().getCargo() != Cargo.GERENTE) return;
 
         PropertyModel property = request.getProperty();
-        // Se a propriedade não tem gerente, ou se a lógica de negócio permitir sobrescrever
-        if (property.getManager() == null) {
-            property.setManager(request.getRequester());
-            propertyRepository.save(property);
+
+        // já tem gerente diferente
+        if (property.getManager() != null &&
+                !property.getManager().getId().equals(request.getRequester().getId())) {
+            throw new AccessDeniedException("A propriedade já possui um gerente.");
         }
+
+        // seta (se null ou se for o mesmo usuário)
+        property.setManager(request.getRequester());
+        propertyRepository.save(property);
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

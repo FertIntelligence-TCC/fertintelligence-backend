@@ -12,7 +12,6 @@ import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.SaturationExtractAnalysisExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -27,63 +26,76 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SaturationExtractAnalysisExtractServiceImpl implements SaturationExtractAnalysisExtractService {
 
-    private final SaturationExtractAnalysisExtractRepository saturationExtractAnalysisExtractRepository;
-    private final RangeExtractRepository rangeExtractRepository;
-    private final LayerExtractRepository layerExtractRepository;
-    private final UserRepository userRepository;
+    private final SaturationExtractAnalysisExtractRepository saturationRepo;
+    private final RangeExtractRepository rangeRepo;
+    private final LayerExtractRepository layerRepo;
+    private final UserRepository userRepo;
+
+    // PermissionManager (service.implementation)
     private final PermissionManager permissionManager;
+
+    /* ======================================================
+       CREATE (WRITE -> ANALYSES)
+    ====================================================== */
 
     @Override
     @Transactional
     public SaturationExtractAnalysisExtractResponseDto createSaturationExtractAnalysisExtract(
             Long rangeExtractId,
             Long layerExtractId,
-            SaturationExtractAnalysisExtractCreateRequestDto createRequestDto,
+            SaturationExtractAnalysisExtractCreateRequestDto dto,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
 
-        ExtractContext extractContext = resolveExtractContext(rangeExtractId, layerExtractId);
-        permissionManager.assertCanWrite(extractContext.plot(), requester);
+        ExtractContext ctx = resolveExtractContext(rangeExtractId, layerExtractId);
 
-        SaturationExtractAnalysisExtractModel analysisExtract = SaturationExtractAnalysisExtractModel.builder()
-                .rangeExtract(extractContext.rangeExtract())
-                .layerExtract(extractContext.layerExtract())
-                .ph(createRequestDto.getPh())
-                .ce(createRequestDto.getCe())
-                .teorCO3(createRequestDto.getTeorCO3())
-                .teorHCO3(createRequestDto.getTeorHCO3())
-                .teorNO3(createRequestDto.getTeorNO3())
-                .teorH2PO4(createRequestDto.getTeorH2PO4())
-                .teorSO4(createRequestDto.getTeorSO4())
-                .teorNa(createRequestDto.getTeorNa())
-                .teorK(createRequestDto.getTeorK())
-                .teorCa(createRequestDto.getTeorCa())
-                .teorMg(createRequestDto.getTeorMg())
-                .residuosSuspensao(createRequestDto.getResiduosSuspensao())
-                .durezaCaCO3(createRequestDto.getDurezaCaCO3())
-                .durezaTotalCaCO3(createRequestDto.getDurezaTotalCaCO3())
-                .ras(createRequestDto.getRas())
-                .pst(createRequestDto.getPst())
+        // ENFORCEMENT: editar análises
+        permissionManager.assertCanEditAnalyses(ctx.plot().getProperty(), ctx.plot(), requester);
+
+        SaturationExtractAnalysisExtractModel model = SaturationExtractAnalysisExtractModel.builder()
+                .rangeExtract(ctx.rangeExtract())
+                .layerExtract(ctx.layerExtract())
+                .ph(dto.getPh())
+                .ce(dto.getCe())
+                .teorCO3(dto.getTeorCO3())
+                .teorHCO3(dto.getTeorHCO3())
+                .teorNO3(dto.getTeorNO3())
+                .teorH2PO4(dto.getTeorH2PO4())
+                .teorSO4(dto.getTeorSO4())
+                .teorNa(dto.getTeorNa())
+                .teorK(dto.getTeorK())
+                .teorCa(dto.getTeorCa())
+                .teorMg(dto.getTeorMg())
+                .residuosSuspensao(dto.getResiduosSuspensao())
+                .durezaCaCO3(dto.getDurezaCaCO3())
+                .durezaTotalCaCO3(dto.getDurezaTotalCaCO3())
+                .ras(dto.getRas())
+                .pst(dto.getPst())
                 .build();
 
-        return saturationExtractAnalysisExtractRepository.save(analysisExtract).toDto();
+        return saturationRepo.save(model).toDto();
     }
+
+    /* ======================================================
+       READ (READ -> PLOT)
+    ====================================================== */
 
     @Override
     @Transactional(readOnly = true)
     public SaturationExtractAnalysisExtractResponseDto getSaturationExtractAnalysisExtractById(
-            Long saturationExtractAnalysisExtractId,
+            Long id,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
 
-        SaturationExtractAnalysisExtractModel analysisExtract =
-                findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
+        SaturationExtractAnalysisExtractModel model = findById(id);
+        PlotModel plot = resolvePlot(model);
 
-        permissionManager.assertCanRead(resolvePlot(analysisExtract), requester);
+        // ENFORCEMENT: leitura do talhão
+        permissionManager.assertCanReadPlot(plot, requester);
 
-        return analysisExtract.toDto();
+        return model.toDto();
     }
 
     @Override
@@ -92,13 +104,15 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             Long rangeExtractId,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
 
-        RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-        permissionManager.assertCanRead(rangeExtract.getAnalysis().getPlot(), requester);
+        RangeExtractModel range = findRange(rangeExtractId);
+        PlotModel plot = range.getAnalysis().getPlot();
 
-        return saturationExtractAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
-                .stream()
+        // ENFORCEMENT: leitura do talhão
+        permissionManager.assertCanReadPlot(plot, requester);
+
+        return saturationRepo.findAllByRangeExtract(range).stream()
                 .map(SaturationExtractAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -109,117 +123,131 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
             Long layerExtractId,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
 
-        LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        permissionManager.assertCanRead(layerExtract.getAnalysis().getPlot(), requester);
+        LayerExtractModel layer = findLayer(layerExtractId);
+        PlotModel plot = layer.getAnalysis().getPlot();
 
-        return saturationExtractAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
-                .stream()
+        // ENFORCEMENT: leitura do talhão
+        permissionManager.assertCanReadPlot(plot, requester);
+
+        return saturationRepo.findAllByLayerExtract(layer).stream()
                 .map(SaturationExtractAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
 
+    /* ======================================================
+       UPDATE (WRITE -> ANALYSES)
+    ====================================================== */
+
     @Override
     @Transactional
     public SaturationExtractAnalysisExtractResponseDto updateSaturationExtractAnalysisExtract(
-            Long saturationExtractAnalysisExtractId,
-            SaturationExtractAnalysisExtractPostRequestDto updateRequestDto,
+            Long id,
+            SaturationExtractAnalysisExtractPostRequestDto dto,
             String username
     ) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+        UserModel requester = findUser(username);
 
-        SaturationExtractAnalysisExtractModel analysisExtract =
-                findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
+        SaturationExtractAnalysisExtractModel model = findById(id);
+        PlotModel plot = resolvePlot(model);
 
-        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
+        // ENFORCEMENT: editar análises
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, requester);
 
-        updateField(updateRequestDto.getPh(), analysisExtract::setPh);
-        updateField(updateRequestDto.getCe(), analysisExtract::setCe);
-        updateField(updateRequestDto.getTeorCO3(), analysisExtract::setTeorCO3);
-        updateField(updateRequestDto.getTeorHCO3(), analysisExtract::setTeorHCO3);
-        updateField(updateRequestDto.getTeorNO3(), analysisExtract::setTeorNO3);
-        updateField(updateRequestDto.getTeorH2PO4(), analysisExtract::setTeorH2PO4);
-        updateField(updateRequestDto.getTeorSO4(), analysisExtract::setTeorSO4);
-        updateField(updateRequestDto.getTeorNa(), analysisExtract::setTeorNa);
-        updateField(updateRequestDto.getTeorK(), analysisExtract::setTeorK);
-        updateField(updateRequestDto.getTeorCa(), analysisExtract::setTeorCa);
-        updateField(updateRequestDto.getTeorMg(), analysisExtract::setTeorMg);
-        updateField(updateRequestDto.getResiduosSuspensao(), analysisExtract::setResiduosSuspensao);
-        updateField(updateRequestDto.getDurezaCaCO3(), analysisExtract::setDurezaCaCO3);
-        updateField(updateRequestDto.getDurezaTotalCaCO3(), analysisExtract::setDurezaTotalCaCO3);
-        updateField(updateRequestDto.getRas(), analysisExtract::setRas);
-        updateField(updateRequestDto.getPst(), analysisExtract::setPst);
+        applyIfNotNull(dto.getPh(), model::setPh);
+        applyIfNotNull(dto.getCe(), model::setCe);
+        applyIfNotNull(dto.getTeorCO3(), model::setTeorCO3);
+        applyIfNotNull(dto.getTeorHCO3(), model::setTeorHCO3);
+        applyIfNotNull(dto.getTeorNO3(), model::setTeorNO3);
+        applyIfNotNull(dto.getTeorH2PO4(), model::setTeorH2PO4);
+        applyIfNotNull(dto.getTeorSO4(), model::setTeorSO4);
+        applyIfNotNull(dto.getTeorNa(), model::setTeorNa);
+        applyIfNotNull(dto.getTeorK(), model::setTeorK);
+        applyIfNotNull(dto.getTeorCa(), model::setTeorCa);
+        applyIfNotNull(dto.getTeorMg(), model::setTeorMg);
+        applyIfNotNull(dto.getResiduosSuspensao(), model::setResiduosSuspensao);
+        applyIfNotNull(dto.getDurezaCaCO3(), model::setDurezaCaCO3);
+        applyIfNotNull(dto.getDurezaTotalCaCO3(), model::setDurezaTotalCaCO3);
+        applyIfNotNull(dto.getRas(), model::setRas);
+        applyIfNotNull(dto.getPst(), model::setPst);
 
-        return saturationExtractAnalysisExtractRepository.save(analysisExtract).toDto();
+        return saturationRepo.save(model).toDto();
     }
+
+    /* ======================================================
+       DELETE (WRITE -> ANALYSES)
+    ====================================================== */
 
     @Override
     @Transactional
-    public void deleteSaturationExtractAnalysisExtract(Long saturationExtractAnalysisExtractId, String username) {
-        UserModel requester = findUserByUsernameOrThrow(username);
+    public void deleteSaturationExtractAnalysisExtract(Long id, String username) {
+        UserModel requester = findUser(username);
 
-        SaturationExtractAnalysisExtractModel analysisExtract =
-                findSaturationExtractAnalysisExtractByIdOrThrow(saturationExtractAnalysisExtractId);
+        SaturationExtractAnalysisExtractModel model = findById(id);
+        PlotModel plot = resolvePlot(model);
 
-        permissionManager.assertCanWrite(resolvePlot(analysisExtract), requester);
+        // ENFORCEMENT: editar análises
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, requester);
 
-        saturationExtractAnalysisExtractRepository.delete(analysisExtract);
+        saturationRepo.delete(model);
     }
 
-    private void updateField(Double value, Consumer<Double> setter) {
+    /* ======================================================
+       Helpers
+    ====================================================== */
+
+    private static <T> void applyIfNotNull(T value, Consumer<T> setter) {
         if (value != null) setter.accept(value);
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {
-        if ((rangeExtractId == null && layerExtractId == null)
-                || (rangeExtractId != null && layerExtractId != null)) {
+        boolean hasRange = rangeExtractId != null;
+        boolean hasLayer = layerExtractId != null;
+
+        if (hasRange == hasLayer) {
             throw new IllegalArgumentException("Informe exatamente um extrato base (intervalo ou camada).");
         }
 
-        if (rangeExtractId != null) {
-            RangeExtractModel rangeExtract = findRangeExtractByIdOrThrow(rangeExtractId);
-            return new ExtractContext(rangeExtract, null, rangeExtract.getAnalysis().getPlot());
+        if (hasRange) {
+            RangeExtractModel range = findRange(rangeExtractId);
+            return new ExtractContext(range, null, range.getAnalysis().getPlot());
         }
 
-        LayerExtractModel layerExtract = findLayerExtractByIdOrThrow(layerExtractId);
-        return new ExtractContext(null, layerExtract, layerExtract.getAnalysis().getPlot());
+        LayerExtractModel layer = findLayer(layerExtractId);
+        return new ExtractContext(null, layer, layer.getAnalysis().getPlot());
     }
 
-    private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel analysisExtract) {
-        if (analysisExtract.getRangeExtract() != null)
-            return analysisExtract.getRangeExtract().getAnalysis().getPlot();
-
-        if (analysisExtract.getLayerExtract() != null)
-            return analysisExtract.getLayerExtract().getAnalysis().getPlot();
-
+    private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {
+        if (model.getRangeExtract() != null) {
+            return model.getRangeExtract().getAnalysis().getPlot();
+        }
+        if (model.getLayerExtract() != null) {
+            return model.getLayerExtract().getAnalysis().getPlot();
+        }
         throw new IllegalStateException("Extrato de análise de saturação não possui extrato base associado.");
     }
 
-    private UserModel findUserByUsernameOrThrow(String username) {
-        return userRepository.findByUsername(username)
+    private UserModel findUser(String username) {
+        return userRepo.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private RangeExtractModel findRangeExtractByIdOrThrow(Long rangeExtractId) {
-        return rangeExtractRepository.findById(rangeExtractId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Extrato por intervalo não encontrado com o ID: " + rangeExtractId)
-                );
+    private RangeExtractModel findRange(Long id) {
+        return rangeRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato por intervalo não encontrado com o ID: " + id));
     }
 
-    private LayerExtractModel findLayerExtractByIdOrThrow(Long layerExtractId) {
-        return layerExtractRepository.findById(layerExtractId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + layerExtractId)
-                );
+    private LayerExtractModel findLayer(Long id) {
+        return layerRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + id));
     }
 
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {
-        return saturationExtractAnalysisExtractRepository.findById(id)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id)
-                );
+    private SaturationExtractAnalysisExtractModel findById(Long id) {
+        return saturationRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Extrato de análise de saturação não encontrado com o ID: " + id
+                ));
     }
 
     private record ExtractContext(RangeExtractModel rangeExtract, LayerExtractModel layerExtract, PlotModel plot) {}

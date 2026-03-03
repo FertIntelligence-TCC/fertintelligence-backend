@@ -54,4 +54,9 @@ public interface PropertyController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    // GET /property/get-manageable-properties
+    ResponseEntity<List<PropertyResponseDto>> getManageableProperties(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
 }

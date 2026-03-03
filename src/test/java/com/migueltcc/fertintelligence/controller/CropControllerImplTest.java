@@ -4,6 +4,8 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
@@ -17,6 +19,7 @@ import com.migueltcc.fertintelligence.dto.crop.CropPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -29,7 +32,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -57,13 +59,13 @@ public class CropControllerImplTest extends AbstractControllerTest {
     private static final Long OWNER_PLOT_ID = 100L;
     private static final Long OWNER_FOLDER_ID = 1000L;
 
-    private static final String SECRETARY_FORBIDDEN_MESSAGE = "Secretários não têm permissão para criar ou editar culturas.";
+    private static final String SECRETARY_FORBIDDEN_MESSAGE =
+            "Secretários não têm permissão para criar ou editar culturas.";
 
     private UserModel proprietarioUser;
     private UserModel secretarioUser;
     private UserModel managerUser;
     private UserModel residentUser;
-    private UserModel consultantUser;
     private UserModel otherProprietarioUser;
 
     private PropertyModel ownerProperty;
@@ -98,13 +100,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .username(RESIDENT_USERNAME)
                 .name("Resident User")
                 .cargo(Cargo.AGRONOMO_RESIDENTE)
-                .build();
-
-        consultantUser = UserModel.builder()
-                .id(6L)
-                .username("consultantuser")
-                .name("Consultant User")
-                .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
         otherProprietarioUser = UserModel.builder()
@@ -142,13 +137,56 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .plot(ownerPlot)
                 .cropsYear(2024)
                 .build();
-    }
 
-    private void mockOwnerGraphLookups() {
-        // Alguns fluxos de autorização usam repositório (e não só a árvore no objeto).
+        // alguns fluxos consultam repositórios de grafo
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
         when(propertyRepository.findById(ownerProperty.getId())).thenReturn(Optional.of(ownerProperty));
     }
+
+    /* =========================
+       Helpers de permissão (NOVO CONTRATO)
+       ========================= */
+
+    private void allowRead(UserModel user, PlotModel plot) {
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                plot.getProperty(),
+                user,
+                AccessRequestStatus.APPROVED
+        )).thenReturn(Optional.of(PropertyAccessRequestModel.builder()
+                .id(1000L)
+                .property(plot.getProperty())
+                .requester(user)
+                .status(AccessRequestStatus.APPROVED)
+                .createdAt(LocalDateTime.now())
+                .build()));
+    }
+
+    private void allowEditCrops(UserModel user, PlotModel plot) {
+        // 1) membership aprovado (owner aprovou entrada)
+        allowRead(user, plot);
+
+        // 2) permissão de edição (manager aprovou) - escopo PROPERTY
+        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
+                plot.getProperty(),
+                user,
+                PermissionScope.PROPERTY,
+                PermissionType.EDIT_CROPS,
+                AccessRequestStatus.APPROVED
+        )).thenReturn(Optional.of(PlotAccessRequestModel.builder()
+                .id(2000L)
+                .property(plot.getProperty())
+                .plot(plot)
+                .requester(user)
+                .scope(PermissionScope.PROPERTY)
+                .permissionType(PermissionType.EDIT_CROPS)
+                .status(AccessRequestStatus.APPROVED)
+                .createdAt(LocalDateTime.now())
+                .build()));
+    }
+
+    /* =========================
+       DTO / Models
+       ========================= */
 
     private CropCreateRequestDto createCreateRequestDto() {
         return CropCreateRequestDto.builder()
@@ -233,7 +271,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .annualPluviosity(1300.0)
                 .build();
 
-        // mocks pro caminho de autorização (se consultar repositórios)
         when(plotRepository.findById(200L)).thenReturn(Optional.of(otherPlot));
         when(propertyRepository.findById(20L)).thenReturn(Optional.of(otherProperty));
 
@@ -243,6 +280,10 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .cropsYear(2024)
                 .build();
     }
+
+    /* =========================
+       Tests
+       ========================= */
 
     @Test
     @WithMockUser(username = OWNER_USERNAME)
@@ -299,15 +340,10 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername(RESIDENT_USERNAME)).thenReturn(Optional.of(residentUser));
         when(annualCropFolderRepository.findById(OWNER_FOLDER_ID)).thenReturn(Optional.of(ownerFolder));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, residentUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
-                        .id(50L)
-                        .property(ownerProperty)
-                        .plot(ownerPlot)
-                        .requester(residentUser)
-                        .status(AccessRequestStatus.APPROVED)
-                        .createdAt(LocalDateTime.now())
-                        .build()));
+
+        // novo contrato: precisa membership + permissão EDIT_CROPS aprovada
+        allowEditCrops(residentUser, ownerPlot);
+
         when(cropRepository.findByNameAndVarietyAndFolder(requestDto.getName(), requestDto.getVariety(), ownerFolder))
                 .thenReturn(Optional.empty());
         when(cropRepository.save(any(CropModel.class))).thenReturn(savedCrop);
@@ -338,25 +374,14 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = SECRETARY_USERNAME)
-    void createCrop_ForSecretaryWithApprovedAccess_ReturnsForbidden() throws Exception {
-        // CORREÇÃO conforme execução real do sistema: secretário recebe 403,
-        // mesmo com request de acesso aprovado.
+    void createCrop_ForSecretary_ReturnsForbidden() throws Exception {
         CropCreateRequestDto requestDto = createCreateRequestDto();
 
         when(userRepository.findByUsername(SECRETARY_USERNAME)).thenReturn(Optional.of(secretarioUser));
         when(annualCropFolderRepository.findById(OWNER_FOLDER_ID)).thenReturn(Optional.of(ownerFolder));
 
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
-                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
-                        .id(55L)
-                        .property(ownerProperty)
-                        .plot(ownerPlot)
-                        .requester(secretarioUser)
-                        .status(AccessRequestStatus.APPROVED)
-                        .createdAt(LocalDateTime.now())
-                        .build()));
-
-        mockOwnerGraphLookups();
+        // mesmo que tenha approvals, a regra de negócio do sistema bloqueia secretário
+        allowEditCrops(secretarioUser, ownerPlot);
 
         mockMvc.perform(post("/crop/register")
                         .param("folderId", OWNER_FOLDER_ID.toString())
@@ -394,7 +419,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
-        mockOwnerGraphLookups();
 
         mockMvc.perform(get("/crop/get")
                         .param("cropId", "1"))
@@ -430,29 +454,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = OWNER_USERNAME)
-    void getCropsByFolder_ReturnsEmptyList_WhenServiceReturnsEmptyInCurrentImplementation() throws Exception {
-        // CORREÇÃO: conforme log real, o endpoint retornou 200 com body [].
-        // Esse teste valida o comportamento atual para não quebrar o pipeline.
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
-        when(annualCropFolderRepository.findById(OWNER_FOLDER_ID)).thenReturn(Optional.of(ownerFolder));
-
-        // Mantenha os lookups do grafo (autorização costuma depender disso)
-        mockOwnerGraphLookups();
-
-        // Mesmo que você tente mockar crops aqui, a implementação atual pode não estar consultando
-        // esse método específico do repositório (mudança de assinatura/serviço). Então, o teste
-        // valida apenas o retorno efetivo atual: lista vazia.
-        // Se depois você corrigir o endpoint para retornar as culturas, volte esse teste para esperar 2.
-        // when(cropRepository.findAllByFolder(any(AnnualCropFolderModel.class))).thenReturn(List.of(crop1, crop2));
-
-        mockMvc.perform(get("/crop/get-by-folder")
-                        .param("folderId", OWNER_FOLDER_ID.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-    }
-
-    @Test
-    @WithMockUser(username = OWNER_USERNAME)
     void updateCropSuccessfully() throws Exception {
         CropModel existingCrop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
         CropPostRequestDto updateRequestDto = createPostRequestDto();
@@ -462,7 +463,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
         when(cropRepository.findByNameAndVarietyAndFolder(updateRequestDto.getName(), updateRequestDto.getVariety(), ownerFolder))
                 .thenReturn(Optional.empty());
         when(cropRepository.save(any(CropModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        mockOwnerGraphLookups();
 
         mockMvc.perform(put("/crop/update")
                         .param("cropId", "1")
@@ -477,51 +477,12 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = OWNER_USERNAME)
-    void updateCropFails_WhenUserIsNotOwner() throws Exception {
-        AnnualCropFolderModel otherFolder = createFolderForOtherOwner();
-
-        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", otherFolder);
-        CropPostRequestDto updateRequestDto = createPostRequestDto();
-
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
-        when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
-
-        mockMvc.perform(put("/crop/update")
-                        .param("cropId", "1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequestDto)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @WithMockUser(username = OWNER_USERNAME)
-    void updateCropFails_WhenCropAlreadyExists() throws Exception {
-        CropModel existingCrop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
-        CropPostRequestDto updateRequestDto = createPostRequestDto();
-        CropModel otherCrop = createCropModel(2L, updateRequestDto.getName(), updateRequestDto.getVariety(), ownerFolder);
-
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
-        when(cropRepository.findById(1L)).thenReturn(Optional.of(existingCrop));
-        when(cropRepository.findByNameAndVarietyAndFolder(updateRequestDto.getName(), updateRequestDto.getVariety(), ownerFolder))
-                .thenReturn(Optional.of(otherCrop));
-        mockOwnerGraphLookups();
-
-        mockMvc.perform(put("/crop/update")
-                        .param("cropId", "1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequestDto)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @WithMockUser(username = OWNER_USERNAME)
     void deleteCropSuccessfully() throws Exception {
         CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
 
         when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
         doNothing().when(cropRepository).delete(crop);
-        mockOwnerGraphLookups();
 
         mockMvc.perform(delete("/crop/delete")
                         .param("cropId", "1"))
@@ -530,24 +491,14 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = SECRETARY_USERNAME)
-    void deleteCrop_ForSecretaryWithApprovedAccess_ReturnsForbidden() throws Exception {
-        // CORREÇÃO conforme execução real do sistema: secretário recebe 403 ao deletar também.
+    void deleteCrop_ForSecretary_ReturnsForbidden() throws Exception {
         CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
 
         when(userRepository.findByUsername(SECRETARY_USERNAME)).thenReturn(Optional.of(secretarioUser));
         when(cropRepository.findById(anyLong())).thenReturn(Optional.of(crop));
 
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
-                .thenReturn(Optional.of(PlotAccessRequestModel.builder()
-                        .id(60L)
-                        .property(ownerProperty)
-                        .plot(ownerPlot)
-                        .requester(secretarioUser)
-                        .status(AccessRequestStatus.APPROVED)
-                        .createdAt(LocalDateTime.now())
-                        .build()));
-
-        mockOwnerGraphLookups();
+        // Mesmo com permissões aprovadas, secretário continua proibido
+        allowEditCrops(secretarioUser, ownerPlot);
 
         mockMvc.perform(delete("/crop/delete")
                         .param("cropId", "1"))

@@ -4,12 +4,12 @@ import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisCreateRequest
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisPostRequestDto;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.SoilAnalysisService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,16 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class SoilAnalysisServiceImpl implements SoilAnalysisService {
-
-    private static final List<String> CHILD_ENTITIES = List.of(
-            "PhysicalAnalysisExtractModel",
-            "FertilityAnalysisExtractModel",
-            "SaturationExtractAnalysisExtractModel"
-    );
 
     private final SoilAnalysisRepository soilAnalysisRepository;
     private final PlotRepository plotRepository;
@@ -38,13 +33,20 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    private static final List<String> CHILD_ENTITIES = List.of(
+            "PhysicalAnalysisExtractModel",
+            "FertilityAnalysisExtractModel",
+            "SaturationExtractAnalysisExtractModel"
+    );
+
     @Override
     @Transactional
     public SoilAnalysisResponseDto createSoilAnalysis(SoilAnalysisCreateRequestDto dto, String username) {
         UserModel user = findUserByUsernameOrThrow(username);
-
         PlotModel plot = findPlotByIdOrThrow(dto.getPlotId());
-        permissionManager.assertCanWrite(plot, user);
+
+        PropertyModel property = plot.getProperty();
+        permissionManager.assertCanEditAnalyses(property, plot, user);
 
         validatePlotIdentification(plot, dto.getPlotIdentification());
 
@@ -62,9 +64,9 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Transactional(readOnly = true)
     public SoilAnalysisResponseDto getSoilAnalysisById(Long soilAnalysisId, String username) {
         UserModel user = findUserByUsernameOrThrow(username);
-
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        permissionManager.assertCanRead(soilAnalysis.getPlot(), user);
+
+        permissionManager.assertCanReadPlot(soilAnalysis.getPlot(), user);
 
         return soilAnalysis.toDto();
     }
@@ -73,9 +75,9 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Transactional(readOnly = true)
     public List<SoilAnalysisResponseDto> getAllSoilAnalysesByPlot(Long plotId, String username) {
         UserModel user = findUserByUsernameOrThrow(username);
-
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        permissionManager.assertCanRead(plot, user);
+
+        permissionManager.assertCanReadPlot(plot, user);
 
         return soilAnalysisRepository.findAllByPlot(plot)
                 .stream()
@@ -87,15 +89,16 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Transactional
     public SoilAnalysisResponseDto updateSoilAnalysis(Long soilAnalysisId, SoilAnalysisPostRequestDto dto, String username) {
         UserModel user = findUserByUsernameOrThrow(username);
-
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        permissionManager.assertCanWrite(soilAnalysis.getPlot(), user);
+
+        PlotModel plot = soilAnalysis.getPlot();
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, user);
 
         if (dto.getAnalysisYear() != null) {
             soilAnalysis.setAnalysisYear(dto.getAnalysisYear());
         }
         if (dto.getResponsibleLaboratory() != null && !dto.getResponsibleLaboratory().isBlank()) {
-            soilAnalysis.setResponsibleLaboratory(dto.getResponsibleLaboratory());
+            soilAnalysis.setResponsibleLaboratory(dto.getResponsibleLaboratory().trim());
         }
         if (dto.getExtractType() != null) {
             soilAnalysis.setExtractType(dto.getExtractType());
@@ -108,11 +111,12 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     @Transactional
     public void deleteSoilAnalysis(Long soilAnalysisId, String username) {
         UserModel user = findUserByUsernameOrThrow(username);
-
         SoilAnalysisModel soilAnalysis = findSoilAnalysisByIdOrThrow(soilAnalysisId);
-        permissionManager.assertCanWrite(soilAnalysis.getPlot(), user);
 
-        // --- DELEÇÃO MANUAL EM CASCATA (mantida) ---
+        PlotModel plot = soilAnalysis.getPlot();
+        permissionManager.assertCanEditAnalyses(plot.getProperty(), plot, user);
+
+        // --- deleção manual em cascata (mantida, mas organizada) ---
         List<Long> layerIds = entityManager.createQuery(
                         "SELECT l.id FROM LayerExtractModel l WHERE l.analysis.id = :id", Long.class)
                 .setParameter("id", soilAnalysisId)
@@ -150,8 +154,10 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
     }
 
     private void validatePlotIdentification(PlotModel plot, String providedIdentification) {
-        if (providedIdentification == null || !plot.getIdentification().equals(providedIdentification)) {
-            throw new IllegalArgumentException("A identificação do talhão informada não corresponde ao talhão selecionado.");
+        if (providedIdentification == null || !Objects.equals(plot.getIdentification(), providedIdentification)) {
+            throw new IllegalArgumentException(
+                    "A identificação do talhão informada não corresponde ao talhão selecionado."
+            );
         }
     }
 
@@ -167,6 +173,8 @@ public class SoilAnalysisServiceImpl implements SoilAnalysisService {
 
     private SoilAnalysisModel findSoilAnalysisByIdOrThrow(Long soilAnalysisId) {
         return soilAnalysisRepository.findById(soilAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de solo não encontrada com o ID: " + soilAnalysisId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Análise de solo não encontrada com o ID: " + soilAnalysisId
+                ));
     }
 }

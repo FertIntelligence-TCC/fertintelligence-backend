@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.repository.*;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+// @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class AbstractControllerTest {
 
     @Autowired

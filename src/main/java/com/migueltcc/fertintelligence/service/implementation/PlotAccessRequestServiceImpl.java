@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.plotAccessRequest.PlotAccessRequestResponseDto;
@@ -46,29 +48,52 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     public PlotAccessRequestResponseDto requestAccess(Long propertyId, Long plotId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
 
-        if (requester.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requester.getCargo() != Cargo.SECRETARIO
-                && requester.getCargo() != Cargo.AGRONOMO_RESIDENTE) {
-            throw new AccessDeniedException("Somente agrônomos consultores, residentes ou secretários podem solicitar acesso aos talhões.");
-        }
-
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        PlotModel plot = findPlotByIdOrThrow(plotId);
-        ensurePlotBelongsToProperty(property, plot);
-
         ensurePropertyAccessApproved(property, requester);
         ensurePropertyHasManager(property);
 
-        plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                plot, requester, AccessRequestStatus.PENDING
+        PlotModel plot = null;
+        PermissionScope scope;
+        PermissionType permissionType;
+
+        // Distribuição das permissões de acordo com o Cargo
+        if (requester.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
+            // Residente tem permissão na propriedade inteira, plotId fica null
+            scope = PermissionScope.PROPERTY;
+            permissionType = PermissionType.EDIT_ANALYSES_AND_CROPS;
+
+        } else if (requester.getCargo() == Cargo.AGRONOMO_CONSULTOR) {
+            if (plotId == null) throw new IllegalArgumentException("O talhão deve ser informado para o Agrônomo Consultor.");
+            plot = findPlotByIdOrThrow(plotId);
+            ensurePlotBelongsToProperty(property, plot);
+            scope = PermissionScope.PLOT;
+            permissionType = PermissionType.EDIT_ANALYSES_AND_CROPS;
+
+        } else if (requester.getCargo() == Cargo.SECRETARIO) {
+            if (plotId == null) throw new IllegalArgumentException("O talhão deve ser informado para o Secretário.");
+            plot = findPlotByIdOrThrow(plotId);
+            ensurePlotBelongsToProperty(property, plot);
+            scope = PermissionScope.PLOT;
+            // Secretário apenas edita as análises
+            permissionType = PermissionType.EDIT_ANALYSES;
+
+        } else {
+            throw new AccessDeniedException("Somente agrônomos consultores, residentes ou secretários podem solicitar este tipo de acesso.");
+        }
+
+        // Verifica pendência (usa o método ajustado do repositório)
+        plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndStatus(
+                property, plot, requester, AccessRequestStatus.PENDING
         ).ifPresent(req -> {
-            throw new AccessDeniedException("Já existe uma solicitação pendente para este talhão.");
+            throw new AccessDeniedException("Já existe uma solicitação pendente para este alvo.");
         });
 
         PlotAccessRequestModel accessRequest = PlotAccessRequestModel.builder()
                 .property(property)
                 .plot(plot)
                 .requester(requester)
+                .scope(scope)
+                .permissionType(permissionType)
                 .status(AccessRequestStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -79,12 +104,15 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PlotAccessRequestResponseDto> getRequestsForManager(Long propertyId, String managerUsername) {
+    public List<PlotAccessRequestResponseDto> getRequestsForManager(Long propertyId, AccessRequestStatus status, String managerUsername) {
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
         UserModel manager = findUserByUsernameOrThrow(managerUsername);
+
         checkManagerPermission(property, manager);
 
         return plotAccessRequestRepository.findAllByProperty(property).stream()
+                // Filtra pelo status caso ele tenha sido enviado na requisição
+                .filter(req -> status == null || req.getStatus() == status)
                 .map(PlotAccessRequestModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -113,6 +141,26 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
         PlotAccessRequestResponseDto response = request.toDto();
         plotAccessRequestRepository.delete(request);
         return response;
+    }
+
+    @Override
+    @Transactional
+    public PlotAccessRequestResponseDto revokeRequest(Long requestId, String managerUsername) {
+        UserModel manager = findUserByUsernameOrThrow(managerUsername);
+
+        PlotAccessRequestModel request = plotAccessRequestRepository.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada."));
+
+        // Apenas o gerente que aprova pode revogar
+        checkManagerPermission(request.getProperty(), manager);
+
+        // Converte para DTO antes de deletar para poder retornar
+        PlotAccessRequestResponseDto responseDto = request.toDto();
+
+        // Deleta a solicitação, revogando o acesso no mesmo instante
+        plotAccessRequestRepository.delete(request);
+
+        return responseDto;
     }
 
     private void ensurePropertyHasManager(PropertyModel property) {

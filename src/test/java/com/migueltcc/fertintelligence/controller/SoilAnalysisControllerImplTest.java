@@ -1,34 +1,27 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
-import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.soilAnalysis.SoilAnalysisPostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
-import com.migueltcc.fertintelligence.repository.PlotRepository;
-import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,11 +38,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
+
+    private static final String USERNAME_OWNER = "testuser";
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
@@ -65,14 +59,14 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     void setUp() {
         proprietarioUser = UserModel.builder()
                 .id(1L)
-                .username("testuser")
+                .username(USERNAME_OWNER)
                 .name("Test User Proprietario")
                 .cargo(Cargo.PROPRIETARIO)
                 .build();
 
         funcionarioUser = UserModel.builder()
                 .id(2L)
-                .username("testuser")
+                .username(USERNAME_OWNER)
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
                 .build();
@@ -130,11 +124,19 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .annualPluviosity(1150.0)
                 .build();
 
+        // Mantém default como "sem aprovação" para qualquer usuário (evita stubs repetidos)
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(any(), any(), any()))
-                .thenReturn(Optional.empty());
 
+        // ✅ CORREÇÃO: método antigo removido; usar o novo método do PlotAccessRequestRepository
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                any(PropertyModel.class),
+                any(PlotModel.class),
+                any(UserModel.class),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                any(AccessRequestStatus.class)
+        )).thenReturn(Optional.empty());
     }
 
     private SoilAnalysisCreateRequestDto createCreateRequestDto() {
@@ -166,7 +168,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void createSoilAnalysisSuccessfully() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
         SoilAnalysisModel savedAnalysis = SoilAnalysisModel.builder()
@@ -177,7 +179,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .plot(ownerPlot)
                 .build();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
         when(soilAnalysisRepository.findByPlotAndAnalysisYear(ownerPlot, requestDto.getAnalysisYear()))
                 .thenReturn(Optional.empty());
@@ -197,19 +199,22 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void createSoilAnalysisFails_WhenUserIsNotProprietario() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(funcionarioUser));
+        when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
 
-        when(plotRepository.findById(100L)).thenReturn(Optional.of(ownerPlot));
-
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(
-                any(PlotModel.class),
+        // ✅ CORREÇÃO: stub usando método novo
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(ownerProperty),
+                eq(ownerPlot),
                 eq(funcionarioUser),
-                any(AccessRequestStatus.class)))
-                .thenReturn(Optional.empty());
+                eq(PermissionScope.PLOT),
+                any(PermissionType.class),
+                any(AccessRequestStatus.class)
+        )).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/soil-analysis/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -218,7 +223,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void createSoilAnalysisFails_WhenPlotBelongsToAnotherOwner() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = SoilAnalysisCreateRequestDto.builder()
                 .analysisYear(2024)
@@ -228,7 +233,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .plotIdentification(otherPlot.getIdentification())
                 .build();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(otherPlot.getId())).thenReturn(Optional.of(otherPlot));
 
         mockMvc.perform(post("/soil-analysis/register")
@@ -238,12 +243,12 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void createSoilAnalysisFails_WhenDuplicateYear() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
         SoilAnalysisModel existing = createSoilAnalysisModel(2L, requestDto.getAnalysisYear(), ownerPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
         when(soilAnalysisRepository.findByPlotAndAnalysisYear(ownerPlot, requestDto.getAnalysisYear()))
                 .thenReturn(Optional.of(existing));
@@ -255,11 +260,11 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void getSoilAnalysisSuccessfully() throws Exception {
         SoilAnalysisModel analysis = createSoilAnalysisModel(1L, 2024, ownerPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
 
         mockMvc.perform(get("/soil-analysis/get")
@@ -271,11 +276,11 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void getSoilAnalysisFails_WhenNotOwner() throws Exception {
         SoilAnalysisModel analysis = createSoilAnalysisModel(1L, 2024, otherPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
 
         mockMvc.perform(get("/soil-analysis/get")
@@ -284,9 +289,9 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void getSoilAnalysisFails_WhenNotFound() throws Exception {
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/soil-analysis/get")
@@ -295,12 +300,12 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void getSoilAnalysesByPlotSuccessfully() throws Exception {
         SoilAnalysisModel analysis1 = createSoilAnalysisModel(1L, 2023, ownerPlot);
         SoilAnalysisModel analysis2 = createSoilAnalysisModel(2L, 2024, ownerPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
         when(soilAnalysisRepository.findAllByPlot(ownerPlot)).thenReturn(List.of(analysis1, analysis2));
 
@@ -313,12 +318,12 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void updateSoilAnalysisSuccessfully() throws Exception {
         SoilAnalysisModel existing = createSoilAnalysisModel(1L, 2023, ownerPlot);
         SoilAnalysisPostRequestDto updateRequestDto = createPostRequestDto();
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(soilAnalysisRepository.findByPlotAndAnalysisYear(ownerPlot, updateRequestDto.getAnalysisYear()))
                 .thenReturn(Optional.empty());
@@ -340,7 +345,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void updateSoilAnalysisFails_WhenDuplicateYear() throws Exception {
         SoilAnalysisModel existing = createSoilAnalysisModel(1L, 2023, ownerPlot);
         SoilAnalysisPostRequestDto updateRequestDto = SoilAnalysisPostRequestDto.builder()
@@ -348,7 +353,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                 .build();
         SoilAnalysisModel conflicting = createSoilAnalysisModel(2L, 2024, ownerPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(soilAnalysisRepository.findByPlotAndAnalysisYear(ownerPlot, updateRequestDto.getAnalysisYear()))
                 .thenReturn(Optional.of(conflicting));
@@ -361,11 +366,11 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void deleteSoilAnalysisSuccessfully() throws Exception {
         SoilAnalysisModel analysis = createSoilAnalysisModel(1L, 2024, ownerPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
         doNothing().when(soilAnalysisRepository).delete(analysis);
 
@@ -375,11 +380,11 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void deleteSoilAnalysisFails_WhenNotOwner() throws Exception {
         SoilAnalysisModel analysis = createSoilAnalysisModel(1L, 2024, otherPlot);
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
 
         mockMvc.perform(delete("/soil-analysis/delete")
@@ -388,9 +393,9 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
+    @WithMockUser(username = USERNAME_OWNER)
     void deleteSoilAnalysisFails_WhenUserIsNotProprietario() throws Exception {
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(funcionarioUser));
         when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(createSoilAnalysisModel(1L, 2024, ownerPlot)));
 
         mockMvc.perform(delete("/soil-analysis/delete")

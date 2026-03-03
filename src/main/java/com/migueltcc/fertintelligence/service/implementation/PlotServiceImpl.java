@@ -199,12 +199,16 @@ public class PlotServiceImpl implements PlotService {
         }
 
         // dono
-        if (property.getOwner().getId().equals(requestingUser.getId())) {
+        if (property.getOwner() != null
+                && property.getOwner().getUsername() != null
+                && property.getOwner().getUsername().equals(requestingUser.getUsername())) {
             return;
         }
 
-        // gerente da propriedade
-        if (property.getManager() != null && property.getManager().getId().equals(requestingUser.getId())) {
+        // gerente da propriedade (comparar por username é mais robusto)
+        if (property.getManager() != null
+                && property.getManager().getUsername() != null
+                && property.getManager().getUsername().equals(requestingUser.getUsername())) {
             return;
         }
 
@@ -219,17 +223,14 @@ public class PlotServiceImpl implements PlotService {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
 
-        // Se é apenas leitura, aprovação na propriedade já basta (corrige o bug da listagem)
-        if (!requireEdit) {
+        // leitura: aprovação na propriedade basta
+        if (!requireEdit) return;
+
+        // edição: permitir GERENTE
+        if (requestingUser.getCargo() == Cargo.GERENTE) {
             return;
         }
 
-        // Se é edição: restringe a agrônomo residente (além de dono/gerente que já retornaram acima)
-        if (requestingUser.getCargo() == Cargo.AGRONOMO_RESIDENTE) {
-            return;
-        }
-
-        // Se quiser permitir edição para outros cargos aprovados, altere aqui (ex: CONSULTOR/SECRETARIO)
         throw new AccessDeniedException("Você não tem permissão para modificar este recurso.");
     }
 }

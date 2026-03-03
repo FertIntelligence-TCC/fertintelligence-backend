@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.controller.documentation.PlotAccessRequestController;
 import com.migueltcc.fertintelligence.dto.plotAccessRequest.PlotAccessRequestCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.plotAccessRequest.PlotAccessRequestDecisionRequestDto;
@@ -38,8 +39,11 @@ public class PlotAccessRequestControllerImpl implements PlotAccessRequestControl
     @GetMapping("/requests")
     public ResponseEntity<List<PlotAccessRequestResponseDto>> getRequests(
             @RequestParam(name = "propertyId") Long propertyId,
+            @RequestParam(name = "status", required = false) AccessRequestStatus status,
             Authentication authentication) {
-        List<PlotAccessRequestResponseDto> requests = plotAccessRequestService.getRequestsForManager(propertyId, authentication.getName());
+
+        // CORREÇÃO: O parâmetro 'status' agora é repassado corretamente para o serviço
+        List<PlotAccessRequestResponseDto> requests = plotAccessRequestService.getRequestsForManager(propertyId, status, authentication.getName());
         return ResponseEntity.ok(requests);
     }
 
@@ -51,6 +55,16 @@ public class PlotAccessRequestControllerImpl implements PlotAccessRequestControl
             Authentication authentication) {
 
         PlotAccessRequestResponseDto response = plotAccessRequestService.decideRequest(requestId, decisionRequestDto.getApprove(), authentication.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    @DeleteMapping("/{requestId}/revoke")
+    public ResponseEntity<PlotAccessRequestResponseDto> revokeRequest(
+            @PathVariable Long requestId,
+            Authentication authentication) {
+
+        PlotAccessRequestResponseDto response = plotAccessRequestService.revokeRequest(requestId, authentication.getName());
         return ResponseEntity.ok(response);
     }
 }

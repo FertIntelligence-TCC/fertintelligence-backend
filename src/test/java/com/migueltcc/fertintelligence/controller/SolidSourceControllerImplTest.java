@@ -1,11 +1,12 @@
 package com.migueltcc.fertintelligence.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.solid.SolidSourceCreateRequestDto;
@@ -18,26 +19,20 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.SolidSourceModel;
-import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.repository.SolidSourceRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -48,7 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
@@ -266,6 +260,10 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    /* =========================================================
+       CREATE / READ / UPDATE / DELETE - FLUXOS FELIZES
+    ========================================================= */
+
     @Test
     @WithMockUser(username = "testuser")
     void createSolidSourceSuccessfully() throws Exception {
@@ -328,6 +326,7 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "testuser")
     void updateSolidSourceSuccessfully() throws Exception {
         SolidSourceModel existingSource = createSolidSourceModel(5L, ownerCrop);
+
         SolidSourceModel updatedSource = SolidSourceModel.builder()
                 .id(5L)
                 .crop(ownerCrop)
@@ -368,17 +367,28 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+    /* =========================================================
+       CASOS DE AUTORIZAÇÃO - AJUSTADOS PARA A NOVA INTERFACE
+    ========================================================= */
+
     @Test
     @WithMockUser(username = "testuser")
     void createSolidSourceFailsWhenUserIsNotProprietario() throws Exception {
         SolidSourceCreateRequestDto requestDto = createRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
-
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
 
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, funcionarioUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.empty());
+        // Secretário só passa se tiver request por TALHÃO (mas a regra do sistema pode ainda bloquear).
+        // Aqui mantemos o cenário SEM aprovação => 403.
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(ownerProperty),
+                eq(ownerPlot),
+                eq(funcionarioUser),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/foliar-fertilization/solid-source/register")
                         .param("cropId", ownerCrop.getId().toString())
@@ -413,8 +423,21 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+
+        // Residente: aprovação por PROPRIEDADE (plot = null no repositório de PLOT access)
+        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(ownerProperty),
+                eq(residenteUser),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(residenteUser, ownerPlot))); // o objeto em si não importa muito
+
+        // Se sua lógica usa PropertyAccessRequestRepository em vez de PlotAccessRequestRepository para residente,
+        // mantenha também este mock (você já tinha isso no teste):
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
                 .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+
         when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
 
         mockMvc.perform(post("/foliar-fertilization/solid-source/register")
@@ -433,8 +456,17 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+
+        // Consultor: aprovação por TALHÃO
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(ownerProperty),
+                eq(ownerPlot),
+                eq(consultorUser),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+
         when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
 
         mockMvc.perform(post("/foliar-fertilization/solid-source/register")
@@ -452,8 +484,15 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                eq(ownerProperty),
+                eq(ownerPlot),
+                eq(consultorUser),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/foliar-fertilization/solid-source/register")
                         .param("cropId", ownerCrop.getId().toString())

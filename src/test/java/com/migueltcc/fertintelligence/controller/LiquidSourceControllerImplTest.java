@@ -5,6 +5,8 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
+import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourceCreateRequestDto;
@@ -12,9 +14,7 @@ import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourc
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.LiquidSourceModel;
-import com.migueltcc.fertintelligence.repository.CropRepository;
-import com.migueltcc.fertintelligence.repository.LiquidSourceRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,21 +32,26 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class LiquidSourceControllerImplTest extends AbstractControllerTest {
+
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+
+    @MockitoBean private UserRepository userRepository;
+    @MockitoBean private CropRepository cropRepository;
+    @MockitoBean private LiquidSourceRepository liquidSourceRepository;
+
+    // usados pelo PermissionManager
+    @MockitoBean private PropertyAccessRequestRepository propertyAccessRequestRepository;
+    @MockitoBean private PlotAccessRequestRepository plotAccessRequestRepository;
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
@@ -135,10 +140,7 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .property(ownerProperty)
                 .identification("Talhao 01")
                 .area(15.0)
-                .soilClass(null)
-                .soilTexture(null)
                 .cropIncorporationYear(2020)
-                .irrigatedArea(null)
                 .declivity(5.0)
                 .monthlyPluviosity(200.0)
                 .annualPluviosity(1200.0)
@@ -149,10 +151,7 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .property(otherProperty)
                 .identification("Talhao 02")
                 .area(18.0)
-                .soilClass(null)
-                .soilTexture(null)
                 .cropIncorporationYear(2019)
-                .irrigatedArea(null)
                 .declivity(6.0)
                 .monthlyPluviosity(210.0)
                 .annualPluviosity(1150.0)
@@ -173,7 +172,6 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
         ownerCrop = CropModel.builder()
                 .id(300L)
                 .folder(ownerFolder)
-                .cultivationType(null)
                 .name(NomeComum.ALGODAO)
                 .variety("BRS 432")
                 .cycle(150)
@@ -192,7 +190,6 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
         otherCrop = CropModel.builder()
                 .id(301L)
                 .folder(otherFolder)
-                .cultivationType(null)
                 .name(NomeComum.MILHO)
                 .variety("AG 8088")
                 .cycle(140)
@@ -207,7 +204,42 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .floweringDate(new Date(1, 3, 2024))
                 .harvestDate(new Date(30, 6, 2024))
                 .build();
+
+        // defaults: sem aprovações
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(any(), any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
     }
+
+    /* =========================
+       Helpers de permissão (nova API do PermissionManager)
+       ========================= */
+
+    private void mockApprovedPropertyMembership(PropertyModel property, UserModel user) {
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, user, AccessRequestStatus.APPROVED))
+                .thenReturn(Optional.of(mock(PropertyAccessRequestModel.class)));
+    }
+
+    private void mockApprovedEditCropsOnPlot(PropertyModel property, PlotModel plot, UserModel user) {
+        // basta 1 match para o loop do PermissionManager retornar true
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                property,
+                plot,
+                user,
+                PermissionScope.PLOT,
+                PermissionType.EDIT_CROPS,
+                AccessRequestStatus.APPROVED
+        )).thenReturn(Optional.of(mock(PlotAccessRequestModel.class)));
+    }
+
+    /* =========================
+       Fixtures
+       ========================= */
 
     private LiquidSourceCreateRequestDto createRequestDto() {
         return LiquidSourceCreateRequestDto.builder()
@@ -247,22 +279,9 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
-    private PropertyAccessRequestModel approvedPropertyAccess(UserModel user, PropertyModel property) {
-        return PropertyAccessRequestModel.builder()
-                .property(property)
-                .requester(user)
-                .status(AccessRequestStatus.APPROVED)
-                .build();
-    }
-
-    private PlotAccessRequestModel approvedPlotAccess(UserModel user, PlotModel plot) {
-        return PlotAccessRequestModel.builder()
-                .plot(plot)
-                .requester(user)
-                .status(AccessRequestStatus.APPROVED)
-                .build();
-    }
-
+    /* =========================
+       Tests
+       ========================= */
 
     @Test
     @WithMockUser(username = "testuser")
@@ -279,7 +298,8 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/foliar-fertilization/liquid-source/get?liquidSourceId=1"))
+                .andExpect(header().string("Location",
+                        "http://localhost/foliar-fertilization/liquid-source/get?liquidSourceId=1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_cultura").value(ownerCrop.getId()))
                 .andExpect(jsonPath("$.micronutriente_aplicado").value("B"))
@@ -328,21 +348,10 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "testuser")
     void updateLiquidSourceSuccessfully() throws Exception {
         LiquidSourceModel existingSource = createLiquidSourceModel(5L, ownerCrop);
-        LiquidSourceModel updatedSource = LiquidSourceModel.builder()
-                .id(5L)
-                .crop(ownerCrop)
-                .date(new Date(21, 6, 2024))
-                .micronutrient(AppliedMicronutrient.Zn)
-                .source("Novo Ácido Bórico")
-                .concentration(18.0)
-                .density(1.3)
-                .applied_volume(3.0)
-                .tail_volume(210.0)
-                .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(liquidSourceRepository.findById(5L)).thenReturn(Optional.of(existingSource));
-        when(liquidSourceRepository.save(existingSource)).thenReturn(updatedSource);
+        when(liquidSourceRepository.save(any(LiquidSourceModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put("/foliar-fertilization/liquid-source/update")
                         .param("liquidSourceId", "5")
@@ -378,7 +387,9 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
         LiquidSourceCreateRequestDto requestDto = createRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
 
+        // não dá membership nem permissão de edição -> deve negar
         mockMvc.perform(post("/foliar-fertilization/liquid-source/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -412,8 +423,11 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+
+        // para editar culturas: precisa membership na propriedade + permissão de edição (plot/property scope)
+        mockApprovedPropertyMembership(ownerProperty, residenteUser);
+        mockApprovedEditCropsOnPlot(ownerProperty, ownerPlot, residenteUser);
+
         when(liquidSourceRepository.save(any(LiquidSourceModel.class))).thenReturn(savedSource);
 
         mockMvc.perform(post("/foliar-fertilization/liquid-source/register")
@@ -432,8 +446,10 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, consultorUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+
+        mockApprovedPropertyMembership(ownerProperty, consultorUser);
+        mockApprovedEditCropsOnPlot(ownerProperty, ownerPlot, consultorUser);
+
         when(liquidSourceRepository.save(any(LiquidSourceModel.class))).thenReturn(savedSource);
 
         mockMvc.perform(post("/foliar-fertilization/liquid-source/register")
@@ -445,15 +461,32 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "consultor")
+    void createLiquidSourceFailsWithoutPlotApproval() throws Exception {
+        LiquidSourceCreateRequestDto requestDto = createRequestDto();
+
+        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+
+        // tem membership, mas NÃO tem permissão de edição -> deve negar
+        mockApprovedPropertyMembership(ownerProperty, consultorUser);
+
+        mockMvc.perform(post("/foliar-fertilization/liquid-source/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void createLiquidSourceAsSecretaryIsForbidden() throws Exception {
         LiquidSourceCreateRequestDto requestDto = createRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(plotAccessRequestRepository.findByPlotAndRequesterAndStatus(ownerPlot, funcionarioUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPlotAccess(funcionarioUser, ownerPlot)));
 
+        // mesmo que tivesse membership/plot perm, aqui estamos garantindo que não tem -> forbidden
         mockMvc.perform(post("/foliar-fertilization/liquid-source/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)

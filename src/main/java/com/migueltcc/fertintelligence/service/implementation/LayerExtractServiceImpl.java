@@ -4,13 +4,13 @@ import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrat
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extract.layer.LayerExtractResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
-import com.migueltcc.fertintelligence.security.PermissionManager;
 import com.migueltcc.fertintelligence.service.documentation.LayerExtractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -39,12 +39,13 @@ public class LayerExtractServiceImpl implements LayerExtractService {
         UserModel requester = findUserByUsernameOrThrow(username);
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
 
-        // Validações de negócio
         ensureAnalysisSupportsLayers(analysis);
         validateDepthRange(createRequestDto.getInitialDepth(), createRequestDto.getFinalDepth());
 
-        // CREATE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        PropertyModel property = analysis.getPlot().getProperty();
+
+        // CREATE de extrato de análise => EDIT_ANALYSES
+        permissionManager.assertCanEditAnalyses(property, analysis.getPlot(), requester);
 
         LayerExtractModel layerExtract = LayerExtractModel.builder()
                 .analysis(analysis)
@@ -65,11 +66,10 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
         SoilAnalysisModel analysis = layerExtract.getAnalysis();
 
-        // Validações de negócio
         ensureAnalysisSupportsLayers(analysis);
 
-        // READ = READ
-        permissionManager.assertCanRead(analysis.getPlot(), requester);
+        // READ
+        permissionManager.assertCanReadPlot(analysis.getPlot(), requester);
 
         return layerExtract.toDto();
     }
@@ -80,11 +80,10 @@ public class LayerExtractServiceImpl implements LayerExtractService {
         UserModel requester = findUserByUsernameOrThrow(username);
         SoilAnalysisModel analysis = findAnalysisByIdOrThrow(analysisId);
 
-        // Validações de negócio
         ensureAnalysisSupportsLayers(analysis);
 
         // LIST = READ
-        permissionManager.assertCanRead(analysis.getPlot(), requester);
+        permissionManager.assertCanReadPlot(analysis.getPlot(), requester);
 
         return layerExtractRepository.findAllByAnalysis(analysis).stream()
                 .map(LayerExtractModel::toDto)
@@ -103,11 +102,12 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
         SoilAnalysisModel analysis = layerExtract.getAnalysis();
 
-        // Validações de negócio
         ensureAnalysisSupportsLayers(analysis);
 
-        // UPDATE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        PropertyModel property = analysis.getPlot().getProperty();
+
+        // UPDATE => EDIT_ANALYSES
+        permissionManager.assertCanEditAnalyses(property, analysis.getPlot(), requester);
 
         Integer updatedInitialDepth = updateRequestDto.getInitialDepth() != null
                 ? updateRequestDto.getInitialDepth()
@@ -140,11 +140,12 @@ public class LayerExtractServiceImpl implements LayerExtractService {
 
         SoilAnalysisModel analysis = layerExtract.getAnalysis();
 
-        // Validações de negócio
         ensureAnalysisSupportsLayers(analysis);
 
-        // DELETE = WRITE
-        permissionManager.assertCanWrite(analysis.getPlot(), requester);
+        PropertyModel property = analysis.getPlot().getProperty();
+
+        // DELETE => EDIT_ANALYSES
+        permissionManager.assertCanEditAnalyses(property, analysis.getPlot(), requester);
 
         layerExtractRepository.delete(layerExtract);
     }

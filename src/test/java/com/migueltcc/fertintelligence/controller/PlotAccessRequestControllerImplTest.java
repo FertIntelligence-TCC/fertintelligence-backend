@@ -15,20 +15,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+// ✅ NOVA IMPORTAÇÃO DO MOCKITOBEAN (Substitui o antigo @MockBean)
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PlotAccessRequestControllerImpl.class)
 class PlotAccessRequestControllerImplTest {
@@ -39,6 +39,7 @@ class PlotAccessRequestControllerImplTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // ✅ USANDO A NOVA ANOTAÇÃO
     @MockitoBean
     private PlotAccessRequestService plotAccessRequestService;
 
@@ -59,7 +60,8 @@ class PlotAccessRequestControllerImplTest {
                 .createdAt(LocalDateTime.of(2024, 5, 1, 10, 0))
                 .build();
 
-        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), Mockito.eq("consultor")))
+        // ✅ CORREÇÃO: Removido o argumento extra (PermissionType) da chamada
+        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), eq("consultor")))
                 .thenReturn(responseDto);
 
         PlotAccessRequestCreateRequestDto requestDto = PlotAccessRequestCreateRequestDto.builder()
@@ -77,7 +79,8 @@ class PlotAccessRequestControllerImplTest {
                 .andExpect(jsonPath("$.id_talhao", is(9)))
                 .andExpect(jsonPath("$.status", is(AccessRequestStatus.PENDING.name())));
 
-        Mockito.verify(plotAccessRequestService).requestAccess(2L, 9L, "consultor");
+        // ✅ CORREÇÃO: Removido o argumento extra no verifier
+        Mockito.verify(plotAccessRequestService).requestAccess(eq(2L), eq(9L), eq("consultor"));
     }
 
     @Test
@@ -97,7 +100,8 @@ class PlotAccessRequestControllerImplTest {
                 .createdAt(LocalDateTime.of(2024, 5, 2, 10, 0))
                 .build();
 
-        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), Mockito.eq("residente")))
+        // ✅ CORREÇÃO: Removido o argumento extra (PermissionType) da chamada
+        Mockito.when(plotAccessRequestService.requestAccess(anyLong(), anyLong(), eq("residente")))
                 .thenReturn(responseDto);
 
         PlotAccessRequestCreateRequestDto requestDto = PlotAccessRequestCreateRequestDto.builder()
@@ -113,7 +117,8 @@ class PlotAccessRequestControllerImplTest {
                 .andExpect(jsonPath("$.id", is(2)))
                 .andExpect(jsonPath("$.cargo_solicitante", is(Cargo.AGRONOMO_RESIDENTE.name())));
 
-        Mockito.verify(plotAccessRequestService).requestAccess(2L, 9L, "residente");
+        // ✅ CORREÇÃO: Removido o argumento extra no verifier
+        Mockito.verify(plotAccessRequestService).requestAccess(eq(2L), eq(9L), eq("residente"));
     }
 
     @Test
@@ -130,16 +135,17 @@ class PlotAccessRequestControllerImplTest {
                 .createdAt(LocalDateTime.of(2024, 6, 1, 12, 30))
                 .build();
 
-        Mockito.when(plotAccessRequestService.getRequestsForManager(4L, "gerente"))
+        Mockito.when(plotAccessRequestService.getRequestsForManager(4L, AccessRequestStatus.PENDING, "gerente"))
                 .thenReturn(Collections.singletonList(responseDto));
 
         mockMvc.perform(get("/plot-access/requests")
-                        .param("propertyId", "4"))
+                        .param("propertyId", "4")
+                        .param("status", "PENDING")) // ✅ CORREÇÃO: Parâmetro adicionado para bater com o Mock
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id", is(10)))
                 .andExpect(jsonPath("$[0].nome_propriedade", is("Propriedade ABC")));
 
-        Mockito.verify(plotAccessRequestService).getRequestsForManager(4L, "gerente");
+        Mockito.verify(plotAccessRequestService).getRequestsForManager(4L, AccessRequestStatus.PENDING, "gerente");
     }
 
     @Test
@@ -153,7 +159,7 @@ class PlotAccessRequestControllerImplTest {
                 .createdAt(LocalDateTime.of(2024, 7, 1, 14, 45))
                 .build();
 
-        Mockito.when(plotAccessRequestService.decideRequest(anyLong(), anyBoolean(), Mockito.eq("gerente")))
+        Mockito.when(plotAccessRequestService.decideRequest(eq(7L), eq(true), eq("gerente")))
                 .thenReturn(responseDto);
 
         PlotAccessRequestDecisionRequestDto decisionDto = PlotAccessRequestDecisionRequestDto.builder()
@@ -163,7 +169,6 @@ class PlotAccessRequestControllerImplTest {
         mockMvc.perform(post("/plot-access/7/decision")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(decisionDto))
-                        .param("requestId", "7") // <--- CORREÇÃO AQUI
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", is(AccessRequestStatus.APPROVED.name())));
