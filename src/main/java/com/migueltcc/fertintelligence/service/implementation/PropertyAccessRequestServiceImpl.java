@@ -68,14 +68,24 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
 
     @Override
     public List<PropertyAccessRequestResponseDto> getRequestsForProperty(Long propertyId, String ownerUsername) {
-        UserModel owner = findUserByUsernameOrThrow(ownerUsername);
+        UserModel user = findUserByUsernameOrThrow(ownerUsername);
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
 
-        checkOwnerPermission(property, owner);
-        checkUserIsProprietario(owner);
+        // Valida se o usuário logado é Dono ou Gerente
+        checkManagementPermission(property, user);
+
+        boolean isOwner = property.getOwner().getId().equals(user.getId());
 
         return propertyAccessRequestRepository.findAllByProperty(property)
                 .stream()
+                .filter(request -> {
+                    // Se o usuário logado for o dono, ele vê todas as solicitações (para poder revogar o gerente)
+                    if (isOwner) return true;
+
+                    // Se for o gerente, ele NÃO deve ver solicitações de gerentes ou do próprio dono
+                    return request.getRequester().getCargo() != Cargo.GERENTE &&
+                            request.getRequester().getCargo() != Cargo.PROPRIETARIO;
+                })
                 .map(PropertyAccessRequestModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -86,19 +96,25 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         PropertyAccessRequestModel request = propertyAccessRequestRepository.findById(requestId)
                 .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada"));
 
-        // Validação de segurança: verificar se quem decide é o dono
-        if (!request.getProperty().getOwner().getUsername().equals(ownerUsername)) {
-            throw new AccessDeniedException("Não autorizado");
+        UserModel user = findUserByUsernameOrThrow(ownerUsername);
+
+        // Validação de segurança: verificar se quem decide é o dono ou o gerente
+        checkManagementPermission(request.getProperty(), user);
+
+        // Trava de segurança: Impede que um Gerente aprove, recuse ou revogue outro Gerente
+        boolean isOwner = request.getProperty().getOwner().getId().equals(user.getId());
+        if (!isOwner && request.getRequester().getCargo() == Cargo.GERENTE) {
+            throw new AccessDeniedException("Apenas o proprietário pode gerenciar o acesso de um gerente.");
         }
 
         if (approve) {
             request.setStatus(AccessRequestStatus.APPROVED);
-            // ✅ Se quem está sendo aprovado é GERENTE, vincula na propriedade (se possível)
+            // Se quem está sendo aprovado é GERENTE, vincula na propriedade (se possível)
             updatePropertyManagerIfNeeded(request);
             return propertyAccessRequestRepository.save(request).toDto();
         }
         else {
-            // Se rejeitado, remove do banco de dados
+            // Se rejeitado/revogado, remove do banco de dados
             propertyAccessRequestRepository.delete(request);
 
             // Retorna o DTO com status REJECTED apenas para o frontend saber o que aconteceu
@@ -108,7 +124,6 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
         }
     }
 
-    // --- NOVA IMPLEMENTAÇÃO ---
     @Override
     public List<PropertyResponseDto> getApprovedPropertiesForUser(String username) {
         UserModel user = findUserByUsernameOrThrow(username);
@@ -223,15 +238,13 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada: " + propertyId));
     }
 
-    private void checkOwnerPermission(PropertyModel property, UserModel requestingUser) {
-        if (!property.getOwner().getId().equals(requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para gerenciar solicitações desta propriedade.");
-        }
-    }
+    // Substitua os métodos checkOwnerPermission e checkUserIsProprietario por este novo:
+    private void checkManagementPermission(PropertyModel property, UserModel requestingUser) {
+        boolean isOwner = property.getOwner().getId().equals(requestingUser.getId());
+        boolean isManager = property.getManager() != null && property.getManager().getId().equals(requestingUser.getId());
 
-    private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
-            throw new AccessDeniedException("Apenas proprietários podem gerenciar solicitações de acesso.");
+        if (!isOwner && !isManager) {
+            throw new AccessDeniedException("Você não tem permissão para gerenciar solicitações desta propriedade. Apenas o proprietário ou o gerente podem realizar esta ação.");
         }
     }
 }
