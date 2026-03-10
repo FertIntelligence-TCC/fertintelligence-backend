@@ -104,15 +104,15 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PlotAccessRequestResponseDto> getRequestsForManager(Long propertyId, AccessRequestStatus status, String managerUsername) {
+    public List<PlotAccessRequestResponseDto> getRequestsForManager(Long propertyId, AccessRequestStatus status, String username) {
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        UserModel manager = findUserByUsernameOrThrow(managerUsername);
+        UserModel user = findUserByUsernameOrThrow(username);
 
-        checkManagerPermission(property, manager);
+        boolean isManager = property.getManager() != null && property.getManager().getId().equals(user.getId());
 
         return plotAccessRequestRepository.findAllByProperty(property).stream()
-                // Filtra pelo status caso ele tenha sido enviado na requisição
                 .filter(req -> status == null || req.getStatus() == status)
+                .filter(req -> isManager || req.getRequester().getId().equals(user.getId()))
                 .map(PlotAccessRequestModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -145,19 +145,21 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
 
     @Override
     @Transactional
-    public PlotAccessRequestResponseDto revokeRequest(Long requestId, String managerUsername) {
-        UserModel manager = findUserByUsernameOrThrow(managerUsername);
+    public PlotAccessRequestResponseDto revokeRequest(Long requestId, String username) {
+        UserModel user = findUserByUsernameOrThrow(username);
 
         PlotAccessRequestModel request = plotAccessRequestRepository.findById(requestId)
                 .orElseThrow(() -> new EntityNotFoundException("Solicitação não encontrada."));
 
-        // Apenas o gerente que aprova pode revogar
-        checkManagerPermission(request.getProperty(), manager);
+        boolean isManager = request.getProperty().getManager() != null && request.getProperty().getManager().getId().equals(user.getId());
+        boolean isRequester = request.getRequester().getId().equals(user.getId());
 
-        // Converte para DTO antes de deletar para poder retornar
+        if (!isManager && !isRequester) {
+            throw new AccessDeniedException("Você não tem permissão para revogar ou cancelar esta solicitação.");
+        }
+
         PlotAccessRequestResponseDto responseDto = request.toDto();
 
-        // Deleta a solicitação, revogando o acesso no mesmo instante
         plotAccessRequestRepository.delete(request);
 
         return responseDto;
