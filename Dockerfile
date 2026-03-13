@@ -1,18 +1,20 @@
-# Usa uma imagem oficial, leve e super estável do Java 21
+# Usa a imagem do Java 21
 FROM eclipse-temurin:21-jdk-alpine
 
-# Define a pasta de trabalho dentro do servidor
+# Define a pasta de trabalho
 WORKDIR /app
 
-# Copia todo o código do seu repositório para o servidor
+# Copia todo o código
 COPY . .
 
-# Dá permissão ao Maven e compila o projeto (pulando os testes)
-RUN chmod +x ./mvnw
-RUN ./mvnw clean package -DskipTests
+# Instala o Maven nativamente no servidor (isso resolve o erro da pasta .mvn)
+RUN apk add --no-cache maven
 
-# Expõe a porta padrão do Spring Boot
+# Compila o projeto usando o Maven nativo (mvn) em vez do script (./mvnw)
+RUN mvn clean package -DskipTests
+
+# Expõe a porta
 EXPOSE 8080
 
-# Comando que o Render vai rodar para ligar a sua API
+# Liga o servidor
 CMD ["java", "-jar", "target/fertintelligence-0.0.1-SNAPSHOT.jar"]
