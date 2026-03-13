@@ -84,7 +84,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(frontendUrl));
+
+        // Substituímos o List.of(frontendUrl) por uma lista fixa com todos os acessos
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173",
+                "https://fertintelligence-frontend-03n3.onrender.com",
+                "https://fertintelligence-frontend.onrender.com"
+        ));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
