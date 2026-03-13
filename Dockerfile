@@ -1,5 +1,5 @@
-# Usa uma imagem leve e oficial do Java 21
-FROM amazoncorretto:21-alpine3
+# Usa uma imagem oficial, leve e super estável do Java 21
+FROM eclipse-temurin:21-jdk-alpine
 
 # Define a pasta de trabalho dentro do servidor
 WORKDIR /app
