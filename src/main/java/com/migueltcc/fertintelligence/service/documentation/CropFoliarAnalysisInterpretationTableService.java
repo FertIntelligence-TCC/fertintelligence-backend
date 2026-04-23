@@ -19,6 +19,8 @@ public interface CropFoliarAnalysisInterpretationTableService {
     List<CropFoliarAnalysisInterpretationTableResponseDto> getAllCropFoliarAnalysisInterpretationTablesByCreator(
             String username);
 
+    List<CropFoliarAnalysisInterpretationTableResponseDto> getAllPublicCropFoliarAnalysisInterpretationTables();
+
     CropFoliarAnalysisInterpretationTableResponseDto updateCropFoliarAnalysisInterpretationTable(
             Long tableId,
             CropFoliarAnalysisInterpretationTablePostRequestDto updateRequestDto,

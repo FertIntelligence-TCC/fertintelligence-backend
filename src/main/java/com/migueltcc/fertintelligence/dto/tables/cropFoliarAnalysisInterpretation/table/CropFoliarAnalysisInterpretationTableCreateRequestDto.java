@@ -22,4 +22,7 @@ public class CropFoliarAnalysisInterpretationTableCreateRequestDto {
     @Schema(example = "SUL")
     @NotNull(message = "A região é obrigatória")
     private Regiao region;
+
+    @JsonProperty("tabela_publica")
+    private Boolean publicTable;
 }

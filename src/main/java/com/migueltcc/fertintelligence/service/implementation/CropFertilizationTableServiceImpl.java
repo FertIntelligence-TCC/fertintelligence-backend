@@ -72,6 +72,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .micronutrients(createRequestDto.getMicronutrients())
                 .npk(createRequestDto.getNpk())
                 .observations(createRequestDto.getObservations())
+                .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
@@ -93,6 +94,15 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         UserModel owner = findUserByUsernameOrThrow(username);
 
         return cropFertilizationTableRepository.findAllByCreator(owner)
+                .stream()
+                .map(CropFertilizationTableModel::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables() {
+        return cropFertilizationTableRepository.findAllByPublicTableTrue()
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
@@ -175,6 +185,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getMicronutrients() != null) table.setMicronutrients(dto.getMicronutrients());
         if (dto.getNpk() != null) table.setNpk(dto.getNpk());
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
+        if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

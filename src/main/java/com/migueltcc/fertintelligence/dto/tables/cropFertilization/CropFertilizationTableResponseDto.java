@@ -97,4 +97,8 @@ public class CropFertilizationTableResponseDto {
     @Schema(example = "Aplicar NPK em cobertura.")
     @JsonProperty("observacoes")
     private String observations;
+
+    @Schema(example = "false")
+    @JsonProperty("tabela_publica")
+    private boolean public_table;
 }

@@ -20,6 +20,8 @@ public interface CropFertilizationTableService {
 
     List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username);
 
+    List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables();
+
     CropFertilizationTableResponseDto updateCropFertilizationTable(
             Long tableId,
             CropFertilizationTablePostRequestDto updateRequestDto,

@@ -96,6 +96,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .micronutrients(150.0)
                 .npk(120.0)
                 .observations("Observações iniciais")
+                .public_table(false)
                 .build();
 
         // Configuração da Tabela Complexa (3 Ranges, 3 Coverages)
@@ -144,6 +145,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .micronutrients(150.0)
                 .npk(120.0)
                 .observations("Observações iniciais")
+                .public_table(true)
                 .build();
     }
 
@@ -154,6 +156,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .expected_productivity(9500.0)
                 .observations("Observações atualizadas")
+                .public_table(true)
                 .build();
     }
 
@@ -177,7 +180,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(header().string("Location", "http://localhost/crop-fertilization-table/get?tableId=20"))
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_comum_cultura").value("MILHO"))
-                .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"));
+                .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
     @Test
@@ -274,7 +278,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         mockMvc.perform(get("/crop-fertilization-table/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$[1].regioes_cultura").value("CENTRO_OESTE"));
+                .andExpect(jsonPath("$[1].regioes_cultura").value("CENTRO_OESTE"))
+                .andExpect(jsonPath("$[0].tabela_publica").value(false));
     }
 
     @Test
@@ -293,7 +298,52 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.produtividade_esperada").value(9500.0))
-                .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"));
+                .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCropFertilizationTableDefaultsPublicFlagToFalse() throws Exception {
+        CropFertilizationTableCreateRequestDto requestDto = createRequestDto().toBuilder()
+                .public_table(null)
+                .build();
+
+        CropFertilizationTableModel savedTable = ownerTable.toBuilder()
+                .id(21L)
+                .public_table(false)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class))).thenReturn(savedTable);
+
+        mockMvc.perform(post("/crop-fertilization-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tabela_publica").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getAllPublicCropFertilizationTablesReturnsOnlyPublicFromAllCreators() throws Exception {
+        CropFertilizationTableModel publicOwner = ownerTable.toBuilder().id(31L).public_table(true).build();
+        CropFertilizationTableModel publicOther = ownerTable.toBuilder()
+                .id(32L)
+                .creator(otherProprietarioUser)
+                .public_table(true)
+                .build();
+
+        when(cropFertilizationTableRepository.findAllByPublicTableTrue())
+                .thenReturn(List.of(publicOwner, publicOther));
+
+        mockMvc.perform(get("/crop-fertilization-table/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(31L))
+                .andExpect(jsonPath("$[0].tabela_publica").value(true))
+                .andExpect(jsonPath("$[1].id").value(32L))
+                .andExpect(jsonPath("$[1].id_criador").value(2L))
+                .andExpect(jsonPath("$[1].tabela_publica").value(true));
     }
 
     @Test

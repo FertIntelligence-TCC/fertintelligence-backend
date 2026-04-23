@@ -69,6 +69,16 @@ public class CropFertilizationTableControllerImpl implements CropFertilizationTa
     }
 
     @Override
+    @GetMapping("/get-all-public")
+    public ResponseEntity<List<CropFertilizationTableResponseDto>> getPublicCropFertilizationTables(
+            Authentication authentication
+    ) {
+        List<CropFertilizationTableResponseDto> tables = cropFertilizationTableService
+                .getAllPublicCropFertilizationTables();
+        return ResponseEntity.ok(tables);
+    }
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<CropFertilizationTableResponseDto> updateCropFertilizationTable(
             @RequestParam(name = "tableId") Long tableId,

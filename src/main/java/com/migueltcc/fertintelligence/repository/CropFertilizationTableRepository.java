@@ -15,6 +15,7 @@ import java.util.List;
 public interface CropFertilizationTableRepository extends JpaRepository<CropFertilizationTableModel, Long> {
 
     List<CropFertilizationTableModel> findAllByCreator(UserModel creator);
+    List<CropFertilizationTableModel> findAllByPublicTableTrue();
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CropFertilizationTableModel c WHERE c.crop_common_name = :nomeComum AND c.region = :regiao")
     boolean existsByCropCommonNameAndRegion(@Param("nomeComum") NomeComum nomeComum, @Param("regiao") Regiao regiao);

@@ -40,6 +40,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                 .name(createRequestDto.getName())
                 .description(createRequestDto.getDescription()) // <--- AGORA SALVA A DESCRIÇÃO
                 .region(createRequestDto.getRegion())
+                .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
         SoilFertilityInterpretationCriteriaTableModel savedTable = soilFertilityInterpretationCriteriaTableRepository.save(table);
@@ -73,6 +74,14 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllPublicSoilFertilityInterpretationCriteriaTables() {
+        return soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue().stream()
+                .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public SoilFertilityInterpretationCriteriaTableResponseDto updateSoilFertilityInterpretationCriteriaTable(
             Long tableId,
@@ -91,6 +100,9 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         }
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
+        }
+        if (updateRequestDto.getPublic_table() != null) {
+            table.setPublicTable(updateRequestDto.getPublic_table());
         }
 
         SoilFertilityInterpretationCriteriaTableModel updatedTable = soilFertilityInterpretationCriteriaTableRepository.save(table);

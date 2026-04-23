@@ -25,4 +25,7 @@ public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
     @JsonProperty("nova_regiao")
     @Schema(example = "CENTRO_OESTE")
     private Regiao region;
+
+    @JsonProperty("tabela_publica")
+    private Boolean public_table;
 }

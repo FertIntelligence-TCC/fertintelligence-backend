@@ -82,6 +82,10 @@ public class CropFertilizationTableModel {
     @Column(name = "OBSERVACOES", nullable = false)
     private String observations;
 
+    @Column(name = "TABELA_PUBLICA", nullable = false)
+    @Builder.Default
+    private boolean publicTable = false;
+
     public CropFertilizationTableResponseDto toDto() {
         return CropFertilizationTableResponseDto.builder()
                 .id(this.id)
@@ -105,6 +109,7 @@ public class CropFertilizationTableModel {
                 .micronutrients(this.micronutrients)
                 .npk(this.npk)
                 .observations(this.observations)
+                .public_table(this.publicTable)
                 .build();
     }
 

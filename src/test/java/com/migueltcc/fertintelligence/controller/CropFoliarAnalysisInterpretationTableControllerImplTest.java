@@ -67,17 +67,20 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .id(10L)
                 .creator(proprietarioUser)
                 .region(Regiao.SUL)
+                .public_table(false)
                 .build();
     }
 
     private CropFoliarAnalysisInterpretationTableCreateRequestDto createRequestDto() {
         return CropFoliarAnalysisInterpretationTableCreateRequestDto.builder()
+                .public_table(true)
                 .region(Regiao.SUL)
                 .build();
     }
 
     private CropFoliarAnalysisInterpretationTablePostRequestDto updateRequestDto() {
         return CropFoliarAnalysisInterpretationTablePostRequestDto.builder()
+                .public_table(true)
                 .region(Regiao.NORDESTE)
                 .build();
     }
@@ -101,7 +104,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .andExpect(header().string("Location",
                         "http://localhost/crop-foliar-analysis-interpretation-table/register/25"))
                 .andExpect(jsonPath("$.id").value(25L))
-                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"));
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
     @Test
@@ -190,7 +194,83 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                         .content(objectMapper.writeValueAsString(updateRequestDto())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerTable.getId()))
-                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("NORDESTE"));
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("NORDESTE"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCropFoliarAnalysisInterpretationTableDefaultsPublicFlagToFalse() throws Exception {
+        CropFoliarAnalysisInterpretationTableCreateRequestDto requestDto = createRequestDto().toBuilder()
+                .public_table(null)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.save(any(CropFoliarAnalysisInterpretationTableModel.class)))
+                .thenAnswer(invocation -> {
+                    CropFoliarAnalysisInterpretationTableModel table = invocation.getArgument(0);
+                    table.setId(26L);
+                    table.setPublic_table(false);
+                    return table;
+                });
+
+        mockMvc.perform(post("/crop-foliar-analysis-interpretation-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tabela_publica").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateCropFoliarAnalysisInterpretationTableAcceptsRegionAliasAndPublicToggle() throws Exception {
+        String requestBody = """
+                {
+                  "novo_nome_tabela":"TIAF Milho NE v2",
+                  "novo_regiao_analise_foliar_culturas":"NORDESTE",
+                  "tabela_publica": false
+                }
+                """;
+
+        CropFoliarAnalysisInterpretationTableModel publicTable = ownerTable.toBuilder()
+                .public_table(true)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(publicTable));
+        when(cropFoliarAnalysisInterpretationTableRepository.save(any(CropFoliarAnalysisInterpretationTableModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/crop-foliar-analysis-interpretation-table/update")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("NORDESTE"))
+                .andExpect(jsonPath("$.tabela_publica").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getAllPublicCropFoliarAnalysisInterpretationTablesReturnsOnlyPublicFromAllCreators() throws Exception {
+        CropFoliarAnalysisInterpretationTableModel publicOwner = ownerTable.toBuilder().id(55L).public_table(true).build();
+        CropFoliarAnalysisInterpretationTableModel publicOther = ownerTable.toBuilder()
+                .id(56L)
+                .creator(otherProprietarioUser)
+                .public_table(true)
+                .build();
+
+        when(cropFoliarAnalysisInterpretationTableRepository.findAllByPublicTableTrue())
+                .thenReturn(List.of(publicOwner, publicOther));
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(55L))
+                .andExpect(jsonPath("$[0].tabela_publica").value(true))
+                .andExpect(jsonPath("$[1].id").value(56L))
+                .andExpect(jsonPath("$[1].id_criador").value(2L))
+                .andExpect(jsonPath("$[1].tabela_publica").value(true));
     }
 
     @Test

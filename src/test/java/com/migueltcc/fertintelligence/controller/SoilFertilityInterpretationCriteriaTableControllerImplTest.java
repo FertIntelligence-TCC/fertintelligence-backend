@@ -85,6 +85,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios Base")
                 .description("Tabela base para testes")
                 .region(Regiao.NORDESTE)
+                .public_table(false)
                 .build();
     }
 
@@ -98,6 +99,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios de Fertilidade do Solo - SUL")
                 .description("Critérios para interpretação de fertilidade do solo na região SUL.")
                 .region(Regiao.SUL)
+                .public_table(true)
                 .build();
     }
 
@@ -106,6 +108,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios Atualizados - Centro Oeste")
                 .description("Atualização dos critérios para a região Centro-Oeste.")
                 .region(Regiao.CENTRO_OESTE)
+                .public_table(true)
                 .build();
     }
 
@@ -132,7 +135,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                         "http://localhost/soil-fertility-interpretation-criteria-table/register/20"))
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
-                .andExpect(jsonPath("$.regiao").value("SUL"));
+                .andExpect(jsonPath("$.regiao").value("SUL"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
     @Test
@@ -267,7 +271,54 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.regiao").value("CENTRO_OESTE"));
+                .andExpect(jsonPath("$.regiao").value("CENTRO_OESTE"))
+                .andExpect(jsonPath("$.tabela_publica").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createSoilFertilityInterpretationCriteriaTableDefaultsPublicFlagToFalse() throws Exception {
+        SoilFertilityInterpretationCriteriaTableCreateRequestDto requestDto = createRequestDto().toBuilder()
+                .public_table(null)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.save(any(SoilFertilityInterpretationCriteriaTableModel.class)))
+                .thenAnswer(invocation -> {
+                    SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
+                    model.setId(26L);
+                    model.setCreator(proprietarioUser);
+                    model.setPublic_table(false);
+                    return model;
+                });
+
+        mockMvc.perform(post("/soil-fertility-interpretation-criteria-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tabela_publica").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getAllPublicSoilFertilityInterpretationCriteriaTablesReturnsOnlyPublicFromAllCreators() throws Exception {
+        SoilFertilityInterpretationCriteriaTableModel publicOwner = ownerTable.toBuilder().id(40L).public_table(true).build();
+        SoilFertilityInterpretationCriteriaTableModel publicOther = ownerTable.toBuilder()
+                .id(41L)
+                .creator(otherProprietarioUser)
+                .public_table(true)
+                .build();
+
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue())
+                .thenReturn(List.of(publicOwner, publicOther));
+
+        mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(40L))
+                .andExpect(jsonPath("$[0].tabela_publica").value(true))
+                .andExpect(jsonPath("$[1].id").value(41L))
+                .andExpect(jsonPath("$[1].id_criador").value(2L))
+                .andExpect(jsonPath("$[1].tabela_publica").value(true));
     }
 
     @Test

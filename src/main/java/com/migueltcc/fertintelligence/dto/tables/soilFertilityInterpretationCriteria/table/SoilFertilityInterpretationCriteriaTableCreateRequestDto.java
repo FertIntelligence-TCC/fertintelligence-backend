@@ -28,4 +28,7 @@ public class SoilFertilityInterpretationCriteriaTableCreateRequestDto {
     @NotNull(message = "A região é obrigatória")
     @Schema(example = "NORDESTE")
     private Regiao region;
+
+    @JsonProperty("tabela_publica")
+    private Boolean public_table;
 }

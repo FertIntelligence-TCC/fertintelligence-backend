@@ -11,4 +11,5 @@ import java.util.List;
 public interface SoilFertilityInterpretationCriteriaTableRepository extends JpaRepository<SoilFertilityInterpretationCriteriaTableModel, Long> {
 
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator(UserModel creator);
+    List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrue();
 }

@@ -70,6 +70,15 @@ public class SoilFertilityInterpretationCriteriaTableControllerImpl implements S
     }
 
     @Override
+    @GetMapping("/get-all-public")
+    public ResponseEntity<List<SoilFertilityInterpretationCriteriaTableResponseDto>> getPublicSoilFertilityInterpretationCriteriaTables(
+            Authentication authentication) {
+        List<SoilFertilityInterpretationCriteriaTableResponseDto> tables = soilFertilityInterpretationCriteriaTableService
+                .getAllPublicSoilFertilityInterpretationCriteriaTables();
+        return ResponseEntity.ok(tables);
+    }
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<SoilFertilityInterpretationCriteriaTableResponseDto> updateSoilFertilityInterpretationCriteriaTable(
             @RequestParam(name = "tableId") Long tableId,
