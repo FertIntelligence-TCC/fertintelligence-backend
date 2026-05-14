@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.dto.fertilizers.attributes.FormulateDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.attributes.NPKrelationDto;
@@ -17,10 +18,12 @@ import lombok.NoArgsConstructor;
 public class FormulatedMineralFertilizerPostRequestDto {
 
     @JsonProperty("nova_formula")
+    @JsonAlias("novo_formulate")
     @Valid
     private FormulateDto formulate;
 
     @JsonProperty("nova_relacao")
+    @JsonAlias("novo_relation")
     @Valid
     private NPKrelationDto relation;
 
@@ -77,7 +80,7 @@ public class FormulatedMineralFertilizerPostRequestDto {
     @JsonProperty("novo_zn")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
+
     @JsonProperty("novo_publico")
     private Boolean novoPublico;
-
 }

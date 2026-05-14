@@ -13,6 +13,7 @@ public interface MineralFertilizerRepository extends JpaRepository<MineralFertil
     List<MineralFertilizerModel> findAllByUser(UserModel user);
 
     List<MineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
+
     List<MineralFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
 
 }

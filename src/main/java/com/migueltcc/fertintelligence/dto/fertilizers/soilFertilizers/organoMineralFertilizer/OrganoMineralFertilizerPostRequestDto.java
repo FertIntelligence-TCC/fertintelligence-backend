@@ -73,7 +73,7 @@ public class OrganoMineralFertilizerPostRequestDto {
 
     @JsonProperty("novo_indice_acidez")
     private Double indiceAcidez;
+
     @JsonProperty("novo_publico")
     private Boolean novoPublico;
-
 }

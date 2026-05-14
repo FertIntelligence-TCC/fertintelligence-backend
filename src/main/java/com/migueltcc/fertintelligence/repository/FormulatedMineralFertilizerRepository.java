@@ -12,6 +12,7 @@ public interface FormulatedMineralFertilizerRepository extends JpaRepository<For
 
     List<FormulatedMineralFertilizerModel> findAllByUser(UserModel user);
 
+
     List<FormulatedMineralFertilizerModel> findAllByPublicoTrueOrderByIdAsc();
 
 }
