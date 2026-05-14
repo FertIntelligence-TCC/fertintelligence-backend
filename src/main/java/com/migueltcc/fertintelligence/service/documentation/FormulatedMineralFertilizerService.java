@@ -19,6 +19,8 @@ public interface FormulatedMineralFertilizerService {
     );
 
     List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username);
+    List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username);
+
 
     FormulatedMineralFertilizerResponseDto updateFormulatedMineralFertilizer(
             Long formulatedMineralFertilizerId,

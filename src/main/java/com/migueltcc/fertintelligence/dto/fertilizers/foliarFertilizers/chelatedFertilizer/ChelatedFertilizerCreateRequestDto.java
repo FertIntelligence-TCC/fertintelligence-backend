@@ -80,4 +80,7 @@ public class ChelatedFertilizerCreateRequestDto {
     @JsonProperty("indice_acidez")
     private Double indiceAcidez;
 
+
+    @JsonProperty("publico")
+    private Boolean publico;
 }

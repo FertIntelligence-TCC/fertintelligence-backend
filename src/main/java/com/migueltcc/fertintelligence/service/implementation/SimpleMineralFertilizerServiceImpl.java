@@ -53,6 +53,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .Zn(getOrDefault(createRequestDto.getZn()))
                 .indiceSalino(getOrDefault(createRequestDto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(createRequestDto.getIndiceAcidez()))
+                .publico(Boolean.TRUE.equals(createRequestDto.getPublico()))
                 .build();
 
         SimpleMineralFertilizerModel saved = simpleMineralFertilizerRepository.save(fertilizer);
@@ -70,6 +71,17 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SimpleMineralFertilizerResponseDto> getAllPublicSimpleMineralFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+                .stream()
+                .map(SimpleMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -109,6 +121,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
+        if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
         SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
         return updated.toDto();

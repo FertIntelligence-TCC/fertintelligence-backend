@@ -85,6 +85,15 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
     }
 
     @Override
+    @GetMapping("/get-all-public")
+    public ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getAllPublicFormulatedMineralFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<FormulatedMineralFertilizerResponseDto> list = formulatedMineralFertilizerService.getAllPublicFormulatedMineralFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<FormulatedMineralFertilizerResponseDto> updateFormulatedMineralFertilizer(
             @RequestParam(name = "formulatedMineralFertilizerId") Long formulatedMineralFertilizerId,
