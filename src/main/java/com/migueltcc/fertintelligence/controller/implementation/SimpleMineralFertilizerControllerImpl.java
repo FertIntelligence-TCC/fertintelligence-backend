@@ -69,7 +69,7 @@ public class SimpleMineralFertilizerControllerImpl implements SimpleMineralFerti
     @GetMapping("/get-all-public")
     public ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getAllPublicSimpleMineralFertilizers(Authentication authentication) {
         String username = getAuthenticatedUsername(authentication);
-        List<SimpleMineralFertilizerResponseDto> list = simpleMineralFertilizerService.getAllPublicSimpleMineralFertilizers(username);
+        List<SimpleMineralFertilizerResponseDto> list = simpleMineralFertilizerService.getAllPublicSimpleMineralFertilizers();
         return ResponseEntity.ok(list);
     }
 

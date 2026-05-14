@@ -74,7 +74,7 @@ public class OrganoMineralFertilizerControllerImpl implements OrganoMineralFerti
     @GetMapping("/get-all-public")
     public ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getAllPublicOrganoMineralFertilizers(Authentication authentication) {
         String username = getAuthenticatedUsername(authentication);
-        List<OrganoMineralFertilizerResponseDto> list = service.getAllPublicOrganoMineralFertilizers(username);
+        List<OrganoMineralFertilizerResponseDto> list = service.getAllPublicOrganoMineralFertilizers();
         return ResponseEntity.ok(list);
     }
 

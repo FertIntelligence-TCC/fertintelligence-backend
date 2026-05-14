@@ -49,7 +49,8 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
         );
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
+                                .replacePath("/formulated-mineral-fertilizer/get")
+                .replaceQuery("formulatedMineralFertilizerId={id}")
                 .buildAndExpand(createdFertilizer.getId())
                 .toUri();
 
@@ -88,7 +89,7 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
     @GetMapping("/get-all-public")
     public ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getAllPublicFormulatedMineralFertilizers(Authentication authentication) {
         String username = getAuthenticatedUsername(authentication);
-        List<FormulatedMineralFertilizerResponseDto> list = formulatedMineralFertilizerService.getAllPublicFormulatedMineralFertilizers(username);
+        List<FormulatedMineralFertilizerResponseDto> list = formulatedMineralFertilizerService.getAllPublicFormulatedMineralFertilizers();
         return ResponseEntity.ok(list);
     }
 

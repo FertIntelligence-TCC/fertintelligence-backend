@@ -44,7 +44,7 @@ public interface SimpleMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
-    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @Operation(summary = "Listar adubos públicos", description = "Retorna somente adubos com publico=true cadastrados na plataforma.")
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping("/get-all-public")
     ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getAllPublicSimpleMineralFertilizers(
@@ -60,7 +60,6 @@ public interface SimpleMineralFertilizerController {
             @RequestParam(name = "name") String name,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Atualizar adubo", description = "Atualiza os dados de um adubo existente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Adubo atualizado com sucesso"),
@@ -75,7 +74,6 @@ public interface SimpleMineralFertilizerController {
             @Valid @RequestBody SimpleMineralFertilizerPostRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Deletar adubo", description = "Remove um adubo do sistema.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Adubo removido com sucesso"),

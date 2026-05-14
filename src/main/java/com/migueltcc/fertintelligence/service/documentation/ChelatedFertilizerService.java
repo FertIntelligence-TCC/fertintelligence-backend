@@ -12,8 +12,8 @@ public interface ChelatedFertilizerService {
 
     ChelatedFertilizerResponseDto getChelatedFertilizerById(Long chelatedFertilizerId, String username);
 
-    List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username);
-    List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers(String username);
+    List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers();
+    List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers();
 
 
     List<ChelatedFertilizerResponseDto> getChelatedFertilizersByName(String name, String username);

@@ -82,7 +82,7 @@ public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerContr
     @GetMapping("/get-all-public")
     public ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllPublicChelatedFertilizers(Authentication authentication) {
         String username = getAuthenticatedUsername(authentication);
-        List<ChelatedFertilizerResponseDto> list = service.getAllPublicChelatedFertilizers(username);
+        List<ChelatedFertilizerResponseDto> list = service.getAllPublicChelatedFertilizers();
         return ResponseEntity.ok(list);
     }
 

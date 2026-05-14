@@ -85,8 +85,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers() {
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)

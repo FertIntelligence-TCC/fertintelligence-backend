@@ -46,13 +46,12 @@ public interface MineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
-    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @Operation(summary = "Listar adubos públicos", description = "Retorna somente adubos com publico=true cadastrados na plataforma.")
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping("/get-all-public")
     ResponseEntity<List<MineralFertilizerResponseDto>> getAllPublicMineralFertilizers(
             @Parameter(hidden = true) Authentication authentication
     );
-
 
     @Operation(summary = "Buscar por nome")
     @GetMapping("/get-by-name")
@@ -61,7 +60,6 @@ public interface MineralFertilizerController {
             @RequestParam(name = "name") String name,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Atualizar adubo")
     @PutMapping("/update")
     ResponseEntity<MineralFertilizerResponseDto> updateMineralFertilizer(
@@ -71,7 +69,6 @@ public interface MineralFertilizerController {
             @Valid @RequestBody MineralFertilizerPostRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Deletar adubo")
     @DeleteMapping("/delete")
     ResponseEntity<Void> deleteMineralFertilizer(

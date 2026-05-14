@@ -95,8 +95,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
 
     @Override
     @Transactional(readOnly = true)
-    public List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers() {
         return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc()
                 .stream()
                 .map(FormulatedMineralFertilizerModel::toDto)

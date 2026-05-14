@@ -85,8 +85,7 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MineralFertilizerResponseDto> getAllPublicMineralFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<MineralFertilizerResponseDto> getAllPublicMineralFertilizers() {
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(MineralFertilizerModel::toDto)

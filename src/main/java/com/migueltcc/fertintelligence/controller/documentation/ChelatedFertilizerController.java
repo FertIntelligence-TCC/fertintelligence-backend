@@ -46,13 +46,12 @@ public interface ChelatedFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
-    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @Operation(summary = "Listar adubos públicos", description = "Retorna somente adubos com publico=true cadastrados na plataforma.")
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping("/get-all-public")
     ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllPublicChelatedFertilizers(
             @Parameter(hidden = true) Authentication authentication
     );
-
 
     @Operation(summary = "Buscar por nome")
     @GetMapping("/get-by-name")
@@ -61,7 +60,6 @@ public interface ChelatedFertilizerController {
             @RequestParam(name = "name") String name,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Atualizar adubo")
     @PutMapping("/update")
     ResponseEntity<ChelatedFertilizerResponseDto> updateChelatedFertilizer(
@@ -71,7 +69,6 @@ public interface ChelatedFertilizerController {
             @Valid @RequestBody ChelatedFertilizerPostRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Deletar adubo")
     @DeleteMapping("/delete")
     ResponseEntity<Void> deleteChelatedFertilizer(

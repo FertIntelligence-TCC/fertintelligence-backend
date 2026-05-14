@@ -75,6 +75,7 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                 .mn(0.3)
                 .mo(0.01)
                 .zn(0.2)
+                .publico(true)
                 .build();
     }
 
@@ -97,7 +98,42 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                 .Mo(0.01)
                 .Zn(0.2)
                 .indicatedFormulaNumber(101)
+                .publico(true)
                 .build();
+    }
+
+
+
+    @Test
+    void formulatedCreateRequestAcceptsLegacyAliases() throws Exception {
+        String payload = """
+                {
+                  "formulate": {"n": 4, "p": 14, "k": 8},
+                  "relation": {"n": 1.0, "p": 3.5, "k": 2.0}
+                }
+                """;
+
+        FormulatedMineralFertilizerCreateRequestDto dto = mapper.readValue(payload, FormulatedMineralFertilizerCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertEquals(4, dto.getFormulate().getN());
+        org.junit.jupiter.api.Assertions.assertEquals(3.5, dto.getRelation().getP());
+    }
+
+    @Test
+    void formulatedUpdateRequestAcceptsLegacyAliasesAndNovoPublico() throws Exception {
+        String payload = """
+                {
+                  "novo_formulate": {"n": 5, "p": 20, "k": 10},
+                  "novo_relation": {"n": 1.0, "p": 4.0, "k": 2.0},
+                  "novo_publico": true
+                }
+                """;
+
+        FormulatedMineralFertilizerPostRequestDto dto = mapper.readValue(payload, FormulatedMineralFertilizerPostRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertEquals(5, dto.getFormulate().getN());
+        org.junit.jupiter.api.Assertions.assertEquals(4.0, dto.getRelation().getP());
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, dto.getNovoPublico());
     }
 
     @Test
@@ -117,7 +153,7 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                         .content(mapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 // Ajustado conforme log real: /register/1
-                .andExpect(header().string("Location", "http://localhost/formulated-mineral-fertilizer/register/1"))
+                .andExpect(header().string("Location", "http://localhost/formulated-mineral-fertilizer/get?formulatedMineralFertilizerId=1"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.formula.n").value(4))

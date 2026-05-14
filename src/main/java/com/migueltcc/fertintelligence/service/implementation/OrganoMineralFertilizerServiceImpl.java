@@ -91,8 +91,7 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrganoMineralFertilizerResponseDto> getAllPublicOrganoMineralFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<OrganoMineralFertilizerResponseDto> getAllPublicOrganoMineralFertilizers() {
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(OrganoMineralFertilizerModel::toDto)

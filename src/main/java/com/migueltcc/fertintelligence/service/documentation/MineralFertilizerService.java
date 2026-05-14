@@ -12,8 +12,8 @@ public interface MineralFertilizerService {
 
     MineralFertilizerResponseDto getMineralFertilizerById(Long mineralFertilizerId, String username);
 
-    List<MineralFertilizerResponseDto> getAllMineralFertilizers(String username);
-    List<MineralFertilizerResponseDto> getAllPublicMineralFertilizers(String username);
+    List<MineralFertilizerResponseDto> getAllMineralFertilizers();
+    List<MineralFertilizerResponseDto> getAllPublicMineralFertilizers();
 
 
     List<MineralFertilizerResponseDto> getMineralFertilizersByName(String name, String username);

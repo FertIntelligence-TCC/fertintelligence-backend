@@ -38,7 +38,7 @@ public interface OrganoMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
-    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @Operation(summary = "Listar adubos públicos", description = "Retorna somente adubos com publico=true cadastrados na plataforma.")
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping("/get-all-public")
     ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getAllPublicOrganoMineralFertilizers(
@@ -53,7 +53,6 @@ public interface OrganoMineralFertilizerController {
             @RequestParam(name = "name") String name,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Atualizar adubo", description = "Atualiza um adubo existente.")
     @PutMapping("/update")
     ResponseEntity<OrganoMineralFertilizerResponseDto> updateOrganoMineralFertilizer(
@@ -63,7 +62,6 @@ public interface OrganoMineralFertilizerController {
             @Valid @RequestBody OrganoMineralFertilizerPostRequestDto updateRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
-
     @Operation(summary = "Deletar adubo", description = "Remove um adubo.")
     @DeleteMapping("/delete")
     ResponseEntity<Void> deleteOrganoMineralFertilizer(

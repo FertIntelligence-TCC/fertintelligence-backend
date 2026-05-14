@@ -85,8 +85,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BioFertilizerResponseDto> getAllPublicBioFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<BioFertilizerResponseDto> getAllPublicBioFertilizers() {
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(BioFertilizerModel::toDto)

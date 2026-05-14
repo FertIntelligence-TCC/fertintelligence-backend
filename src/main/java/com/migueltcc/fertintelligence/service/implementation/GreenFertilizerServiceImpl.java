@@ -83,8 +83,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username) {
-        findUserByUsernameOrThrow(username);
+    public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers() {
         return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(GreenFertilizerModel::toDto)
