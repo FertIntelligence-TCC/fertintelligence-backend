@@ -82,4 +82,7 @@ public class GreenFertilizerCreateRequestDto {
     @JsonProperty("indice_acidez")
     private Double indiceAcidez;
 
+    @JsonProperty("publico")
+    private Boolean publico;
+
 }

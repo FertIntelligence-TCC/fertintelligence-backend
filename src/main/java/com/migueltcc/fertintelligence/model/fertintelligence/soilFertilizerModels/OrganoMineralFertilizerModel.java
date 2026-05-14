@@ -23,6 +23,9 @@ public class OrganoMineralFertilizerModel {
     @EqualsAndHashCode.Exclude
     private UserModel user;
 
+    @Column(name = "PUBLICO", nullable = false)
+    private Boolean publico = false;
+
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 

@@ -80,4 +80,10 @@ public class GreenFertilizerResponseDto {
     @JsonProperty("user_nome")
     private String userNome;
 
+    @JsonProperty("publico")
+    private Boolean publico;
+
+    @JsonProperty("nome_criador")
+    private String nomeCriador;
+
 }
