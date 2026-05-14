@@ -22,6 +22,8 @@ public interface SoilFertilityInterpretationCriteriaTableService {
             String username
     );
 
+    List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllPublicSoilFertilityInterpretationCriteriaTables();
+
     SoilFertilityInterpretationCriteriaTableResponseDto updateSoilFertilityInterpretationCriteriaTable(
             Long tableId,
             SoilFertilityInterpretationCriteriaTablePostRequestDto updateRequestDto,

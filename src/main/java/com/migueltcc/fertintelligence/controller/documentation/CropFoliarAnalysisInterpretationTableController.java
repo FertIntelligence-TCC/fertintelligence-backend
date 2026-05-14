@@ -44,6 +44,13 @@ public interface CropFoliarAnalysisInterpretationTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar todas as tabelas públicas")
+    @GetMapping("/get-all-public")
+    ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>>
+    getPublicCropFoliarAnalysisInterpretationTables(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     @Operation(summary = "Atualizar tabela")
     @PutMapping("/update")
     ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>

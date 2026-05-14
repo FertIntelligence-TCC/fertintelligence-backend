@@ -32,6 +32,10 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @Column(name = "REGIAO_INTERPRETACAO_FERTLIDADE_SOLO", nullable = false)
     private Regiao region;
 
+    @Column(name = "TABELA_PUBLICA", nullable = false)
+    @Builder.Default
+    private boolean publicTable = false;
+
     /**
      * As classes a seguir serão implementadas separadamente, e são componentes dessa principal:
      * - Critérios para interpretar salinidade do solo;
@@ -74,6 +78,7 @@ public class SoilFertilityInterpretationCriteriaTableModel {
                 .name(this.name)
                 .description(this.description)
                 .region(this.region)
+                .public_table(this.publicTable)
                 .build();
     }
 }

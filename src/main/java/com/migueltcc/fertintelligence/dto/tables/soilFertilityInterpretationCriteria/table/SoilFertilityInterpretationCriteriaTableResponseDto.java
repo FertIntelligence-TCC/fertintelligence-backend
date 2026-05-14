@@ -37,4 +37,8 @@ public class SoilFertilityInterpretationCriteriaTableResponseDto {
     @Schema(example = "Tabelas baseadas no Manual de Adubação e Calagem para os estados do Rio Grande do Sul e Santa Catarina, focada em culturas de grãos.")
     @JsonProperty("descricao_criterios")
     private String description;
+
+    @Schema(example = "false")
+    @JsonProperty("tabela_publica")
+    private boolean public_table;
 }

@@ -70,7 +70,7 @@ public class BioFertilizerPostRequestDto {
     @JsonProperty("novo_indice_acidez")
     private Double indiceAcidez;
 
-
     @JsonProperty("novo_publico")
     private Boolean novoPublico;
+
 }

@@ -43,6 +43,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                 .creator(owner)
                 .region(createRequestDto.getRegion())
                 .name(createRequestDto.getName())
+                .publicTable(Boolean.TRUE.equals(createRequestDto.getPublicTable()))
                 .build();
 
         CropFoliarAnalysisInterpretationTableModel savedTable = tableRepository.save(table);
@@ -76,6 +77,14 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CropFoliarAnalysisInterpretationTableResponseDto> getAllPublicCropFoliarAnalysisInterpretationTables() {
+        return tableRepository.findAllByPublicTableTrue().stream()
+                .map(CropFoliarAnalysisInterpretationTableModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public CropFoliarAnalysisInterpretationTableResponseDto updateCropFoliarAnalysisInterpretationTable(
             Long tableId,
@@ -90,10 +99,11 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
         }
-
-        // <--- CORREÇÃO: Atualizando o nome
         if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
             table.setName(updateRequestDto.getName());
+        }
+        if (updateRequestDto.getPublicTable() != null) {
+            table.setPublicTable(updateRequestDto.getPublicTable());
         }
 
         CropFoliarAnalysisInterpretationTableModel updatedTable = tableRepository.save(table);

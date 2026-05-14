@@ -22,9 +22,9 @@ public class SimpleMineralFertilizerModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel user;
 
-
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
+
     @Column(name = "NOME_ADUBO")
     private String name;
 
@@ -94,7 +94,7 @@ public class SimpleMineralFertilizerModel {
                 .indiceAcidez(this.indiceAcidez)
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
-                .publico(Boolean.TRUE.equals(this.publico))
+                .publico(this.publico != null ? this.publico : false)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }

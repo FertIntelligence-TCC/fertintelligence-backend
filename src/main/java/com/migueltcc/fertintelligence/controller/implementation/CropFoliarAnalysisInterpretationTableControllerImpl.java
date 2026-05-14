@@ -85,6 +85,21 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
     }
 
     @Override
+    @GetMapping("/get-all-public")
+    public ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>> getPublicCropFoliarAnalysisInterpretationTables(
+            Authentication authentication) {
+        getAuthenticatedUsername(authentication);
+        try {
+            List<CropFoliarAnalysisInterpretationTableResponseDto> tables = tableService
+                    .getAllPublicCropFoliarAnalysisInterpretationTables();
+            return ResponseEntity.ok(tables);
+        } catch (Exception e) {
+            logger.error("Erro ao listar tabelas públicas de interpretação foliar: ", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
+        }
+    }
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>
     updateCropFoliarAnalysisInterpretationTable(

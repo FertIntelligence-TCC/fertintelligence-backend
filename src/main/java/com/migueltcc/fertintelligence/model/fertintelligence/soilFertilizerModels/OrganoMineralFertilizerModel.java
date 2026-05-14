@@ -23,9 +23,9 @@ public class OrganoMineralFertilizerModel {
     @EqualsAndHashCode.Exclude
     private UserModel user;
 
-
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
+
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
@@ -99,8 +99,6 @@ public class OrganoMineralFertilizerModel {
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
                 .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
-                .publico(Boolean.TRUE.equals(this.publico))
-                .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 }

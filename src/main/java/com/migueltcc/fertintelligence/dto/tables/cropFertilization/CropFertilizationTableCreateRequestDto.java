@@ -87,4 +87,7 @@ public class CropFertilizationTableCreateRequestDto {
     @JsonProperty("observacoes")
     @NotNull
     private String observations;
+
+    @JsonProperty("tabela_publica")
+    private Boolean public_table;
 }

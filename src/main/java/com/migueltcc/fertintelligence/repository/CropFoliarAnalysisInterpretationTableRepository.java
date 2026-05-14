@@ -12,5 +12,6 @@ public interface CropFoliarAnalysisInterpretationTableRepository
         extends JpaRepository<CropFoliarAnalysisInterpretationTableModel, Long> {
 
     List<CropFoliarAnalysisInterpretationTableModel> findAllByCreator(UserModel creator);
+    List<CropFoliarAnalysisInterpretationTableModel> findAllByPublicTableTrue();
 }
 

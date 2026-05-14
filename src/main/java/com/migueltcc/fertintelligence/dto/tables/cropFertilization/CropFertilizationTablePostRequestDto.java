@@ -85,4 +85,7 @@ public class CropFertilizationTablePostRequestDto {
     @JsonProperty("novo_regioes_cultura")
     @Schema(example = "NORDESTE")
     private Regiao region;
+
+    @JsonProperty("tabela_publica")
+    private Boolean public_table;
 }

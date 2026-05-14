@@ -33,6 +33,10 @@ public class CropFoliarAnalysisInterpretationTableResponseDto {
     @JsonProperty("regiao_analise_foliar_culturas")
     private Regiao region;
 
+    @Schema(example = "false")
+    @JsonProperty("tabela_publica")
+    private boolean publicTable;
+
     // Getter extra para facilitar o frontend se necessário
     @JsonProperty("region")
     public Regiao getRegionSimple() {
