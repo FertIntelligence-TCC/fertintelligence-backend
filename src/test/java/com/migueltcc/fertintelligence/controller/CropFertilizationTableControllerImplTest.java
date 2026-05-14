@@ -96,7 +96,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .micronutrients(150.0)
                 .npk(120.0)
                 .observations("Observações iniciais")
-                .public_table(false)
+                .publicTable(false)
                 .build();
 
         // Configuração da Tabela Complexa (3 Ranges, 3 Coverages)
@@ -311,7 +311,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
 
         CropFertilizationTableModel savedTable = ownerTable.toBuilder()
                 .id(21L)
-                .public_table(false)
+                .publicTable(false)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -327,11 +327,11 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
     @Test
     @WithMockUser(username = "testuser")
     void getAllPublicCropFertilizationTablesReturnsOnlyPublicFromAllCreators() throws Exception {
-        CropFertilizationTableModel publicOwner = ownerTable.toBuilder().id(31L).public_table(true).build();
+        CropFertilizationTableModel publicOwner = ownerTable.toBuilder().id(31L).publicTable(true).build();
         CropFertilizationTableModel publicOther = ownerTable.toBuilder()
                 .id(32L)
                 .creator(otherProprietarioUser)
-                .public_table(true)
+                .publicTable(true)
                 .build();
 
         when(cropFertilizationTableRepository.findAllByPublicTableTrue())

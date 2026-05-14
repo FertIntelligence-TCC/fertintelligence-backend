@@ -85,7 +85,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios Base")
                 .description("Tabela base para testes")
                 .region(Regiao.NORDESTE)
-                .public_table(false)
+                .publicTable(false)
                 .build();
     }
 
@@ -288,7 +288,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                     SoilFertilityInterpretationCriteriaTableModel model = invocation.getArgument(0);
                     model.setId(26L);
                     model.setCreator(proprietarioUser);
-                    model.setPublic_table(false);
+                    model.setPublicTable(false);
                     return model;
                 });
 
@@ -302,11 +302,11 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
     @Test
     @WithMockUser(username = "testuser")
     void getAllPublicSoilFertilityInterpretationCriteriaTablesReturnsOnlyPublicFromAllCreators() throws Exception {
-        SoilFertilityInterpretationCriteriaTableModel publicOwner = ownerTable.toBuilder().id(40L).public_table(true).build();
+        SoilFertilityInterpretationCriteriaTableModel publicOwner = ownerTable.toBuilder().id(40L).publicTable(true).build();
         SoilFertilityInterpretationCriteriaTableModel publicOther = ownerTable.toBuilder()
                 .id(41L)
                 .creator(otherProprietarioUser)
-                .public_table(true)
+                .publicTable(true)
                 .build();
 
         when(soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue())

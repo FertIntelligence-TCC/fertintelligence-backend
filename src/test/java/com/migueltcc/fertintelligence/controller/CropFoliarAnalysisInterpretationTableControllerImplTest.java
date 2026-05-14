@@ -67,20 +67,20 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .id(10L)
                 .creator(proprietarioUser)
                 .region(Regiao.SUL)
-                .public_table(false)
+                .publicTable(false)
                 .build();
     }
 
     private CropFoliarAnalysisInterpretationTableCreateRequestDto createRequestDto() {
         return CropFoliarAnalysisInterpretationTableCreateRequestDto.builder()
-                .public_table(true)
+                .publicTable(true)
                 .region(Regiao.SUL)
                 .build();
     }
 
     private CropFoliarAnalysisInterpretationTablePostRequestDto updateRequestDto() {
         return CropFoliarAnalysisInterpretationTablePostRequestDto.builder()
-                .public_table(true)
+                .publicTable(true)
                 .region(Regiao.NORDESTE)
                 .build();
     }
@@ -202,7 +202,7 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
     @WithMockUser(username = "testuser")
     void createCropFoliarAnalysisInterpretationTableDefaultsPublicFlagToFalse() throws Exception {
         CropFoliarAnalysisInterpretationTableCreateRequestDto requestDto = createRequestDto().toBuilder()
-                .public_table(null)
+                .publicTable(null)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -210,7 +210,7 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .thenAnswer(invocation -> {
                     CropFoliarAnalysisInterpretationTableModel table = invocation.getArgument(0);
                     table.setId(26L);
-                    table.setPublic_table(false);
+                    table.setPublicTable(false);
                     return table;
                 });
 
@@ -233,7 +233,7 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 """;
 
         CropFoliarAnalysisInterpretationTableModel publicTable = ownerTable.toBuilder()
-                .public_table(true)
+                .publicTable(true)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -254,11 +254,11 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
     @Test
     @WithMockUser(username = "testuser")
     void getAllPublicCropFoliarAnalysisInterpretationTablesReturnsOnlyPublicFromAllCreators() throws Exception {
-        CropFoliarAnalysisInterpretationTableModel publicOwner = ownerTable.toBuilder().id(55L).public_table(true).build();
+        CropFoliarAnalysisInterpretationTableModel publicOwner = ownerTable.toBuilder().id(55L).publicTable(true).build();
         CropFoliarAnalysisInterpretationTableModel publicOther = ownerTable.toBuilder()
                 .id(56L)
                 .creator(otherProprietarioUser)
-                .public_table(true)
+                .publicTable(true)
                 .build();
 
         when(cropFoliarAnalysisInterpretationTableRepository.findAllByPublicTableTrue())
