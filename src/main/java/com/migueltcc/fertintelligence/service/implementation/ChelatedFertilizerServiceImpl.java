@@ -58,6 +58,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
                 // Índices
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
+                .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .build();
 
         return repository.save(fertilizer).toDto();
@@ -81,6 +82,17 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByPublicoTrueOrderByNameAsc()
+                .stream()
+                .map(ChelatedFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -122,6 +134,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
 
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
+        if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
         return repository.save(fertilizer).toDto();
     }

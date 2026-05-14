@@ -79,6 +79,15 @@ public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerContr
     }
 
     @Override
+    @GetMapping("/get-all-public")
+    public ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllPublicChelatedFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<ChelatedFertilizerResponseDto> list = service.getAllPublicChelatedFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
+
+    @Override
     @GetMapping("/get-by-name")
     public ResponseEntity<List<ChelatedFertilizerResponseDto>> getChelatedFertilizersByName(
             @RequestParam(name = "name") String name,

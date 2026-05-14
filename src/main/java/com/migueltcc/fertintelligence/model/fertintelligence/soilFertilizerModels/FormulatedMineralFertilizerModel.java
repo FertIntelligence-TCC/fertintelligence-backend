@@ -26,6 +26,9 @@ public class FormulatedMineralFertilizerModel {
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel user;
 
+
+    @Column(name = "PUBLICO", nullable = false)
+    private Boolean publico = false;
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "n", column = @Column(name = "FORMULA_N", nullable = false)),
@@ -107,6 +110,8 @@ public class FormulatedMineralFertilizerModel {
                 .indicatedFormulaNumber(this.indicatedFormulaNumber)
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
+                .publico(Boolean.TRUE.equals(this.publico))
+                .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 }

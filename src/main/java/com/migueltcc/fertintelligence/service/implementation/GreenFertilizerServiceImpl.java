@@ -56,6 +56,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .Zn(getOrDefault(dto.getZn()))
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
+                .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .build();
 
         return greenFertilizerRepository.save(fertilizer).toDto();
@@ -79,6 +80,17 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+                .stream()
+                .map(GreenFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -120,6 +132,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
 
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
+        if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
         return greenFertilizerRepository.save(fertilizer).toDto();
     }

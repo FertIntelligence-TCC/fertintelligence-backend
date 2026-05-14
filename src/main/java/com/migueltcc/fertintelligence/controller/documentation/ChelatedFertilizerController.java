@@ -46,6 +46,14 @@ public interface ChelatedFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-public")
+    ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllPublicChelatedFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
+
     @Operation(summary = "Buscar por nome")
     @GetMapping("/get-by-name")
     ResponseEntity<List<ChelatedFertilizerResponseDto>> getChelatedFertilizersByName(

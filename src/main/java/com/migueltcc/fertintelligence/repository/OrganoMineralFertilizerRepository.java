@@ -14,4 +14,7 @@ public interface OrganoMineralFertilizerRepository extends JpaRepository<OrganoM
 
     List<OrganoMineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
+
+    List<OrganoMineralFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
 }

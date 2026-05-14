@@ -67,6 +67,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
                 .Ca(getOrDefault(dto.getCa())).Mg(getOrDefault(dto.getMg())).S(getOrDefault(dto.getS()))
                 .B(getOrDefault(dto.getB())).Cu(getOrDefault(dto.getCu())).Fe(getOrDefault(dto.getFe()))
                 .Mn(getOrDefault(dto.getMn())).Mo(getOrDefault(dto.getMo())).Zn(getOrDefault(dto.getZn()))
+                .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .build();
 
         FormulatedMineralFertilizerModel saved = formulatedMineralFertilizerRepository.save(fertilizer);
@@ -91,6 +92,17 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc()
+                .stream()
+                .map(FormulatedMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional
@@ -133,6 +145,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         if (dto.getMn() != null) fertilizer.setMn(dto.getMn());
         if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
+        if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
         FormulatedMineralFertilizerModel updated = formulatedMineralFertilizerRepository.save(fertilizer);
         return updated.toDto();
