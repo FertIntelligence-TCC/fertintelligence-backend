@@ -38,6 +38,14 @@ public interface OrganoMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos públicos", description = "Retorna adubos públicos cadastrados na plataforma.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-public")
+    ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getAllPublicOrganoMineralFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
+
     @Operation(summary = "Buscar por nome", description = "Busca adubos por nome.")
     @GetMapping("/get-by-name")
     ResponseEntity<List<OrganoMineralFertilizerResponseDto>> getOrganoMineralFertilizersByName(

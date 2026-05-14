@@ -76,4 +76,12 @@ public class BioFertilizerResponseDto {
     @JsonProperty("user_nome")
     private String userNome;
 
+
+    @Schema(example = "true")
+    @JsonProperty("publico")
+    private Boolean publico;
+
+    @Schema(example = "João Agrônomo")
+    @JsonProperty("nome_criador")
+    private String nomeCriador;
 }

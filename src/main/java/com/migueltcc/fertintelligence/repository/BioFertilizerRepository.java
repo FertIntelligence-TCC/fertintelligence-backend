@@ -14,4 +14,7 @@ public interface BioFertilizerRepository extends JpaRepository<BioFertilizerMode
 
     List<BioFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
+
+    List<BioFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
 }
