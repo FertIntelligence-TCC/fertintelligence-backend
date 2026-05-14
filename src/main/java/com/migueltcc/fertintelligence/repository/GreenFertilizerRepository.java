@@ -14,4 +14,6 @@ public interface GreenFertilizerRepository extends JpaRepository<GreenFertilizer
 
     List<GreenFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
+    List<GreenFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
 }

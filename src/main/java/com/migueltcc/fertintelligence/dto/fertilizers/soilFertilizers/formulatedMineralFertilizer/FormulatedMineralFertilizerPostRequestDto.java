@@ -77,4 +77,7 @@ public class FormulatedMineralFertilizerPostRequestDto {
     @JsonProperty("novo_zn")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
+    @JsonProperty("novo_publico")
+    private Boolean novoPublico;
+
 }

@@ -14,4 +14,6 @@ public interface SimpleMineralFertilizerRepository extends JpaRepository<SimpleM
 
     List<SimpleMineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
+    List<SimpleMineralFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
 }

@@ -13,4 +13,6 @@ public interface ChelatedFertilizerRepository extends JpaRepository<ChelatedFert
     List<ChelatedFertilizerModel> findAllByUser(UserModel user);
 
     List<ChelatedFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
+    List<ChelatedFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
 }
