@@ -129,6 +129,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         SimpleMineralFertilizerModel model = SimpleMineralFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name(name)
                 // Macros Primários
                 .N(n).P2O5(p).K2O(k)
@@ -161,10 +162,13 @@ public class FertilizerDataSeeder implements CommandLineRunner {
         formulate.setN(n); formulate.setP(p); formulate.setK(k);
 
         NPKrelation relation = new NPKrelation();
-        relation.setN(1.0); relation.setP(p > 0 ? p/n : 0); relation.setK(k > 0 ? k/n : 0);
+        relation.setN(n > 0 ? 1.0 : 0.0);
+        relation.setP(n > 0 && p > 0 ? (double) p / n : 0.0);
+        relation.setK(n > 0 && k > 0 ? (double) k / n : 0.0);
 
         FormulatedMineralFertilizerModel model = FormulatedMineralFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .formulate(formulate)
                 .relation(relation)
                 .indicatedFormulaNumber(formulaNumber)
@@ -185,6 +189,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         OrganoMineralFertilizerModel model = OrganoMineralFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name("Organomineral Aves Granulado")
                 .C(8.0)
                 .N(6.0).P2O5(12.0).K2O(6.0)
@@ -208,6 +213,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     private void createGreen(UserModel user, String name, double carbono, double nitrogenio) {
         GreenFertilizerModel model = GreenFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name(name)
                 .C(carbono)
                 .N(nitrogenio)
@@ -227,6 +233,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         MineralFertilizerModel model = MineralFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name("Foliar Nitro Full")
                 .N(30.0).P2O5(0.0).K2O(0.0)
                 .Ca(0.0).Mg(0.0).S(2.0)
@@ -244,6 +251,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         ChelatedFertilizerModel model = ChelatedFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name("Quelato de Ferro EDTA 13%")
                 .N(0.0).P2O5(0.0).K2O(0.0)
                 .Fe(13.0)
@@ -262,6 +270,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         BioFertilizerModel model = BioFertilizerModel.builder()
                 .user(user)
+                .publico(false)
                 .name("Biofertilizante Líquido Super")
                 .N(2.0).P2O5(1.0).K2O(1.5)
                 .Ca(0.5).Mg(0.2).S(0.3)
