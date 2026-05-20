@@ -16,6 +16,8 @@ public interface FoliarAnalysisRepository extends JpaRepository<FoliarAnalysisMo
 
     Optional<FoliarAnalysisModel> findByCropAndCollectDate(CropModel crop, Date collectDate);
 
+    Optional<FoliarAnalysisModel> findTopByCropOrderByIdDesc(CropModel crop);
+
     List<FoliarAnalysisModel> findAllByCrop(CropModel crop);
 
     @Modifying

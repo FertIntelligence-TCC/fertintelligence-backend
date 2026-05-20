@@ -14,6 +14,8 @@ public interface CropRepository extends JpaRepository<CropModel, Long> {
 
     Optional<CropModel> findByNameAndVarietyAndFolder(NomeComum name, String variety, AnnualCropFolderModel folder);
 
+    Optional<CropModel> findTopByFolderAndNameOrderByIdDesc(AnnualCropFolderModel folder, NomeComum name);
+
     List<CropModel> findAllByFolder(AnnualCropFolderModel folder);
 
     List<CropModel> findAllByFolderId(Long folderId);

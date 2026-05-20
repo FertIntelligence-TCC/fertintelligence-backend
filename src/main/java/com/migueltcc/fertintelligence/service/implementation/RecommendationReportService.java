@@ -13,6 +13,11 @@ public class RecommendationReportService {
 
         report.append("2. Diagnóstico\n");
         result.getDiagnosticMessages().forEach(item -> report.append("- ").append(item).append("\n"));
+        report.append("- ").append(result.getPhysicalAnalysisSummary()).append("\n");
+        report.append("- ").append(result.getSoilFertilityAnalysisSummary()).append("\n");
+        report.append("- ").append(result.getSaturationExtractAnalysisSummary()).append("\n");
+        report.append("- ").append(result.getCropSummary()).append("\n");
+        report.append("- ").append(result.getFoliarAnalysisSummary()).append("\n");
         report.append("\n");
 
         report.append("3. Recomendação de Correção\n");
