@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 
@@ -140,6 +141,17 @@ public class RecommendationCalculationService {
         warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
 
         return RecommendationCalculationResult.builder()
+                .requesterName(user != null ? user.getName() : null)
+                .requesterUsername(user != null ? user.getUsername() : null)
+                .propertyName(property != null ? property.getNome() : null)
+                .propertyId(property != null ? property.getId() : null)
+                .plotIdentification(plot != null ? plot.getIdentification() : null)
+                .plotId(plot != null ? plot.getId() : null)
+                .cropName(dto.getCropName() != null ? dto.getCropName().name() : null)
+                .cropYear(dto.getCropYear())
+                .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
+                .limingCriteria(dto.getLimingCriteria() != null ? dto.getLimingCriteria().name() : null)
+                .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
                 .fertilizationRows(List.of("Recomendação estruturada em linhas de plantio e cobertura."))
                 .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
@@ -151,6 +163,7 @@ public class RecommendationCalculationService {
                 .annualCropFolderId(annualCropFolder.map(AnnualCropFolderModel::getId).orElse(null))
                 .cropId(crop.map(CropModel::getId).orElse(null)).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
                 .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(saturationSummary)
+                .annualCropFolderSummary(annualCropFolder.map(folder -> "Safra " + folder.getCropsYear() + " encontrada.").orElse("Não encontrado."))
                 .cropSummary(cropSummary).foliarAnalysisSummary(foliarSummary).build();
     }
     private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
@@ -179,7 +192,7 @@ return rows;}
     private Optional<AnnualCropFolderModel> findAnnualCropFolder(PlotModel plot, Integer cropYear) {return annualCropFolderRepository.findByPlotAndCropsYear(plot, cropYear);} private Optional<CropModel> findCropByNameAndYear(PlotModel plot, Integer cropYear, com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum cropName) {return findAnnualCropFolder(plot, cropYear).flatMap(folder -> cropRepository.findTopByFolderAndNameOrderByIdDesc(folder, cropName));}
     private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);}    
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer cropYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
 }
