@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -43,8 +44,14 @@ public class RecommendationResponseDto {
     private Long cropFoliarAnalysisInterpretationTableId;
     @JsonProperty("laudo_tecnico")
     private String technicalReport;
+    @JsonProperty("imprimivel")
+    private Boolean printable;
     @JsonProperty("criado_em")
     private LocalDateTime createdAt;
     @JsonProperty("atualizado_em")
     private LocalDateTime updatedAt;
+
+    public static boolean isPrintableForRole(Cargo cargo) {
+        return cargo == Cargo.AGRONOMO_RESIDENTE || cargo == Cargo.AGRONOMO_CONSULTOR;
+    }
 }

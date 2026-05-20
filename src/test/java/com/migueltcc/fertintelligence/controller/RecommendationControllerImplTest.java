@@ -115,6 +115,29 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void preparePrint_ReturnsOne() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationModel item = RecommendationModel.builder()
+                .id(8L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .technicalReport("laudo")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(8L)).thenReturn(Optional.of(item));
+
+        mockMvc.perform(get("/recommendation/print").param("id", "8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(8L));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void deleteRecommendation_ReturnsNoContent() throws Exception {
         UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
