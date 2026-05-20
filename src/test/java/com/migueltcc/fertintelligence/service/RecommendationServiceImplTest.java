@@ -49,15 +49,33 @@ class RecommendationServiceImplTest {
 
     @BeforeEach
     void setup() {
-        property = PropertyModel.builder().id(10L).build();
-        plot = PlotModel.builder().id(20L).property(property).build();
+        property = PropertyModel.builder()
+                .id(10L)
+                .nome("Propriedade Teste")
+                .build();
 
+        plot = PlotModel.builder()
+                .id(20L)
+                .identification("Talhão 01")
+                .property(property)
+                .build();
+    }
+
+    private void mockGenerateFlow() {
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(plotRepository.findById(20L)).thenReturn(Optional.of(plot));
+
+        RecommendationCalculationService.RecommendationCalculationResult calculationResult =
+                mock(RecommendationCalculationService.RecommendationCalculationResult.class);
+
         when(recommendationCalculationService.calculate(any(), any(), any(), any()))
-                .thenReturn(mock(RecommendationCalculationService.RecommendationCalculationResult.class));
-        when(recommendationReportService.buildTechnicalReport(any())).thenReturn("laudo");
-        when(recommendationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+                .thenReturn(calculationResult);
+
+        when(recommendationReportService.buildTechnicalReport(calculationResult))
+                .thenReturn("laudo");
+
+        when(recommendationRepository.save(any(RecommendationModel.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
     }
 
     private RecommendationCreateRequestDto dto() {
@@ -69,49 +87,82 @@ class RecommendationServiceImplTest {
     }
 
     private UserModel user(String username, Cargo cargo) {
-        return UserModel.builder().id((long) cargo.ordinal() + 1).username(username).cargo(cargo).build();
+        return UserModel.builder()
+                .id((long) cargo.ordinal() + 1)
+                .username(username)
+                .name(username)
+                .cargo(cargo)
+                .build();
     }
 
     @Test
     void secretarioConsegueGerarRecomendacao() {
+        mockGenerateFlow();
+
         UserModel secretario = user("sec", Cargo.SECRETARIO);
         when(userRepository.findByUsername("sec")).thenReturn(Optional.of(secretario));
+
         assertDoesNotThrow(() -> recommendationService.generate(dto(), "sec"));
+
         verify(permissionManager).assertCanGenerateRecommendation(property, plot, secretario);
+        verify(recommendationRepository).save(any(RecommendationModel.class));
     }
 
     @Test
     void proprietarioConsegueGerarRecomendacao() {
+        mockGenerateFlow();
+
         UserModel proprietario = user("prop", Cargo.PROPRIETARIO);
         when(userRepository.findByUsername("prop")).thenReturn(Optional.of(proprietario));
+
         assertDoesNotThrow(() -> recommendationService.generate(dto(), "prop"));
+
         verify(permissionManager).assertCanGenerateRecommendation(property, plot, proprietario);
+        verify(recommendationRepository).save(any(RecommendationModel.class));
     }
 
     @Test
     void gerenteConsegueGerarRecomendacao() {
+        mockGenerateFlow();
+
         UserModel gerente = user("ger", Cargo.GERENTE);
         when(userRepository.findByUsername("ger")).thenReturn(Optional.of(gerente));
+
         assertDoesNotThrow(() -> recommendationService.generate(dto(), "ger"));
+
         verify(permissionManager).assertCanGenerateRecommendation(property, plot, gerente);
+        verify(recommendationRepository).save(any(RecommendationModel.class));
     }
 
     @Test
     void supervisorComAcessoConsegueGerarRecomendacao() {
+        mockGenerateFlow();
+
         UserModel supervisor = user("sup", Cargo.SUPERVISOR_DE_AREA);
         when(userRepository.findByUsername("sup")).thenReturn(Optional.of(supervisor));
+
         assertDoesNotThrow(() -> recommendationService.generate(dto(), "sup"));
+
         verify(permissionManager).assertCanGenerateRecommendation(property, plot, supervisor);
+        verify(recommendationRepository).save(any(RecommendationModel.class));
     }
 
     @Test
-    void agronomosPodemImprimirESecEPproprietarioNao() {
+    void agronomosPodemImprimirESecEProprietarioNao() {
         UserModel residente = user("res", Cargo.AGRONOMO_RESIDENTE);
         UserModel consultor = user("con", Cargo.AGRONOMO_CONSULTOR);
         UserModel secretario = user("sec2", Cargo.SECRETARIO);
         UserModel proprietario = user("prop2", Cargo.PROPRIETARIO);
 
-        RecommendationModel rec = RecommendationModel.builder().id(1L).plot(plot).property(property).creator(residente).build();
+        RecommendationModel rec = RecommendationModel.builder()
+                .id(1L)
+                .plot(plot)
+                .property(property)
+                .creator(residente)
+                .technicalReport("laudo")
+                .recommendationType(RecommendationType.BOTH)
+                .build();
+
         when(recommendationRepository.findById(1L)).thenReturn(Optional.of(rec));
 
         when(userRepository.findByUsername("res")).thenReturn(Optional.of(residente));
@@ -121,13 +172,19 @@ class RecommendationServiceImplTest {
         assertDoesNotThrow(() -> recommendationService.preparePrint(1L, "con"));
 
         doThrow(new AccessDeniedException("Somente agrônomos residentes e consultores podem imprimir recomendações formais."))
-                .when(permissionManager).assertCanPrintRecommendation(secretario);
+                .when(permissionManager)
+                .assertCanPrintRecommendation(secretario);
+
         when(userRepository.findByUsername("sec2")).thenReturn(Optional.of(secretario));
         assertThrows(AccessDeniedException.class, () -> recommendationService.preparePrint(1L, "sec2"));
 
         doThrow(new AccessDeniedException("Somente agrônomos residentes e consultores podem imprimir recomendações formais."))
-                .when(permissionManager).assertCanPrintRecommendation(proprietario);
+                .when(permissionManager)
+                .assertCanPrintRecommendation(proprietario);
+
         when(userRepository.findByUsername("prop2")).thenReturn(Optional.of(proprietario));
         assertThrows(AccessDeniedException.class, () -> recommendationService.preparePrint(1L, "prop2"));
+
+        verify(permissionManager, times(4)).assertCanReadPlot(eq(plot), any(UserModel.class));
     }
 }

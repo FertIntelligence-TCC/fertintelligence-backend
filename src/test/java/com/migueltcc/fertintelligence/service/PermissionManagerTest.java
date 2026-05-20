@@ -78,93 +78,47 @@ class PermissionManagerTest {
     }
 
     @Test
-    @DisplayName("Permissão global (PROPERTY + EDIT_ANALYSES_AND_CROPS) libera análises e culturas em qualquer plot")
+    @DisplayName("Permissão global PROPERTY libera análises e culturas em qualquer talhão")
     void globalPermissionAllowsAllPlots() {
-        // ===== Se PermissionManager usar EXISTS (otimizado) =====
         when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(
-                any(), any(), any(), any(Collection.class), any()
-        )).thenAnswer(inv -> {
-            PermissionScope scope = inv.getArgument(2);
-            Collection<PermissionType> types = inv.getArgument(3);
-            AccessRequestStatus status = inv.getArgument(4);
-
-            return scope == PermissionScope.PROPERTY
-                    && status == AccessRequestStatus.APPROVED
-                    && types != null
-                    && types.contains(PermissionType.EDIT_ANALYSES_AND_CROPS);
-        });
-
-        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
-                any(), any(), any(), any(), any(Collection.class), any()
-        )).thenReturn(false);
-
-        // ===== Se PermissionManager usar FIND (compat) =====
-        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
-                any(), any(), any(), any(), any()
-        )).thenAnswer(inv -> {
-            PermissionScope scope = inv.getArgument(2);
-            PermissionType type = inv.getArgument(3);
-            AccessRequestStatus status = inv.getArgument(4);
-
-            if (scope == PermissionScope.PROPERTY
-                    && status == AccessRequestStatus.APPROVED
-                    && type == PermissionType.EDIT_ANALYSES_AND_CROPS) {
-                return Optional.of(mock(PlotAccessRequestModel.class));
-            }
-            return Optional.empty();
-        });
-
-        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
-                any(), any(), any(), any(), any(), any()
-        )).thenReturn(Optional.empty());
+                eq(property),
+                eq(user),
+                eq(PermissionScope.PROPERTY),
+                argThat(types -> types != null && types.contains(PermissionType.EDIT_ANALYSES_AND_CROPS)),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
 
         assertDoesNotThrow(() -> permissionManager.assertCanEditAnalyses(property, plot, user));
         assertDoesNotThrow(() -> permissionManager.assertCanEditCrops(property, plot, user));
     }
 
     @Test
-    @DisplayName("Permissão por talhão (PLOT + EDIT_ANALYSES) libera apenas análises; culturas devem negar")
+    @DisplayName("Permissão por talhão PLOT EDIT_ANALYSES libera apenas análises")
     void plotScopedAnalysesOnly() {
-        // ===== Global vazio =====
         when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(
-                any(), any(), any(), any(Collection.class), any()
+                eq(property),
+                eq(user),
+                eq(PermissionScope.PROPERTY),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
         )).thenReturn(false);
 
-        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
-                any(), any(), any(), any(), any()
-        )).thenReturn(Optional.empty());
-
-        // ===== Plot: permite somente EDIT_ANALYSES =====
         when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
-                any(), any(), any(), any(), any(Collection.class), any()
-        )).thenAnswer(inv -> {
-            PermissionScope scope = inv.getArgument(3);
-            Collection<PermissionType> types = inv.getArgument(4);
-            AccessRequestStatus status = inv.getArgument(5);
-
-            return scope == PermissionScope.PLOT
-                    && status == AccessRequestStatus.APPROVED
-                    && types != null
-                    && types.contains(PermissionType.EDIT_ANALYSES);
-        });
-
-        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
-                any(), any(), any(), any(), any(), any()
-        )).thenAnswer(inv -> {
-            PermissionScope scope = inv.getArgument(3);
-            PermissionType type = inv.getArgument(4);
-            AccessRequestStatus status = inv.getArgument(5);
-
-            if (scope == PermissionScope.PLOT
-                    && status == AccessRequestStatus.APPROVED
-                    && type == PermissionType.EDIT_ANALYSES) {
-                return Optional.of(mock(PlotAccessRequestModel.class));
-            }
-            return Optional.empty();
-        });
+                eq(property),
+                eq(plot),
+                eq(user),
+                eq(PermissionScope.PLOT),
+                argThat(types ->
+                        types != null
+                                && types.contains(PermissionType.EDIT_ANALYSES)
+                                && !types.contains(PermissionType.EDIT_CROPS)
+                ),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
 
         assertDoesNotThrow(() -> permissionManager.assertCanEditAnalyses(property, plot, user));
-        assertThrows(AccessDeniedException.class, () -> permissionManager.assertCanEditCrops(property, plot, user));
+        assertThrows(AccessDeniedException.class,
+                () -> permissionManager.assertCanEditCrops(property, plot, user));
     }
 
     @Test
