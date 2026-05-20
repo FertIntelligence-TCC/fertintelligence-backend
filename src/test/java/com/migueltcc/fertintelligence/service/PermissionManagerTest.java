@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
@@ -164,5 +165,28 @@ class PermissionManagerTest {
 
         assertDoesNotThrow(() -> permissionManager.assertCanEditAnalyses(property, plot, user));
         assertThrows(AccessDeniedException.class, () -> permissionManager.assertCanEditCrops(property, plot, user));
+    }
+
+    @Test
+    void generateRecommendationComAcessoPorTalhaoPermitido() {
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndStatus(
+                any(), any(), eq(PermissionScope.PROPERTY), eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(false);
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndStatus(
+                any(), any(), any(), eq(PermissionScope.PLOT), eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
+
+        assertDoesNotThrow(() -> permissionManager.assertCanGenerateRecommendation(property, plot, user));
+    }
+
+    @Test
+    void printRecommendationSomenteAgronomos() {
+        UserModel residente = mock(UserModel.class);
+        when(residente.getCargo()).thenReturn(Cargo.AGRONOMO_RESIDENTE);
+        assertDoesNotThrow(() -> permissionManager.assertCanPrintRecommendation(residente));
+
+        UserModel gerenteUser = mock(UserModel.class);
+        when(gerenteUser.getCargo()).thenReturn(Cargo.GERENTE);
+        assertThrows(AccessDeniedException.class, () -> permissionManager.assertCanPrintRecommendation(gerenteUser));
     }
 }

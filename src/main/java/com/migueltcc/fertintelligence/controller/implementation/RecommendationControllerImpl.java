@@ -34,6 +34,13 @@ public class RecommendationControllerImpl implements RecommendationController {
     }
 
     @Override
+    @GetMapping("/print")
+    public ResponseEntity<RecommendationResponseDto> preparePrint(@RequestParam(name = "id") Long id,
+                                                                   Authentication authentication) {
+        return ResponseEntity.ok(recommendationService.preparePrint(id, authentication.getName()));
+    }
+
+    @Override
     @GetMapping("/my")
     public ResponseEntity<List<RecommendationResponseDto>> getMine(Authentication authentication) {
         return ResponseEntity.ok(recommendationService.getMine(authentication.getName()));

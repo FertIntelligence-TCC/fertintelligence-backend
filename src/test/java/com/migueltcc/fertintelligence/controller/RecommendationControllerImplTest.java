@@ -4,11 +4,15 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -18,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -27,11 +32,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class RecommendationControllerImplTest extends AbstractControllerTest {
+    @BeforeEach
+    void setup() {
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), eq(AccessRequestStatus.APPROVED)))
+                .thenReturn(Optional.of(PropertyAccessRequestModel.builder().id(1L).build()));
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndStatus(any(), any(), any(), eq(AccessRequestStatus.APPROVED)))
+                .thenReturn(true);
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndStatus(any(), any(), any(), any(), eq(AccessRequestStatus.APPROVED)))
+                .thenReturn(true);
+    }
 
     @Test
     @WithMockUser(username = "testuser")
     void generateRecommendation_ReturnsOk() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
@@ -70,7 +84,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getMine_ReturnsList() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
@@ -93,7 +107,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getRecommendation_ReturnsOne() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
@@ -115,8 +129,31 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void preparePrint_ReturnsOne() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationModel item = RecommendationModel.builder()
+                .id(8L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .technicalReport("laudo")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(8L)).thenReturn(Optional.of(item));
+
+        mockMvc.perform(get("/recommendation/print").param("id", "8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(8L));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void deleteRecommendation_ReturnsNoContent() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
