@@ -133,7 +133,7 @@ class RecommendationCalculationServiceTest {
                 .fertilizationRecommendationRows(List.of(RecommendationCalculationService.FertilizationRecommendationRow.builder().phase("Plantio").nutrients("N: 20").suggestedFertilizer("NPK").fertilizerQuantityKgHa(100d).applicationMode("No sulco").build()))
                 .build();
         var report=reportService.buildTechnicalReport(result);
-        assertTrue(report.contains("| Fase | Nutrientes Necessários | Adubo Sugerido | Quantidade | Época e Modo de Aplicação |"));
+        assertTrue(report.contains("| Fase da Cultura | Nutrientes Necessários | Sugestão de Adubo | Quantidade do Adubo | Época e Modo de Aplicação |"));
     }
 
     @Test void mencionaCulturaEAnaliseFoliarQuandoExistem() {
@@ -150,5 +150,48 @@ class RecommendationCalculationServiceTest {
         String report = reportService.buildTechnicalReport(result);
         assertTrue(report.contains("Cultura encontrada: ALGODAO"));
         assertTrue(report.contains("Análise foliar encontrada com ID 31"));
+    }
+
+    @Test void reportContemTodasAsSecoesObrigatorias() {
+        var report = reportService.buildTechnicalReport(RecommendationCalculationService.RecommendationCalculationResult.builder().build());
+        assertTrue(report.contains("## 1. Cabeçalho e Identificação"));
+        assertTrue(report.contains("## 2. Diagnóstico do Solo e da Cultura"));
+        assertTrue(report.contains("## 3. Recomendação de Correção"));
+        assertTrue(report.contains("## 4. Recomendação de Adubação"));
+        assertTrue(report.contains("## 5. Observações Técnicas e Cuidados"));
+        assertTrue(report.contains("## 6. Encerramento"));
+    }
+
+    @Test void reportUsaCamposEstruturadosDeAdubacao() {
+        var result = RecommendationCalculationService.RecommendationCalculationResult.builder()
+                .fertilizationRecommendationRows(List.of(RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                        .phase("Plantio")
+                        .nutrients("N: 20 kg/ha")
+                        .suggestedFertilizer("NPK 04-14-08")
+                        .fertilizerQuantityKgHa(571.43)
+                        .applicationMode("No sulco")
+                        .build()))
+                .build();
+        var report = reportService.buildTechnicalReport(result);
+        assertTrue(report.contains("| Plantio | N: 20 kg/ha | NPK 04-14-08 | 571.43 kg/ha | No sulco |"));
+    }
+
+    @Test void reportAplicaMensagensPadraoQuandoListasVazias() {
+        var result = RecommendationCalculationService.RecommendationCalculationResult.builder()
+                .warnings(List.of())
+                .correctionMessages(List.of())
+                .build();
+        var report = reportService.buildTechnicalReport(result);
+        assertTrue(report.contains("Nenhum alerta adicional foi registrado."));
+        assertTrue(report.contains("Nenhuma recomendação de correção foi calculada nesta etapa."));
+    }
+
+    @Test void reportTrataNullSemNpeEComMensagensPadrao() {
+        var result = RecommendationCalculationService.RecommendationCalculationResult.builder()
+                .fertilizationRows(List.of("Linha fallback"))
+                .build();
+        String report = assertDoesNotThrow(() -> reportService.buildTechnicalReport(result));
+        assertTrue(report.contains("Não informado"));
+        assertTrue(report.contains("Não calculado"));
     }
 }
