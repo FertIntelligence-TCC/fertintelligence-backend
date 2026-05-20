@@ -25,8 +25,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
+import static com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,18 +54,18 @@ class RecommendationCalculationServiceTest {
         property=PropertyModel.builder().id(10L).nome("Fazenda").build();
         plot=PlotModel.builder().id(20L).identification("Talhao 1").property(property).build();
         user=UserModel.builder().id(1L).name("U").username("u").build();
-        when(folderRepo.findByPlotAndCropsYear(plot,2026)).thenReturn(Optional.empty());
-        when(formulatedRepo.findAllByUser(any())).thenReturn(List.of());
-        when(formulatedRepo.findAllByPublicoTrueOrderByIdAsc()).thenReturn(List.of());
-        when(simpleRepo.findAllByUser(any())).thenReturn(List.of());
-        when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of());
-        when(coverageRepo.findAllByRangeOrderByOrderAsc(any())).thenReturn(List.of());
-        when(fertilityExtractRepo.findAll()).thenReturn(List.of());
+        lenient().when(folderRepo.findByPlotAndCropsYear(plot,2026)).thenReturn(Optional.empty());
+        lenient().when(formulatedRepo.findAllByUser(any())).thenReturn(List.of());
+        lenient().when(formulatedRepo.findAllByPublicoTrueOrderByIdAsc()).thenReturn(List.of());
+        lenient().when(simpleRepo.findAllByUser(any())).thenReturn(List.of());
+        lenient().when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of());
+        lenient().when(coverageRepo.findAllByRangeOrderByOrderAsc(any())).thenReturn(List.of());
+        lenient().when(fertilityExtractRepo.findAll()).thenReturn(List.of());
     }
 
     private RecommendationCreateRequestDto dto(){
         RecommendationCreateRequestDto dto=new RecommendationCreateRequestDto();
-        dto.setCropName(NomeComum.ALGODAO); dto.setCropYear(2026); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria("SMP"); return dto;
+        dto.setCropName(NomeComum.ALGODAO); dto.setCropYear(2026); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria(SATURACAO_POR_BASES_TROCAVEIS); return dto;
     }
 
     @Test void preencheNecessidadesNPKQuandoTabelaExiste(){
