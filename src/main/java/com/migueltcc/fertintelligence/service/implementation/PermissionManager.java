@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -92,6 +93,44 @@ public class PermissionManager {
 
         // demais: precisa ter entrada aprovada na propriedade
         return hasApprovedPropertyMembership(user, property);
+    }
+
+    @Transactional(readOnly = true)
+    public void assertCanGenerateRecommendation(PropertyModel property, PlotModel plot, UserModel user) {
+        if (property == null || plot == null || user == null) {
+            throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
+        }
+
+        if (plot.getProperty() == null || !plot.getProperty().getId().equals(property.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
+        }
+
+        if (isOwner(user, property) || isManager(user, property)) return;
+        if (!hasApprovedPropertyMembership(user, property)) {
+            throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
+        }
+
+        // Se usuário tiver delegação em nível de propriedade, pode gerar em qualquer talhão da propriedade.
+        if (plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndStatus(
+                property, user, PermissionScope.PROPERTY, AccessRequestStatus.APPROVED
+        )) {
+            return;
+        }
+
+        // Para acessos dependentes de talhão, exige permissão aprovada no talhão selecionado.
+        if (!plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndStatus(
+                property, plot, user, PermissionScope.PLOT, AccessRequestStatus.APPROVED
+        )) {
+            throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void assertCanPrintRecommendation(UserModel user) {
+        if (user == null || user.getCargo() == null ||
+                (user.getCargo() != Cargo.AGRONOMO_RESIDENTE && user.getCargo() != Cargo.AGRONOMO_CONSULTOR)) {
+            throw new AccessDeniedException("Somente agrônomos residentes e consultores podem imprimir recomendações formais.");
+        }
     }
 
     /* ======================================================

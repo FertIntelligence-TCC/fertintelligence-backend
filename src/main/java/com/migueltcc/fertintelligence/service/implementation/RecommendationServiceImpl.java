@@ -33,6 +33,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     private RecommendationCalculationService recommendationCalculationService;
     @Autowired
     private RecommendationReportService recommendationReportService;
+    @Autowired
+    private PermissionManager permissionManager;
 
     @Override
     @Transactional
@@ -44,6 +46,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         if (!plot.getProperty().getId().equals(property.getId())) {
             throw new IllegalArgumentException("O talhão informado não pertence à propriedade informada.");
         }
+        permissionManager.assertCanGenerateRecommendation(property, plot, user);
 
         RecommendationCalculationService.RecommendationCalculationResult calculationResult =
                 recommendationCalculationService.calculate(dto, user, property, plot);
@@ -68,42 +71,63 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     @Transactional(readOnly = true)
+    public RecommendationResponseDto preparePrint(Long id, String username) {
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
+        RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
+        permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
+        permissionManager.assertCanPrintRecommendation(user);
+        return toDto(recommendation, user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public RecommendationResponseDto get(Long id, String username) {
-        findUserByUsernameOrEmailOrThrow(username);
-        return toDto(findRecommendationByIdOrThrow(id));
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
+        RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
+        permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
+        return toDto(recommendation, user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationResponseDto> getMine(String username) {
         UserModel user = findUserByUsernameOrEmailOrThrow(username);
-        return recommendationRepository.findAllByCreatorOrderByCreatedAtDesc(user).stream().map(this::toDto).toList();
+        return recommendationRepository.findAllByCreatorOrderByCreatedAtDesc(user).stream().map(model -> toDto(model, user)).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationResponseDto> getByProperty(Long propertyId, String username) {
-        findUserByUsernameOrEmailOrThrow(username);
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
         PropertyModel property = findPropertyByIdOrThrow(propertyId);
-        return recommendationRepository.findAllByProperty(property).stream().map(this::toDto).toList();
+        return recommendationRepository.findAllByProperty(property).stream()
+                .filter(model -> permissionManager.canReadPlot(model.getPlot(), user))
+                .map(model -> toDto(model, user)).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationResponseDto> getByPlot(Long plotId, String username) {
-        findUserByUsernameOrEmailOrThrow(username);
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
         PlotModel plot = findPlotByIdOrThrow(plotId);
-        return recommendationRepository.findAllByPlot(plot).stream().map(this::toDto).toList();
+        permissionManager.assertCanReadPlot(plot, user);
+        return recommendationRepository.findAllByPlot(plot).stream().map(model -> toDto(model, user)).toList();
     }
 
     @Override
     @Transactional
     public void delete(Long id, String username) {
-        findUserByUsernameOrEmailOrThrow(username);
-        recommendationRepository.delete(findRecommendationByIdOrThrow(id));
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
+        RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
+        permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
+        recommendationRepository.delete(recommendation);
     }
 
     private RecommendationResponseDto toDto(RecommendationModel model) {
+        return toDto(model, model.getCreator());
+    }
+
+    private RecommendationResponseDto toDto(RecommendationModel model, UserModel authenticatedUser) {
         return RecommendationResponseDto.builder()
                 .id(model.getId())
                 .creatorUserId(model.getCreator().getId())
@@ -120,6 +144,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .soilFertilityInterpretationCriteriaTableId(model.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(model.getCropFoliarAnalysisInterpretationTableId())
                 .technicalReport(model.getTechnicalReport())
+                .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
