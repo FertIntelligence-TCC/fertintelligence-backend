@@ -36,10 +36,6 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     void setup() {
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), eq(AccessRequestStatus.APPROVED)))
                 .thenReturn(Optional.of(PropertyAccessRequestModel.builder().id(1L).build()));
-        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndStatus(any(), any(), any(), eq(AccessRequestStatus.APPROVED)))
-                .thenReturn(true);
-        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndStatus(any(), any(), any(), any(), eq(AccessRequestStatus.APPROVED)))
-                .thenReturn(true);
     }
 
     @Test
@@ -130,7 +126,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void preparePrint_ReturnsOne() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_RESIDENTE).build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
