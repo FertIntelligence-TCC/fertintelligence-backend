@@ -95,6 +95,21 @@ public interface PlotAccessRequestRepository extends JpaRepository<PlotAccessReq
             AccessRequestStatus status
     );
 
+    boolean existsByPropertyAndRequesterAndScopeAndStatus(
+            PropertyModel property,
+            UserModel requester,
+            PermissionScope scope,
+            AccessRequestStatus status
+    );
+
+    boolean existsByPropertyAndPlotAndRequesterAndScopeAndStatus(
+            PropertyModel property,
+            PlotModel plot,
+            UserModel requester,
+            PermissionScope scope,
+            AccessRequestStatus status
+    );
+
     // Adicione este método para resolver o erro "cannot find symbol"
     Optional<PlotAccessRequestModel> findByPropertyAndPlotAndRequesterAndStatus(
             PropertyModel property,
