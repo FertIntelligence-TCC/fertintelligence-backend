@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.nullValue;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
@@ -109,7 +110,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/green-fertilizer/get?greenFertilizerId=1"))
+                .andExpect(header().string("Location", "http://localhost/green-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Teste"))
                 .andExpect(jsonPath("$.c").value(15.0))
@@ -134,16 +135,16 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "owner")
-    void getGreenFertilizersByUserSuccessfully() throws Exception {
+    void getAllGreenFertilizersSuccessfully() throws Exception {
         GreenFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(greenFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
 
-        mockMvc.perform(get("/green-fertilizer/get-by-user"))
+        mockMvc.perform(get("/green-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
-                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
+                .andExpect(jsonPath("$[0].user_id").value(nullValue()));
     }
 
     @Test

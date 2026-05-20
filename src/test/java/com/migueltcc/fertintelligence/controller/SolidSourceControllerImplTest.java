@@ -260,6 +260,45 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
                 .build();
     }
 
+    private void stubApprovedCropEditPermission(UserModel requester, PropertyModel property, PlotModel plot) {
+        // A regra de autorização de culturas pode passar por PermissionManager usando
+        // caminhos diferentes conforme o cargo: exists(...permissionTypeIn...),
+        // find por talhão, find por propriedade e também checagem de vínculo na propriedade.
+        // Por isso os matchers ficam amplos aqui. O objetivo do teste é o controller + fluxo permitido,
+        // não testar a igualdade exata das instâncias navegadas via crop -> folder -> plot -> property.
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                any(PropertyModel.class),
+                any(PlotModel.class),
+                eq(requester),
+                any(PermissionScope.class),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
+
+        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
+                any(PropertyModel.class),
+                any(PlotModel.class),
+                eq(requester),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(requester, plot)));
+
+        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
+                any(PropertyModel.class),
+                eq(requester),
+                any(PermissionScope.class),
+                any(PermissionType.class),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPlotAccess(requester, plot)));
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                any(PropertyModel.class),
+                eq(requester),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPropertyAccess(requester, property)));
+    }
+
     /* =========================================================
        CREATE / READ / UPDATE / DELETE - FLUXOS FELIZES
     ========================================================= */
@@ -424,17 +463,10 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
 
-        // Residente: aprovação por PROPRIEDADE (plot = null no repositório de PLOT access)
-        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
-                eq(ownerProperty),
-                eq(residenteUser),
-                any(PermissionScope.class),
-                any(PermissionType.class),
-                eq(AccessRequestStatus.APPROVED)
-        )).thenReturn(Optional.of(approvedPlotAccess(residenteUser, ownerPlot))); // o objeto em si não importa muito
+        // A criação de SolidSource edita culturas, então a permissão precisa ser EDIT_CROPS no talhão.
+        stubApprovedCropEditPermission(residenteUser, ownerProperty, ownerPlot);
 
-        // Se sua lógica usa PropertyAccessRequestRepository em vez de PlotAccessRequestRepository para residente,
-        // mantenha também este mock (você já tinha isso no teste):
+        // Mantém também a aprovação em nível de propriedade caso a regra consulte esse caminho.
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
                 .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
 
@@ -457,15 +489,8 @@ public class SolidSourceControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
 
-        // Consultor: aprovação por TALHÃO
-        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
-                eq(ownerProperty),
-                eq(ownerPlot),
-                eq(consultorUser),
-                any(PermissionScope.class),
-                any(PermissionType.class),
-                eq(AccessRequestStatus.APPROVED)
-        )).thenReturn(Optional.of(approvedPlotAccess(consultorUser, ownerPlot)));
+        // Consultor: aprovação por TALHÃO para EDIT_CROPS.
+        stubApprovedCropEditPermission(consultorUser, ownerProperty, ownerPlot);
 
         when(solidSourceRepository.save(any(SolidSourceModel.class))).thenReturn(savedSource);
 

@@ -107,7 +107,7 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/bio-fertilizer/get?bioFertilizerId=1"))
+                .andExpect(header().string("Location", "http://localhost/bio-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Bio Teste"))
                 .andExpect(jsonPath("$.n").value(3.0))
@@ -132,16 +132,16 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "owner")
-    void getBioFertilizersByUserSuccessfully() throws Exception {
+    void getAllBioFertilizersSuccessfully() throws Exception {
         BioFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(bioFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
 
-        mockMvc.perform(get("/bio-fertilizer/get-by-user"))
+        mockMvc.perform(get("/bio-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
-                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
+                .andExpect(jsonPath("$[0].user_id").doesNotExist());
     }
 
     @Test

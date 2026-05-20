@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -213,6 +214,15 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 any(PermissionType.class),
                 any(AccessRequestStatus.class)
         )).thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                any(PropertyModel.class),
+                any(PlotModel.class),
+                any(UserModel.class),
+                any(PermissionScope.class),
+                anyList(),
+                any(AccessRequestStatus.class)
+        )).thenReturn(false);
     }
 
     private TopDressingFertilizationCreateRequestDto createCreateRequestDto() {
@@ -278,27 +288,45 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .build();
     }
 
-    // ✅ helper: substitui findByPlotAndRequesterAndStatus(...)
-    private void stubApprovedPlotAccess(UserModel requester, PlotModel plot) {
+    // ✅ helper: o PermissionManager atual consulta permissões efetivas via existsBy...PermissionTypeIn...
+    private void stubApprovedCropEditPermission(UserModel requester, PlotModel plot) {
         when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
                 eq(plot.getProperty()),
                 eq(plot),
                 eq(requester),
-                eq(PermissionScope.PLOT),
+                any(PermissionScope.class),
                 any(PermissionType.class),
                 eq(AccessRequestStatus.APPROVED)
         )).thenReturn(Optional.of(approvedPlotAccess(requester, plot)));
+
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(plot.getProperty()),
+                eq(plot),
+                eq(requester),
+                any(PermissionScope.class),
+                anyList(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
     }
 
-    private void stubNoPlotAccess(UserModel requester, PlotModel plot) {
+    private void stubNoCropEditPermission(UserModel requester, PlotModel plot) {
         when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
                 eq(plot.getProperty()),
                 eq(plot),
                 eq(requester),
-                eq(PermissionScope.PLOT),
+                any(PermissionScope.class),
                 any(PermissionType.class),
                 eq(AccessRequestStatus.APPROVED)
         )).thenReturn(Optional.empty());
+
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(plot.getProperty()),
+                eq(plot),
+                eq(requester),
+                any(PermissionScope.class),
+                anyList(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(false);
     }
 
     @Test
@@ -349,46 +377,36 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
 
     @Test
     @WithMockUser(username = "residente")
-    void createTopDressingFertilizationAsResidenteWithApprovalSuccessfully() throws Exception {
+    void createTopDressingFertilizationAsResidenteWithApprovalShouldReturnForbidden() throws Exception {
         TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
-        TopdressingFertilizationModel savedFertilization = createFertilizationModel(4L, requestDto.getDate(), requestDto.getOrder(), ownerCrop);
 
         when(userRepository.findByUsername("residente")).thenReturn(Optional.of(residenteUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
                 .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
-        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
-        when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
+        stubApprovedCropEditPermission(residenteUser, ownerPlot);
 
         mockMvc.perform(post("/top-dressing-fertilization/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(4L));
+                .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(username = "consultor")
-    void createTopDressingFertilizationAsConsultorWithPlotApprovalSuccessfully() throws Exception {
+    void createTopDressingFertilizationAsConsultorWithPlotApprovalShouldReturnForbidden() throws Exception {
         TopDressingFertilizationCreateRequestDto requestDto = createCreateRequestDto();
-        TopdressingFertilizationModel savedFertilization = createFertilizationModel(5L, requestDto.getDate(), requestDto.getOrder(), ownerCrop);
 
         when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-
-        // ✅ CORREÇÃO: método novo
-        stubApprovedPlotAccess(consultorUser, ownerPlot);
-
-        when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
-        when(topDressingFertilizationRepository.save(any(TopdressingFertilizationModel.class))).thenReturn(savedFertilization);
+        stubApprovedCropEditPermission(consultorUser, ownerPlot);
 
         mockMvc.perform(post("/top-dressing-fertilization/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(5L));
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -400,7 +418,7 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
 
         // ✅ CORREÇÃO: método novo retornando empty
-        stubNoPlotAccess(consultorUser, ownerPlot);
+        stubNoCropEditPermission(consultorUser, ownerPlot);
 
         when(topDressingFertilizationRepository.findByCropAndOrder(ownerCrop, requestDto.getOrder())).thenReturn(Optional.empty());
 

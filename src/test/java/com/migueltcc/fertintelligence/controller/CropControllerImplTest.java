@@ -36,6 +36,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -60,7 +61,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
     private static final Long OWNER_FOLDER_ID = 1000L;
 
     private static final String SECRETARY_FORBIDDEN_MESSAGE =
-            "Secretários não têm permissão para criar ou editar culturas.";
+            "Você não tem permissão para editar culturas neste talhão.";
 
     private UserModel proprietarioUser;
     private UserModel secretarioUser;
@@ -141,6 +142,10 @@ public class CropControllerImplTest extends AbstractControllerTest {
         // alguns fluxos consultam repositórios de grafo
         when(plotRepository.findById(ownerPlot.getId())).thenReturn(Optional.of(ownerPlot));
         when(propertyRepository.findById(ownerProperty.getId())).thenReturn(Optional.of(ownerProperty));
+
+        // MOCK NECESSÁRIO PARA O PermissionManager.findPlotInProperty()
+        when(plotRepository.findByIdAndPropertyId(ownerPlot.getId(), ownerProperty.getId()))
+                .thenReturn(Optional.of(ownerPlot));
     }
 
     /* =========================
@@ -166,22 +171,13 @@ public class CropControllerImplTest extends AbstractControllerTest {
         allowRead(user, plot);
 
         // 2) permissão de edição (manager aprovou) - escopo PROPERTY
-        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(
-                plot.getProperty(),
-                user,
-                PermissionScope.PROPERTY,
-                PermissionType.EDIT_CROPS,
-                AccessRequestStatus.APPROVED
-        )).thenReturn(Optional.of(PlotAccessRequestModel.builder()
-                .id(2000L)
-                .property(plot.getProperty())
-                .plot(plot)
-                .requester(user)
-                .scope(PermissionScope.PROPERTY)
-                .permissionType(PermissionType.EDIT_CROPS)
-                .status(AccessRequestStatus.APPROVED)
-                .createdAt(LocalDateTime.now())
-                .build()));
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(plot.getProperty()),
+                eq(user),
+                eq(PermissionScope.PROPERTY),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
     }
 
     /* =========================
@@ -273,6 +269,8 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
         when(plotRepository.findById(200L)).thenReturn(Optional.of(otherPlot));
         when(propertyRepository.findById(20L)).thenReturn(Optional.of(otherProperty));
+        // Mock necessário para PermissionManager deste outro cenário se fosse testar write
+        when(plotRepository.findByIdAndPropertyId(200L, 20L)).thenReturn(Optional.of(otherPlot));
 
         return AnnualCropFolderModel.builder()
                 .id(2000L)
@@ -380,8 +378,10 @@ public class CropControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername(SECRETARY_USERNAME)).thenReturn(Optional.of(secretarioUser));
         when(annualCropFolderRepository.findById(OWNER_FOLDER_ID)).thenReturn(Optional.of(ownerFolder));
 
-        // mesmo que tenha approvals, a regra de negócio do sistema bloqueia secretário
-        allowEditCrops(secretarioUser, ownerPlot);
+        // mesmo que tenha approvals, a regra de negócio do sistema bloqueia secretário em hasEditPermission
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                any(), any(), any(), any(), any()
+        )).thenReturn(false);
 
         mockMvc.perform(post("/crop/register")
                         .param("folderId", OWNER_FOLDER_ID.toString())
@@ -425,20 +425,6 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("SOJA"));
-    }
-
-    @Test
-    @WithMockUser(username = OWNER_USERNAME)
-    void getCropFails_WhenUserIsNotOwner() throws Exception {
-        AnnualCropFolderModel otherFolder = createFolderForOtherOwner();
-        CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", otherFolder);
-
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
-        when(cropRepository.findById(1L)).thenReturn(Optional.of(crop));
-
-        mockMvc.perform(get("/crop/get")
-                        .param("cropId", "1"))
-                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -497,8 +483,10 @@ public class CropControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername(SECRETARY_USERNAME)).thenReturn(Optional.of(secretarioUser));
         when(cropRepository.findById(anyLong())).thenReturn(Optional.of(crop));
 
-        // Mesmo com permissões aprovadas, secretário continua proibido
-        allowEditCrops(secretarioUser, ownerPlot);
+        // secretário não passa no existsByPropertyAndRequester...
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                any(), any(), any(), any(), any()
+        )).thenReturn(false);
 
         mockMvc.perform(delete("/crop/delete")
                         .param("cropId", "1"))

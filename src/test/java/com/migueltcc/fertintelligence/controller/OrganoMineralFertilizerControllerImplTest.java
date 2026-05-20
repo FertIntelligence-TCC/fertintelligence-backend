@@ -15,25 +15,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Refatorado para:
- * - Remover @ExtendWith(MockitoExtension.class) (desnecessário com @SpringBootTest).
- * - Corrigir asserts baseados no comportamento REAL do controller (Location do POST).
- * - Evitar falhas quando endpoints GET mudam: resolve dinamicamente o path mapeado.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
@@ -41,9 +38,6 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
 
     @Autowired
     private ObjectMapper mapper;
-
-    @Autowired
-    private RequestMappingHandlerMapping handlerMapping;
 
     private UserModel owner;
 
@@ -125,52 +119,18 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
 
     @Test
     @WithMockUser(username = "owner")
-    void getOrganoMineralFertilizerSuccessfully() throws Exception {
-        OrganoMineralFertilizerModel model = createModel(2L);
-
-        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(organoMineralFertilizerRepository.findById(2L)).thenReturn(Optional.of(model));
-
-        String endpoint = resolveGetByIdEndpointOrFail();
-
-        if (endpoint.contains("{")) {
-            String resolved = endpoint.replaceAll("\\{[^/]+\\}", "2");
-            mockMvc.perform(get(resolved))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(2L))
-                    .andExpect(jsonPath("$.c").value(8.0))
-                    .andExpect(jsonPath("$.k2o").value(10.0));
-            return;
-        }
-
-        mockMvc.perform(get(endpoint).param("organoMineralFertilizerId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.c").value(8.0))
-                .andExpect(jsonPath("$.k2o").value(10.0));
-    }
-
-    @Test
-    @WithMockUser(username = "owner")
-    void getOrganoMineralFertilizersByUserSuccessfully() throws Exception {
+    void getAllOrganoMineralFertilizersSuccessfully() throws Exception {
         OrganoMineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(organoMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
 
-        String endpoint = resolveGetByUserEndpointOrFail();
-
-        if (endpoint.contains("{")) {
-            String resolved = endpoint.replaceAll("\\{[^/]+\\}", String.valueOf(owner.getId()));
-            mockMvc.perform(get(resolved))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].id").value(3L));
-            return;
-        }
-
-        mockMvc.perform(get(endpoint))
+        mockMvc.perform(get("/organo-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(3L));
+                .andExpect(jsonPath("$[0].id").value(3L))
+                .andExpect(jsonPath("$[0].nome_adubo").value("Organo Plus"))
+                .andExpect(jsonPath("$[0].c").value(8.0))
+                .andExpect(jsonPath("$[0].k2o").value(10.0));
     }
 
     @Test
@@ -233,92 +193,5 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
         mockMvc.perform(delete("/organo-mineral-fertilizer/delete")
                         .param("organoMineralFertilizerId", "5"))
                 .andExpect(status().isNoContent());
-    }
-
-    // --------------------------------------------------------------------------------------------
-    // Endpoint resolvers
-    // --------------------------------------------------------------------------------------------
-
-    private String resolveGetByIdEndpointOrFail() {
-        List<String> candidates = new ArrayList<>();
-
-        for (var entry : handlerMapping.getHandlerMethods().entrySet()) {
-            RequestMappingInfo info = entry.getKey();
-            if (!info.getMethodsCondition().getMethods().contains(RequestMethod.GET)) continue;
-
-            for (String pattern : extractPatterns(info)) {
-                if (!pattern.startsWith("/organo-mineral-fertilizer")) continue;
-
-                String lower = pattern.toLowerCase(Locale.ROOT);
-                if (lower.contains("get-by-name")) continue;
-                if (lower.contains("get-by-user")) continue;
-
-                if (pattern.contains("{") && (lower.contains("get") || lower.endsWith("}"))) {
-                    candidates.add(pattern);
-                } else if (lower.endsWith("/get")) {
-                    candidates.add(pattern);
-                }
-            }
-        }
-
-        candidates.sort((a, b) -> Boolean.compare(!a.contains("{"), !b.contains("{")));
-
-        if (candidates.isEmpty()) {
-            throw new AssertionError("Não foi encontrado endpoint GET por id em /organo-mineral-fertilizer");
-        }
-        return candidates.get(0);
-    }
-
-    private String resolveGetByUserEndpointOrFail() {
-        List<String> candidates = new ArrayList<>();
-
-        for (var entry : handlerMapping.getHandlerMethods().entrySet()) {
-            RequestMappingInfo info = entry.getKey();
-            if (!info.getMethodsCondition().getMethods().contains(RequestMethod.GET)) continue;
-
-            for (String pattern : extractPatterns(info)) {
-                if (!pattern.startsWith("/organo-mineral-fertilizer")) continue;
-
-                String lower = pattern.toLowerCase(Locale.ROOT);
-                if (!lower.contains("user")) continue;
-                if (lower.contains("get-by-name")) continue;
-
-                candidates.add(pattern);
-            }
-        }
-
-        candidates.sort(Comparator.comparing((String p) -> !p.toLowerCase(Locale.ROOT).contains("get-by-user")));
-
-        if (candidates.isEmpty()) {
-            throw new AssertionError("Não foi encontrado endpoint GET por usuário em /organo-mineral-fertilizer");
-        }
-        return candidates.get(0);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Set<String> extractPatterns(RequestMappingInfo info) {
-        // Spring 6: getPathPatternsCondition().getPatternValues()
-        try {
-            var m = RequestMappingInfo.class.getMethod("getPathPatternsCondition");
-            Object cond = m.invoke(info);
-            if (cond != null) {
-                var m2 = cond.getClass().getMethod("getPatternValues");
-                return new LinkedHashSet<>((Set<String>) m2.invoke(cond));
-            }
-        } catch (ReflectiveOperationException ignored) {}
-
-        // Spring 5: getPatternsCondition().getPatterns()
-        try {
-            var m = RequestMappingInfo.class.getMethod("getPatternsCondition");
-            Object cond = m.invoke(info);
-            if (cond != null) {
-                var m2 = cond.getClass().getMethod("getPatterns");
-                return new LinkedHashSet<>((Set<String>) m2.invoke(cond));
-            }
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Não foi possível extrair patterns do RequestMappingInfo", e);
-        }
-
-        return Set.of();
     }
 }

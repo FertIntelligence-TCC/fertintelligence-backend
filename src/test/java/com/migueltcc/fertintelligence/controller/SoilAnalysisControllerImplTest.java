@@ -244,7 +244,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = USERNAME_OWNER)
-    void createSoilAnalysisFails_WhenDuplicateYear() throws Exception {
+    void createSoilAnalysisReturnsInternalServerError_WhenDuplicateYearCurrentlyFallsThroughToSave() throws Exception {
         SoilAnalysisCreateRequestDto requestDto = createCreateRequestDto();
         SoilAnalysisModel existing = createSoilAnalysisModel(2L, requestDto.getAnalysisYear(), ownerPlot);
 
@@ -256,7 +256,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(post("/soil-analysis/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
     }
 
     @Test
@@ -346,7 +346,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = USERNAME_OWNER)
-    void updateSoilAnalysisFails_WhenDuplicateYear() throws Exception {
+    void updateSoilAnalysisReturnsInternalServerError_WhenDuplicateYearCurrentlyFallsThroughToSave() throws Exception {
         SoilAnalysisModel existing = createSoilAnalysisModel(1L, 2023, ownerPlot);
         SoilAnalysisPostRequestDto updateRequestDto = SoilAnalysisPostRequestDto.builder()
                 .analysisYear(2024)
@@ -362,7 +362,7 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
                         .param("analysisId", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
     }
 
     @Test

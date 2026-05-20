@@ -268,6 +268,14 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
      *
      * Aqui centralizamos o stub para evitar repetir e quebrar testes no futuro.
      */
+    private void stubApprovedPropertyAccess(PropertyModel property, UserModel requester) {
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                eq(property),
+                eq(requester),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approvedPropertyAccess(requester, property)));
+    }
+
     private void stubApprovedPlotAccess(PropertyModel property, PlotModel plot, UserModel requester) {
         when(plotAccessRequestRepository
                 .findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
@@ -284,9 +292,18 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                                 property,
                                 plot,
                                 PermissionScope.PLOT,
-                                PermissionType.EDIT_ANALYSES // valor “default”; o matcher usa any(PermissionType.class)
+                                PermissionType.EDIT_ANALYSES
                         )
                 ));
+
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(property),
+                eq(plot),
+                eq(requester),
+                eq(PermissionScope.PLOT),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
     }
 
     // -------------------- TESTS --------------------
@@ -349,8 +366,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
         stubUser(RESIDENTE_USERNAME, residenteUser);
         stubRangeExtractExists(ownerRangeExtract);
 
-        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(ownerProperty, residenteUser, AccessRequestStatus.APPROVED))
-                .thenReturn(Optional.of(approvedPropertyAccess(residenteUser, ownerProperty)));
+        stubApprovedPropertyAccess(ownerProperty, residenteUser);
+        stubApprovedPlotAccess(ownerProperty, ownerPlot, residenteUser);
 
         when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
                 .thenReturn(savedExtract);
@@ -373,7 +390,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
         stubUser(CONSULTOR_USERNAME, consultorUser);
         stubLayerExtractExists(ownerLayerExtract);
 
-        // CORREÇÃO: método do repo refatorado
+        stubApprovedPropertyAccess(ownerProperty, consultorUser);
         stubApprovedPlotAccess(ownerProperty, ownerPlot, consultorUser);
 
         when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))
@@ -398,7 +415,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
         stubUser(SECRETARIO_USERNAME, secretarioUser);
         stubLayerExtractExists(ownerLayerExtract);
 
-        // CORREÇÃO: método do repo refatorado
+        stubApprovedPropertyAccess(ownerProperty, secretarioUser);
         stubApprovedPlotAccess(ownerProperty, ownerPlot, secretarioUser);
 
         when(saturationExtractAnalysisExtractRepository.save(any(SaturationExtractAnalysisExtractModel.class)))

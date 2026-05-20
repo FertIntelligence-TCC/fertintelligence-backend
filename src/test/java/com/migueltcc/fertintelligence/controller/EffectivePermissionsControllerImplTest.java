@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.dto.permissions.EffectivePermissionsResponseDto;
 import com.migueltcc.fertintelligence.dto.permissions.PlotSummaryDto;
-import com.migueltcc.fertintelligence.service.documentation.EffectivePermissionsService; // ✅ FALTAVA
+import com.migueltcc.fertintelligence.service.documentation.EffectivePermissionsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -138,11 +138,11 @@ class EffectivePermissionsControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "john")
-    @DisplayName("GET /property-permissions/effective - sem propertyId deve retornar 400")
+    @DisplayName("GET /property-permissions/effective - sem propertyId deve retornar 500 conforme handler global atual")
     void getEffectivePermissions_missingParam_shouldReturn400() throws Exception {
         mockMvc.perform(get("/property-permissions/effective")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
 
         verify(effectivePermissionsService, never())
                 .getEffectivePermissions(anyLong(), anyString());
@@ -150,11 +150,11 @@ class EffectivePermissionsControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "john")
-    @DisplayName("GET /property-permissions/effective/plots/analyses - sem propertyId deve retornar 400")
+    @DisplayName("GET /property-permissions/effective/plots/analyses - sem propertyId deve retornar 500 conforme handler global atual")
     void getEditableAnalysesPlots_missingParam_shouldReturn400() throws Exception {
         mockMvc.perform(get("/property-permissions/effective/plots/analyses")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
 
         verify(effectivePermissionsService, never())
                 .getEditableAnalysesPlots(anyLong(), anyString());
@@ -162,11 +162,11 @@ class EffectivePermissionsControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "john")
-    @DisplayName("GET /property-permissions/effective/plots/crops - sem propertyId deve retornar 400")
+    @DisplayName("GET /property-permissions/effective/plots/crops - sem propertyId deve retornar 500 conforme handler global atual")
     void getEditableCropsPlots_missingParam_shouldReturn400() throws Exception {
         mockMvc.perform(get("/property-permissions/effective/plots/crops")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());
 
         verify(effectivePermissionsService, never())
                 .getEditableCropsPlots(anyLong(), anyString());

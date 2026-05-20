@@ -84,14 +84,13 @@ class PropertyAccessRequestControllerImplTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id", is(10)))
-                // Nota: Verifique se PropertyResponseDto usa "nome" ou "name". Geralmente é "nome" no seu projeto.
                 .andExpect(jsonPath("$[0].nome", is("Fazenda Aprovada")));
     }
 
     @Test
     @WithMockUser(username = "owner")
-    @DisplayName("Deve retornar todas as solicitações recebidas pelo proprietário")
-    void shouldGetReceivedRequests() throws Exception {
+    @DisplayName("Deve retornar as solicitações recebidas para a propriedade")
+    void shouldGetRequestsForProperty() throws Exception {
         PropertyAccessRequestResponseDto responseDto = PropertyAccessRequestResponseDto.builder()
                 .id(5L)
                 .propertyName("Fazenda Teste")
@@ -99,27 +98,30 @@ class PropertyAccessRequestControllerImplTest {
                 .status(AccessRequestStatus.PENDING)
                 .build();
 
-        Mockito.when(propertyAccessRequestService.getReceivedRequests("owner"))
+        // O método no controller que existe é getRequestsForProperty
+        Mockito.when(propertyAccessRequestService.getRequestsForProperty(10L, "owner"))
                 .thenReturn(Collections.singletonList(responseDto));
 
-        mockMvc.perform(get("/property-access/received")
+        mockMvc.perform(get("/property-access/requests")
+                        .param("propertyId", "10")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                // CORREÇÃO AQUI: Mudado de propertyName para nome_propriedade
                 .andExpect(jsonPath("$[0].nome_propriedade", is("Fazenda Teste")));
     }
 
     @Test
     @WithMockUser(username = "user")
-    @DisplayName("Deve revogar o acesso ou desvincular-se de uma propriedade")
-    void shouldRevokeAccess() throws Exception {
-        Mockito.doNothing().when(propertyAccessRequestService).revokeAccess(anyLong(), anyString());
+    @DisplayName("Deve desvincular-se de uma propriedade (leave)")
+    void shouldLeaveProperty() throws Exception {
+        // O controller chama leaveProperty, não revokeAccess
+        Mockito.doNothing().when(propertyAccessRequestService).leaveProperty(anyLong(), anyString());
 
-        mockMvc.perform(delete("/property-access/revoke/15")
+        mockMvc.perform(delete("/property-access/leave")
+                        .param("propertyId", "15")
                         .with(csrf()))
                 .andExpect(status().isNoContent());
 
-        Mockito.verify(propertyAccessRequestService).revokeAccess(15L, "user");
+        Mockito.verify(propertyAccessRequestService).leaveProperty(15L, "user");
     }
 }

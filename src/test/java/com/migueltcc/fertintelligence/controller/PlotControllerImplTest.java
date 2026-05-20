@@ -47,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PlotControllerImplTest extends AbstractControllerTest {
 
     private static final String OWNER_USERNAME = "testuser";
+    private static final String FUNCIONARIO_USERNAME = "funcionario"; // Corrigido
     private static final String MANAGER_USERNAME = "manager";
     private static final String RESIDENTE_USERNAME = "residente";
     private static final String CONSULTOR_USERNAME = "consultor";
@@ -71,7 +72,7 @@ public class PlotControllerImplTest extends AbstractControllerTest {
 
         funcionarioUser = UserModel.builder()
                 .id(2L)
-                .username(OWNER_USERNAME)
+                .username(FUNCIONARIO_USERNAME) // Corrigido
                 .name("Test User Funcionario")
                 .cargo(Cargo.SECRETARIO)
                 .build();
@@ -235,7 +236,6 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = RESIDENTE_USERNAME)
     void createPlotAsResident_ReturnsForbidden() throws Exception {
-        // Residentes gerenciam CULTURAS, não criam TALHÕES. Sistema DEVE retornar 403.
         PlotCreateRequestDto requestDto = createCreateRequestDto();
 
         when(userRepository.findByUsername(RESIDENTE_USERNAME)).thenReturn(Optional.of(residenteUser));
@@ -249,16 +249,12 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = OWNER_USERNAME)
+    @WithMockUser(username = FUNCIONARIO_USERNAME) // Corrigido
     void createPlotFails_WhenUserIsNotProprietario() throws Exception {
         PlotCreateRequestDto requestDto = createCreateRequestDto();
-        PlotModel savedPlot = createPlotModel(99L, requestDto.getIdentification(), ownerProperty);
 
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Secretário
+        when(userRepository.findByUsername(FUNCIONARIO_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Corrigido
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(ownerProperty));
-
-        // Mock do save para que o sistema não dê erro 500, permitindo expor que a API retornaria 201 indevidamente
-        when(plotRepository.save(any(PlotModel.class))).thenReturn(savedPlot);
 
         // Um Secretário NÃO PODE criar talhão. DEVE dar 403.
         mockMvc.perform(post("/plot/register")
@@ -373,8 +369,6 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = CONSULTOR_USERNAME)
     void updatePlotAsConsultant_ReturnsForbidden() throws Exception {
-        // Consultores não editam as propriedades do Talhão (apenas as Culturas/Análises dentro dele).
-        // Logo, a API DEVE bloquear a ação (403 Forbidden)
         PlotModel existingPlot = createPlotModel(1L, "Talhao 01", ownerProperty);
         PlotPostRequestDto updateRequestDto = createPostRequestDto();
 
@@ -426,13 +420,12 @@ public class PlotControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithMockUser(username = OWNER_USERNAME)
+    @WithMockUser(username = FUNCIONARIO_USERNAME) // Corrigido
     void deletePlotFails_WhenUserIsNotProprietario() throws Exception {
         PlotModel plot = createPlotModel(1L, "Talhao 01", ownerProperty);
 
-        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Secretário
+        when(userRepository.findByUsername(FUNCIONARIO_USERNAME)).thenReturn(Optional.of(funcionarioUser)); // Corrigido
         when(plotRepository.findById(1L)).thenReturn(Optional.of(plot));
-        doNothing().when(plotRepository).delete(plot); // Adicionado para evitar quebrar com 500 se o serviço prosseguir
 
         // O Secretário NÃO PODE deletar talhões, deve retornar 403.
         mockMvc.perform(delete("/plot/delete")

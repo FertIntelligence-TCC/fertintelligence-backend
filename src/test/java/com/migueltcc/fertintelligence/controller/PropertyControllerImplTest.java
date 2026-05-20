@@ -104,7 +104,7 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
         LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
         return PropertyCreateRequestDto.builder()
                 .nome("Fazenda Santa Clara")
-                .cnpj("12.345.678/0001-99")
+                .cnpj("12345678000199")
                 .endereco("Rodovia PB 031, KM 25")
                 .localizacao(localizacaoDto)
                 .build();
@@ -114,7 +114,7 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
         LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
         return PropertyPostRequestDto.builder()
                 .nome("Fazenda Santa Clara")
-                .cnpj("12.345.678/0001-99")
+                .cnpj("12345678000199")
                 .endereco("Rodovia PB 031, KM 25")
                 .localizacao(localizacaoDto)
                 .build();
@@ -177,6 +177,7 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
         String requestBody = objectMapper.writeValueAsString(requestDto);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(propertyRepository.findByNome(requestDto.getNome())).thenReturn(Optional.empty());
         when(propertyRepository.findByCnpj(requestDto.getCnpj())).thenReturn(Optional.of(existingProperty)); // Mock: CNPJ já existe
 
         mockMvc.perform(post("/property/register") // URL: POST /property/register
@@ -341,8 +342,6 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                         .requester(residenteUser)
                         .status(AccessRequestStatus.APPROVED)
                         .build()));
-        doNothing().when(propertyRepository).delete(property);
-
         mockMvc.perform(delete("/property/delete")
                         .param("propertyId", "1"))
                 .andExpect(status().isNoContent());

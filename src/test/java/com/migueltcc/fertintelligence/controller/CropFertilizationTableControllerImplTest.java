@@ -168,6 +168,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         CropFertilizationTableModel savedTable = ownerTable.toBuilder()
                 .id(20L)
                 .observations("Observações iniciais")
+                .publicTable(true)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));

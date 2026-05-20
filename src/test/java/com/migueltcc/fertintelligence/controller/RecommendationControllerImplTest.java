@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -31,8 +32,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void generateRecommendation_ReturnsOk() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
-        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
         RecommendationCreateRequestDto request = RecommendationCreateRequestDto.builder()
@@ -70,8 +71,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getMine_ReturnsList() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
-        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
         RecommendationModel item = RecommendationModel.builder()
@@ -93,8 +94,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getRecommendation_ReturnsOne() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
-        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
         RecommendationModel item = RecommendationModel.builder()
@@ -116,8 +117,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void preparePrint_ReturnsOne() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
-        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
         RecommendationModel item = RecommendationModel.builder()
@@ -139,8 +140,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void deleteRecommendation_ReturnsNoContent() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").build();
-        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").build();
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
         RecommendationModel item = RecommendationModel.builder()

@@ -14,24 +14,21 @@ import com.migueltcc.fertintelligence.dto.foliarFertilization.liquid.LiquidSourc
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.LiquidSourceModel;
-import com.migueltcc.fertintelligence.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,17 +38,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class LiquidSourceControllerImplTest extends AbstractControllerTest {
-
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-
-    @MockitoBean private UserRepository userRepository;
-    @MockitoBean private CropRepository cropRepository;
-    @MockitoBean private LiquidSourceRepository liquidSourceRepository;
-
-    // usados pelo PermissionManager
-    @MockitoBean private PropertyAccessRequestRepository propertyAccessRequestRepository;
-    @MockitoBean private PlotAccessRequestRepository plotAccessRequestRepository;
 
     private UserModel proprietarioUser;
     private UserModel funcionarioUser;
@@ -209,11 +195,11 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
         when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(any(), any(), any()))
                 .thenReturn(Optional.empty());
 
-        when(plotAccessRequestRepository.findByPropertyAndRequesterAndScopeAndPermissionTypeAndStatus(any(), any(), any(), any(), any()))
-                .thenReturn(Optional.empty());
+        when(plotAccessRequestRepository.existsByPropertyAndRequesterAndScopeAndPermissionTypeInAndStatus(any(), any(), any(), any(), any()))
+                .thenReturn(false);
 
-        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(any(), any(), any(), any(), any(), any()))
-                .thenReturn(Optional.empty());
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(any(), any(), any(), any(), any(), any()))
+                .thenReturn(false);
     }
 
     /* =========================
@@ -226,15 +212,14 @@ public class LiquidSourceControllerImplTest extends AbstractControllerTest {
     }
 
     private void mockApprovedEditCropsOnPlot(PropertyModel property, PlotModel plot, UserModel user) {
-        // basta 1 match para o loop do PermissionManager retornar true
-        when(plotAccessRequestRepository.findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
-                property,
-                plot,
-                user,
-                PermissionScope.PLOT,
-                PermissionType.EDIT_CROPS,
-                AccessRequestStatus.APPROVED
-        )).thenReturn(Optional.of(mock(PlotAccessRequestModel.class)));
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(property),
+                eq(plot),
+                eq(user),
+                eq(PermissionScope.PLOT),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
     }
 
     /* =========================

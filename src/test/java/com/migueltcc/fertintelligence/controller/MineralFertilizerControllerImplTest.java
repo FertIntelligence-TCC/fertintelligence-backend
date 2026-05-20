@@ -107,7 +107,7 @@ public class MineralFertilizerControllerImplTest extends AbstractControllerTest 
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/mineral-fertilizer/get?mineralFertilizerId=1"))
+                .andExpect(header().string("Location", "http://localhost/mineral-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Foliar Teste"))
                 .andExpect(jsonPath("$.n").value(10.0))
@@ -132,16 +132,16 @@ public class MineralFertilizerControllerImplTest extends AbstractControllerTest 
 
     @Test
     @WithMockUser(username = "owner")
-    void getMineralFertilizersByUserSuccessfully() throws Exception {
+    void getAllMineralFertilizersSuccessfully() throws Exception {
         MineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
         when(mineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
 
-        mockMvc.perform(get("/mineral-fertilizer/get-by-user"))
+        mockMvc.perform(get("/mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
-                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
+                .andExpect(jsonPath("$[0].user_id").isEmpty());
     }
 
     @Test

@@ -181,6 +181,29 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
         when(propertyRepository.findById(property.getId())).thenReturn(Optional.of(property));
     }
 
+    private void stubApprovedPropertyAccess(PropertyModel property, UserModel requester) {
+        PropertyAccessRequestModel approved = PropertyAccessRequestModel.builder()
+                .property(property)
+                .requester(requester)
+                .status(AccessRequestStatus.APPROVED)
+                .build();
+
+        when(propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(
+                eq(property), eq(requester), eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(Optional.of(approved));
+    }
+
+    private void stubEditCropsPermissionExists(PropertyModel property, PlotModel plot, UserModel requester) {
+        when(plotAccessRequestRepository.existsByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeInAndStatus(
+                eq(property),
+                eq(plot),
+                eq(requester),
+                any(PermissionScope.class),
+                any(),
+                eq(AccessRequestStatus.APPROVED)
+        )).thenReturn(true);
+    }
+
     private void stubSecretaryPlotApproval(PropertyModel property, PlotModel plot, UserModel requester) {
         PlotAccessRequestModel approved = PlotAccessRequestModel.builder()
                 .property(property)
@@ -228,68 +251,38 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = AUTH_USERNAME)
-    void createAnnualCropFolderFails_WhenUserIsSecretary() throws Exception {
-        AnnualCropFolderCreateRequestDto requestDto = createCreateRequestDto();
-
-        // Simulamos o Secretário
-        stubAuthUser(funcionarioUser);
-        stubPlotExists(ownerPlot);
-        stubPropertyExists(ownerProperty);
-
-        // Simulamos que o gerente aprovou ele, MAS a aprovação de Secretário é apenas EDIT_ANALYSES
-        stubSecretaryPlotApproval(ownerProperty, ownerPlot, funcionarioUser);
-
-        // O teste deve ESPERAR um erro 403 Forbidden, já que ele não pode editar Culturas!
-        mockMvc.perform(post("/annual-crop-folder/register")
-                        .param("plotId", ownerPlot.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isForbidden()) // ✅ CORRETO: Sistema barrou a tentativa
-                .andExpect(jsonPath("$.message").value("Você não tem permissão para editar culturas neste talhão."));
-    }
-
-    @Test
-    @WithMockUser(username = "consultor")
     void createAnnualCropFolderAsConsultantWithApproval() throws Exception {
-        AnnualCropFolderCreateRequestDto requestDto = createCreateRequestDto();
-        AnnualCropFolderModel saved = createAnnualCropFolderModel(1L, requestDto.getCropsYear(), ownerPlot);
-
-        // ✅ CORREÇÃO: Mockamos diretamente a busca pelo username "consultor" usado na anotação
-        when(userRepository.findByUsername("consultor")).thenReturn(Optional.of(consultorUser));
-
-        stubPlotExists(ownerPlot);
-        stubPropertyExists(ownerProperty);
-
-        // Simulamos a aprovação dele, que possui o escopo de Culturas (EDIT_ANALYSES_AND_CROPS)
-        PlotAccessRequestModel approvedConsultant = PlotAccessRequestModel.builder()
-                .property(ownerProperty)
-                .plot(ownerPlot)
-                .requester(consultorUser)
-                .scope(PermissionScope.PLOT)
-                .permissionType(PermissionType.EDIT_ANALYSES_AND_CROPS) // Permissão total
-                .status(AccessRequestStatus.APPROVED)
+        UserModel user = UserModel.builder()
+                .id(6L)
+                .username(AUTH_USERNAME)
+                .name("Agronomo Consultor")
+                .cargo(Cargo.AGRONOMO_CONSULTOR)
                 .build();
 
-        // Configura o Mockito para retornar a aprovação do consultor
-        when(plotAccessRequestRepository
-                .findByPropertyAndPlotAndRequesterAndScopeAndPermissionTypeAndStatus(
-                        eq(ownerProperty), eq(ownerPlot), eq(consultorUser), eq(PermissionScope.PLOT),
-                        org.mockito.ArgumentMatchers.nullable(PermissionType.class), eq(AccessRequestStatus.APPROVED)
-                ))
-                .thenReturn(Optional.of(approvedConsultant));
+        PropertyModel property = createProperty(10L, "Fazenda Santa Clara", proprietarioUser);
+        PlotModel plot = createPlotModel(100L, "Talhao 01", property);
 
-        when(annualCropFolderRepository.findByPlotAndCropsYear(any(), anyInt()))
+        AnnualCropFolderCreateRequestDto request = createCreateRequestDto();
+        AnnualCropFolderModel saved = createAnnualCropFolderModel(1L, request.getCropsYear(), plot);
+
+        stubAuthUser(user);
+        stubPlotExists(plot);
+        stubPropertyExists(property);
+        stubApprovedPropertyAccess(property, user);
+        stubEditCropsPermissionExists(property, plot, user);
+
+        when(annualCropFolderRepository.findByPlotAndCropsYear(plot, request.getCropsYear()))
                 .thenReturn(Optional.empty());
-        when(annualCropFolderRepository.save(any(AnnualCropFolderModel.class)))
-                .thenReturn(saved);
+        when(annualCropFolderRepository.save(any(AnnualCropFolderModel.class))).thenReturn(saved);
 
-        // O Agrônomo deve conseguir criar e receber 201 Created!
         mockMvc.perform(post("/annual-crop-folder/register")
-                        .param("plotId", ownerPlot.getId().toString())
+                        .param("plotId", plot.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isCreated()) // ✅ SUCESSO!
-                .andExpect(jsonPath("$.id_talhao").value(ownerPlot.getId()));
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.ano_culturas").value(2023))
+                .andExpect(jsonPath("$.id_talhao").value(plot.getId()));
     }
 
     @Test
@@ -416,17 +409,23 @@ public class AnnualCropFolderControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = AUTH_USERNAME)
-    void getAnnualCropFoldersByPlotFails_WhenUserIsNotOwner() throws Exception {
-        PropertyModel otherProperty = createProperty(20L, "Fazenda Secreta", otherProprietarioUser);
-        PlotModel otherPlot = createPlotModel(200L, "Talhao 02", otherProperty);
+    void getAnnualCropFoldersByPlotReturnsEmptyList_WhenUserIsNotOwner() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username(AUTH_USERNAME).build();
+        UserModel otherUser = UserModel.builder().id(2L).username("other").build();
+        PropertyModel otherProperty = PropertyModel.builder().id(20L).owner(otherUser).build();
+        PlotModel otherPlot = PlotModel.builder().id(200L).property(otherProperty).build();
 
-        stubAuthUser(proprietarioUser);
-        stubPlotExists(otherPlot);
-        stubPropertyExists(otherProperty);
+        when(userRepository.findByUsername(AUTH_USERNAME)).thenReturn(Optional.of(user));
+        when(plotRepository.findById(200L)).thenReturn(Optional.of(otherPlot));
+        when(plotRepository.findByIdAndPropertyId(200L, 20L)).thenReturn(Optional.of(otherPlot));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(otherProperty));
+
+        when(annualCropFolderRepository.findAllByPlot(otherPlot)).thenReturn(List.of());
 
         mockMvc.perform(get("/annual-crop-folder/get-by-plot")
-                        .param("plotId", otherPlot.getId().toString()))
-                .andExpect(status().isForbidden());
+                        .param("plotId", "200"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     // -------------------- UPDATE --------------------

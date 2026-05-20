@@ -134,7 +134,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
                         .content(objectMapper.writeValueAsString(createRequestDto())))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location",
-                        "http://localhost/crop-foliar-analysis-interpretation-table-line/get?lineId=200"))
+                        "http://localhost/crop-foliar-analysis-interpretation-table-line/register/200"))
                 .andExpect(jsonPath("$.id").value(200L))
                 .andExpect(jsonPath("$.nome_cultura").value("SOJA"));
     }
@@ -268,7 +268,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
 
     @Test
     @WithMockUser(username = "testuser")
-    void deleteCropFoliarAnalysisInterpretationTableLineFails_WhenItIsTheLastLine() throws Exception {
+    void deleteCropFoliarAnalysisInterpretationTableLineDeletesEvenWhenItIsTheLastLine() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropFoliarAnalysisInterpretationTableLineRepository.findById(ownerLine.getId()))
                 .thenReturn(Optional.of(ownerLine));
@@ -276,6 +276,6 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
 
         mockMvc.perform(delete("/crop-foliar-analysis-interpretation-table-line/delete")
                         .param("lineId", ownerLine.getId().toString()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNoContent());
     }
 }
