@@ -23,4 +23,6 @@ public interface PropertyAccessRequestRepository extends JpaRepository<PropertyA
 
     Optional<PropertyAccessRequestModel> findByPropertyIdAndRequesterUsernameAndStatus(
             Long propertyId, String requesterUsername, AccessRequestStatus status);
+
+    boolean existsByRequesterAndProperty(UserModel requester, PropertyModel property);
 }
