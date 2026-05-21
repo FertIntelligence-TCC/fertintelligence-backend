@@ -159,4 +159,28 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(delete("/recommendation/delete").param("id", "7"))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void improveNarrative_ReturnsOk() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationModel item = RecommendationModel.builder()
+                .id(7L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .technicalReport("laudo 100 kg/ha")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(7L)).thenReturn(Optional.of(item));
+        when(recommendationRepository.save(any(RecommendationModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(post("/recommendation/improve-narrative").param("id", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7L));
+    }
 }

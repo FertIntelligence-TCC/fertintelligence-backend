@@ -34,6 +34,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Autowired
     private RecommendationReportService recommendationReportService;
     @Autowired
+    private RecommendationNarrativeService recommendationNarrativeService;
+    @Autowired
     private PermissionManager permissionManager;
 
     @Override
@@ -86,6 +88,20 @@ public class RecommendationServiceImpl implements RecommendationService {
         RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         return toDto(recommendation, user);
+    }
+
+    @Override
+    @Transactional
+    public RecommendationResponseDto improveNarrative(Long id, String username) {
+        UserModel user = findUserByUsernameOrEmailOrThrow(username);
+        RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
+        permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
+
+        String improvedNarrative = recommendationNarrativeService.improveNarrative(recommendation.getTechnicalReport());
+        recommendation.setTechnicalReport(improvedNarrative);
+
+        RecommendationModel savedRecommendation = recommendationRepository.save(recommendation);
+        return toDto(savedRecommendation, user);
     }
 
     @Override

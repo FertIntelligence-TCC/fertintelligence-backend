@@ -31,6 +31,11 @@ public interface RecommendationController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<RecommendationResponseDto> improveNarrative(
+            @RequestParam(name = "id") Long id,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<List<RecommendationResponseDto>> getMine(
             @Parameter(hidden = true) Authentication authentication
     );

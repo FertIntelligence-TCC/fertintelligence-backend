@@ -14,7 +14,9 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.implementation.PermissionManager;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationNarrativeService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationServiceImpl;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +28,7 @@ import org.springframework.security.access.AccessDeniedException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -39,6 +42,7 @@ class RecommendationServiceImplTest {
     @Mock private PlotRepository plotRepository;
     @Mock private RecommendationCalculationService recommendationCalculationService;
     @Mock private RecommendationReportService recommendationReportService;
+    @Mock private RecommendationNarrativeService recommendationNarrativeService;
     @Mock private PermissionManager permissionManager;
 
     @InjectMocks
@@ -186,5 +190,52 @@ class RecommendationServiceImplTest {
         assertThrows(AccessDeniedException.class, () -> recommendationService.preparePrint(1L, "prop2"));
 
         verify(permissionManager, times(4)).assertCanReadPlot(eq(plot), any(UserModel.class));
+    }
+
+    @Test
+    void improveNarrativeMelhoraTextoSemAlterarNumeros() {
+        UserModel user = user("res", Cargo.AGRONOMO_RESIDENTE);
+        RecommendationModel rec = RecommendationModel.builder()
+                .id(1L)
+                .plot(plot)
+                .property(property)
+                .creator(user)
+                .technicalReport("Aplicar 120 kg/ha de N e 45.5 kg/ha de K2O")
+                .recommendationType(RecommendationType.BOTH)
+                .build();
+
+        when(userRepository.findByUsername("res")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(1L)).thenReturn(Optional.of(rec));
+        when(recommendationNarrativeService.improveNarrative(rec.getTechnicalReport()))
+                .thenReturn("Aplicar 120 kg/ha de N e 45.5 kg/ha de K2O\n\nTexto revisado para maior clareza. Os cálculos técnicos permanecem inalterados.");
+        when(recommendationRepository.save(rec)).thenReturn(rec);
+
+        var result = recommendationService.improveNarrative(1L, "res");
+
+        assertEquals("Aplicar 120 kg/ha de N e 45.5 kg/ha de K2O\n\nTexto revisado para maior clareza. Os cálculos técnicos permanecem inalterados.", result.getTechnicalReport());
+        verify(permissionManager).assertCanReadPlot(plot, user);
+        verify(recommendationNarrativeService).improveNarrative("Aplicar 120 kg/ha de N e 45.5 kg/ha de K2O");
+    }
+
+    @Test
+    void usuarioSemAcessoNaoConsegueMelhorarNarrativa() {
+        UserModel user = user("sec", Cargo.SECRETARIO);
+        RecommendationModel rec = RecommendationModel.builder().id(1L).plot(plot).property(property).creator(user).technicalReport("laudo").build();
+
+        when(userRepository.findByUsername("sec")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(1L)).thenReturn(Optional.of(rec));
+        doThrow(new AccessDeniedException("Sem permissão")).when(permissionManager).assertCanReadPlot(plot, user);
+
+        assertThrows(AccessDeniedException.class, () -> recommendationService.improveNarrative(1L, "sec"));
+        verify(recommendationRepository, never()).save(any());
+    }
+
+    @Test
+    void improveNarrativeComRecommendationInexistenteRetornaErro() {
+        UserModel user = user("res", Cargo.AGRONOMO_RESIDENTE);
+        when(userRepository.findByUsername("res")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> recommendationService.improveNarrative(999L, "res"));
     }
 }

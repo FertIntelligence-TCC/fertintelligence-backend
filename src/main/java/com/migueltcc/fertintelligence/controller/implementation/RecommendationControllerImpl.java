@@ -41,6 +41,13 @@ public class RecommendationControllerImpl implements RecommendationController {
     }
 
     @Override
+    @PostMapping("/improve-narrative")
+    public ResponseEntity<RecommendationResponseDto> improveNarrative(@RequestParam(name = "id") Long id,
+                                                                       Authentication authentication) {
+        return ResponseEntity.ok(recommendationService.improveNarrative(id, authentication.getName()));
+    }
+
+    @Override
     @GetMapping("/my")
     public ResponseEntity<List<RecommendationResponseDto>> getMine(Authentication authentication) {
         return ResponseEntity.ok(recommendationService.getMine(authentication.getName()));
