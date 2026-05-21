@@ -118,4 +118,10 @@ public interface PlotAccessRequestRepository extends JpaRepository<PlotAccessReq
             AccessRequestStatus status
     );
 
+    boolean existsByPropertyAndPlotAndRequester(
+            PropertyModel property,
+            PlotModel plot,
+            UserModel requester
+    );
+
 }
