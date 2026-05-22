@@ -29,13 +29,11 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
 
-    // Repositórios Solo
     private final SimpleMineralFertilizerRepository simpleRepository;
     private final FormulatedMineralFertilizerRepository formulatedRepository;
     private final OrganoMineralFertilizerRepository organoRepository;
     private final GreenFertilizerRepository greenRepository;
 
-    // Repositórios Foliares
     private final MineralFertilizerRepository foliarMineralRepository;
     private final ChelatedFertilizerRepository chelatedRepository;
     private final BioFertilizerRepository bioRepository;
@@ -43,16 +41,16 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("🧪 Iniciando o Seeding de Fertilizantes baseado na Tabela Oficial...");
+        log.info("🧪 Iniciando o seeding de fertilizantes fictícios...");
 
         Optional<UserModel> creatorOpt = userRepository.findByEmail("admin@fertintelligence.com");
         if (creatorOpt.isEmpty()) {
-            log.warn("⚠️ Usuário admin não encontrado. Pulando seeding.");
+            log.warn("⚠️ Usuário admin@fertintelligence.com não encontrado. Seeder de fertilizantes será encerrado.");
             return;
         }
         UserModel creator = creatorOpt.get();
 
-        loadSimpleMineralFromDoc(creator);
+        loadSimpleMineral(creator);
         loadFormulatedMineral(creator);
         loadOrganoMineral(creator);
         loadGreen(creator);
@@ -60,106 +58,58 @@ public class FertilizerDataSeeder implements CommandLineRunner {
         loadChelated(creator);
         loadBio(creator);
 
-        log.info("✅ Seeding de Fertilizantes concluído.");
+        log.info("✅ Seeding de fertilizantes concluído.");
     }
 
-    // ==========================================
-    // 1. ADUBOS MINERAIS SIMPLES (Dados do DOCX)
-    // ==========================================
-    private void loadSimpleMineralFromDoc(UserModel user) {
-        // Verifica se já existem dados para não duplicar
-        if (simpleRepository.count() > 0) return;
-
-        // Fosfato Diamônio (DAP)
-        // N:18, P:46, Acidez: -589
-        createSimple(user, "Fosfato Diamônio", 18.0, 46.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 34.0, -589.0);
-
-        // Fosfato Monoamônio (MAP)
-        // N:11, P:50, Acidez: -635
-        createSimple(user, "Fosfato Monoamônio", 11.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 30.0, -635.0);
-
-        // Nitrato de Amônio
-        // N:33, Acidez: -535
-        createSimple(user, "Nitrato de Amônio", 33.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 105.0, -535.0);
-
-        // Nitrato de Cálcio
-        // N:15, Ca:20, B:0.0022, Mo:0.0001, Zn:0.0015, Acidez: +181
-        createSimple(user, "Nitrato de Cálcio", 15.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0022, 0.0, 0.0, 0.0, 0.0001, 0.0015, 60.0, 181.0);
-
-        // Nitrato de Potássio
-        // N:13, K:44, Acidez: +236
-        createSimple(user, "Nitrato de Potássio", 13.0, 0.0, 44.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 74.0, 236.0);
-
-        // Nitrocálcio
-        // N:22, Ca:7, Acidez: -280
-        createSimple(user, "Nitrocálcio", 22.0, 0.0, 0.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -280.0);
-
-        // Sulfato de Amônio
-        // N:21, S:24, B:0.0006, Cu:0.0002, Mn:0.0006, Acidez: -996
-        createSimple(user, "Sulfato de Amônio", 21.0, 0.0, 0.0, 0.0, 0.0, 24.0, 0.0006, 0.0002, 0.0, 0.0006, 0.0, 0.0, 69.0, -996.0);
-
-        // Sulfonitrato de Amônio
-        // N:26, S:15, Acidez: -770
-        createSimple(user, "Sulfonitrato de Amônio", 26.0, 0.0, 0.0, 0.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -770.0);
-
-        // Uréia
-        // N:45, Acidez: -840
-        createSimple(user, "Uréia", 45.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 75.0, -840.0);
-
-        // Superfosfato Simples
-        // P:18, Ca:19, S:12, B:0.0011, Cu:0.0044, Mn:0.0011, Mo:0.0002, Zn:0.0150, Acidez: 0
-        createSimple(user, "Superfosfato Simples", 0.0, 18.0, 0.0, 19.0, 0.0, 12.0, 0.0011, 0.0044, 0.0, 0.0011, 0.0002, 0.0150, 10.0, 0.0);
-
-        // Superfosfato Triplo
-        // P:45, Ca:13, S:2, Acidez: 0
-        createSimple(user, "Superfosfato Triplo", 0.0, 45.0, 0.0, 13.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0);
-
-        // Fosfato Bicálcico
-        // P:30, Ca:21, Acidez: 0
-        createSimple(user, "Fosfato Bicálcico", 0.0, 30.0, 0.0, 21.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
-        // Cloreto de Potássio (Adicionado como complemento comum, embora o doc corte)
-        createSimple(user, "Cloreto de Potássio", 0.0, 0.0, 60.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 116.0, 0.0);
+    private void loadSimpleMineral(UserModel user) {
+        createSimpleIfMissing(user, "Ureia", 45.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 75.0, -840.0);
+        createSimpleIfMissing(user, "Sulfato de Amônio", 21.0, 0.0, 0.0, 0.0, 0.0, 24.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 69.0, -996.0);
+        createSimpleIfMissing(user, "Superfosfato Simples", 0.0, 18.0, 0.0, 19.0, 0.0, 12.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0);
+        createSimpleIfMissing(user, "Superfosfato Triplo", 0.0, 45.0, 0.0, 13.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0);
+        createSimpleIfMissing(user, "MAP (Fosfato Monoamônico)", 11.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 30.0, -635.0);
+        createSimpleIfMissing(user, "Cloreto de Potássio", 0.0, 0.0, 60.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 116.0, 0.0);
     }
 
-    private void createSimple(UserModel user, String name, double n, double p, double k,
-                              double ca, double mg, double s,
-                              double b, double cu, double fe, double mn, double mo, double zn,
-                              double indiceSalino, double indiceAcidez) {
+    private void createSimpleIfMissing(UserModel user, String name, double n, double p, double k,
+                                       double ca, double mg, double s,
+                                       double b, double cu, double fe, double mn, double mo, double zn,
+                                       double indiceSalino, double indiceAcidez) {
+        if (simpleRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         SimpleMineralFertilizerModel model = SimpleMineralFertilizerModel.builder()
                 .user(user)
-                .publico(false)
+                .publico(true)
                 .name(name)
-                // Macros Primários
                 .N(n).P2O5(p).K2O(k)
-                // Macros Secundários
                 .Ca(ca).Mg(mg).S(s)
-                // Micronutrientes
                 .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
-                // Índices
                 .indiceSalino(indiceSalino)
                 .indiceAcidez(indiceAcidez)
                 .build();
 
         simpleRepository.save(model);
-        log.info("➕ Adubo Simples carregado: {}", name);
+        log.info("➕ Adubo mineral simples carregado: {}", name);
     }
 
-    // ==========================================
-    // 2. ADUBOS FORMULADOS (Exemplos Genéricos)
-    // ==========================================
     private void loadFormulatedMineral(UserModel user) {
-        if (formulatedRepository.count() > 0) return;
-
-        createFormulated(user, 4, 14, 8, 101);
-        createFormulated(user, 10, 10, 10, 201);
-        createFormulated(user, 20, 5, 20, 301);
+        createFormulatedIfMissing(user, 4, 14, 8, 101);
+        createFormulatedIfMissing(user, 10, 10, 10, 201);
+        createFormulatedIfMissing(user, 20, 5, 20, 301);
     }
 
-    private void createFormulated(UserModel user, int n, int p, int k, int formulaNumber) {
+    private void createFormulatedIfMissing(UserModel user, int n, int p, int k, int formulaNumber) {
+        if (formulatedRepository.findAll().stream()
+                .anyMatch(f -> f.getFormulate() != null
+                        && f.getFormulate().getN() == n
+                        && f.getFormulate().getP() == p
+                        && f.getFormulate().getK() == k)) {
+            return;
+        }
+
         Formulate formulate = new Formulate();
-        formulate.setN(n); formulate.setP(p); formulate.setK(k);
+        formulate.setN(n);
+        formulate.setP(p);
+        formulate.setK(k);
 
         NPKrelation relation = new NPKrelation();
         relation.setN(n > 0 ? 1.0 : 0.0);
@@ -168,115 +118,135 @@ public class FertilizerDataSeeder implements CommandLineRunner {
 
         FormulatedMineralFertilizerModel model = FormulatedMineralFertilizerModel.builder()
                 .user(user)
-                .publico(false)
+                .publico(true)
                 .formulate(formulate)
                 .relation(relation)
                 .indicatedFormulaNumber(formulaNumber)
                 .N(n).P2O5(p).K2O(k)
-                // Valores zerados para o resto
                 .Ca(0.0).Mg(0.0).S(0.0)
                 .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
                 .build();
 
         formulatedRepository.save(model);
+        log.info("➕ Adubo formulado NPK {}-{}-{} carregado", n, p, k);
     }
 
-    // ==========================================
-    // 3. ADUBOS ORGANOMINERAIS
-    // ==========================================
     private void loadOrganoMineral(UserModel user) {
-        if (organoRepository.count() > 0) return;
+        createOrganoIfMissing(user, "Organomineral 05-10-10", 12.0, 5.0, 10.0, 10.0, 3.0, 1.5, 1.2, 0.05, 0.03, 0.30, 0.08, 0.01, 0.12, 12.0, -20.0);
+    }
+
+    private void createOrganoIfMissing(UserModel user, String name, double c, double n, double p2o5, double k2o,
+                                       double ca, double mg, double s, double b, double cu, double fe,
+                                       double mn, double mo, double zn, double indiceSalino, double indiceAcidez) {
+        if (organoRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         OrganoMineralFertilizerModel model = OrganoMineralFertilizerModel.builder()
                 .user(user)
-                .publico(false)
-                .name("Organomineral Aves Granulado")
-                .C(8.0)
-                .N(6.0).P2O5(12.0).K2O(6.0)
-                .Ca(2.0).Mg(1.0).S(1.0)
-                .B(0.1).Cu(0.0).Fe(0.5).Mn(0.0).Mo(0.0).Zn(0.2)
-                .indiceSalino(15.0).indiceAcidez(0.0)
+                .publico(true)
+                .name(name)
+                .C(c)
+                .N(n).P2O5(p2o5).K2O(k2o)
+                .Ca(ca).Mg(mg).S(s)
+                .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
+                .indiceSalino(indiceSalino).indiceAcidez(indiceAcidez)
                 .build();
         organoRepository.save(model);
+        log.info("➕ Adubo organomineral carregado: {}", name);
     }
 
-    // ==========================================
-    // 4. ADUBOS VERDES
-    // ==========================================
     private void loadGreen(UserModel user) {
-        if (greenRepository.count() > 0) return;
-
-        createGreen(user, "Mucuna Preta", 40.0, 2.5);
-        createGreen(user, "Crotalária Juncea", 42.0, 2.0);
+        createGreenIfMissing(user, "Crotalária Juncea", 42.0, 2.5, 0.5, 1.8);
     }
 
-    private void createGreen(UserModel user, String name, double carbono, double nitrogenio) {
+    private void createGreenIfMissing(UserModel user, String name, double carbono, double nitrogenio, double p2o5, double k2o) {
+        if (greenRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
+
         GreenFertilizerModel model = GreenFertilizerModel.builder()
                 .user(user)
-                .publico(false)
+                .publico(true)
                 .name(name)
                 .C(carbono)
                 .N(nitrogenio)
-                .P2O5(0.5).K2O(1.5)
+                .P2O5(p2o5).K2O(k2o)
                 .Ca(0.0).Mg(0.0).S(0.0)
                 .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
                 .indiceSalino(0.0).indiceAcidez(0.0)
                 .build();
         greenRepository.save(model);
+        log.info("➕ Adubo verde carregado: {}", name);
     }
 
-    // ==========================================
-    // 5. ADUBOS FOLIARES (Mineral)
-    // ==========================================
     private void loadFoliarMineral(UserModel user) {
-        if (foliarMineralRepository.count() > 0) return;
+        createFoliarMineralIfMissing(user, "Foliar Boro 10%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 6.0);
+        createFoliarMineralIfMissing(user, "Foliar Zinco 10%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 2.0, 6.0);
+        createFoliarMineralIfMissing(user, "Foliar Manganês 12%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 2.0, 6.0);
+    }
+
+    private void createFoliarMineralIfMissing(UserModel user, String name, double n, double p2o5, double k2o,
+                                              double ca, double mg, double s, double b, double cu, double fe,
+                                              double mn, double mo, double zn, double indiceSalino, double indiceAcidez) {
+        if (foliarMineralRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         MineralFertilizerModel model = MineralFertilizerModel.builder()
                 .user(user)
-                .publico(false)
-                .name("Foliar Nitro Full")
-                .N(30.0).P2O5(0.0).K2O(0.0)
-                .Ca(0.0).Mg(0.0).S(2.0)
-                .B(0.5).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.1).Zn(1.0)
-                .indiceSalino(10.0).indiceAcidez(5.0)
+                .publico(true)
+                .name(name)
+                .N(n).P2O5(p2o5).K2O(k2o)
+                .Ca(ca).Mg(mg).S(s)
+                .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
+                .indiceSalino(indiceSalino).indiceAcidez(indiceAcidez)
                 .build();
         foliarMineralRepository.save(model);
+        log.info("➕ Adubo foliar mineral carregado: {}", name);
     }
 
-    // ==========================================
-    // 6. ADUBOS QUELATADOS
-    // ==========================================
     private void loadChelated(UserModel user) {
-        if (chelatedRepository.count() > 0) return;
+        createChelatedIfMissing(user, "Quelato de Zinco EDTA 14%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 14.0, 0.0, 6.5);
+        createChelatedIfMissing(user, "Quelato de Manganês EDTA 13%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 13.0, 0.0, 0.0, 0.0, 6.5);
+        createChelatedIfMissing(user, "Quelato de Ferro EDTA 13%", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0, 6.5);
+    }
+
+    private void createChelatedIfMissing(UserModel user, String name, double n, double p2o5, double k2o,
+                                         double ca, double mg, double s, double b, double cu, double fe,
+                                         double mn, double mo, double zn, double indiceSalino, double indiceAcidez) {
+        if (chelatedRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         ChelatedFertilizerModel model = ChelatedFertilizerModel.builder()
                 .user(user)
-                .publico(false)
-                .name("Quelato de Ferro EDTA 13%")
-                .N(0.0).P2O5(0.0).K2O(0.0)
-                .Fe(13.0)
-                .Ca(0.0).Mg(0.0).S(0.0)
-                .B(0.0).Cu(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
-                .indiceSalino(0.0).indiceAcidez(0.0)
+                .publico(true)
+                .name(name)
+                .N(n).P2O5(p2o5).K2O(k2o)
+                .Ca(ca).Mg(mg).S(s)
+                .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
+                .indiceSalino(indiceSalino).indiceAcidez(indiceAcidez)
                 .build();
         chelatedRepository.save(model);
+        log.info("➕ Adubo quelatado carregado: {}", name);
     }
 
-    // ==========================================
-    // 7. BIOFERTILIZANTES
-    // ==========================================
     private void loadBio(UserModel user) {
-        if (bioRepository.count() > 0) return;
+        createBioIfMissing(user, "Biofertilizante foliar genérico", 2.0, 1.0, 1.5, 0.5, 0.3, 0.2, 0.05, 0.01, 0.08, 0.03, 0.01, 0.05, 3.0, 6.0);
+    }
+
+    private void createBioIfMissing(UserModel user, String name, double n, double p2o5, double k2o,
+                                    double ca, double mg, double s, double b, double cu, double fe,
+                                    double mn, double mo, double zn, double indiceSalino, double indiceAcidez) {
+        if (bioRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         BioFertilizerModel model = BioFertilizerModel.builder()
                 .user(user)
-                .publico(false)
-                .name("Biofertilizante Líquido Super")
-                .N(2.0).P2O5(1.0).K2O(1.5)
-                .Ca(0.5).Mg(0.2).S(0.3)
-                .B(0.05).Cu(0.01).Fe(0.1).Mn(0.02).Mo(0.0).Zn(0.05)
-                .indiceSalino(5.0).indiceAcidez(6.5)
+                .publico(true)
+                .name(name)
+                .N(n).P2O5(p2o5).K2O(k2o)
+                .Ca(ca).Mg(mg).S(s)
+                .B(b).Cu(cu).Fe(fe).Mn(mn).Mo(mo).Zn(zn)
+                .indiceSalino(indiceSalino).indiceAcidez(indiceAcidez)
                 .build();
         bioRepository.save(model);
+        log.info("➕ Biofertilizante carregado: {}", name);
+    }
+
+    private boolean isEquivalentName(String currentName, String expectedName) {
+        return currentName != null && currentName.trim().equalsIgnoreCase(expectedName.trim());
     }
 }
