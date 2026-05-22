@@ -14,4 +14,8 @@ public interface FertilityAnalysisExtractRepository extends JpaRepository<Fertil
     List<FertilityAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<FertilityAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    boolean existsByRangeExtract(RangeExtractModel rangeExtract);
+
+    boolean existsByLayerExtract(LayerExtractModel layerExtract);
 }
