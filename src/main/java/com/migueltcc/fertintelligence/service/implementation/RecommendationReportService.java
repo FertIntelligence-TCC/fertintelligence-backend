@@ -25,7 +25,7 @@ public class RecommendationReportService {
     }
 
     private void appendTitle(StringBuilder report) {
-        report.append("# Laudo Técnico de Recomendação Agrícola\n\n");
+        report.append("Laudo Técnico de Recomendação Agrícola\n\n");
     }
 
     private void appendHeader(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
