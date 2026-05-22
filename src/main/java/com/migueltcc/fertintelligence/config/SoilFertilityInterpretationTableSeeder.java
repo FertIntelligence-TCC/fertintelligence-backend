@@ -40,10 +40,18 @@ public class SoilFertilityInterpretationTableSeeder implements CommandLineRunner
         Optional<UserModel> miguelOptional = userRepository.findByEmail("miguel@email.com");
         Optional<UserModel> mateusOptional = userRepository.findByEmail("mateus@email.com");
 
-        adminOptional.ifEmpty(() -> log.warn("⚠️ Usuário não encontrado: {}", "admin@fertintelligence.com"));
-        gilvanOptional.ifEmpty(() -> log.warn("⚠️ Usuário não encontrado: {}", "gilvan@email.com"));
-        miguelOptional.ifEmpty(() -> log.warn("⚠️ Usuário não encontrado: {}", "miguel@email.com"));
-        mateusOptional.ifEmpty(() -> log.warn("⚠️ Usuário não encontrado: {}", "mateus@email.com"));
+        if (adminOptional.isEmpty()) {
+            log.warn("⚠️ Usuário não encontrado: {}", "admin@fertintelligence.com");
+        }
+        if (gilvanOptional.isEmpty()) {
+            log.warn("⚠️ Usuário não encontrado: {}", "gilvan@email.com");
+        }
+        if (miguelOptional.isEmpty()) {
+            log.warn("⚠️ Usuário não encontrado: {}", "miguel@email.com");
+        }
+        if (mateusOptional.isEmpty()) {
+            log.warn("⚠️ Usuário não encontrado: {}", "mateus@email.com");
+        }
 
         int createdCount = 0;
 
