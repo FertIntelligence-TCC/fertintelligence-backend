@@ -72,6 +72,7 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
             // 1. Criar e Salvar a Tabela Pai
             CropFertilizationTableModel table = CropFertilizationTableModel.builder()
                     .creator(creator)
+                    .publicTable(true)
                     .region(regiao)
                     .crop_common_name(nome)
                     .crop_scientific_nome(cientifico)

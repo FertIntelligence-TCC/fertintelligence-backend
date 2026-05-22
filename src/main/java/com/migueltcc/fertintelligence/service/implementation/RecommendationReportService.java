@@ -29,7 +29,7 @@ public class RecommendationReportService {
     }
 
     private void appendHeader(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 1. Cabeçalho e Identificação\n\n");
+        report.append("1. Cabeçalho e Identificação\n\n");
         report.append("- Produtor ou solicitante: ").append(safe(result.getRequesterName())).append("\n");
         report.append("- Usuário solicitante: ").append(safe(result.getRequesterUsername())).append("\n");
         report.append("- Propriedade: ").append(safe(result.getPropertyName())).append("\n");
@@ -43,7 +43,7 @@ public class RecommendationReportService {
     }
 
     private void appendDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 2. Diagnóstico do Solo e da Cultura\n\n");
+        report.append("2. Diagnóstico do Solo e da Cultura\n\n");
         report.append("- Análise física: ").append(safe(result.getPhysicalAnalysisSummary())).append("\n");
         report.append("- Análise de fertilidade: ").append(safe(result.getSoilFertilityAnalysisSummary())).append("\n");
         report.append("- Extrato de saturação: ").append(safe(result.getSaturationExtractAnalysisSummary())).append("\n");
@@ -56,14 +56,14 @@ public class RecommendationReportService {
     }
 
     private void appendCorrection(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 3. Recomendação de Correção\n\n");
+        report.append("3. Recomendação de Correção\n\n");
         report.append("- Critério de calagem selecionado: ").append(safe(result.getLimingCriteria())).append("\n");
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
         report.append("- Recomendação preliminar: o cálculo definitivo de correção será implementado em incremento posterior.\n\n");
     }
 
     private void appendFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 4. Recomendação de Adubação\n\n");
+        report.append("4. Recomendação de Adubação\n\n");
         report.append("| Fase da Cultura | Nutrientes Necessários | Sugestão de Adubo | Quantidade do Adubo | Época e Modo de Aplicação |\n");
         report.append("|---|---|---|---|---|\n");
         if (result.getFertilizationRecommendationRows() != null && !result.getFertilizationRecommendationRows().isEmpty()) {
@@ -84,7 +84,7 @@ public class RecommendationReportService {
     }
 
     private void appendTechnicalNotes(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 5. Observações Técnicas e Cuidados\n\n");
+        report.append("5. Observações Técnicas e Cuidados\n\n");
         appendBulletList(report, result.getWarnings(), "Nenhum alerta adicional foi registrado.");
         report.append("- Esta versão do laudo ainda é simplificada e pode estar incompleta.\n");
         report.append("- Validar o laudo com responsável técnico antes do uso operacional.\n");
@@ -92,7 +92,7 @@ public class RecommendationReportService {
     }
 
     private void appendClosing(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 6. Encerramento\n\n");
+        report.append("6. Encerramento\n\n");
         report.append("Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n\n");
         report.append("Responsável técnico: _______________________________\n\n");
         report.append("CREA: _______________________________\n\n");
