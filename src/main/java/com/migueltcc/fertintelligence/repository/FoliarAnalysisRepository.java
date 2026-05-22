@@ -20,6 +20,10 @@ public interface FoliarAnalysisRepository extends JpaRepository<FoliarAnalysisMo
 
     List<FoliarAnalysisModel> findAllByCrop(CropModel crop);
 
+    boolean existsByCropAndCollectDateAndLaboratory(CropModel crop, Date collectDate, String laboratory);
+
+    boolean existsByCrop(CropModel crop);
+
     @Modifying
     @Transactional
     void deleteAllByCropId(Long cropId);

@@ -14,6 +14,8 @@ public interface LiquidSourceRepository extends JpaRepository<LiquidSourceModel,
 
     List<LiquidSourceModel> findAllByCrop(CropModel crop);
 
+    boolean existsByCropAndSource(CropModel crop, String source);
+
     @Modifying
     @Transactional
     void deleteAllByCropId(Long cropId);
