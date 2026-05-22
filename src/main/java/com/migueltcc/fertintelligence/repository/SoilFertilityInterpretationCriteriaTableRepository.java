@@ -12,4 +12,5 @@ public interface SoilFertilityInterpretationCriteriaTableRepository extends JpaR
 
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator(UserModel creator);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrue();
+    boolean existsByCreatorAndName(UserModel creator, String name);
 }
