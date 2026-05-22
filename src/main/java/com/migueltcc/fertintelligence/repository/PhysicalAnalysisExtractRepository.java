@@ -20,4 +20,8 @@ public interface PhysicalAnalysisExtractRepository extends JpaRepository<Physica
     Optional<PhysicalAnalysisExtractModel> findTopByRangeExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
 
     Optional<PhysicalAnalysisExtractModel> findTopByLayerExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
+
+    boolean existsByRangeExtract(RangeExtractModel rangeExtract);
+
+    boolean existsByLayerExtract(LayerExtractModel layerExtract);
 }

@@ -20,4 +20,8 @@ public interface SaturationExtractAnalysisExtractRepository extends JpaRepositor
     Optional<SaturationExtractAnalysisExtractModel> findTopByRangeExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
 
     Optional<SaturationExtractAnalysisExtractModel> findTopByLayerExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
+
+    boolean existsByRangeExtract(RangeExtractModel rangeExtract);
+
+    boolean existsByLayerExtract(LayerExtractModel layerExtract);
 }
