@@ -17,6 +17,8 @@ public interface TopDressingFertilizationRepository extends JpaRepository<Topdre
 
     List<TopdressingFertilizationModel> findAllByCrop(CropModel crop);
 
+    boolean existsByCropAndOrder(CropModel crop, Integer order);
+
     @Modifying
     @Transactional
     void deleteAllByCropId(Long cropId);

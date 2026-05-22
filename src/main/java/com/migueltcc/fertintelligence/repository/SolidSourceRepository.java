@@ -14,6 +14,8 @@ public interface SolidSourceRepository extends JpaRepository<SolidSourceModel, L
 
     List<SolidSourceModel> findAllByCrop(CropModel crop);
 
+    boolean existsByCropAndSource(CropModel crop, String source);
+
     @Modifying
     @Transactional
     void deleteAllByCropId(Long cropId);
