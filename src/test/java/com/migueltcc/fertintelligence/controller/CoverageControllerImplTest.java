@@ -283,6 +283,43 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$[1].ordem_cobertura").value(2));
     }
 
+
+    @Test
+    @WithMockUser(username = "employee")
+    void listCoveragesSuccessfullyForPublicTableWhenNotOwner() throws Exception {
+        CropFertilizationTableModel publicTable = ownerTable.toBuilder()
+                .publicTable(true)
+                .build();
+
+        ContentRangeModel publicRange = ownerRange.toBuilder()
+                .table(publicTable)
+                .build();
+
+        CoverageModel publicCoverage = coverageOne.toBuilder()
+                .range(publicRange)
+                .build();
+
+        when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+        when(contentRangeRepository.findById(publicRange.getId())).thenReturn(Optional.of(publicRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(publicRange)).thenReturn(List.of(publicCoverage));
+
+        mockMvc.perform(get("/coverage/get-by-range")
+                        .param("contentRangeId", publicRange.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ordem_cobertura").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "employee")
+    void listCoveragesFailsForPrivateTableWhenNotOwner() throws Exception {
+        when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+
+        mockMvc.perform(get("/coverage/get-by-range")
+                        .param("contentRangeId", ownerRange.getId().toString()))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     @WithMockUser(username = "testuser")
     void updateCoverageSuccessfully() throws Exception {

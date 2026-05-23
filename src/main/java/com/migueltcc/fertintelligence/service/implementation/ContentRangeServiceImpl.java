@@ -46,7 +46,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkReadPermission(table, owner);
 
         List<ContentRangeModel> existingRanges = contentRangeRepository
                 .findAllByTableAndNutrientOrderByOrderAsc(table, createRequestDto.getNutrient());
@@ -76,7 +76,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
-        checkCreatorPermission(range.getTable(), owner);
+        checkReadPermission(range.getTable(), owner);
 
         return range.toDto();
     }
@@ -87,7 +87,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkReadPermission(table, owner);
 
         return contentRangeRepository.findAllByTableOrderByNutrientAscOrderAsc(table).stream()
                 .map(ContentRangeModel::toDto)
@@ -101,7 +101,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkCreatorPermission(table, owner);
+        checkReadPermission(table, owner);
 
         Nutriente originalNutrient = range.getNutrient();
         Nutriente updatedNutrient = updateRequestDto.getNutrient() != null
@@ -186,7 +186,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkCreatorPermission(table, owner);
+        checkReadPermission(table, owner);
 
         if (range.getNutrient() == Nutriente.NITROGENIO) {
             throw new IllegalArgumentException("Não é permitido remover o intervalo do nutriente Nitrogênio.");
@@ -339,6 +339,14 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     private ContentRangeModel findContentRangeByIdOrThrow(Long contentRangeId) {
         return contentRangeRepository.findById(contentRangeId)
                 .orElseThrow(() -> new EntityNotFoundException("Intervalo de teor não encontrado com o ID: " + contentRangeId));
+    }
+
+    private void checkReadPermission(CropFertilizationTableModel table, UserModel requestingUser) {
+        if (table.isPublicTable()) {
+            return;
+        }
+
+        checkCreatorPermission(table, requestingUser);
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {

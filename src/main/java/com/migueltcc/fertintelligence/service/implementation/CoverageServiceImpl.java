@@ -41,7 +41,7 @@ public class CoverageServiceImpl implements CoverageService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
-        checkCreatorPermission(range.getTable(), owner);
+        checkReadPermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         int expectedOrder = existingCoverages.size() + 1;
@@ -73,7 +73,7 @@ public class CoverageServiceImpl implements CoverageService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
-        checkCreatorPermission(coverage.getRange().getTable(), owner);
+        checkReadPermission(coverage.getRange().getTable(), owner);
 
         return coverage.toDto();
     }
@@ -84,7 +84,7 @@ public class CoverageServiceImpl implements CoverageService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
-        checkCreatorPermission(range.getTable(), owner);
+        checkReadPermission(range.getTable(), owner);
 
         return coverageRepository.findAllByRangeOrderByOrderAsc(range).stream()
                 .map(CoverageModel::toDto)
@@ -98,7 +98,7 @@ public class CoverageServiceImpl implements CoverageService {
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkCreatorPermission(range.getTable(), owner);
+        checkReadPermission(range.getTable(), owner);
 
         Integer updatedOrder = updateRequestDto.getOrder() != null
                 ? updateRequestDto.getOrder()
@@ -136,7 +136,7 @@ public class CoverageServiceImpl implements CoverageService {
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkCreatorPermission(range.getTable(), owner);
+        checkReadPermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         if (!existingCoverages.isEmpty()) {
@@ -188,6 +188,14 @@ public class CoverageServiceImpl implements CoverageService {
     private CoverageModel findCoverageByIdOrThrow(Long coverageId) {
         return coverageRepository.findById(coverageId)
                 .orElseThrow(() -> new EntityNotFoundException("Cobertura não encontrada com o ID: " + coverageId));
+    }
+
+    private void checkReadPermission(CropFertilizationTableModel table, UserModel requestingUser) {
+        if (table.isPublicTable()) {
+            return;
+        }
+
+        checkCreatorPermission(table, requestingUser);
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
