@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -92,11 +93,11 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
 
         UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, requestUser);
+        checkReadPermission(table, requestUser);
 
-        List<CropFoliarAnalysisInterpretationTableLineModel> lines = tableLineRepository.findAllByTable(table);
+        List<CropFoliarAnalysisInterpretationTableLineModel> lines = tableLineRepository.findAllByTableOrderByIdAsc(table);
 
-        return lines.stream()
+        return (lines == null ? Collections.<CropFoliarAnalysisInterpretationTableLineModel>emptyList() : lines).stream()
                 .map(CropFoliarAnalysisInterpretationTableLineModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -174,6 +175,17 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
 
     private void checkCreatorPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
         if (!table.getCreator().getId().equals(requestingUser.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
+        }
+    }
+
+    private void checkReadPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
+        if (table.isPublicTable()) {
+            return;
+        }
+
+        UserModel tableCreator = table.getCreator();
+        if (tableCreator == null || tableCreator.getId() == null || !tableCreator.getId().equals(requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
         }
     }
