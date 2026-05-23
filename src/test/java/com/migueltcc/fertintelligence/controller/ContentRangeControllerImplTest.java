@@ -342,6 +342,40 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$[2].ordem_teor").value(2));
     }
 
+
+    @Test
+    @WithMockUser(username = "otheruser")
+    void listContentRangesSuccessfullyForPublicTableWhenNotOwner() throws Exception {
+        CropFertilizationTableModel publicTable = ownerTable.toBuilder()
+                .publicTable(true)
+                .build();
+
+        ContentRangeModel publicNitrogenRange = nitrogenRange.toBuilder()
+                .table(publicTable)
+                .build();
+
+        when(userRepository.findByUsername("otheruser")).thenReturn(Optional.of(otherProprietarioUser));
+        when(cropFertilizationTableRepository.findById(publicTable.getId())).thenReturn(Optional.of(publicTable));
+        when(contentRangeRepository.findAllByTableOrderByNutrientAscOrderAsc(publicTable))
+                .thenReturn(List.of(publicNitrogenRange));
+
+        mockMvc.perform(get("/content-range/get-by-table")
+                        .param("tableId", publicTable.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nutriente").value("NITROGENIO"));
+    }
+
+    @Test
+    @WithMockUser(username = "otheruser")
+    void listContentRangesFailsForPrivateTableWhenNotOwner() throws Exception {
+        when(userRepository.findByUsername("otheruser")).thenReturn(Optional.of(otherProprietarioUser));
+        when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+
+        mockMvc.perform(get("/content-range/get-by-table")
+                        .param("tableId", ownerTable.getId().toString()))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     @WithMockUser(username = "testuser")
     void updateContentRangeSuccessfully() throws Exception {
