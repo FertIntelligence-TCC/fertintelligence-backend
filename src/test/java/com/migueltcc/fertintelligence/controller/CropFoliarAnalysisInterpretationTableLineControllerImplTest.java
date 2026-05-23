@@ -81,6 +81,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
         ownerTable = CropFoliarAnalysisInterpretationTableModel.builder()
                 .id(10L)
                 .creator(proprietarioUser)
+                .publicTable(false)
                 .build();
 
         ownerLine = CropFoliarAnalysisInterpretationTableLineModel.builder()
@@ -222,7 +223,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropFoliarAnalysisInterpretationTableRepository.findById(ownerTable.getId()))
                 .thenReturn(Optional.of(ownerTable));
-        when(cropFoliarAnalysisInterpretationTableLineRepository.findAllByTable(ownerTable))
+        when(cropFoliarAnalysisInterpretationTableLineRepository.findAllByTableOrderByIdAsc(ownerTable))
                 .thenReturn(List.of(ownerLine, otherLine));
 
         mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
@@ -230,6 +231,92 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(ownerLine.getId()))
                 .andExpect(jsonPath("$[1].nome_cultura").value("MILHO"));
+    }
+
+    @Test
+    @WithMockUser(username = "otheruser")
+    void listCropFoliarAnalysisInterpretationTableLinesByPublicTableSuccessfully() throws Exception {
+        CropFoliarAnalysisInterpretationTableModel publicTable = ownerTable.toBuilder()
+                .id(11L)
+                .publicTable(true)
+                .build();
+        CropFoliarAnalysisInterpretationTableLineModel publicLine = ownerLine.toBuilder()
+                .id(201L)
+                .table(publicTable)
+                .build();
+
+        when(userRepository.findByUsername("otheruser")).thenReturn(Optional.of(otherProprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(publicTable.getId()))
+                .thenReturn(Optional.of(publicTable));
+        when(cropFoliarAnalysisInterpretationTableLineRepository.findAllByTableOrderByIdAsc(publicTable))
+                .thenReturn(List.of(publicLine));
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
+                        .param("tableId", publicTable.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(publicLine.getId()));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void listCropFoliarAnalysisInterpretationTableLinesByTableReturnsEmptyList() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+        when(cropFoliarAnalysisInterpretationTableLineRepository.findAllByTableOrderByIdAsc(ownerTable))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
+                        .param("tableId", ownerTable.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void listCropFoliarAnalysisInterpretationTableLinesByTableReturnsNotFoundWhenTableDoesNotExist() throws Exception {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
+                        .param("tableId", "999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "otheruser")
+    void listCropFoliarAnalysisInterpretationTableLinesByPrivateTableFailsWhenUserIsNotCreator() throws Exception {
+        when(userRepository.findByUsername("otheruser")).thenReturn(Optional.of(otherProprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
+                        .param("tableId", ownerTable.getId().toString()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void listCropFoliarAnalysisInterpretationTableLinesByTableWithNullableFieldsDoesNotFail() throws Exception {
+        CropFoliarAnalysisInterpretationTableLineModel nullFieldsLine = CropFoliarAnalysisInterpretationTableLineModel.builder()
+                .id(301L)
+                .table(ownerTable)
+                .crop(NomeComum.SOJA)
+                .n_content(null)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFoliarAnalysisInterpretationTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+        when(cropFoliarAnalysisInterpretationTableLineRepository.findAllByTableOrderByIdAsc(ownerTable))
+                .thenReturn(List.of(nullFieldsLine));
+
+        mockMvc.perform(get("/crop-foliar-analysis-interpretation-table-line/get-by-table")
+                        .param("tableId", ownerTable.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].teores_n").doesNotExist());
     }
 
     @Test

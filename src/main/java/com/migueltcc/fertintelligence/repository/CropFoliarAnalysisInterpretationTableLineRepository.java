@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface CropFoliarAnalysisInterpretationTableLineRepository
         extends JpaRepository<CropFoliarAnalysisInterpretationTableLineModel, Long> {
 
-    List<CropFoliarAnalysisInterpretationTableLineModel> findAllByTable(
+    List<CropFoliarAnalysisInterpretationTableLineModel> findAllByTableOrderByIdAsc(
             CropFoliarAnalysisInterpretationTableModel table);
 
     Optional<CropFoliarAnalysisInterpretationTableLineModel> findByTableAndCrop(

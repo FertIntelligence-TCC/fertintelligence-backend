@@ -6,8 +6,6 @@ import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretatio
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableLineService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,7 +22,6 @@ import java.util.List;
 public class CropFoliarAnalysisInterpretationTableLineControllerImpl
         implements CropFoliarAnalysisInterpretationTableLineController {
 
-    private static final Logger logger = LoggerFactory.getLogger(CropFoliarAnalysisInterpretationTableLineControllerImpl.class);
     private final CropFoliarAnalysisInterpretationTableLineService tableLineService;
 
     public CropFoliarAnalysisInterpretationTableLineControllerImpl(CropFoliarAnalysisInterpretationTableLineService tableLineService) {
@@ -76,15 +73,10 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImpl
             @RequestParam(name = "tableId") Long tableId,
             Authentication authentication) {
 
-        try {
-            String username = getAuthenticatedUsername(authentication);
-            List<CropFoliarAnalysisInterpretationTableLineResponseDto> lines = tableLineService
-                    .getAllCropFoliarAnalysisInterpretationTableLinesByTable(tableId, username);
-            return ResponseEntity.ok(lines);
-        } catch (Exception e) {
-            logger.error("Erro ao listar linhas da tabela foliar: ", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno: " + e.getMessage());
-        }
+        String username = getAuthenticatedUsername(authentication);
+        List<CropFoliarAnalysisInterpretationTableLineResponseDto> lines = tableLineService
+                .getAllCropFoliarAnalysisInterpretationTableLinesByTable(tableId, username);
+        return ResponseEntity.ok(lines);
     }
 
     @Override
