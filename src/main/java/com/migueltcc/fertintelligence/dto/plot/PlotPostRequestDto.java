@@ -74,4 +74,8 @@ public class PlotPostRequestDto {
     @JsonProperty("nova_altitude")
     Double altitude;
 
+    @Schema(example = "665f3f4f31c6d31d7c31ec1a")
+    @JsonProperty("novo_idfoto")
+    String idFoto;
+
 }

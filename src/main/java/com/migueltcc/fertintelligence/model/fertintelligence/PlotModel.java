@@ -68,6 +68,9 @@ public class PlotModel {
     @Column(name = "ALTITUDE")
     Double altitude;
 
+    @Column(name = "ID_FOTO")
+    String idFoto;
+
     public PlotResponseDto toDto() {
         return PlotResponseDto.builder()
                 .id(this.id)
@@ -85,6 +88,7 @@ public class PlotModel {
                 .longitude(this.longitude)
                 .longitudeDirection(this.longitudeDirection)
                 .altitude(this.altitude)
+                .idFoto(this.idFoto)
                 .propertyId(this.property.getId())
                 .propertyName(this.property.getNome())
                 .build();

@@ -39,4 +39,7 @@ public class PropertyCreateRequestDto {
     @NotNull(message = "Localização é obrigatória")
     @Valid
     private LocalizacaoDto localizacao;
+
+    @JsonProperty("idfoto")
+    private String idFoto;
 }

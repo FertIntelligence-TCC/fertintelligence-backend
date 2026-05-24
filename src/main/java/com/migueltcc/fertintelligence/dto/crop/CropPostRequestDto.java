@@ -72,4 +72,8 @@ public class CropPostRequestDto {
     @JsonProperty("novo_data_colheita")
     Date harvestDate;
 
+    @Schema(example = "665f3f4f31c6d31d7c31ec1a")
+    @JsonProperty("novo_idfoto")
+    String idFoto;
+
 }

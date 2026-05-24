@@ -72,6 +72,7 @@ public class PlotServiceImpl implements PlotService {
                 .longitude(createRequestDto.getLongitude())
                 .longitudeDirection(createRequestDto.getLongitudeDirection())
                 .altitude(createRequestDto.getAltitude())
+                .idFoto(createRequestDto.getIdFoto())
                 .build();
 
         PlotModel savedPlot = plotRepository.save(plot);
@@ -172,6 +173,10 @@ public class PlotServiceImpl implements PlotService {
 
         if (updateRequestDto.getAltitude() != null) {
             plot.setAltitude(updateRequestDto.getAltitude());
+        }
+
+        if (updateRequestDto.getIdFoto() != null) {
+            plot.setIdFoto(updateRequestDto.getIdFoto());
         }
 
         PlotModel updatedPlot = plotRepository.save(plot);

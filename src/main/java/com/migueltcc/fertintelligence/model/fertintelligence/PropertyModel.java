@@ -39,6 +39,9 @@ public class PropertyModel {
     @Column(name = "LOCALIZACAO", nullable = false)
     private Localizacao localizacao;
 
+    @Column(name = "ID_FOTO")
+    private String idFoto;
+
     public PropertyResponseDto toDto() {
         return PropertyResponseDto.builder()
                 .id(this.id)
@@ -52,6 +55,7 @@ public class PropertyModel {
                         this.localizacao.getLongDirection(),
                         this.localizacao.getAltitude()
                 ))
+                .idFoto(this.idFoto)
                 .managerId(this.manager != null ? this.manager.getId() : null)
                 .managerNome(this.manager != null ? this.manager.getName() : null)
                 .ownerId(this.owner.getId())

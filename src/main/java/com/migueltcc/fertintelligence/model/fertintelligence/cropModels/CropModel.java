@@ -94,6 +94,9 @@ public class CropModel {
     })
     Date harvestDate;
 
+    @Column(name = "ID_FOTO")
+    String idFoto;
+
     public CropResponseDto toDto() {
         return CropResponseDto.builder()
                 .id(this.id)
@@ -111,6 +114,7 @@ public class CropModel {
                 .buttoningDate(copyDate(this.buttoningDate))
                 .floweringDate(copyDate(this.floweringDate))
                 .harvestDate(copyDate(this.harvestDate))
+                .idFoto(this.idFoto)
                 .folder_id(this.folder.getId())
                 .cropsYear(this.folder.getCropsYear())
                 .build();

@@ -72,4 +72,7 @@ public class CropCreateRequestDto {
     @NotNull
     Date harvestDate;
 
+    @JsonProperty("idfoto")
+    String idFoto;
+
 }

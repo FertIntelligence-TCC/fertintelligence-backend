@@ -78,6 +78,10 @@ public class PlotResponseDto {
     @JsonProperty("altitude")
     Double altitude;
 
+    @Schema(example = "665f3f4f31c6d31d7c31ec1a")
+    @JsonProperty("idfoto")
+    String idFoto;
+
     @Schema(example = "42")
     @JsonProperty("id_propriedade")
     Long propertyId;

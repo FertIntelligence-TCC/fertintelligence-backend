@@ -74,6 +74,7 @@ public class CropServiceImpl implements CropService {
                 .buttoningDate(copyDate(createRequestDto.getButtoningDate()))
                 .floweringDate(copyDate(createRequestDto.getFloweringDate()))
                 .harvestDate(copyDate(createRequestDto.getHarvestDate()))
+                .idFoto(createRequestDto.getIdFoto())
                 .build();
 
         return cropRepository.save(crop).toDto();
@@ -147,6 +148,7 @@ public class CropServiceImpl implements CropService {
         if (updateRequestDto.getButtoningDate() != null) crop.setButtoningDate(copyDate(updateRequestDto.getButtoningDate()));
         if (updateRequestDto.getFloweringDate() != null) crop.setFloweringDate(copyDate(updateRequestDto.getFloweringDate()));
         if (updateRequestDto.getHarvestDate() != null) crop.setHarvestDate(copyDate(updateRequestDto.getHarvestDate()));
+        if (updateRequestDto.getIdFoto() != null) crop.setIdFoto(updateRequestDto.getIdFoto());
 
         return cropRepository.save(crop).toDto();
     }
