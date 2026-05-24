@@ -1,16 +1,14 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
-import com.migueltcc.fertintelligence.dto.fertigram.FertigramNutrientDto;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
-import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretationTableLineRepository;
-import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretationTableRepository;
-import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.*;
 import com.migueltcc.fertintelligence.service.documentation.FertigramService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +16,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -29,10 +26,12 @@ public class FertigramServiceImpl implements FertigramService {
     private final CropFoliarAnalysisInterpretationTableRepository tableRepository;
     private final CropFoliarAnalysisInterpretationTableLineRepository tableLineRepository;
     private final UserRepository userRepository;
+    private final FertigramRepository fertigramRepository;
+    private final FertigramNutrientRepository fertigramNutrientRepository;
     private final PermissionManager permissionManager;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public FertigramResponseDto generate(Long foliarAnalysisId, Long tableId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
         FoliarAnalysisModel analysis = foliarAnalysisRepository.findById(foliarAnalysisId)
@@ -47,56 +46,49 @@ public class FertigramServiceImpl implements FertigramService {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
         }
 
+        FertigramModel fertigram = fertigramRepository.save(FertigramModel.builder()
+                .foliarAnalysis(analysis)
+                .table(table)
+                .build());
+
         List<CropFoliarAnalysisInterpretationTableLineModel> lines = tableLineRepository.findAllByTableOrderByIdAsc(table);
         if (lines.isEmpty()) {
-            return FertigramResponseDto.builder()
-                    .foliarAnalysisId(analysis.getId())
-                    .tableId(table.getId())
-                    .cropName(analysis.getCrop().getName())
-                    .warning("Tabela de interpretação sem linhas cadastradas.")
-                    .build();
+            fertigram.setWarning("Tabela de interpretação sem linhas cadastradas.");
+            return fertigramRepository.save(fertigram).toDto();
         }
 
         CropFoliarAnalysisInterpretationTableLineModel line = lines.get(0);
 
-        List<FertigramNutrientDto> macros = new ArrayList<>();
-        List<FertigramNutrientDto> micros = new ArrayList<>();
-
         if (analysis.getMacronutrients() != null) {
-            addNutrient(macros, "N", analysis.getMacronutrients().getN_content(), line.getN_content());
-            addNutrient(macros, "P", analysis.getMacronutrients().getP_content(), line.getP_content());
-            addNutrient(macros, "K", analysis.getMacronutrients().getK_content(), line.getK_content());
-            addNutrient(macros, "Ca", analysis.getMacronutrients().getCa_content(), line.getCa_content());
-            addNutrient(macros, "Mg", analysis.getMacronutrients().getMg_content(), line.getMg_content());
-            addNutrient(macros, "S", analysis.getMacronutrients().getS_content(), line.getS_content());
+            saveNutrient(fertigram, "N", "MACRO", analysis.getMacronutrients().getN_content(), line.getN_content());
+            saveNutrient(fertigram, "P", "MACRO", analysis.getMacronutrients().getP_content(), line.getP_content());
+            saveNutrient(fertigram, "K", "MACRO", analysis.getMacronutrients().getK_content(), line.getK_content());
+            saveNutrient(fertigram, "Ca", "MACRO", analysis.getMacronutrients().getCa_content(), line.getCa_content());
+            saveNutrient(fertigram, "Mg", "MACRO", analysis.getMacronutrients().getMg_content(), line.getMg_content());
+            saveNutrient(fertigram, "S", "MACRO", analysis.getMacronutrients().getS_content(), line.getS_content());
         }
 
         if (analysis.getMicronutrients() != null) {
-            addNutrient(micros, "B", analysis.getMicronutrients().getB_content(), line.getB_content());
-            addNutrient(micros, "Cu", analysis.getMicronutrients().getCu_content(), line.getCu_content());
-            addNutrient(micros, "Fe", analysis.getMicronutrients().getFe_content(), line.getFe_content());
-            addNutrient(micros, "Mn", analysis.getMicronutrients().getMn_content(), line.getMn_content());
-            addNutrient(micros, "Mo", analysis.getMicronutrients().getMo_content(), line.getMo_content());
-            addNutrient(micros, "Zn", analysis.getMicronutrients().getZn_content(), line.getZn_content());
+            saveNutrient(fertigram, "B", "MICRO", analysis.getMicronutrients().getB_content(), line.getB_content());
+            saveNutrient(fertigram, "Cu", "MICRO", analysis.getMicronutrients().getCu_content(), line.getCu_content());
+            saveNutrient(fertigram, "Fe", "MICRO", analysis.getMicronutrients().getFe_content(), line.getFe_content());
+            saveNutrient(fertigram, "Mn", "MICRO", analysis.getMicronutrients().getMn_content(), line.getMn_content());
+            saveNutrient(fertigram, "Mo", "MICRO", analysis.getMicronutrients().getMo_content(), line.getMo_content());
+            saveNutrient(fertigram, "Zn", "MICRO", analysis.getMicronutrients().getZn_content(), line.getZn_content());
         }
 
-        return FertigramResponseDto.builder()
-                .foliarAnalysisId(analysis.getId())
-                .tableId(table.getId())
-                .cropName(analysis.getCrop().getName())
-                .macronutrients(macros)
-                .micronutrients(micros)
-                .build();
+        return fertigram.toDto();
     }
 
-    private void addNutrient(List<FertigramNutrientDto> list, String nutrient, Double measured, MenorMaiorTeores range) {
+    private void saveNutrient(FertigramModel fertigram, String nutrient, String group, Double measured, MenorMaiorTeores range) {
         if (measured == null) return;
-
         Double min = range != null ? range.getMenor() : null;
         Double max = range != null ? range.getMaior() : null;
 
-        list.add(FertigramNutrientDto.builder()
+        fertigramNutrientRepository.save(FertigramNutrientModel.builder()
+                .fertigram(fertigram)
                 .nutrient(nutrient)
+                .groupType(group)
                 .measuredValue(measured)
                 .recommendedMinimum(min)
                 .recommendedMaximum(max)

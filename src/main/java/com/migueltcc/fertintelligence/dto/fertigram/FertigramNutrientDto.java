@@ -10,7 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FertigramNutrientDto {
+    private Long id;
+    private Long fertigramId;
     private String nutrient;
+    private String groupType;
     private Double measuredValue;
     private Double recommendedMinimum;
     private Double recommendedMaximum;
