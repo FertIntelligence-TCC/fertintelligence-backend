@@ -14,6 +14,7 @@ public class FertigramNutrientDto {
     private Long fertigramId;
     private String nutrient;
     private String groupType;
+    private String nutrientGroupType;
     private Double measuredValue;
     private Double recommendedMinimum;
     private Double recommendedMaximum;

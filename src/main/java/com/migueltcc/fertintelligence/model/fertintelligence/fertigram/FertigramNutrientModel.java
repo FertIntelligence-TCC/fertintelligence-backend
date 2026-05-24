@@ -47,6 +47,7 @@ public class FertigramNutrientModel {
                 .fertigramId(fertigram.getId())
                 .nutrient(nutrient)
                 .groupType(groupType != null ? groupType.name() : null)
+                .nutrientGroupType(resolveNutrientGroupType(groupType))
                 .measuredValue(measuredValue)
                 .recommendedMinimum(recommendedMinimum)
                 .recommendedMaximum(recommendedMaximum)
@@ -54,4 +55,13 @@ public class FertigramNutrientModel {
                 .interpretation(interpretation)
                 .build();
     }
+
+    private String resolveNutrientGroupType(FertigramNutrientGroupType groupType) {
+        if (groupType == null) return null;
+        return switch (groupType) {
+            case MACRO -> "MACRONUTRIENTE";
+            case MICRO -> "MICRONUTRIENTE";
+        };
+    }
 }
+
