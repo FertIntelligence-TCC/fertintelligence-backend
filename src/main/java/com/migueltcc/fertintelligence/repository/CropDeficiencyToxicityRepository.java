@@ -16,6 +16,7 @@ public interface CropDeficiencyToxicityRepository extends JpaRepository<CropDefi
     List<CropDeficiencyToxicityModel> findAllByCrop(CropModel crop);
 
     List<CropDeficiencyToxicityModel> findAllByCropId(Long cropId);
+    List<CropDeficiencyToxicityModel> findAllByObservationsStartingWith(String observationsPrefix);
 
     boolean existsByCropAndNutrientAndObservations(CropModel crop, DeficiencyToxicityNutrient nutrient, String observations);
 

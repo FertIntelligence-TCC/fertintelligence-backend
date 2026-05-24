@@ -42,6 +42,7 @@ import java.util.List;
         matchIfMissing = true
 )
 public class CropManagementDataSeeder implements CommandLineRunner {
+    private static final String SEEDED_DEFICIENCY_TOXICITY_OBSERVATION_PREFIX = "Registro fictício de deficiência/toxidez para testes #";
 
     private final CropRepository cropRepository;
     private final FoliarAnalysisRepository foliarAnalysisRepository;
@@ -74,6 +75,8 @@ public class CropManagementDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        cleanupLegacyFakeImageIds();
+
         List<CropModel> crops = cropRepository.findAll();
 
         if (crops.isEmpty()) {
@@ -253,7 +256,7 @@ public class CropManagementDataSeeder implements CommandLineRunner {
 
         DeficiencyToxicityNutrient nutrient = DeficiencyToxicityNutrient.values()[cropIndex % DeficiencyToxicityNutrient.values().length];
         NutrientType type = cropIndex % 2 == 0 ? NutrientType.MACRONUTRIENT : NutrientType.MICRONUTRIENT;
-        String observations = "Registro fictício de deficiência/toxidez para testes #" + crop.getId();
+        String observations = SEEDED_DEFICIENCY_TOXICITY_OBSERVATION_PREFIX + crop.getId();
 
         boolean exists = cropDeficiencyToxicityRepository.existsByCropAndNutrientAndObservations(crop, nutrient, observations);
         if (exists) {
@@ -265,13 +268,39 @@ public class CropManagementDataSeeder implements CommandLineRunner {
                 .crop(crop)
                 .nutrientType(type)
                 .nutrient(nutrient)
-                .healthyPlantImageId("healthy-image-" + crop.getId())
-                .symptomaticPlantImageId(cropIndex % 3 == 0 ? null : "symptom-image-" + crop.getId())
+                .healthyPlantImageId(null)
+                .symptomaticPlantImageId(null)
                 .observations(observations)
                 .build();
 
         cropDeficiencyToxicityRepository.save(model);
         log.info("✅ Deficiência/toxidez criada: cultura={} nutriente={}", crop.getId(), nutrient);
+    }
+
+    private void cleanupLegacyFakeImageIds() {
+        List<CropDeficiencyToxicityModel> seededRecords = cropDeficiencyToxicityRepository
+                .findAllByObservationsStartingWith(SEEDED_DEFICIENCY_TOXICITY_OBSERVATION_PREFIX);
+
+        int updatedRecords = 0;
+        for (CropDeficiencyToxicityModel record : seededRecords) {
+            boolean hasLegacyHealthyImageId = record.getHealthyPlantImageId() != null
+                    && !record.getHealthyPlantImageId().matches("^[a-fA-F0-9]{24}$");
+            boolean hasLegacySymptomaticImageId = record.getSymptomaticPlantImageId() != null
+                    && !record.getSymptomaticPlantImageId().matches("^[a-fA-F0-9]{24}$");
+
+            if (!hasLegacyHealthyImageId && !hasLegacySymptomaticImageId) {
+                continue;
+            }
+
+            record.setHealthyPlantImageId(null);
+            record.setSymptomaticPlantImageId(null);
+            cropDeficiencyToxicityRepository.save(record);
+            updatedRecords++;
+        }
+
+        if (updatedRecords > 0) {
+            log.warn("🧹 {} registros seedados antigos de deficiência/toxidez tiveram IDs de imagem inválidos limpos (null).", updatedRecords);
+        }
     }
 
     private Date resolveTopdressingDate(int order, int year) {
