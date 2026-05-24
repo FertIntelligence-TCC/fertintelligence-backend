@@ -1,26 +1,24 @@
 package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
-import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
-import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretationTableLineRepository;
-import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretationTableRepository;
-import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
-import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.*;
 import com.migueltcc.fertintelligence.service.implementation.FertigramServiceImpl;
 import com.migueltcc.fertintelligence.service.implementation.PermissionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -38,6 +36,8 @@ class FertigramServiceImplTest {
     @Mock CropFoliarAnalysisInterpretationTableLineRepository lineRepo;
     @Mock UserRepository userRepo;
     @Mock PermissionManager permissionManager;
+    @Mock FertigramRepository fertigramRepository;
+    @Mock FertigramNutrientRepository fertigramNutrientRepository;
     @InjectMocks FertigramServiceImpl service;
 
     private UserModel user;
@@ -70,28 +70,42 @@ class FertigramServiceImplTest {
                 .mo_content(new MenorMaiorTeores(1.0, 3.0, "mg/kg"))
                 .build();
 
+        FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
+
         when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
         when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
         when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
         when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(line));
+        when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
+        when(fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(savedFertigram))
+                .thenReturn(List.of(
+                        FertigramNutrientModel.builder().id(1L).fertigram(savedFertigram).nutrient("N").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(3.0).build(),
+                        FertigramNutrientModel.builder().id(2L).fertigram(savedFertigram).nutrient("P").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(0.2).build(),
+                        FertigramNutrientModel.builder().id(3L).fertigram(savedFertigram).nutrient("B").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MICRO).measuredValue(20.0).build(),
+                        FertigramNutrientModel.builder().id(4L).fertigram(savedFertigram).nutrient("Fe").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MICRO).measuredValue(95.0).build()
+                ));
 
         FertigramResponseDto response = service.generate(100L, 5L, "u");
 
-        assertEquals(4, response.getMacronutrients().size());
-        assertEquals(4, response.getMicronutrients().size());
+        assertEquals(2, response.getMacronutrients().size());
+        assertEquals(2, response.getMicronutrients().size());
+        verify(fertigramNutrientRepository, atLeastOnce()).save(any(FertigramNutrientModel.class));
     }
 
     @Test
     void nutrienteNullNaoApareceNoResponse() {
+        FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
         when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
         when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
         when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
         when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(CropFoliarAnalysisInterpretationTableLineModel.builder().build()));
+        when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
+        when(fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(savedFertigram)).thenReturn(List.of());
 
         FertigramResponseDto response = service.generate(100L, 5L, "u");
 
-        assertTrue(response.getMacronutrients().stream().noneMatch(n -> "Ca".equals(n.getNutrient())));
-        assertTrue(response.getMicronutrients().stream().noneMatch(n -> "Cu".equals(n.getNutrient())));
+        assertTrue(response.getMacronutrients().isEmpty());
+        assertTrue(response.getMicronutrients().isEmpty());
     }
 
     @Test
@@ -107,15 +121,18 @@ class FertigramServiceImplTest {
 
     @Test
     void semLinhasRetornaListasVaziasComWarning() {
+        FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).warning("Tabela de interpretação sem linhas cadastradas.").build();
         when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
         when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
         when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
         when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(Collections.emptyList());
+        when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
 
         FertigramResponseDto response = service.generate(100L, 5L, "u");
 
         assertTrue(response.getMacronutrients().isEmpty());
         assertTrue(response.getMicronutrients().isEmpty());
         assertNotNull(response.getWarning());
+        verify(fertigramNutrientRepository, never()).save(any(FertigramNutrientModel.class));
     }
 }

@@ -15,15 +15,16 @@ public class FertigramNutrientModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "ID_FERTIGRAMA", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "FERTIGRAM_ID", nullable = false)
     FertigramModel fertigram;
 
     @Column(name = "NUTRIENTE", nullable = false)
     String nutrient;
 
     @Column(name = "TIPO_GRUPO", nullable = false)
-    String groupType;
+    @Enumerated(EnumType.STRING)
+    FertigramNutrientGroupType groupType;
 
     @Column(name = "VALOR_MEDIDO", nullable = false)
     Double measuredValue;
@@ -45,7 +46,7 @@ public class FertigramNutrientModel {
                 .id(id)
                 .fertigramId(fertigram.getId())
                 .nutrient(nutrient)
-                .groupType(groupType)
+                .groupType(groupType != null ? groupType.name() : null)
                 .measuredValue(measuredValue)
                 .recommendedMinimum(recommendedMinimum)
                 .recommendedMaximum(recommendedMaximum)
