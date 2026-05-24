@@ -40,8 +40,14 @@ public class FertigramServiceImpl implements FertigramService {
         FoliarAnalysisModel analysis = foliarAnalysisRepository.findById(foliarAnalysisId)
                 .orElseThrow(() -> new EntityNotFoundException("Análise foliar não encontrada com o ID: " + foliarAnalysisId));
 
-        if (analysis.getCrop() == null || analysis.getCrop().getFolder() == null || analysis.getCrop().getFolder().getPlot() == null) {
-            throw new EntityNotFoundException("A análise foliar informada não possui vínculo válido com a área (plot).");
+        if (analysis.getCrop() == null) {
+            throw new EntityNotFoundException("A análise foliar informada não possui cultura vinculada.");
+        }
+        if (analysis.getCrop().getFolder() == null) {
+            throw new EntityNotFoundException("A cultura da análise foliar não possui pasta anual vinculada.");
+        }
+        if (analysis.getCrop().getFolder().getPlot() == null) {
+            throw new EntityNotFoundException("A pasta anual da cultura não possui talhão vinculado.");
         }
 
         permissionManager.assertCanReadPlot(analysis.getCrop().getFolder().getPlot(), requester);
@@ -65,8 +71,14 @@ public class FertigramServiceImpl implements FertigramService {
             return buildResponse(fertigram, List.of());
         }
 
-        CropFoliarAnalysisInterpretationTableLineModel line = resolveLineForAnalysis(lines, analysis)
-                .orElse(lines.get(0));
+        Optional<CropFoliarAnalysisInterpretationTableLineModel> lineOptional = resolveLineForAnalysis(lines, analysis);
+        if (lineOptional.isEmpty()) {
+            fertigram.setWarning("Tabela de interpretação não possui linha compatível com a cultura da análise foliar.");
+            fertigram = fertigramRepository.save(fertigram);
+            return buildResponse(fertigram, List.of());
+        }
+
+        CropFoliarAnalysisInterpretationTableLineModel line = lineOptional.get();
 
         if (analysis.getMacronutrients() != null) {
             saveNutrient(fertigram, "N", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getN_content(), line.getN_content());
