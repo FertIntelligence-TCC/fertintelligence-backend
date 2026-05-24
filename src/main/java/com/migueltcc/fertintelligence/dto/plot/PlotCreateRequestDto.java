@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -54,5 +56,20 @@ public class PlotCreateRequestDto {
     @JsonProperty("pluviosidade_anual")
     @NotNull
     Double annualPluviosity;
+
+    @JsonProperty("latitude")
+    Double latitude;
+
+    @JsonProperty("latitudeDirection")
+    LatitudeDirection latitudeDirection;
+
+    @JsonProperty("longitude")
+    Double longitude;
+
+    @JsonProperty("longitudeDirection")
+    LongitudeDirection longitudeDirection;
+
+    @JsonProperty("altitude")
+    Double altitude;
 
 }

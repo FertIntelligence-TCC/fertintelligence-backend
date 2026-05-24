@@ -67,6 +67,11 @@ public class PlotServiceImpl implements PlotService {
                 .declivity(createRequestDto.getDeclivity())
                 .monthlyPluviosity(createRequestDto.getMonthlyPluviosity())
                 .annualPluviosity(createRequestDto.getAnnualPluviosity())
+                .latitude(createRequestDto.getLatitude())
+                .latitudeDirection(createRequestDto.getLatitudeDirection())
+                .longitude(createRequestDto.getLongitude())
+                .longitudeDirection(createRequestDto.getLongitudeDirection())
+                .altitude(createRequestDto.getAltitude())
                 .build();
 
         PlotModel savedPlot = plotRepository.save(plot);
@@ -147,6 +152,26 @@ public class PlotServiceImpl implements PlotService {
 
         if (updateRequestDto.getAnnualPluviosity() != null) {
             plot.setAnnualPluviosity(updateRequestDto.getAnnualPluviosity());
+        }
+
+        if (updateRequestDto.getLatitude() != null) {
+            plot.setLatitude(updateRequestDto.getLatitude());
+        }
+
+        if (updateRequestDto.getLatitudeDirection() != null) {
+            plot.setLatitudeDirection(updateRequestDto.getLatitudeDirection());
+        }
+
+        if (updateRequestDto.getLongitude() != null) {
+            plot.setLongitude(updateRequestDto.getLongitude());
+        }
+
+        if (updateRequestDto.getLongitudeDirection() != null) {
+            plot.setLongitudeDirection(updateRequestDto.getLongitudeDirection());
+        }
+
+        if (updateRequestDto.getAltitude() != null) {
+            plot.setAltitude(updateRequestDto.getAltitude());
         }
 
         PlotModel updatedPlot = plotRepository.save(plot);

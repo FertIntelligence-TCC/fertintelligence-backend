@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,5 +53,25 @@ public class PlotPostRequestDto {
     @Schema(example = "1200")
     @JsonProperty("nova_pluviosidade_anual")
     Double annualPluviosity;
+
+    @Schema(example = "-15.7801")
+    @JsonProperty("nova_latitude")
+    Double latitude;
+
+    @Schema(example = "SUL")
+    @JsonProperty("nova_latitudeDirection")
+    LatitudeDirection latitudeDirection;
+
+    @Schema(example = "-47.9292")
+    @JsonProperty("nova_longitude")
+    Double longitude;
+
+    @Schema(example = "OESTE")
+    @JsonProperty("nova_longitudeDirection")
+    LongitudeDirection longitudeDirection;
+
+    @Schema(example = "1172.0")
+    @JsonProperty("nova_altitude")
+    Double altitude;
 
 }

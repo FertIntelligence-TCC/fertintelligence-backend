@@ -3,6 +3,8 @@ package com.migueltcc.fertintelligence.model.fertintelligence;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.dto.plot.PlotResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,6 +53,21 @@ public class PlotModel {
     @Column(name = "PLUVIOSIDADE_ANUAL", nullable = false)
     Double annualPluviosity;
 
+    @Column(name = "LATITUDE")
+    Double latitude;
+
+    @Column(name = "NORTE/SUL")
+    LatitudeDirection latitudeDirection;
+
+    @Column(name = "LONGITUDE")
+    Double longitude;
+
+    @Column(name = "OESTE/LESTE")
+    LongitudeDirection longitudeDirection;
+
+    @Column(name = "ALTITUDE")
+    Double altitude;
+
     public PlotResponseDto toDto() {
         return PlotResponseDto.builder()
                 .id(this.id)
@@ -63,6 +80,11 @@ public class PlotModel {
                 .declivity(this.declivity)
                 .monthlyPluviosity(this.monthlyPluviosity)
                 .annualPluviosity(this.annualPluviosity)
+                .latitude(this.latitude)
+                .latitudeDirection(this.latitudeDirection)
+                .longitude(this.longitude)
+                .longitudeDirection(this.longitudeDirection)
+                .altitude(this.altitude)
                 .propertyId(this.property.getId())
                 .propertyName(this.property.getNome())
                 .build();

@@ -3,6 +3,8 @@ package com.migueltcc.fertintelligence.config;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
 import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
+import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
@@ -144,6 +146,9 @@ public class PlotDataSeeder implements CommandLineRunner {
         double declivity = Math.round((2.5 + propertyIndex + (plotIndex * 0.75)) * 100.0) / 100.0;
         double monthlyPluviosity = Math.round((90.0 + propertyIndex * 4.0 + plotIndex * 6.5) * 100.0) / 100.0;
         double annualPluviosity = Math.round((monthlyPluviosity * 12.0) * 100.0) / 100.0;
+        double latitude = Math.round((-15.0 - (propertyIndex * 0.2) - (plotIndex * 0.05)) * 10000.0) / 10000.0;
+        double longitude = Math.round((-47.0 - (propertyIndex * 0.25) - (plotIndex * 0.06)) * 10000.0) / 10000.0;
+        double altitude = Math.round((700.0 + (propertyIndex * 15.0) + (plotIndex * 8.0)) * 100.0) / 100.0;
 
         PlotModel plot = PlotModel.builder()
                 .property(property)
@@ -156,6 +161,11 @@ public class PlotDataSeeder implements CommandLineRunner {
                 .declivity(declivity)
                 .monthlyPluviosity(monthlyPluviosity)
                 .annualPluviosity(annualPluviosity)
+                .latitude(latitude)
+                .latitudeDirection(LatitudeDirection.SUL)
+                .longitude(longitude)
+                .longitudeDirection(LongitudeDirection.OESTE)
+                .altitude(altitude)
                 .build();
 
         plotRepository.save(plot);
