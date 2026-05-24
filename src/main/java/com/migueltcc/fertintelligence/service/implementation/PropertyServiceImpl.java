@@ -53,6 +53,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .endereco(endereco)
                 .cnpj(cnpj)
                 .localizacao(buildLocalizacao(dto.getLocalizacao()))
+                .idFoto(dto.getIdFoto())
                 .owner(owner)
                 .build();
 
@@ -107,6 +108,7 @@ public class PropertyServiceImpl implements PropertyService {
         updateCnpjIfNecessary(property, dto, propertyId);
         updateEnderecoIfNecessary(property, dto);
         updateLocalizacaoIfNecessary(property, dto);
+        updateIdFotoIfNecessary(property, dto);
 
         return propertyRepository.save(property).toDto();
     }
@@ -225,6 +227,13 @@ public class PropertyServiceImpl implements PropertyService {
 
         if (dto.getLocalizacao() != null) {
             property.setLocalizacao(buildLocalizacao(dto.getLocalizacao()));
+        }
+    }
+
+    private void updateIdFotoIfNecessary(PropertyModel property,
+                                         PropertyPostRequestDto dto) {
+        if (dto.getIdFoto() != null) {
+            property.setIdFoto(dto.getIdFoto());
         }
     }
 

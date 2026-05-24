@@ -76,6 +76,10 @@ public class CropResponseDto {
     @JsonProperty("data_colheita")
     Date harvestDate;
 
+    @Schema(example = "665f3f4f31c6d31d7c31ec1a")
+    @JsonProperty("idfoto")
+    String idFoto;
+
     @Schema(example = "51")
     @JsonProperty("id_pasta_culturas_anuais")
     Long folder_id;

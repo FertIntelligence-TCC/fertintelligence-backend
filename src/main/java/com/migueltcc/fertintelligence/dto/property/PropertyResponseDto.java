@@ -30,6 +30,10 @@ public class PropertyResponseDto {
     @JsonProperty("localizacao")
     private LocalizacaoDto localizacao;
 
+    @Schema(example = "665f3f4f31c6d31d7c31ec1a")
+    @JsonProperty("idfoto")
+    private String idFoto;
+
     @Schema(example = "42")
     @JsonProperty("owner_id")
     private Long ownerId;

@@ -72,4 +72,7 @@ public class PlotCreateRequestDto {
     @JsonProperty("altitude")
     Double altitude;
 
+    @JsonProperty("idfoto")
+    String idFoto;
+
 }

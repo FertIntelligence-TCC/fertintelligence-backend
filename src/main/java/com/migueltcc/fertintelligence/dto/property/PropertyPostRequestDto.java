@@ -38,4 +38,8 @@ public class PropertyPostRequestDto {
     @JsonProperty("nova_localizacao")
     @Valid
     private LocalizacaoDto localizacao;
+
+    @Schema(defaultValue = "idfoto")
+    @JsonProperty("novo_idfoto")
+    private String idFoto;
 }
