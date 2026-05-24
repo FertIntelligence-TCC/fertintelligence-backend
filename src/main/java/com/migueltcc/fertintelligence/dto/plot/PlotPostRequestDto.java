@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.plot;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
@@ -76,6 +77,7 @@ public class PlotPostRequestDto {
 
     @Schema(example = "665f3f4f31c6d31d7c31ec1a")
     @JsonProperty("novo_idfoto")
+    @JsonAlias({"novoIdFoto", "novo_idFoto"})
     String idFoto;
 
 }
