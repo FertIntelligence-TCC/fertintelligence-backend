@@ -5,11 +5,15 @@ import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedM
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.BeneficialElementsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropDeficiencyToxicityModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.TopdressingFertilizationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.LiquidSourceModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.foliarFertilizationModels.SolidSourceModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.enums.DeficiencyToxicityNutrient;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.enums.NutrientType;
+import com.migueltcc.fertintelligence.repository.CropDeficiencyToxicityRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.FoliarAnalysisRepository;
 import com.migueltcc.fertintelligence.repository.LiquidSourceRepository;
@@ -44,6 +48,7 @@ public class CropManagementDataSeeder implements CommandLineRunner {
     private final TopDressingFertilizationRepository topDressingFertilizationRepository;
     private final LiquidSourceRepository liquidSourceRepository;
     private final SolidSourceRepository solidSourceRepository;
+    private final CropDeficiencyToxicityRepository cropDeficiencyToxicityRepository;
 
     private static final List<String> LABORATORIOS = List.of(
             "Laboratório Foliar Nordeste",
@@ -92,6 +97,7 @@ public class CropManagementDataSeeder implements CommandLineRunner {
 
             createLiquidSourceIfNotExists(crop, cropIndex);
             createSolidSourceIfNotExists(crop, cropIndex);
+            createDeficiencyToxicityIfNotExists(crop, cropIndex);
         }
     }
 
@@ -239,6 +245,33 @@ public class CropManagementDataSeeder implements CommandLineRunner {
 
         solidSourceRepository.save(source);
         log.info("✅ Fonte sólida criada: cultura={} nome={}", crop.getId(), sourceName);
+    }
+
+
+    private void createDeficiencyToxicityIfNotExists(CropModel crop, int cropIndex) {
+        if (crop == null) return;
+
+        DeficiencyToxicityNutrient nutrient = DeficiencyToxicityNutrient.values()[cropIndex % DeficiencyToxicityNutrient.values().length];
+        NutrientType type = cropIndex % 2 == 0 ? NutrientType.MACRONUTRIENT : NutrientType.MICRONUTRIENT;
+        String observations = "Registro fictício de deficiência/toxidez para testes #" + crop.getId();
+
+        boolean exists = cropDeficiencyToxicityRepository.existsByCropAndNutrientAndObservations(crop, nutrient, observations);
+        if (exists) {
+            log.info("↩️ Registro já existe: deficiência/toxidez cultura={} nutriente={}", crop.getId(), nutrient);
+            return;
+        }
+
+        CropDeficiencyToxicityModel model = CropDeficiencyToxicityModel.builder()
+                .crop(crop)
+                .nutrientType(type)
+                .nutrient(nutrient)
+                .healthyPlantImageId("healthy-image-" + crop.getId())
+                .symptomaticPlantImageId(cropIndex % 3 == 0 ? null : "symptom-image-" + crop.getId())
+                .observations(observations)
+                .build();
+
+        cropDeficiencyToxicityRepository.save(model);
+        log.info("✅ Deficiência/toxidez criada: cultura={} nutriente={}", crop.getId(), nutrient);
     }
 
     private Date resolveTopdressingDate(int order, int year) {

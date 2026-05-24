@@ -33,6 +33,7 @@ public class CropServiceImpl implements CropService {
     private final LiquidSourceRepository liquidSourceRepository;
     private final SolidSourceRepository solidSourceRepository;
     private final TopDressingFertilizationRepository topDressingFertilizationRepository;
+    private final CropDeficiencyToxicityRepository cropDeficiencyToxicityRepository;
 
     private final PermissionManager permissionManager;
 
@@ -173,7 +174,9 @@ public class CropServiceImpl implements CropService {
         solidSourceRepository.flush();
 
         topDressingFertilizationRepository.deleteAllByCropId(crop.getId());
+        cropDeficiencyToxicityRepository.deleteAllByCropId(crop.getId());
         topDressingFertilizationRepository.flush();
+        cropDeficiencyToxicityRepository.flush();
 
         liquidSourceRepository.flush();
         foliarAnalysisRepository.flush();
