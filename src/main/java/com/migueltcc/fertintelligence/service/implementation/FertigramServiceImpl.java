@@ -1,10 +1,12 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
+import com.migueltcc.fertintelligence.dto.fertigram.FertigramNutrientDto;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
@@ -54,33 +56,50 @@ public class FertigramServiceImpl implements FertigramService {
         List<CropFoliarAnalysisInterpretationTableLineModel> lines = tableLineRepository.findAllByTableOrderByIdAsc(table);
         if (lines.isEmpty()) {
             fertigram.setWarning("Tabela de interpretação sem linhas cadastradas.");
-            return fertigramRepository.save(fertigram).toDto();
+            fertigram = fertigramRepository.save(fertigram);
+            return buildResponse(fertigram, List.of());
         }
 
         CropFoliarAnalysisInterpretationTableLineModel line = lines.get(0);
 
         if (analysis.getMacronutrients() != null) {
-            saveNutrient(fertigram, "N", "MACRO", analysis.getMacronutrients().getN_content(), line.getN_content());
-            saveNutrient(fertigram, "P", "MACRO", analysis.getMacronutrients().getP_content(), line.getP_content());
-            saveNutrient(fertigram, "K", "MACRO", analysis.getMacronutrients().getK_content(), line.getK_content());
-            saveNutrient(fertigram, "Ca", "MACRO", analysis.getMacronutrients().getCa_content(), line.getCa_content());
-            saveNutrient(fertigram, "Mg", "MACRO", analysis.getMacronutrients().getMg_content(), line.getMg_content());
-            saveNutrient(fertigram, "S", "MACRO", analysis.getMacronutrients().getS_content(), line.getS_content());
+            saveNutrient(fertigram, "N", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getN_content(), line.getN_content());
+            saveNutrient(fertigram, "P", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getP_content(), line.getP_content());
+            saveNutrient(fertigram, "K", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getK_content(), line.getK_content());
+            saveNutrient(fertigram, "Ca", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getCa_content(), line.getCa_content());
+            saveNutrient(fertigram, "Mg", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getMg_content(), line.getMg_content());
+            saveNutrient(fertigram, "S", FertigramNutrientGroupType.MACRO, analysis.getMacronutrients().getS_content(), line.getS_content());
         }
 
         if (analysis.getMicronutrients() != null) {
-            saveNutrient(fertigram, "B", "MICRO", analysis.getMicronutrients().getB_content(), line.getB_content());
-            saveNutrient(fertigram, "Cu", "MICRO", analysis.getMicronutrients().getCu_content(), line.getCu_content());
-            saveNutrient(fertigram, "Fe", "MICRO", analysis.getMicronutrients().getFe_content(), line.getFe_content());
-            saveNutrient(fertigram, "Mn", "MICRO", analysis.getMicronutrients().getMn_content(), line.getMn_content());
-            saveNutrient(fertigram, "Mo", "MICRO", analysis.getMicronutrients().getMo_content(), line.getMo_content());
-            saveNutrient(fertigram, "Zn", "MICRO", analysis.getMicronutrients().getZn_content(), line.getZn_content());
+            saveNutrient(fertigram, "B", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getB_content(), line.getB_content());
+            saveNutrient(fertigram, "Cu", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getCu_content(), line.getCu_content());
+            saveNutrient(fertigram, "Fe", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getFe_content(), line.getFe_content());
+            saveNutrient(fertigram, "Mn", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getMn_content(), line.getMn_content());
+            saveNutrient(fertigram, "Mo", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getMo_content(), line.getMo_content());
+            saveNutrient(fertigram, "Zn", FertigramNutrientGroupType.MICRO, analysis.getMicronutrients().getZn_content(), line.getZn_content());
         }
 
-        return fertigram.toDto();
+        List<FertigramNutrientModel> nutrients = fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(fertigram);
+        return buildResponse(fertigram, nutrients);
     }
 
-    private void saveNutrient(FertigramModel fertigram, String nutrient, String group, Double measured, MenorMaiorTeores range) {
+    private FertigramResponseDto buildResponse(FertigramModel fertigram, List<FertigramNutrientModel> nutrients) {
+        FertigramResponseDto response = fertigram.toDto();
+
+        for (FertigramNutrientModel nutrient : nutrients) {
+            FertigramNutrientDto dto = nutrient.toDto();
+            if (nutrient.getGroupType() == FertigramNutrientGroupType.MACRO) {
+                response.getMacronutrients().add(dto);
+            } else if (nutrient.getGroupType() == FertigramNutrientGroupType.MICRO) {
+                response.getMicronutrients().add(dto);
+            }
+        }
+
+        return response;
+    }
+
+    private void saveNutrient(FertigramModel fertigram, String nutrient, FertigramNutrientGroupType group, Double measured, MenorMaiorTeores range) {
         if (measured == null) return;
         Double min = range != null ? range.getMenor() : null;
         Double max = range != null ? range.getMaior() : null;
