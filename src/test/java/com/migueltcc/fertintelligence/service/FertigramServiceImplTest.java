@@ -5,6 +5,8 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
@@ -47,7 +49,9 @@ class FertigramServiceImplTest {
     @BeforeEach
     void setUp() {
         user = UserModel.builder().id(1L).username("u").build();
-        CropModel crop = CropModel.builder().id(10L).name(NomeComum.SOJA).build();
+        PlotModel plot = PlotModel.builder().id(99L).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(88L).plot(plot).build();
+        CropModel crop = CropModel.builder().id(10L).name(NomeComum.SOJA).folder(folder).build();
         analysis = FoliarAnalysisModel.builder()
                 .id(100L)
                 .crop(crop)
@@ -68,6 +72,7 @@ class FertigramServiceImplTest {
                 .fe_content(new MenorMaiorTeores(60.0, 120.0, "mg/kg"))
                 .mn_content(new MenorMaiorTeores(20.0, 50.0, "mg/kg"))
                 .mo_content(new MenorMaiorTeores(1.0, 3.0, "mg/kg"))
+                .crop(NomeComum.SOJA)
                 .build();
 
         FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
@@ -98,7 +103,7 @@ class FertigramServiceImplTest {
         when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
         when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
         when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
-        when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(CropFoliarAnalysisInterpretationTableLineModel.builder().build()));
+        when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(CropFoliarAnalysisInterpretationTableLineModel.builder().crop(NomeComum.SOJA).build()));
         when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
         when(fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(savedFertigram)).thenReturn(List.of());
 
@@ -161,4 +166,47 @@ class FertigramServiceImplTest {
 
         assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> service.generate(777L, 5L, "u"));
     }
+
+
+    @Test
+    void tabelaComLinhasSemCulturaCompativelRetornaListasVaziasComWarning() {
+        CropFoliarAnalysisInterpretationTableLineModel lineOutraCultura = CropFoliarAnalysisInterpretationTableLineModel.builder()
+                .crop(NomeComum.MILHO)
+                .build();
+        FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
+
+        when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
+        when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
+        when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
+        when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(lineOutraCultura));
+        when(fertigramRepository.save(any(FertigramModel.class)))
+                .thenReturn(savedFertigram)
+                .thenReturn(FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).warning("Tabela de interpretação não possui linha compatível com a cultura da análise foliar.").build());
+
+        FertigramResponseDto response = service.generate(100L, 5L, "u");
+
+        assertTrue(response.getMacronutrients().isEmpty());
+        assertTrue(response.getMicronutrients().isEmpty());
+        assertEquals("Tabela de interpretação não possui linha compatível com a cultura da análise foliar.", response.getWarning());
+    }
+
+    @Test
+    void nutrienteComFaixaNulaOuUnidadeNulaNaoQuebra() {
+        CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
+                .crop(NomeComum.SOJA)
+                .n_content(null)
+                .p_content(new MenorMaiorTeores(0.1, 0.3, null))
+                .build();
+        FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
+
+        when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
+        when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
+        when(tableRepo.findById(5L)).thenReturn(Optional.of(table));
+        when(lineRepo.findAllByTableOrderByIdAsc(table)).thenReturn(List.of(line));
+        when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
+        when(fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(savedFertigram)).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> service.generate(100L, 5L, "u"));
+    }
+
 }
