@@ -135,4 +135,30 @@ class FertigramServiceImplTest {
         assertNotNull(response.getWarning());
         verify(fertigramNutrientRepository, never()).save(any(FertigramNutrientModel.class));
     }
+
+    @Test
+    void foliarAnalysisInexistenteRetorna404Controlado() {
+        when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
+        when(foliarRepo.findById(404L)).thenReturn(Optional.empty());
+
+        assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> service.generate(404L, 5L, "u"));
+    }
+
+    @Test
+    void tabelaInexistenteRetorna404Controlado() {
+        when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
+        when(foliarRepo.findById(100L)).thenReturn(Optional.of(analysis));
+        when(tableRepo.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> service.generate(100L, 999L, "u"));
+    }
+
+    @Test
+    void dadosNulosDeVinculoDaAnaliseNaoGeramNpe() {
+        FoliarAnalysisModel analysisSemVinculo = FoliarAnalysisModel.builder().id(777L).build();
+        when(userRepo.findByUsername("u")).thenReturn(Optional.of(user));
+        when(foliarRepo.findById(777L)).thenReturn(Optional.of(analysisSemVinculo));
+
+        assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> service.generate(777L, 5L, "u"));
+    }
 }
