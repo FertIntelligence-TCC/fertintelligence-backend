@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Men
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
@@ -46,7 +47,7 @@ class FertigramServiceImplTest {
     @BeforeEach
     void setUp() {
         user = UserModel.builder().id(1L).username("u").build();
-        CropModel crop = CropModel.builder().id(10L).name("Soja").build();
+        CropModel crop = CropModel.builder().id(10L).name(NomeComum.SOJA).build();
         analysis = FoliarAnalysisModel.builder()
                 .id(100L)
                 .crop(crop)

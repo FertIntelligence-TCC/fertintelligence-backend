@@ -92,7 +92,7 @@ public class FertigramServiceImpl implements FertigramService {
                 .measuredValue(measured)
                 .recommendedMinimum(min)
                 .recommendedMaximum(max)
-                .unit(range != null ? range.getUnity() : null)
+                .unit(range != null && range.getUnity() != null ? range.getUnity().name() : null)
                 .interpretation(interpret(measured, min, max))
                 .build());
     }
