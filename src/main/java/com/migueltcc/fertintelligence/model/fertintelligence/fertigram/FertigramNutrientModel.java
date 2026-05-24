@@ -16,7 +16,7 @@ public class FertigramNutrientModel {
     Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "FERTIGRAM_ID", nullable = false)
+    @JoinColumn(name = "ID_FERTIGRAMA", nullable = false)
     FertigramModel fertigram;
 
     @Column(name = "NUTRIENTE", nullable = false)
