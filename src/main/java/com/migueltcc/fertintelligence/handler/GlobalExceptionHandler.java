@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.handler;
 
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -80,6 +82,33 @@ public class GlobalExceptionHandler {
         body.put("message", errors);
         body.put("path", request.getDescription(false).substring(4));
 
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Validation Error");
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException invalidFormatException) {
+            String fieldName = invalidFormatException.getPath().stream()
+                    .map(reference -> reference.getFieldName())
+                    .filter(name -> name != null && !name.isBlank())
+                    .reduce((first, second) -> second)
+                    .orElse("campo desconhecido");
+
+            Object invalidValue = invalidFormatException.getValue();
+            Class<?> targetType = invalidFormatException.getTargetType();
+            String targetTypeName = targetType != null ? targetType.getSimpleName() : "tipo desconhecido";
+
+            body.put("message", "Campo inválido '" + fieldName + "' com valor '" + invalidValue + "'. Tipo esperado: " + targetTypeName + ".");
+        } else {
+            body.put("message", "Body inválido. Verifique os campos obrigatórios e os formatos enviados.");
+        }
+
+        body.put("path", request.getDescription(false).substring(4));
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
