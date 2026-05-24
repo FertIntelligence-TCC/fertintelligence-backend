@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.plot;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.plot.AreaIrrigada;
 import com.migueltcc.fertintelligence.composedAttributes.plot.ClasseSolo;
@@ -79,8 +80,14 @@ public class PlotResponseDto {
     Double altitude;
 
     @Schema(example = "665f3f4f31c6d31d7c31ec1a")
-    @JsonProperty("idfoto")
+    @JsonProperty("id_foto")
+    @JsonAlias({"idFoto", "idfoto"})
     String idFoto;
+
+    @JsonProperty("idFoto")
+    public String getIdFotoCamelCase() {
+        return idFoto;
+    }
 
     @Schema(example = "42")
     @JsonProperty("id_propriedade")
