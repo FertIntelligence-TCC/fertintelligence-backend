@@ -33,7 +33,7 @@ public class FertigramModel {
                 .id(id)
                 .foliarAnalysisId(foliarAnalysis.getId())
                 .tableId(table.getId())
-                .cropName(foliarAnalysis.getCrop().getName() != null ? foliarAnalysis.getCrop().getName().name() : null)
+                .cropName(foliarAnalysis.getCrop().getVariety())
                 .warning(warning)
                 .build();
     }
