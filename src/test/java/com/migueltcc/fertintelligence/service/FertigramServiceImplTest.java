@@ -94,6 +94,8 @@ class FertigramServiceImplTest {
 
         assertEquals(2, response.getMacronutrients().size());
         assertEquals(2, response.getMicronutrients().size());
+        assertEquals("MACRONUTRIENTE", response.getMacronutrients().get(0).getNutrientGroupType());
+        assertEquals("MICRONUTRIENTE", response.getMicronutrients().get(0).getNutrientGroupType());
         verify(fertigramNutrientRepository, atLeastOnce()).save(any(FertigramNutrientModel.class));
     }
 
