@@ -45,7 +45,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .cropFertilizationTableId(100L)
                 .soilFertilityInterpretationCriteriaTableId(200L)
                 .cropFoliarAnalysisInterpretationTableId(300L)
-                .limingCriteria(CriterioCalagem.PORCENTAGEM_DE_SATURACAO_DAS_BASES)
+                .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
                 .build();
 
         RecommendationModel saved = RecommendationModel.builder()
