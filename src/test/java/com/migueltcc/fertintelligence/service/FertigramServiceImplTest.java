@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
@@ -64,14 +65,14 @@ class FertigramServiceImplTest {
     @Test
     void geraFertigramaComMacroEMicroPresentes() {
         CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
-                .n_content(new MenorMaiorTeores(3.5, 5.0, "%"))
-                .p_content(new MenorMaiorTeores(0.1, 0.3, "%"))
-                .k_content(new MenorMaiorTeores(1.8, 2.5, "%"))
-                .mg_content(new MenorMaiorTeores(0.3, 0.8, "%"))
-                .b_content(new MenorMaiorTeores(15.0, 30.0, "mg/kg"))
-                .fe_content(new MenorMaiorTeores(60.0, 120.0, "mg/kg"))
-                .mn_content(new MenorMaiorTeores(20.0, 50.0, "mg/kg"))
-                .mo_content(new MenorMaiorTeores(1.0, 3.0, "mg/kg"))
+                .n_content(new MenorMaiorTeores(3.5, 5.0, UnidadeTeor.dag_per_kg))
+                .p_content(new MenorMaiorTeores(0.1, 0.3, UnidadeTeor.dag_per_kg))
+                .k_content(new MenorMaiorTeores(1.8, 2.5, UnidadeTeor.dag_per_kg))
+                .mg_content(new MenorMaiorTeores(0.3, 0.8, UnidadeTeor.dag_per_kg))
+                .b_content(new MenorMaiorTeores(15.0, 30.0, UnidadeTeor.mg_per_kg))
+                .fe_content(new MenorMaiorTeores(60.0, 120.0, UnidadeTeor.mg_per_kg))
+                .mn_content(new MenorMaiorTeores(20.0, 50.0, UnidadeTeor.mg_per_kg))
+                .mo_content(new MenorMaiorTeores(1.0, 3.0, UnidadeTeor.mg_per_kg))
                 .crop(NomeComum.SOJA)
                 .build();
 
