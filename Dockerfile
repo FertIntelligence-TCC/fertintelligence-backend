@@ -1,22 +1,19 @@
-# Estágio 1: Build da aplicação
-FROM eclipse-temurin:17-jdk-alpine AS build
+# Estágio 1: Build da aplicação usando o Maven nativo
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# Copia os arquivos essenciais do Maven
-COPY mvnw .
-COPY .mvn .mvn
+# Copia apenas o pom.xml e o código-fonte (ignoramos o mvnw e a pasta oculta)
 COPY pom.xml .
 COPY src src
 
-# Dá permissão de execução ao wrapper e compila o projeto ignorando os testes
-RUN chmod +x ./mvnw
-RUN ./mvnw clean package -DskipTests
+# Compila o projeto ignorando os testes
+RUN mvn clean package -DskipTests
 
 # Estágio 2: Execução da aplicação
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copia apenas o .jar gerado no estágio anterior (imagem mais leve)
+# Copia apenas o .jar gerado no estágio anterior
 COPY --from=build /app/target/*.jar app.jar
 
 # Expõe a porta padrão do Spring
