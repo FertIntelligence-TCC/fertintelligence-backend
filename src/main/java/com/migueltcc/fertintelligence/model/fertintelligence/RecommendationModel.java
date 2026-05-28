@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.model.fertintelligence;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,6 +48,10 @@ public class RecommendationModel {
     @Column(name = "LIMING_CRITERIA")
     @Enumerated(EnumType.STRING)
     CriterioCalagem limingCriteria;
+
+    @Column(name = "FERTILIZER_SOURCE_OPTION")
+    @Enumerated(EnumType.STRING)
+    FertilizerSourceOption origemAdubos;
 
     @Column(name = "CROP_FERTILIZATION_TABLE_ID")
     Long cropFertilizationTableId;

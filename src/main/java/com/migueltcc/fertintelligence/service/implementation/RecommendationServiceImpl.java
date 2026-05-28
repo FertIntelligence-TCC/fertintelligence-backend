@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
@@ -62,6 +63,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(dto.getCropName())
                 .cropYear(dto.getCropYear())
                 .limingCriteria(dto.getLimingCriteria())
+                .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
                 .soilFertilityInterpretationCriteriaTableId(dto.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(dto.getCropFoliarAnalysisInterpretationTableId())
@@ -156,6 +158,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(model.getCropName())
                 .cropYear(model.getCropYear())
                 .limingCriteria(model.getLimingCriteria())
+                .origemAdubos(model.getOrigemAdubos() != null ? model.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(model.getCropFertilizationTableId())
                 .soilFertilityInterpretationCriteriaTableId(model.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(model.getCropFoliarAnalysisInterpretationTableId())

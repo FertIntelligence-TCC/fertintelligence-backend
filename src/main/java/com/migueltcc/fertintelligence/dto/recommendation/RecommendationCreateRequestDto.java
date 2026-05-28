@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.dto.recommendation;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -44,4 +45,8 @@ public class RecommendationCreateRequestDto {
 
     @JsonProperty("criterio_calagem")
     private CriterioCalagem limingCriteria;
+
+    @JsonProperty("origem_adubos")
+    @NotNull
+    private FertilizerSourceOption origemAdubos;
 }
