@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
@@ -53,6 +54,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         RecommendationCalculationService.RecommendationCalculationResult calculationResult =
                 recommendationCalculationService.calculate(dto, user, property, plot);
         String technicalReport = recommendationReportService.buildTechnicalReport(calculationResult);
+        FertilizerSourceOption fertilizerSourceOption = resolveFertilizerSourceOption(dto.getFertilizerSourceOption());
 
         RecommendationModel recommendation = RecommendationModel.builder()
                 .creator(user)
@@ -62,6 +64,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(dto.getCropName())
                 .cropYear(dto.getCropYear())
                 .limingCriteria(dto.getLimingCriteria())
+                .fertilizerSourceOption(fertilizerSourceOption)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
                 .soilFertilityInterpretationCriteriaTableId(dto.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(dto.getCropFoliarAnalysisInterpretationTableId())
@@ -156,6 +159,8 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(model.getCropName())
                 .cropYear(model.getCropYear())
                 .limingCriteria(model.getLimingCriteria())
+                .fertilizerSourceOption(model.getFertilizerSourceOption())
+                .origemAdubos(model.getFertilizerSourceOption())
                 .cropFertilizationTableId(model.getCropFertilizationTableId())
                 .soilFertilityInterpretationCriteriaTableId(model.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(model.getCropFoliarAnalysisInterpretationTableId())
@@ -164,6 +169,10 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
+    }
+
+    private FertilizerSourceOption resolveFertilizerSourceOption(FertilizerSourceOption option) {
+        return option == null ? FertilizerSourceOption.BOTH : option;
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {

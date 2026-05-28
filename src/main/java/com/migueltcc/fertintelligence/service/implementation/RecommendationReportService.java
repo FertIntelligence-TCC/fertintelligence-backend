@@ -38,6 +38,7 @@ public class RecommendationReportService {
         report.append("- Ano da safra: ").append(safe(result.getCropYear())).append("\n");
         report.append("- Tipo de recomendação: ").append(safe(result.getRecommendationType())).append("\n");
         report.append("- Critério de calagem: ").append(safe(result.getLimingCriteria())).append("\n");
+        report.append("- Origem de adubos considerada: ").append(safe(result.getFertilizerSourceOption())).append("\n");
         report.append("- Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n");
         report.append("- Profissional responsável: Não informado\n\n");
     }
