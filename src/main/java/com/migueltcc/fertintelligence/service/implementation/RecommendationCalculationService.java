@@ -73,7 +73,8 @@ public class RecommendationCalculationService {
         diagnostics.add("Talhão selecionado: " + plot.getIdentification() + " (ID " + plot.getId() + ")");
         diagnostics.add("Cultura informada: " + dto.getCropName());
         diagnostics.add("Ano da safra: " + dto.getCropYear());
-        diagnostics.add("Origem de adubos selecionada: " + dto.getOrigemAdubos());
+        FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
+        diagnostics.add("Origem de adubos selecionada: " + sourceOption);
         List<String> warnings = new ArrayList<>();
 
         Optional<PhysicalAnalysisExtractModel> physicalAnalysis = findLatestPhysicalAnalysis(plot);
@@ -122,7 +123,7 @@ public class RecommendationCalculationService {
             if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
             if (kRange.isEmpty()) warnings.add("Não foi encontrado intervalo para POTASSIO na tabela selecionada.");
 
-            FertilizerSelection planting = selectBestPlantingFertilizer(user, dto.getOrigemAdubos(), requiredN, requiredP2O5, requiredK2O, warnings);
+            FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, requiredN, requiredP2O5, requiredK2O, warnings);
             planting.suggestion().ifPresent(fertilizerSuggestions::add);
 
             recommendationRows.add(FertilizationRecommendationRow.builder()
@@ -135,7 +136,7 @@ public class RecommendationCalculationService {
                     .build());
 
             for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
-                if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, dto.getOrigemAdubos(), fertilizerSuggestions));
+                if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, sourceOption, fertilizerSuggestions));
             }
         }
 

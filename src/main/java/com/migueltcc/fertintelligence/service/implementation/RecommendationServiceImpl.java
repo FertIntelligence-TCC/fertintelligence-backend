@@ -63,7 +63,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(dto.getCropName())
                 .cropYear(dto.getCropYear())
                 .limingCriteria(dto.getLimingCriteria())
-                .origemAdubos(dto.getOrigemAdubos())
+                .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
                 .soilFertilityInterpretationCriteriaTableId(dto.getSoilFertilityInterpretationCriteriaTableId())
                 .cropFoliarAnalysisInterpretationTableId(dto.getCropFoliarAnalysisInterpretationTableId())
