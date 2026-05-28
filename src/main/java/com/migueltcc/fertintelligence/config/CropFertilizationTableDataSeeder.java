@@ -24,7 +24,7 @@ import java.util.Optional;
 @Order(4)
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!test")
+@Profile({"dev", "local"})
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class CropFertilizationTableDataSeeder implements CommandLineRunner {
 

@@ -20,7 +20,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @Order(2)
-@Profile("!test")
+@Profile({"dev", "local"})
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = false)
 @RequiredArgsConstructor
 public class PropertyDataSeeder implements CommandLineRunner {

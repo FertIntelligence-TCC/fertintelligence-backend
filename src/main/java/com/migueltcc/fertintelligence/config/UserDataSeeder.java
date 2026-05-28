@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Order(1)
-@Profile("!test")
+@Profile({"dev", "local"})
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class UserDataSeeder implements CommandLineRunner {
 
