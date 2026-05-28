@@ -49,7 +49,7 @@ public class RecommendationModel {
     @Enumerated(EnumType.STRING)
     CriterioCalagem limingCriteria;
 
-    @Column(name = "FERTILIZER_SOURCE_OPTION", nullable = true)
+    @Column(name = "FERTILIZER_SOURCE_OPTION")
     @Enumerated(EnumType.STRING)
     FertilizerSourceOption origemAdubos;
 
