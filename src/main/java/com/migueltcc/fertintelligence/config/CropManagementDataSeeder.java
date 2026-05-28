@@ -39,7 +39,7 @@ import java.util.List;
         prefix = "app.seed",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class CropManagementDataSeeder implements CommandLineRunner {
     private static final String SEEDED_DEFICIENCY_TOXICITY_OBSERVATION_PREFIX = "Registro fictício de deficiência/toxidez para testes #";

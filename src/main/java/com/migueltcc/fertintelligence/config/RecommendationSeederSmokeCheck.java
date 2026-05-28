@@ -31,7 +31,7 @@ import java.util.function.Supplier;
         prefix = "app.seed",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class RecommendationSeederSmokeCheck implements CommandLineRunner {
 

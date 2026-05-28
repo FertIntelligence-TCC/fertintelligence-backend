@@ -26,7 +26,7 @@ import java.util.List;
         prefix = "app.seed",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class SoilAnalysisDataSeeder implements CommandLineRunner {
 
