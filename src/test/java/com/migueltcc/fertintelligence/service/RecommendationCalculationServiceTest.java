@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -65,7 +66,7 @@ class RecommendationCalculationServiceTest {
 
     private RecommendationCreateRequestDto dto(){
         RecommendationCreateRequestDto dto=new RecommendationCreateRequestDto();
-        dto.setCropName(NomeComum.ALGODAO); dto.setCropYear(2026); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria(SATURACAO_POR_BASES_TROCAVEIS); return dto;
+        dto.setCropName(NomeComum.ALGODAO); dto.setCropYear(2026); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria(SATURACAO_POR_BASES_TROCAVEIS); dto.setFertilizerSourceOption(FertilizerSourceOption.BOTH); return dto;
     }
 
     @Test void preencheNecessidadesNPKQuandoTabelaExiste(){
@@ -193,5 +194,27 @@ class RecommendationCalculationServiceTest {
         String report = assertDoesNotThrow(() -> reportService.buildTechnicalReport(result));
         assertTrue(report.contains("Não informado"));
         assertTrue(report.contains("Não calculado"));
+    }
+
+    @Test void sourcePrivateNaoUsaPublicos() {
+        var req = dto();
+        req.setFertilizerSourceOption(FertilizerSourceOption.PRIVATE);
+        CropFertilizationTableModel table=CropFertilizationTableModel.builder().id(1L).build();
+        when(tableRepo.findById(1L)).thenReturn(Optional.of(table));
+        when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(any(),any())).thenReturn(List.of(ContentRangeModel.builder().id(1L).application(60d).build()));
+        when(simpleRepo.findAllByUser(user)).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(8L).name("Privado").N(45).build()));
+        service.calculate(req,user,property,plot);
+        assertTrue(service.calculate(req,user,property,plot).getFertilizerSuggestions().stream().anyMatch(s -> "Privado".equals(s.getFertilizerName())));
+    }
+
+    @Test void sourcePublicNaoUsaPrivados() {
+        var req = dto();
+        req.setFertilizerSourceOption(FertilizerSourceOption.PUBLIC);
+        CropFertilizationTableModel table=CropFertilizationTableModel.builder().id(1L).build();
+        when(tableRepo.findById(1L)).thenReturn(Optional.of(table));
+        when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(any(),any())).thenReturn(List.of(ContentRangeModel.builder().id(1L).application(60d).build()));
+        when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(9L).name("Publico").N(45).build()));
+        var result = service.calculate(req,user,property,plot);
+        assertTrue(result.getFertilizerSuggestions().stream().anyMatch(s -> "Publico".equals(s.getFertilizerName())));
     }
 }

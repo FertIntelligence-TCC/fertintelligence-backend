@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
@@ -46,12 +47,14 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .soilFertilityInterpretationCriteriaTableId(200L)
                 .cropFoliarAnalysisInterpretationTableId(300L)
                 .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
+                .fertilizerSourceOption(FertilizerSourceOption.BOTH)
                 .build();
 
         RecommendationModel saved = RecommendationModel.builder()
                 .id(99L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
                 .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .fertilizerSourceOption(FertilizerSourceOption.BOTH)
                 .technicalReport("laudo preliminar")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -65,7 +68,47 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(99L));
+                .andExpect(jsonPath("$.id").value(99L))
+                .andExpect(jsonPath("$.origem_adubos").value("BOTH"));
+    }
+
+
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void generateRecommendation_ComOrigemPrivada_ReturnsOk() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationCreateRequestDto request = RecommendationCreateRequestDto.builder()
+                .recommendationType(RecommendationType.BOTH)
+                .propertyId(10L)
+                .plotId(20L)
+                .cropYear(2026)
+                .cropName(NomeComum.ALGODAO)
+                .fertilizerSourceOption(FertilizerSourceOption.PRIVATE)
+                .build();
+
+        RecommendationModel saved = RecommendationModel.builder()
+                .id(100L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .fertilizerSourceOption(FertilizerSourceOption.PRIVATE)
+                .technicalReport("laudo")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(plotRepository.findById(20L)).thenReturn(Optional.of(plot));
+        when(recommendationRepository.save(any(RecommendationModel.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.origem_adubos").value("PRIVATE"));
     }
 
     @Test
