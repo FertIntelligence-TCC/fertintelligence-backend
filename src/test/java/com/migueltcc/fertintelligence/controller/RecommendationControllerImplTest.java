@@ -131,7 +131,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
         mockMvc.perform(get("/recommendation/my"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L));
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].origem_adubos").value("BOTH"));
     }
 
     @Test
