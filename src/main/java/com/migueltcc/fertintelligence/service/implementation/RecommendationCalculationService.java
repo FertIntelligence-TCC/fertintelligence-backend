@@ -136,7 +136,7 @@ public class RecommendationCalculationService {
                     .build());
 
             for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
-                if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, fertilizerSuggestions));
+                if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, fertilizerSourceOption, fertilizerSuggestions));
             }
         }
 
