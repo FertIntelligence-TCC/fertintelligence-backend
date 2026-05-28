@@ -20,6 +20,6 @@ public class HealthControllerImpl implements HealthController {
     @GetMapping
     public ResponseEntity<String> healthCheck() {
 
-        return ResponseEntity.status(HttpStatus.OK).body("Ok");
+        return ResponseEntity.status(HttpStatus.OK).body("OK");
     }
 }

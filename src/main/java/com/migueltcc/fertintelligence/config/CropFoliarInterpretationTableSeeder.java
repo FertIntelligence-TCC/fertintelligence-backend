@@ -30,7 +30,7 @@ import java.util.Optional;
         prefix = "app.seed",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class CropFoliarInterpretationTableSeeder implements CommandLineRunner {
 
