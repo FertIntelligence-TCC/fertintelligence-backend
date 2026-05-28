@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
@@ -46,12 +47,14 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .soilFertilityInterpretationCriteriaTableId(200L)
                 .cropFoliarAnalysisInterpretationTableId(300L)
                 .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
+                .origemAdubos(FertilizerSourceOption.BOTH)
                 .build();
 
         RecommendationModel saved = RecommendationModel.builder()
                 .id(99L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
                 .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .origemAdubos(FertilizerSourceOption.BOTH)
                 .technicalReport("laudo preliminar")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
