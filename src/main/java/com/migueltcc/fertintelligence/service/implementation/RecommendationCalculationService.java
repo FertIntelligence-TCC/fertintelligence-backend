@@ -15,6 +15,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.*;
 import org.springframework.stereotype.Service;
 
@@ -71,31 +72,40 @@ public class RecommendationCalculationService {
         diagnostics.add("Usuário solicitante: " + user.getName() + " (" + user.getUsername() + ")");
         diagnostics.add("Propriedade selecionada: " + property.getNome() + " (ID " + property.getId() + ")");
         diagnostics.add("Talhão selecionado: " + plot.getIdentification() + " (ID " + plot.getId() + ")");
-        diagnostics.add("Cultura informada: " + dto.getCropName());
-        diagnostics.add("Ano da safra: " + dto.getCropYear());
+        diagnostics.add("Extrato de análise física selecionado: ID " + dto.getPhysicalAnalysisExtractId());
+        diagnostics.add("Análise de fertilidade selecionada: ID " + dto.getSoilFertilityAnalysisId());
+        diagnostics.add("Extrato de saturação selecionado: ID " + dto.getSaturationExtractAnalysisExtractId());
+        diagnostics.add("Pasta de cultura anual selecionada: ID " + dto.getAnnualCropFolderId());
+        diagnostics.add("Cultura selecionada: ID " + dto.getCropId());
         FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
         diagnostics.add("Origem de adubos selecionada: " + sourceOption);
         List<String> warnings = new ArrayList<>();
 
-        Optional<PhysicalAnalysisExtractModel> physicalAnalysis = findLatestPhysicalAnalysis(plot);
-        Optional<SoilAnalysisModel> soilFertilityAnalysis = findLatestSoilFertilityAnalysis(plot, dto.getCropYear());
-        Optional<SaturationExtractAnalysisExtractModel> saturationExtractAnalysis = findLatestSaturationExtractAnalysis(plot, dto.getCropYear());
-        Optional<AnnualCropFolderModel> annualCropFolder = findAnnualCropFolder(plot, dto.getCropYear());
-        Optional<CropModel> crop = findCropByNameAndYear(plot, dto.getCropYear(), dto.getCropName());
-        Optional<FoliarAnalysisModel> foliarAnalysis = crop.flatMap(this::findLatestFoliarAnalysis);
+        PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrThrow(dto.getPhysicalAnalysisExtractId());
+        SoilAnalysisModel soilFertilityAnalysis = findSoilFertilityAnalysisByIdOrThrow(dto.getSoilFertilityAnalysisId());
+        SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrThrow(dto.getSaturationExtractAnalysisExtractId());
+        AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(dto.getAnnualCropFolderId());
+        CropModel crop = findCropByIdOrThrow(dto.getCropId());
 
-        Optional<FertilityAnalysisExtractModel> fertilityExtract = Optional.empty();
-        if (soilFertilityAnalysis.isPresent()) {
-            fertilityExtract = findLatestFertilityExtract(soilFertilityAnalysis.get());
+        validateSamePlot(resolvePlot(physicalAnalysis), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
+        validateSamePlot(soilFertilityAnalysis.getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
+        validateSamePlot(resolvePlot(saturationExtractAnalysis), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
+        validateSamePlot(annualCropFolder.getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
+        if (crop.getFolder() == null || !Objects.equals(crop.getFolder().getId(), annualCropFolder.getId())) {
+            throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
         }
 
-        String physicalSummary = physicalAnalysis.map(m -> "Análise física encontrada com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise física foi encontrada para o talhão selecionado."));
-        String soilFertilitySummary = soilFertilityAnalysis.map(m -> "Análise de fertilidade encontrada com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise de fertilidade do solo foi encontrada para o talhão selecionado."));
-        String saturationSummary = saturationExtractAnalysis.map(m -> "Extrato de saturação encontrado com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise de extrato de saturação foi encontrada para o talhão selecionado."));
-        String cropSummary = annualCropFolder.map(folder -> crop.map(c -> "Cultura encontrada: " + c.getName() + " (safra " + folder.getCropsYear() + ").").orElseGet(() -> addMissing(warnings, "Nenhuma cultura correspondente foi encontrada para a cultura e safra informadas."))).orElseGet(() -> addMissing(warnings, "Nenhuma pasta de culturas anuais foi encontrada para o ano da safra informado."));
-        String foliarSummary = crop.map(c -> foliarAnalysis.map(m -> "Análise foliar encontrada com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."))).orElse("Análise foliar não pôde ser buscada porque a cultura não foi encontrada.");
+        Optional<FoliarAnalysisModel> foliarAnalysis = findLatestFoliarAnalysis(crop);
 
-        List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, saturationExtractAnalysis, warnings);
+        Optional<FertilityAnalysisExtractModel> fertilityExtract = findLatestFertilityExtract(soilFertilityAnalysis);
+
+        String physicalSummary = "Análise física selecionada com ID " + physicalAnalysis.getId() + ".";
+        String soilFertilitySummary = "Análise de fertilidade selecionada com ID " + soilFertilityAnalysis.getId() + ".";
+        String saturationSummary = "Extrato de saturação selecionado com ID " + saturationExtractAnalysis.getId() + ".";
+        String cropSummary = "Cultura selecionada: " + crop.getName() + " (ID " + crop.getId() + ").";
+        String foliarSummary = foliarAnalysis.map(m -> "Análise foliar encontrada com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
+
+        List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
         List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
 
@@ -151,8 +161,8 @@ public class RecommendationCalculationService {
                 .propertyId(property != null ? property.getId() : null)
                 .plotIdentification(plot != null ? plot.getIdentification() : null)
                 .plotId(plot != null ? plot.getId() : null)
-                .cropName(dto.getCropName() != null ? dto.getCropName().name() : null)
-                .cropYear(dto.getCropYear())
+                .cropName(crop.getName() != null ? crop.getName().name() : null)
+                .annualCropFolderYear(annualCropFolder.getCropsYear())
                 .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
                 .limingCriteria(dto.getLimingCriteria() != null ? dto.getLimingCriteria().name() : null)
                 .issuedAt(LocalDateTime.now())
@@ -161,13 +171,13 @@ public class RecommendationCalculationService {
                 .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
                 .requiredN(requiredN).requiredP2O5(requiredP2O5).requiredK2O(requiredK2O)
                 .nitrogenRangeId(nRangeId).phosphorusRangeId(pRangeId).potassiumRangeId(kRangeId)
-                .physicalAnalysisId(physicalAnalysis.map(PhysicalAnalysisExtractModel::getId).orElse(null))
-                .soilFertilityAnalysisId(soilFertilityAnalysis.map(SoilAnalysisModel::getId).orElse(null))
-                .saturationExtractAnalysisId(saturationExtractAnalysis.map(SaturationExtractAnalysisExtractModel::getId).orElse(null))
-                .annualCropFolderId(annualCropFolder.map(AnnualCropFolderModel::getId).orElse(null))
-                .cropId(crop.map(CropModel::getId).orElse(null)).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
+                .physicalAnalysisId(physicalAnalysis.getId())
+                .soilFertilityAnalysisId(soilFertilityAnalysis.getId())
+                .saturationExtractAnalysisId(saturationExtractAnalysis.getId())
+                .annualCropFolderId(annualCropFolder.getId())
+                .cropId(crop.getId()).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
                 .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(saturationSummary)
-                .annualCropFolderSummary(annualCropFolder.map(folder -> "Safra " + folder.getCropsYear() + " encontrada.").orElse("Não encontrado."))
+                .annualCropFolderSummary("Pasta de cultura anual ID " + annualCropFolder.getId() + " selecionada.")
                 .cropSummary(cropSummary).foliarAnalysisSummary(foliarSummary).build();
     }
     private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
@@ -191,14 +201,20 @@ return rows;}
     private double estimate(Double rn,Double rp,Double rk,double n,double p,double k){if(nvl(rp)>0&&p>0)return round2(rp/p*100d);if(nvl(rk)>0&&k>0)return round2(rk/k*100d);if(nvl(rn)>0&&n>0)return round2(rn/n*100d);return 0d;}
     private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
     private <T> List<T> dedup(List<T> a,List<T> b, Function<T,Long> id){Map<Long,T> m=new LinkedHashMap<>();a.forEach(x->m.putIfAbsent(id.apply(x),x));b.forEach(x->m.putIfAbsent(id.apply(x),x));return new ArrayList<>(m.values());}
-    private Optional<PhysicalAnalysisExtractModel> findLatestPhysicalAnalysis(PlotModel plot) { return physicalAnalysisExtractRepository.findTopByRangeExtractAnalysisPlotOrderByIdDesc(plot).or(() -> physicalAnalysisExtractRepository.findTopByLayerExtractAnalysisPlotOrderByIdDesc(plot));}
-    private Optional<SoilAnalysisModel> findLatestSoilFertilityAnalysis(PlotModel plot, Integer cropYear) {return soilAnalysisRepository.findAllByPlot(plot).stream().filter(a -> a.getAnalysisYear() != null && a.getAnalysisYear() <= cropYear).max(Comparator.comparing(SoilAnalysisModel::getAnalysisYear).thenComparing(SoilAnalysisModel::getId));} private Optional<SaturationExtractAnalysisExtractModel> findLatestSaturationExtractAnalysis(PlotModel plot, Integer cropYear) {return saturationExtractAnalysisExtractRepository.findAll().stream().filter(e -> ((e.getRangeExtract()!=null && e.getRangeExtract().getAnalysis()!=null && Objects.equals(e.getRangeExtract().getAnalysis().getPlot().getId(), plot.getId()) && e.getRangeExtract().getAnalysis().getAnalysisYear()!=null && e.getRangeExtract().getAnalysis().getAnalysisYear()<=cropYear) || (e.getLayerExtract()!=null && e.getLayerExtract().getAnalysis()!=null && Objects.equals(e.getLayerExtract().getAnalysis().getPlot().getId(), plot.getId()) && e.getLayerExtract().getAnalysis().getAnalysisYear()!=null && e.getLayerExtract().getAnalysis().getAnalysisYear()<=cropYear))).max(Comparator.comparing((SaturationExtractAnalysisExtractModel e) -> e.getRangeExtract()!=null ? e.getRangeExtract().getAnalysis().getAnalysisYear() : e.getLayerExtract().getAnalysis().getAnalysisYear()).thenComparing(SaturationExtractAnalysisExtractModel::getId));}
-    private Optional<AnnualCropFolderModel> findAnnualCropFolder(PlotModel plot, Integer cropYear) {return annualCropFolderRepository.findAllByPlot(plot).stream().filter(f -> f.getCropsYear() != null && f.getCropsYear() <= cropYear).max(Comparator.comparing(AnnualCropFolderModel::getCropsYear).thenComparing(AnnualCropFolderModel::getId));} private Optional<CropModel> findCropByNameAndYear(PlotModel plot, Integer cropYear, com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum cropName) {return findAnnualCropFolder(plot, cropYear).flatMap(folder -> cropRepository.findTopByFolderAndNameOrderByIdDesc(folder, cropName));}
+
+    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {return physicalAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));}
+    private SoilAnalysisModel findSoilFertilityAnalysisByIdOrThrow(Long id) {return soilAnalysisRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));}
+    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {return saturationExtractAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));}
+    private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {return annualCropFolderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));}
+    private CropModel findCropByIdOrThrow(Long id) {return cropRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + id));}
+    private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) throw new IllegalArgumentException(message);}
+    private PlotModel resolvePlot(PhysicalAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");}
+    private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");}
     private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);}    
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){if(sourceOption==FertilizerSourceOption.PRIVATE) return formulatedMineralFertilizerRepository.findAllByUser(user); if(sourceOption==FertilizerSourceOption.PUBLIC) return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); return dedup(formulatedMineralFertilizerRepository.findAllByUser(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId);}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){if(sourceOption==FertilizerSourceOption.PRIVATE) return simpleMineralFertilizerRepository.findAllByUser(user); if(sourceOption==FertilizerSourceOption.PUBLIC) return simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); return dedup(simpleMineralFertilizerRepository.findAllByUser(user),simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(),SimpleMineralFertilizerModel::getId);}    
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer cropYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
 }

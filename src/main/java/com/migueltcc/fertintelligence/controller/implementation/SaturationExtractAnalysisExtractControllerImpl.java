@@ -82,6 +82,19 @@ import java.util.List;
             return ResponseEntity.ok(extracts);
         }
 
+
+        @Override
+        @GetMapping("/get-by-plot")
+        public ResponseEntity<List<SaturationExtractAnalysisExtractResponseDto>> getSaturationExtractAnalysisExtractsByPlot(
+                @RequestParam(name = "plotId") Long plotId,
+                Authentication authentication) {
+            List<SaturationExtractAnalysisExtractResponseDto> extracts = saturationExtractAnalysisExtractService.getSaturationExtractAnalysisExtractsByPlot(
+                    plotId,
+                    authentication.getName()
+            );
+            return ResponseEntity.ok(extracts);
+        }
+
         @Override
         @PutMapping("/update")
         public ResponseEntity<SaturationExtractAnalysisExtractResponseDto> updateSaturationExtractAnalysisExtract(

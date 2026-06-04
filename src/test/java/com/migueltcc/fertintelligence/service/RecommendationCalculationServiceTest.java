@@ -6,7 +6,9 @@ import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateReq
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
@@ -54,7 +56,18 @@ class RecommendationCalculationServiceTest {
         property=PropertyModel.builder().id(10L).nome("Fazenda").build();
         plot=PlotModel.builder().id(20L).identification("Talhao 1").property(property).build();
         user=UserModel.builder().id(1L).name("U").username("u").build();
-        lenient().when(folderRepo.findByPlotAndCropsYear(plot,2026)).thenReturn(Optional.empty());
+        SoilAnalysisModel soilAnalysis = SoilAnalysisModel.builder().id(2L).plot(plot).analysisYear(2026).build();
+        RangeExtractModel rangeExtract = RangeExtractModel.builder().id(3L).analysis(soilAnalysis).build();
+        PhysicalAnalysisExtractModel physicalAnalysis = PhysicalAnalysisExtractModel.builder().id(4L).rangeExtract(rangeExtract).build();
+        SaturationExtractAnalysisExtractModel saturationAnalysis = SaturationExtractAnalysisExtractModel.builder().id(5L).rangeExtract(rangeExtract).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.ALGODAO).build();
+        lenient().when(physicalRepo.findById(4L)).thenReturn(Optional.of(physicalAnalysis));
+        lenient().when(soilRepo.findById(2L)).thenReturn(Optional.of(soilAnalysis));
+        lenient().when(saturationRepo.findById(5L)).thenReturn(Optional.of(saturationAnalysis));
+        lenient().when(folderRepo.findById(6L)).thenReturn(Optional.of(folder));
+        lenient().when(cropRepo.findById(7L)).thenReturn(Optional.of(crop));
+        lenient().when(foliarRepo.findTopByCropOrderByIdDesc(crop)).thenReturn(Optional.empty());
         lenient().when(formulatedRepo.findAllByUser(any())).thenReturn(List.of());
         lenient().when(formulatedRepo.findAllByPublicoTrueOrderByIdAsc()).thenReturn(List.of());
         lenient().when(simpleRepo.findAllByUser(any())).thenReturn(List.of());
@@ -65,7 +78,7 @@ class RecommendationCalculationServiceTest {
 
     private RecommendationCreateRequestDto dto(){
         RecommendationCreateRequestDto dto=new RecommendationCreateRequestDto();
-        dto.setCropName(NomeComum.ALGODAO); dto.setCropYear(2026); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria(SATURACAO_POR_BASES_TROCAVEIS); return dto;
+        dto.setPhysicalAnalysisExtractId(4L); dto.setSoilFertilityAnalysisId(2L); dto.setSaturationExtractAnalysisExtractId(5L); dto.setAnnualCropFolderId(6L); dto.setCropId(7L); dto.setCropFertilizationTableId(1L); dto.setLimingCriteria(SATURACAO_POR_BASES_TROCAVEIS); return dto;
     }
 
     @Test void preencheNecessidadesNPKQuandoTabelaExiste(){
@@ -137,14 +150,12 @@ class RecommendationCalculationServiceTest {
     }
 
     @Test void mencionaCulturaEAnaliseFoliarQuandoExistem() {
-        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(7L).plot(plot).cropsYear(2026).build();
-        CropModel crop = CropModel.builder().id(8L).folder(folder).name(NomeComum.ALGODAO).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.ALGODAO).build();
         FoliarAnalysisModel foliar = FoliarAnalysisModel.builder().id(31L).crop(crop).build();
-        SaturationExtractAnalysisExtractModel saturation = SaturationExtractAnalysisExtractModel.builder().id(5L).build();
-        when(folderRepo.findByPlotAndCropsYear(plot, 2026)).thenReturn(Optional.of(folder));
-        when(cropRepo.findTopByFolderAndNameOrderByIdDesc(folder, NomeComum.ALGODAO)).thenReturn(Optional.of(crop));
+        when(folderRepo.findById(6L)).thenReturn(Optional.of(folder));
+        when(cropRepo.findById(7L)).thenReturn(Optional.of(crop));
         when(foliarRepo.findTopByCropOrderByIdDesc(crop)).thenReturn(Optional.of(foliar));
-        when(saturationRepo.findTopByRangeExtractAnalysisPlotOrderByIdDesc(plot)).thenReturn(Optional.of(saturation));
         when(tableRepo.findById(1L)).thenReturn(Optional.empty());
         var result = service.calculate(dto(), user, property, plot);
         String report = reportService.buildTechnicalReport(result);

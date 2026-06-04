@@ -9,6 +9,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
+import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.SaturationExtractAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
     private final SaturationExtractAnalysisExtractRepository saturationRepo;
     private final RangeExtractRepository rangeRepo;
     private final LayerExtractRepository layerRepo;
+    private final PlotRepository plotRepo;
     private final UserRepository userRepo;
 
     // PermissionManager (service.implementation)
@@ -132,6 +135,26 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         permissionManager.assertCanReadPlot(plot, requester);
 
         return saturationRepo.findAllByLayerExtract(layer).stream()
+                .map(SaturationExtractAnalysisExtractModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SaturationExtractAnalysisExtractResponseDto> getSaturationExtractAnalysisExtractsByPlot(
+            Long plotId,
+            String username
+    ) {
+        UserModel requester = findUser(username);
+        PlotModel plot = findPlot(plotId);
+
+        permissionManager.assertCanReadPlot(plot, requester);
+
+        return Stream.concat(
+                        saturationRepo.findAllByRangeExtractAnalysisPlot(plot).stream(),
+                        saturationRepo.findAllByLayerExtractAnalysisPlot(plot).stream()
+                )
                 .map(SaturationExtractAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -241,6 +264,11 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
     private LayerExtractModel findLayer(Long id) {
         return layerRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + id));
+    }
+
+    private PlotModel findPlot(Long id) {
+        return plotRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + id));
     }
 
     private SaturationExtractAnalysisExtractModel findById(Long id) {

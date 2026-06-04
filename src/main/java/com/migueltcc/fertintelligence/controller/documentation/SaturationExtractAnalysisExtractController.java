@@ -46,6 +46,12 @@ public interface SaturationExtractAnalysisExtractController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<List<SaturationExtractAnalysisExtractResponseDto>> getSaturationExtractAnalysisExtractsByPlot(
+            @Parameter(description = "ID do talhão para listagem", required = true)
+            @RequestParam(name = "plotId") Long plotId,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<SaturationExtractAnalysisExtractResponseDto> updateSaturationExtractAnalysisExtract(
             @Parameter(description = "ID do extrato de análise de saturação a ser atualizado", required = true)
             @RequestParam(name = "saturationExtractAnalysisExtractId") Long saturationExtractAnalysisExtractId,

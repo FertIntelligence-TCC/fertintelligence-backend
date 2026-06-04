@@ -19,6 +19,8 @@ public interface PhysicalAnalysisExtractService {
 
     List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByLayer(Long layerExtractId, String username);
 
+    List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByPlot(Long plotId, String username);
+
     PhysicalAnalysisExtractResponseDto updatePhysicalAnalysisExtract(Long physicalAnalysisExtractId,
                                                                      PhysicalAnalysisExtractPostRequestDto updateRequestDto,
                                                                      String username);

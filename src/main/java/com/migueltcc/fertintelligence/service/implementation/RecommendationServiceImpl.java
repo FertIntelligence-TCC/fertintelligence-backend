@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
@@ -60,8 +61,8 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .property(property)
                 .plot(plot)
                 .recommendationType(dto.getRecommendationType())
-                .cropName(dto.getCropName())
-                .cropYear(dto.getCropYear())
+                .cropName(resolveCropName(calculationResult))
+                .cropYear(calculationResult.getAnnualCropFolderYear())
                 .limingCriteria(dto.getLimingCriteria())
                 .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
@@ -167,6 +168,13 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
+    }
+
+    private NomeComum resolveCropName(RecommendationCalculationService.RecommendationCalculationResult calculationResult) {
+        if (calculationResult.getCropName() == null) {
+            throw new IllegalArgumentException("A cultura selecionada não possui nome informado.");
+        }
+        return NomeComum.valueOf(calculationResult.getCropName());
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {

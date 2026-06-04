@@ -35,7 +35,6 @@ public class RecommendationReportService {
         report.append("- Propriedade: ").append(safe(result.getPropertyName())).append("\n");
         report.append("- Talhão: ").append(safe(result.getPlotIdentification())).append("\n");
         report.append("- Cultura: ").append(safe(result.getCropName())).append("\n");
-        report.append("- Ano da safra: ").append(safe(result.getCropYear())).append("\n");
         report.append("- Tipo de recomendação: ").append(safe(result.getRecommendationType())).append("\n");
         report.append("- Critério de calagem: ").append(safe(result.getLimingCriteria())).append("\n");
         report.append("- Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n");

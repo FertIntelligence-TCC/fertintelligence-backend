@@ -72,6 +72,9 @@ class RecommendationServiceImplTest {
         RecommendationCalculationService.RecommendationCalculationResult calculationResult =
                 mock(RecommendationCalculationService.RecommendationCalculationResult.class);
 
+        when(calculationResult.getCropName()).thenReturn("ALGODAO");
+        when(calculationResult.getAnnualCropFolderYear()).thenReturn(2026);
+
         when(recommendationCalculationService.calculate(any(), any(), any(), any()))
                 .thenReturn(calculationResult);
 
@@ -87,6 +90,11 @@ class RecommendationServiceImplTest {
         dto.setPropertyId(10L);
         dto.setPlotId(20L);
         dto.setRecommendationType(RecommendationType.BOTH);
+        dto.setPhysicalAnalysisExtractId(4L);
+        dto.setSoilFertilityAnalysisId(2L);
+        dto.setSaturationExtractAnalysisExtractId(5L);
+        dto.setAnnualCropFolderId(6L);
+        dto.setCropId(7L);
         return dto;
     }
 

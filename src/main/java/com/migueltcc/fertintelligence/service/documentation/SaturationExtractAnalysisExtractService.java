@@ -22,6 +22,9 @@ public interface SaturationExtractAnalysisExtractService {
     List<SaturationExtractAnalysisExtractResponseDto> getSaturationExtractAnalysisExtractsByLayer(Long layerExtractId,
                                                                                                   String username);
 
+    List<SaturationExtractAnalysisExtractResponseDto> getSaturationExtractAnalysisExtractsByPlot(Long plotId,
+                                                                                                 String username);
+
     SaturationExtractAnalysisExtractResponseDto updateSaturationExtractAnalysisExtract(Long saturationExtractAnalysisExtractId,
                                                                                        SaturationExtractAnalysisExtractPostRequestDto updateRequestDto,
                                                                                        String username);
