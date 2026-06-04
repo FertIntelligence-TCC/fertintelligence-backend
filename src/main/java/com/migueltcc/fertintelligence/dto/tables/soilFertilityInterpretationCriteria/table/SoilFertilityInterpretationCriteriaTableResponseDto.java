@@ -38,6 +38,14 @@ public class SoilFertilityInterpretationCriteriaTableResponseDto {
     @JsonProperty("descricao_criterios")
     private String description;
 
+    @Schema(example = "Critérios aplicáveis a amostras compostas da camada de 0-20 cm.")
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @Schema(example = "Manual de calagem e adubação; boletins técnicos regionais")
+    @JsonProperty("fontes")
+    private String sources;
+
     @Schema(example = "false")
     @JsonProperty("tabela_publica")
     private boolean public_table;

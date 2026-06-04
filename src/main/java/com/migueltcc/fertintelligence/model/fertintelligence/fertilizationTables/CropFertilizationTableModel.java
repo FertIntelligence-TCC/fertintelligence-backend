@@ -79,8 +79,11 @@ public class CropFertilizationTableModel {
     @Column(name = "SUGESTAO_DE_ADUBACAO_COM_N_P2O5_K2O", nullable = false)
     private Double npk; // kg/ha
 
-    @Column(name = "OBSERVACOES", nullable = false)
+    @Column(name = "OBSERVACOES")
     private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
 
     @Column(name = "TABELA_PUBLICA", nullable = false)
     @Builder.Default
@@ -109,6 +112,7 @@ public class CropFertilizationTableModel {
                 .micronutrients(this.micronutrients)
                 .npk(this.npk)
                 .observations(this.observations)
+                .sources(this.sources)
                 .public_table(this.publicTable)
                 .build();
     }

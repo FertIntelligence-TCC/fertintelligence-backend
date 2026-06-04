@@ -29,6 +29,14 @@ public class SoilFertilityInterpretationCriteriaTableCreateRequestDto {
     @Schema(example = "NORDESTE")
     private Regiao region;
 
+    @JsonProperty("observacoes")
+    @Schema(example = "Critérios aplicáveis a amostras compostas da camada de 0-20 cm.")
+    private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de calagem e adubação; boletins técnicos regionais")
+    private String sources;
+
     @JsonProperty("tabela_publica")
     private Boolean public_table;
 }

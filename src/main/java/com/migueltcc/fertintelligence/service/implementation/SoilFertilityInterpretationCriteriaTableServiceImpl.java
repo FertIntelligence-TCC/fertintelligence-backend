@@ -38,8 +38,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .creator(creator)
                 .name(createRequestDto.getName())
-                .description(createRequestDto.getDescription()) // <--- AGORA SALVA A DESCRIÇÃO
+                .description(createRequestDto.getDescription())
                 .region(createRequestDto.getRegion())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
@@ -100,6 +102,12 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         }
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
+        }
+        if (updateRequestDto.getObservations() != null) {
+            table.setObservations(updateRequestDto.getObservations());
+        }
+        if (updateRequestDto.getSources() != null) {
+            table.setSources(updateRequestDto.getSources());
         }
         if (updateRequestDto.getPublic_table() != null) {
             table.setPublicTable(updateRequestDto.getPublic_table());

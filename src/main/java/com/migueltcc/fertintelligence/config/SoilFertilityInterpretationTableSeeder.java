@@ -140,6 +140,8 @@ public class SoilFertilityInterpretationTableSeeder implements CommandLineRunner
                 .name(name)
                 .description(description)
                 .region(region)
+                .observations("Interpretar resultados considerando textura do solo, histórico de manejo e cultura implantada.")
+                .sources("Manual de calagem e adubação; recomendações oficiais estaduais")
                 .publicTable(publicTable)
                 .build();
 

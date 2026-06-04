@@ -26,6 +26,14 @@ public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
     @Schema(example = "CENTRO_OESTE")
     private Regiao region;
 
+    @JsonProperty("novo_observacoes")
+    @Schema(example = "Observações atualizadas para interpretação dos teores.")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @Schema(example = "Manual atualizado; recomendações oficiais estaduais")
+    private String sources;
+
     @JsonProperty("tabela_publica")
     private Boolean public_table;
 }

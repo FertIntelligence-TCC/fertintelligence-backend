@@ -43,6 +43,8 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                 .creator(owner)
                 .region(createRequestDto.getRegion())
                 .name(createRequestDto.getName())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublicTable()))
                 .build();
 
@@ -101,6 +103,12 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         }
         if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
             table.setName(updateRequestDto.getName());
+        }
+        if (updateRequestDto.getObservations() != null) {
+            table.setObservations(updateRequestDto.getObservations());
+        }
+        if (updateRequestDto.getSources() != null) {
+            table.setSources(updateRequestDto.getSources());
         }
         if (updateRequestDto.getPublicTable() != null) {
             table.setPublicTable(updateRequestDto.getPublicTable());

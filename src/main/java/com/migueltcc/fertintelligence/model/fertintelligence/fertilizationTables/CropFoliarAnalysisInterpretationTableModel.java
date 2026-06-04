@@ -31,6 +31,12 @@ public class CropFoliarAnalysisInterpretationTableModel {
     @Column(name = "REGIAO_ANALISE_FOLIAR_CULTURAS", nullable = false)
     private Regiao region;
 
+    @Column(name = "OBSERVACOES")
+    private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
+
     @Column(name = "TABELA_PUBLICA", nullable = false)
     @Builder.Default
     private boolean publicTable = false;
@@ -42,6 +48,8 @@ public class CropFoliarAnalysisInterpretationTableModel {
                 .creator_name(this.creator.getName())
                 .name(this.name)
                 .region(this.region)
+                .observations(this.observations)
+                .sources(this.sources)
                 .publicTable(this.publicTable)
                 .build();
     }

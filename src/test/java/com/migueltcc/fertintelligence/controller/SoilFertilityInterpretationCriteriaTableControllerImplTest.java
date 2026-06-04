@@ -85,6 +85,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios Base")
                 .description("Tabela base para testes")
                 .region(Regiao.NORDESTE)
+                .observations("Observações iniciais do solo")
+                .sources("Fontes iniciais do solo")
                 .publicTable(false)
                 .build();
     }
@@ -99,6 +101,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios de Fertilidade do Solo - SUL")
                 .description("Critérios para interpretação de fertilidade do solo na região SUL.")
                 .region(Regiao.SUL)
+                .observations("Observações iniciais do solo")
+                .sources("Fontes iniciais do solo")
                 .public_table(true)
                 .build();
     }
@@ -108,6 +112,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .name("Critérios Atualizados - Centro Oeste")
                 .description("Atualização dos critérios para a região Centro-Oeste.")
                 .region(Regiao.CENTRO_OESTE)
+                .observations("Observações atualizadas do solo")
+                .sources("Fontes atualizadas do solo")
                 .public_table(true)
                 .build();
     }
@@ -136,6 +142,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
                 .andExpect(jsonPath("$.regiao").value("SUL"))
+                .andExpect(jsonPath("$.observacoes").value("Observações iniciais do solo"))
+                .andExpect(jsonPath("$.fontes").value("Fontes iniciais do solo"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
@@ -272,6 +280,8 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.regiao").value("CENTRO_OESTE"))
+                .andExpect(jsonPath("$.observacoes").value("Observações atualizadas do solo"))
+                .andExpect(jsonPath("$.fontes").value("Fontes atualizadas do solo"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
