@@ -11,6 +11,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Layer
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.repository.LayerExtractRepository;
 import com.migueltcc.fertintelligence.repository.PhysicalAnalysisExtractRepository;
+import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.RangeExtractRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.PhysicalAnalysisExtractService;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final RangeExtractRepository rangeExtractRepository;
     private final LayerExtractRepository layerExtractRepository;
+    private final PlotRepository plotRepository;
     private final UserRepository userRepository;
 
     private final PermissionManager permissionManager;
@@ -112,6 +115,23 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
 
         return physicalAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
+                .map(PhysicalAnalysisExtractModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PhysicalAnalysisExtractResponseDto> getPhysicalAnalysisExtractsByPlot(Long plotId, String username) {
+        UserModel requester = findUserByUsernameOrThrow(username);
+        PlotModel plot = findPlotByIdOrThrow(plotId);
+
+        permissionManager.assertCanReadPlot(plot, requester);
+
+        return Stream.concat(
+                        physicalAnalysisExtractRepository.findAllByRangeExtractAnalysisPlot(plot).stream(),
+                        physicalAnalysisExtractRepository.findAllByLayerExtractAnalysisPlot(plot).stream()
+                )
                 .map(PhysicalAnalysisExtractModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -228,6 +248,11 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
     private LayerExtractModel findLayerExtractByIdOrThrow(Long id) {
         return layerExtractRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Extrato por camada não encontrado com o ID: " + id));
+    }
+
+    private PlotModel findPlotByIdOrThrow(Long id) {
+        return plotRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com o ID: " + id));
     }
 
     private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {

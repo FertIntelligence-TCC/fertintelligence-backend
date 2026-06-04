@@ -46,6 +46,12 @@ public interface PhysicalAnalysisExtractController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<List<PhysicalAnalysisExtractResponseDto>> getPhysicalAnalysisExtractsByPlot(
+            @Parameter(description = "ID do talhão para listagem", required = true)
+            @RequestParam(name = "plotId") Long plotId,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<PhysicalAnalysisExtractResponseDto> updatePhysicalAnalysisExtract(
             @Parameter(description = "ID do extrato de análise física a ser atualizado", required = true)
             @RequestParam(name = "physicalAnalysisExtractId") Long physicalAnalysisExtractId,

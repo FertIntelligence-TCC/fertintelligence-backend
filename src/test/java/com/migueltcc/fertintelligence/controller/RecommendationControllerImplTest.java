@@ -11,6 +11,12 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -41,8 +47,11 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .recommendationType(RecommendationType.BOTH)
                 .propertyId(10L)
                 .plotId(20L)
-                .cropYear(2026)
-                .cropName(NomeComum.ALGODAO)
+                .physicalAnalysisExtractId(4L)
+                .soilFertilityAnalysisId(2L)
+                .saturationExtractAnalysisExtractId(5L)
+                .annualCropFolderId(6L)
+                .cropId(7L)
                 .cropFertilizationTableId(100L)
                 .soilFertilityInterpretationCriteriaTableId(200L)
                 .cropFoliarAnalysisInterpretationTableId(300L)
@@ -59,9 +68,21 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
 
+        SoilAnalysisModel soilAnalysis = SoilAnalysisModel.builder().id(2L).plot(plot).analysisYear(2026).build();
+        RangeExtractModel rangeExtract = RangeExtractModel.builder().id(3L).analysis(soilAnalysis).build();
+        PhysicalAnalysisExtractModel physicalAnalysis = PhysicalAnalysisExtractModel.builder().id(4L).rangeExtract(rangeExtract).build();
+        SaturationExtractAnalysisExtractModel saturationAnalysis = SaturationExtractAnalysisExtractModel.builder().id(5L).rangeExtract(rangeExtract).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.ALGODAO).build();
+
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(plotRepository.findById(20L)).thenReturn(Optional.of(plot));
+        when(physicalAnalysisExtractRepository.findById(4L)).thenReturn(Optional.of(physicalAnalysis));
+        when(soilAnalysisRepository.findById(2L)).thenReturn(Optional.of(soilAnalysis));
+        when(saturationExtractAnalysisExtractRepository.findById(5L)).thenReturn(Optional.of(saturationAnalysis));
+        when(annualCropFolderRepository.findById(6L)).thenReturn(Optional.of(folder));
+        when(cropRepository.findById(7L)).thenReturn(Optional.of(crop));
         when(recommendationRepository.save(any(RecommendationModel.class))).thenReturn(saved);
 
         mockMvc.perform(post("/recommendation/generate")
@@ -81,7 +102,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         RecommendationModel item = RecommendationModel.builder()
                 .id(1L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.FERTILIZATION)
-                .cropName(NomeComum.ALGODAO).cropYear(2025)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
                 .technicalReport("laudo")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -105,7 +126,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         RecommendationModel item = RecommendationModel.builder()
                 .id(7L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
-                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
                 .technicalReport("laudo")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -128,7 +149,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         RecommendationModel item = RecommendationModel.builder()
                 .id(8L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
-                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
                 .technicalReport("laudo")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -151,7 +172,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         RecommendationModel item = RecommendationModel.builder()
                 .id(7L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
-                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
                 .technicalReport("laudo")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -174,7 +195,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         RecommendationModel item = RecommendationModel.builder()
                 .id(7L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
-                .cropName(NomeComum.ALGODAO).cropYear(2024)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
                 .technicalReport("laudo 100 kg/ha")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();

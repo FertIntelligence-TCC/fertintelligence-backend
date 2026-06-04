@@ -82,6 +82,19 @@ import java.util.List;
             return ResponseEntity.ok(extracts);
         }
 
+
+        @Override
+        @GetMapping("/get-by-plot")
+        public ResponseEntity<List<PhysicalAnalysisExtractResponseDto>> getPhysicalAnalysisExtractsByPlot(
+                @RequestParam(name = "plotId") Long plotId,
+                Authentication authentication) {
+            List<PhysicalAnalysisExtractResponseDto> extracts = physicalAnalysisExtractService.getPhysicalAnalysisExtractsByPlot(
+                    plotId,
+                    authentication.getName()
+            );
+            return ResponseEntity.ok(extracts);
+        }
+
         @Override
         @PutMapping("/update")
         public ResponseEntity<PhysicalAnalysisExtractResponseDto> updatePhysicalAnalysisExtract(

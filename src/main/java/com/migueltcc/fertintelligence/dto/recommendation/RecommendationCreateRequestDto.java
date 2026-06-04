@@ -2,7 +2,6 @@ package com.migueltcc.fertintelligence.dto.recommendation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
-import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import jakarta.validation.constraints.NotNull;
@@ -26,13 +25,25 @@ public class RecommendationCreateRequestDto {
     @NotNull
     private Long plotId;
 
-    @JsonProperty("ano_safra")
+    @JsonProperty("id_extrato_analise_fisica")
     @NotNull
-    private Integer cropYear;
+    private Long physicalAnalysisExtractId;
 
-    @JsonProperty("cultura")
+    @JsonProperty("id_analise_fertilidade_solo")
     @NotNull
-    private NomeComum cropName;
+    private Long soilFertilityAnalysisId;
+
+    @JsonProperty("id_extrato_analise_extrato_saturacao")
+    @NotNull
+    private Long saturationExtractAnalysisExtractId;
+
+    @JsonProperty("id_pasta_cultura_anual")
+    @NotNull
+    private Long annualCropFolderId;
+
+    @JsonProperty("id_cultura")
+    @NotNull
+    private Long cropId;
 
     @JsonProperty("id_tabela_adubacao_cultura")
     private Long cropFertilizationTableId;

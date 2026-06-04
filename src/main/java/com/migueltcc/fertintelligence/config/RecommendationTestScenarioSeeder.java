@@ -8,6 +8,8 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
@@ -42,6 +44,8 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
     private final PropertyAccessRequestRepository propertyAccessRequestRepository;
     private final PlotAccessRequestRepository plotAccessRequestRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
+    private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
+    private final SaturationExtractAnalysisExtractRepository saturationExtractAnalysisExtractRepository;
     private final AnnualCropFolderRepository annualCropFolderRepository;
     private final CropRepository cropRepository;
     private final CropFertilizationTableRepository cropFertilizationTableRepository;
@@ -139,8 +143,21 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
                 continue;
             }
 
-            if (!hasSoilAnalysis(plot)) {
-                log.warn("⚠️ Talhão {} não possui análise de solo. Recomendação pode ser parcial/limitada.", plot.getId());
+            Optional<SoilAnalysisModel> soilAnalysisOpt = findSoilAnalysis(plot);
+            Optional<PhysicalAnalysisExtractModel> physicalAnalysisExtractOpt = findPhysicalAnalysisExtract(plot);
+            Optional<SaturationExtractAnalysisExtractModel> saturationExtractOpt = findSaturationExtractAnalysisExtract(plot);
+
+            if (soilAnalysisOpt.isEmpty()) {
+                log.warn("⚠️ Talhão {} não possui análise de solo. Cenário ignorado.", plot.getId());
+                continue;
+            }
+            if (physicalAnalysisExtractOpt.isEmpty()) {
+                log.warn("⚠️ Talhão {} não possui extrato de análise física. Cenário ignorado.", plot.getId());
+                continue;
+            }
+            if (saturationExtractOpt.isEmpty()) {
+                log.warn("⚠️ Talhão {} não possui extrato de saturação. Cenário ignorado.", plot.getId());
+                continue;
             }
 
             if (!hasFoliarAnalysis(crop)) {
@@ -154,6 +171,11 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
                     .propertyName(property.getNome())
                     .plotId(plot.getId())
                     .plotIdentification(plot.getIdentification())
+                    .physicalAnalysisExtractId(physicalAnalysisExtractOpt.get().getId())
+                    .soilFertilityAnalysisId(soilAnalysisOpt.get().getId())
+                    .saturationExtractAnalysisExtractId(saturationExtractOpt.get().getId())
+                    .annualCropFolderId(folder.getId())
+                    .cropId(crop.getId())
                     .cropYear(folder.getCropsYear())
                     .cropName(crop.getName().name())
                     .cropFertilizationTableId(cropTableOpt.get().getId())
@@ -301,8 +323,18 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
         return fallback;
     }
 
-    private boolean hasSoilAnalysis(PlotModel plot) {
-        return !soilAnalysisRepository.findAllByPlot(plot).isEmpty();
+    private Optional<SoilAnalysisModel> findSoilAnalysis(PlotModel plot) {
+        return soilAnalysisRepository.findTopByPlotOrderByIdDesc(plot);
+    }
+
+    private Optional<PhysicalAnalysisExtractModel> findPhysicalAnalysisExtract(PlotModel plot) {
+        return physicalAnalysisExtractRepository.findTopByRangeExtractAnalysisPlotOrderByIdDesc(plot)
+                .or(() -> physicalAnalysisExtractRepository.findTopByLayerExtractAnalysisPlotOrderByIdDesc(plot));
+    }
+
+    private Optional<SaturationExtractAnalysisExtractModel> findSaturationExtractAnalysisExtract(PlotModel plot) {
+        return saturationExtractAnalysisExtractRepository.findTopByRangeExtractAnalysisPlotOrderByIdDesc(plot)
+                .or(() -> saturationExtractAnalysisExtractRepository.findTopByLayerExtractAnalysisPlotOrderByIdDesc(plot));
     }
 
     private boolean hasFoliarAnalysis(CropModel crop) {
@@ -321,12 +353,15 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
         log.info("Cargo esperado: {}", expectedRole);
         log.info("Pode imprimir: {}", scenario.isCanPrint());
         log.info("Payload sugerido:");
-        log.info("{{\n  \"tipo_recomendacao\": \"{}\",\n  \"id_propriedade\": {},\n  \"id_talhao\": {},\n  \"ano_safra\": {},\n  \"cultura\": \"{}\",\n  \"id_tabela_adubacao_cultura\": {},\n  \"id_tabela_interpretacao_fertilidade_solo\": {},\n  \"id_tabela_interpretacao_analise_foliar\": {},\n  \"criterio_calagem\": \"{}\"\n}}",
+        log.info("{{\n  \"tipo_recomendacao\": \"{}\",\n  \"id_propriedade\": {},\n  \"id_talhao\": {},\n  \"id_extrato_analise_fisica\": {},\n  \"id_analise_fertilidade_solo\": {},\n  \"id_extrato_analise_extrato_saturacao\": {},\n  \"id_pasta_cultura_anual\": {},\n  \"id_cultura\": {},\n  \"id_tabela_adubacao_cultura\": {},\n  \"id_tabela_interpretacao_fertilidade_solo\": {},\n  \"id_tabela_interpretacao_analise_foliar\": {},\n  \"criterio_calagem\": \"{}\",\n  \"origem_adubos\": \"BOTH\"\n}}",
                 RecommendationType.BOTH.name(),
                 scenario.getPropertyId(),
                 scenario.getPlotId(),
-                scenario.getCropYear(),
-                scenario.getCropName(),
+                scenario.getPhysicalAnalysisExtractId(),
+                scenario.getSoilFertilityAnalysisId(),
+                scenario.getSaturationExtractAnalysisExtractId(),
+                scenario.getAnnualCropFolderId(),
+                scenario.getCropId(),
                 scenario.getCropFertilizationTableId(),
                 scenario.getSoilFertilityInterpretationTableId(),
                 scenario.getCropFoliarInterpretationTableId(),
@@ -351,6 +386,11 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
         private String propertyName;
         private Long plotId;
         private String plotIdentification;
+        private Long physicalAnalysisExtractId;
+        private Long soilFertilityAnalysisId;
+        private Long saturationExtractAnalysisExtractId;
+        private Long annualCropFolderId;
+        private Long cropId;
         private Integer cropYear;
         private String cropName;
         private Long cropFertilizationTableId;
