@@ -90,7 +90,8 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
                     .gessing(1.0)
                     .micronutrients(100.0)
                     .npk(150.0)
-                    .observations("Dados fictícios gerados via Seeder com 4 faixas de P e K.")
+                    .observations("Ajustar doses conforme análise de solo recente e expectativa produtiva local.")
+                    .sources("Manual de adubação regional; boletins técnicos de manejo nutricional")
                     .build();
 
             CropFertilizationTableModel savedTable = tableRepository.save(table);

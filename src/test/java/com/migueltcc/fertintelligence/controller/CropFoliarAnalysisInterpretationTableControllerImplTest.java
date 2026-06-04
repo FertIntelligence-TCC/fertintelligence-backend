@@ -67,6 +67,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .id(10L)
                 .creator(proprietarioUser)
                 .region(Regiao.SUL)
+                .observations("Observações foliares iniciais")
+                .sources("Fontes foliares iniciais")
                 .publicTable(false)
                 .build();
     }
@@ -75,6 +77,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
         return CropFoliarAnalysisInterpretationTableCreateRequestDto.builder()
                 .publicTable(true)
                 .region(Regiao.SUL)
+                .observations("Observações foliares iniciais")
+                .sources("Fontes foliares iniciais")
                 .build();
     }
 
@@ -82,6 +86,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
         return CropFoliarAnalysisInterpretationTablePostRequestDto.builder()
                 .publicTable(true)
                 .region(Regiao.NORDESTE)
+                .observations("Observações foliares atualizadas")
+                .sources("Fontes foliares atualizadas")
                 .build();
     }
 
@@ -105,6 +111,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                         "http://localhost/crop-foliar-analysis-interpretation-table/register/25"))
                 .andExpect(jsonPath("$.id").value(25L))
                 .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("SUL"))
+                .andExpect(jsonPath("$.observacoes").value("Observações foliares iniciais"))
+                .andExpect(jsonPath("$.fontes").value("Fontes foliares iniciais"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
@@ -195,6 +203,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerTable.getId()))
                 .andExpect(jsonPath("$.regiao_analise_foliar_culturas").value("NORDESTE"))
+                .andExpect(jsonPath("$.observacoes").value("Observações foliares atualizadas"))
+                .andExpect(jsonPath("$.fontes").value("Fontes foliares atualizadas"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 

@@ -98,6 +98,10 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("observacoes")
     private String observations;
 
+    @Schema(example = "Manual de adubação e calagem regional; boletins técnicos locais")
+    @JsonProperty("fontes")
+    private String sources;
+
     @Schema(example = "false")
     @JsonProperty("tabela_publica")
     private boolean public_table;

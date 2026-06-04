@@ -106,6 +106,8 @@ public class CropFoliarInterpretationTableSeeder implements CommandLineRunner {
                 .creator(creator)
                 .name(name)
                 .region(region)
+                .observations("Coletar folhas diagnósticas em plantas sadias e representativas do talhão.")
+                .sources("Manual de diagnose foliar; recomendações técnicas regionais")
                 .publicTable(publicTable)
                 .build();
 

@@ -72,6 +72,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .micronutrients(createRequestDto.getMicronutrients())
                 .npk(createRequestDto.getNpk())
                 .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
@@ -185,6 +186,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getMicronutrients() != null) table.setMicronutrients(dto.getMicronutrients());
         if (dto.getNpk() != null) table.setNpk(dto.getNpk());
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
+        if (dto.getSources() != null) table.setSources(dto.getSources());
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
     }
 

@@ -85,8 +85,11 @@ public class CropFertilizationTableCreateRequestDto {
     private Double npk;
 
     @JsonProperty("observacoes")
-    @NotNull
     private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de adubação e calagem regional; boletins técnicos locais")
+    private String sources;
 
     @JsonProperty("tabela_publica")
     private Boolean public_table;

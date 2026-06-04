@@ -32,6 +32,12 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @Column(name = "REGIAO_INTERPRETACAO_FERTLIDADE_SOLO", nullable = false)
     private Regiao region;
 
+    @Column(name = "OBSERVACOES")
+    private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
+
     @Column(name = "TABELA_PUBLICA", nullable = false)
     @Builder.Default
     private boolean publicTable = false;
@@ -78,6 +84,8 @@ public class SoilFertilityInterpretationCriteriaTableModel {
                 .name(this.name)
                 .description(this.description)
                 .region(this.region)
+                .observations(this.observations)
+                .sources(this.sources)
                 .public_table(this.publicTable)
                 .build();
     }

@@ -33,6 +33,14 @@ public class CropFoliarAnalysisInterpretationTableResponseDto {
     @JsonProperty("regiao_analise_foliar_culturas")
     private Regiao region;
 
+    @Schema(example = "Faixas adequadas para folhas diagnósticas coletadas no florescimento.")
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @Schema(example = "Manual de diagnose foliar; boletins técnicos regionais")
+    @JsonProperty("fontes")
+    private String sources;
+
     @Schema(example = "false")
     @JsonProperty("tabela_publica")
     private boolean publicTable;

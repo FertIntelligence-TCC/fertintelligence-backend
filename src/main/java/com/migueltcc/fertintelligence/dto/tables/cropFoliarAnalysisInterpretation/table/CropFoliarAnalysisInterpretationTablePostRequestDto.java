@@ -23,6 +23,14 @@ public class CropFoliarAnalysisInterpretationTablePostRequestDto {
     @Schema(example = "NORDESTE")
     private Regiao region;
 
+    @JsonProperty("novo_observacoes")
+    @Schema(example = "Observações atualizadas sobre a amostragem foliar.")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @Schema(example = "Manual atualizado; circular técnica local")
+    private String sources;
+
     @JsonProperty("tabela_publica")
     private Boolean publicTable;
 }

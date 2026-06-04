@@ -23,6 +23,14 @@ public class CropFoliarAnalysisInterpretationTableCreateRequestDto {
     @NotNull(message = "A região é obrigatória")
     private Regiao region;
 
+    @JsonProperty("observacoes")
+    @Schema(example = "Faixas adequadas para folhas diagnósticas coletadas no florescimento.")
+    private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de diagnose foliar; boletins técnicos regionais")
+    private String sources;
+
     @JsonProperty("tabela_publica")
     private Boolean publicTable;
 }

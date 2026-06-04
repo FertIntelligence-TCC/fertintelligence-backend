@@ -96,6 +96,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .micronutrients(150.0)
                 .npk(120.0)
                 .observations("Observações iniciais")
+                .sources("Fontes iniciais")
                 .publicTable(false)
                 .build();
 
@@ -145,6 +146,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .micronutrients(150.0)
                 .npk(120.0)
                 .observations("Observações iniciais")
+                .sources("Fontes iniciais")
                 .public_table(true)
                 .build();
     }
@@ -156,6 +158,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .expected_productivity(9500.0)
                 .observations("Observações atualizadas")
+                .sources("Fontes atualizadas")
                 .public_table(true)
                 .build();
     }
@@ -168,6 +171,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         CropFertilizationTableModel savedTable = ownerTable.toBuilder()
                 .id(20L)
                 .observations("Observações iniciais")
+                .sources("Fontes iniciais")
                 .publicTable(true)
                 .build();
 
@@ -182,6 +186,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.id").value(20L))
                 .andExpect(jsonPath("$.nome_comum_cultura").value("MILHO"))
                 .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
+                .andExpect(jsonPath("$.observacoes").value("Observações iniciais"))
+                .andExpect(jsonPath("$.fontes").value("Fontes iniciais"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
@@ -269,6 +275,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         CropFertilizationTableModel otherTable = ownerTable.toBuilder()
                 .id(11L)
                 .observations("Outra tabela")
+                .sources("Outra fonte")
                 .region(Regiao.CENTRO_OESTE)
                 .build();
 
@@ -300,6 +307,7 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.produtividade_esperada").value(9500.0))
                 .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"))
+                .andExpect(jsonPath("$.fontes").value("Fontes atualizadas"))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
