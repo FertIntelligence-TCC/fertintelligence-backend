@@ -66,6 +66,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 .teorNO3(dto.getTeorNO3())
                 .teorH2PO4(dto.getTeorH2PO4())
                 .teorSO4(dto.getTeorSO4())
+                .teorCl(dto.getTeorCl())
                 .teorNa(dto.getTeorNa())
                 .teorK(dto.getTeorK())
                 .teorCa(dto.getTeorCa())
@@ -185,6 +186,7 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         applyIfNotNull(dto.getTeorNO3(), model::setTeorNO3);
         applyIfNotNull(dto.getTeorH2PO4(), model::setTeorH2PO4);
         applyIfNotNull(dto.getTeorSO4(), model::setTeorSO4);
+        applyIfNotNull(dto.getTeorCl(), model::setTeorCl);
         applyIfNotNull(dto.getTeorNa(), model::setTeorNa);
         applyIfNotNull(dto.getTeorK(), model::setTeorK);
         applyIfNotNull(dto.getTeorCa(), model::setTeorCa);

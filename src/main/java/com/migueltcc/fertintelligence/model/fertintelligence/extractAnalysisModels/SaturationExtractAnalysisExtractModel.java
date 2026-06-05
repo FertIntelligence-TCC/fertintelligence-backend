@@ -55,6 +55,10 @@ public class SaturationExtractAnalysisExtractModel {
     @Column(name = "TEOR_SO4", nullable = true)
     Double teorSO4;
 
+    // Teor de Cl-, mg/dm³
+    @Column(name = "TEOR_CL", nullable = true)
+    Double teorCl;
+
     // Teor de Na+, mg/dm³
     @Column(name = "TEOR_NA", nullable = true)
     Double teorNa;
@@ -129,6 +133,7 @@ public class SaturationExtractAnalysisExtractModel {
                 .teorNO3(this.teorNO3)
                 .teorH2PO4(this.teorH2PO4)
                 .teorSO4(this.teorSO4)
+                .teorCl(this.teorCl)
                 .teorNa(this.teorNa)
                 .teorK(this.teorK)
                 .teorCa(this.teorCa)

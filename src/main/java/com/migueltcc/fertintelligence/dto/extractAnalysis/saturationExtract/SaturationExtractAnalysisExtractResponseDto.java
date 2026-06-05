@@ -70,6 +70,10 @@ public class SaturationExtractAnalysisExtractResponseDto {
     @JsonProperty("teor_so4")
     Double teorSO4;
 
+    @Schema(example = "16.0")
+    @JsonProperty("teor_cl")
+    Double teorCl;
+
     @Schema(example = "10.0")
     @JsonProperty("teor_na")
     Double teorNa;
