@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerResponseDto;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertilizerService {
@@ -33,7 +35,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         SimpleMineralFertilizerModel fertilizer = SimpleMineralFertilizerModel.builder()
                 .user(owner)
@@ -65,8 +67,22 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     public List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return simpleMineralFertilizerRepository.findAllByUser(owner)
+        List<SimpleMineralFertilizerModel> ownFertilizers = simpleMineralFertilizerRepository.findAllByUser(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownFertilizers.stream()
+                    .map(SimpleMineralFertilizerModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<SimpleMineralFertilizerModel> standardFertilizers = simpleMineralFertilizerRepository
+                .findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -87,8 +103,19 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     public List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        List<SimpleMineralFertilizerModel> ownFertilizers =
+                simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner);
+        List<SimpleMineralFertilizerModel> standardFertilizers = simpleMineralFertilizerRepository
+                .findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .filter(fertilizer -> fertilizer.getName() != null
+                        && fertilizer.getName().toLowerCase().contains(name.toLowerCase()))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -101,9 +128,8 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(fertilizerId);
-
-        checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
         if (dto.getN() != null) fertilizer.setN(dto.getN());
@@ -130,9 +156,8 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     @Transactional
     public void deleteSimpleMineralFertilizer(Long fertilizerId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         SimpleMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(fertilizerId);
-
-        checkOwnership(fertilizer, owner);
 
         simpleMineralFertilizerRepository.delete(fertilizer);
     }
@@ -144,7 +169,12 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     }
 
     private void checkUserRole(UserModel user) {
-        if (!user.getCargo().canAccessGeneralResources()) {
+        if (user.getCargo() != Cargo.PROPRIETARIO
+                && user.getCargo() != Cargo.GERENTE
+                && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                && user.getCargo() != Cargo.SECRETARIO
+                && user.getCargo() != Cargo.SUPERVISOR_DE_AREA) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
     }

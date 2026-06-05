@@ -9,12 +9,12 @@ import com.migueltcc.fertintelligence.repository.ChelatedFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.ChelatedFertilizerService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService {
@@ -34,7 +34,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         ChelatedFertilizerModel fertilizer = ChelatedFertilizerModel.builder()
                 .user(owner)
@@ -68,7 +68,8 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     public ChelatedFertilizerResponseDto getChelatedFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        StandardEntityAuthorization.assertCanRead(
+                fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico()), owner);
         return fertilizer.toDto();
     }
 
@@ -76,8 +77,21 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUser(owner)
+        List<ChelatedFertilizerModel> ownFertilizers = repository.findAllByUser(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownFertilizers.stream()
+                    .map(ChelatedFertilizerModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<ChelatedFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -97,8 +111,17 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getChelatedFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        List<ChelatedFertilizerModel> ownFertilizers = repository.findAllByNameContainingIgnoreCaseAndUser(name, owner);
+        List<ChelatedFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .filter(fertilizer -> fertilizer.getName() != null
+                        && fertilizer.getName().toLowerCase().contains(name.toLowerCase()))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -111,8 +134,8 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
 
@@ -142,24 +165,12 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional
     public void deleteChelatedFertilizer(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
         repository.delete(fertilizer);
     }
 
     // --- Helpers ---
-
-    private void checkOwnership(ChelatedFertilizerModel fertilizer, UserModel owner) {
-        if (!fertilizer.getUser().getId().equals(owner.getId())) {
-            throw new AccessDeniedException("Acesso negado.");
-        }
-    }
-
-    private void checkUserRole(UserModel user) {
-        if (!user.getCargo().canManageFertilizers()) {
-            throw new AccessDeniedException("Permissão insuficiente.");
-        }
-    }
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;

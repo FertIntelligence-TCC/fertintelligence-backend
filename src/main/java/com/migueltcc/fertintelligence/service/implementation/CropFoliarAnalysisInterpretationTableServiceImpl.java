@@ -11,12 +11,12 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CropFoliarAnalysisInterpretationTableServiceImpl
@@ -38,6 +38,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
             String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CropFoliarAnalysisInterpretationTableModel table = CropFoliarAnalysisInterpretationTableModel.builder()
                 .creator(owner)
@@ -61,7 +62,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), owner);
 
         return table.toDto();
     }
@@ -73,7 +74,20 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
 
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return tableRepository.findAllByCreator(owner).stream()
+        List<CropFoliarAnalysisInterpretationTableModel> ownTables = tableRepository.findAllByCreator(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownTables.stream()
+                    .map(CropFoliarAnalysisInterpretationTableModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<CropFoliarAnalysisInterpretationTableModel> standardTables = tableRepository.findAllByPublicTableTrue()
+                .stream()
+                .filter(table -> StandardEntityAuthorization.isStandardEntity(table.getCreator(), table.isPublicTable()))
+                .toList();
+
+        return Stream.concat(ownTables.stream(), standardTables.stream())
+                .distinct()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -94,9 +108,9 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
             String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
 
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
@@ -122,9 +136,9 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     @Transactional
     public void deleteCropFoliarAnalysisInterpretationTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
 
         tableLineRepository.deleteAllByTable(table);
         tableRepository.delete(table);
@@ -141,9 +155,4 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                         "Tabela de interpretação de análise foliar não encontrada com o ID: " + tableId));
     }
 
-    private void checkCreatorPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
-        if (!table.getCreator().getId().equals(requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
-        }
-    }
 }

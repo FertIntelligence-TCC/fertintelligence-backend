@@ -2,28 +2,91 @@ package com.migueltcc.fertintelligence.config;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.*;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Component
 @Order(1)
 @Profile("!test")
-@ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class UserDataSeeder implements CommandLineRunner {
 
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${app.seed.enabled:true}")
+    private boolean seedEnabled;
+
     public static final String ADMIN_USER = "admin@fertintelligence.com";
+    private static final String SUPREME_NAME = "Gilvan e Miguel";
+    private static final String SUPREME_USERNAME = "G&MSupremos";
+    private static final String SUPREME_EMAIL = "miguel_macedo18@hotmail.com";
+    private static final String SUPREME_PASSWORD = "miniprojetofosforico";
+    private static final String SUPREME_CPF = "13600319442";
 
     @Override
     public void run(String... args) throws Exception {
-        createSystemUserIfNotFound();
+        ensureSingleSupremeUser();
+        if (seedEnabled) {
+            createSystemUserIfNotFound();
+        }
+    }
+
+    protected void ensureSingleSupremeUser() {
+        UserModel supremeUser = findSupremeUserCandidate()
+                .orElseGet(UserModel::new);
+
+        supremeUser.setName(SUPREME_NAME);
+        supremeUser.setUsername(SUPREME_USERNAME);
+        supremeUser.setEmail(SUPREME_EMAIL);
+        if (supremeUser.getPassword() == null || !passwordEncoder.matches(SUPREME_PASSWORD, supremeUser.getPassword())) {
+            supremeUser.setPassword(passwordEncoder.encode(SUPREME_PASSWORD));
+        }
+        supremeUser.setCpf(SUPREME_CPF);
+        supremeUser.setProfissao("Engenheiro de Software");
+        supremeUser.setDatanasc(new DataNasc(8, 5, 2001));
+        supremeUser.setGenero(Genero.MASCULINO);
+        supremeUser.setTelefone(new Telefone("55", "83", "991214231"));
+        supremeUser.setFormacao(Formacao.GRADUACAO);
+        supremeUser.setCargo(Cargo.USUARIO_SUPREMO);
+
+        UserModel savedSupremeUser = userRepository.save(supremeUser);
+        userRepository.findByCargo(Cargo.USUARIO_SUPREMO).stream()
+                .filter(user -> !user.getId().equals(savedSupremeUser.getId()))
+                .forEach(user -> {
+                    user.setCargo(Cargo.PROPRIETARIO);
+                    userRepository.save(user);
+                });
+
+        System.out.println("UserDataSeeder: Usuário supremo garantido.");
+    }
+
+    private Optional<UserModel> findSupremeUserCandidate() {
+        Set<UserModel> candidates = new LinkedHashSet<>();
+        userRepository.findByUsername(SUPREME_USERNAME).ifPresent(candidates::add);
+        userRepository.findByEmail(SUPREME_EMAIL).ifPresent(candidates::add);
+        userRepository.findByCpf(SUPREME_CPF).ifPresent(candidates::add);
+        candidates.addAll(userRepository.findByCargo(Cargo.USUARIO_SUPREMO));
+
+        return candidates.stream()
+                .findFirst();
     }
 
     private void createSystemUserIfNotFound() {
