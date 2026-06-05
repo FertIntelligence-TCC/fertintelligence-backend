@@ -9,6 +9,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -93,8 +95,7 @@ public class FormulatedMineralFertilizerModel {
                 .id(this.id)
                 .formulate(this.formulate != null ?
                         new FormulateDto(this.formulate.getN(), this.formulate.getP(), this.formulate.getK()) : null)
-                .relation(this.relation != null ?
-                        new NPKrelationDto(this.relation.getN(), this.relation.getP(), this.relation.getK()) : null)
+                .relation(toIntegerRelationDto(this.relation))
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)
@@ -113,5 +114,53 @@ public class FormulatedMineralFertilizerModel {
                 .publico(this.publico != null ? this.publico : false)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
+    }
+
+    private static NPKrelationDto toIntegerRelationDto(NPKrelation relation) {
+        if (relation == null) {
+            return null;
+        }
+
+        List<Double> values = List.of(relation.getN(), relation.getP(), relation.getK());
+        int multiplier = findIntegerMultiplier(values);
+        List<Long> integers = values.stream()
+                .map(value -> Math.round(value * multiplier))
+                .toList();
+
+        long gcd = integers.stream()
+                .map(Math::abs)
+                .reduce(0L, FormulatedMineralFertilizerModel::gcd);
+
+        if (gcd == 0L) {
+            return new NPKrelationDto(0.0, 0.0, 0.0);
+        }
+
+        return new NPKrelationDto(
+                (double) integers.get(0) / gcd,
+                (double) integers.get(1) / gcd,
+                (double) integers.get(2) / gcd
+        );
+    }
+
+    private static int findIntegerMultiplier(List<Double> values) {
+        double tolerance = 1e-6;
+        for (int multiplier = 1; multiplier <= 1000; multiplier++) {
+            int candidate = multiplier;
+            boolean allIntegers = values.stream()
+                    .allMatch(value -> Math.abs(value * candidate - Math.round(value * candidate)) < tolerance);
+            if (allIntegers) {
+                return candidate;
+            }
+        }
+        return 1;
+    }
+
+    private static long gcd(long a, long b) {
+        while (b != 0L) {
+            long remainder = a % b;
+            a = b;
+            b = remainder;
+        }
+        return Math.abs(a);
     }
 }
