@@ -2,7 +2,6 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.Formulate;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerResponseDto;
@@ -12,12 +11,12 @@ import com.migueltcc.fertintelligence.repository.FormulatedMineralFertilizerRepo
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FormulatedMineralFertilizerService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineralFertilizerService {
@@ -39,7 +38,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         // Mapear Objetos Embutidos
         Formulate formulate = new Formulate();
@@ -79,7 +78,8 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     public FormulatedMineralFertilizerResponseDto getFormulatedMineralFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        StandardEntityAuthorization.assertCanRead(
+                fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico()), owner);
         return fertilizer.toDto();
     }
 
@@ -87,8 +87,22 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByUser(owner)
+        List<FormulatedMineralFertilizerModel> ownFertilizers = formulatedMineralFertilizerRepository.findAllByUser(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownFertilizers.stream()
+                    .map(FormulatedMineralFertilizerModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<FormulatedMineralFertilizerModel> standardFertilizers = formulatedMineralFertilizerRepository
+                .findAllByPublicoTrueOrderByIdAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -112,8 +126,8 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
 
         if (dto.getFormulate() != null) {
             if (fertilizer.getFormulate() == null) fertilizer.setFormulate(new Formulate());
@@ -155,25 +169,13 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional
     public void deleteFormulatedMineralFertilizer(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
         formulatedMineralFertilizerRepository.delete(fertilizer);
     }
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;
-    }
-
-    private void checkOwnership(FormulatedMineralFertilizerModel fertilizer, UserModel owner) {
-        if (!fertilizer.getUser().getId().equals(owner.getId())) {
-            throw new AccessDeniedException("Acesso negado.");
-        }
-    }
-
-    private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
-            throw new AccessDeniedException("Permissão insuficiente para criar adubos.");
-        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

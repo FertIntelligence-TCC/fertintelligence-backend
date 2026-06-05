@@ -15,7 +15,6 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.ContentRangeService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,9 +43,9 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public ContentRangeResponseDto createContentRange(Long tableId, ContentRangeCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkReadPermission(table, owner);
 
         List<ContentRangeModel> existingRanges = contentRangeRepository
                 .findAllByTableAndNutrientOrderByOrderAsc(table, createRequestDto.getNutrient());
@@ -98,10 +97,10 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public ContentRangeResponseDto updateContentRange(Long contentRangeId, ContentRangePostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkReadPermission(table, owner);
 
         Nutriente originalNutrient = range.getNutrient();
         Nutriente updatedNutrient = updateRequestDto.getNutrient() != null
@@ -190,10 +189,10 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     @Transactional
     public void deleteContentRange(Long contentRangeId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkReadPermission(table, owner);
 
         if (range.getNutrient() == Nutriente.NITROGENIO) {
             throw new IllegalArgumentException("Não é permitido remover o intervalo do nutriente Nitrogênio.");
@@ -366,8 +365,6 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar os intervalos desta tabela.");
-        }
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), requestingUser);
     }
 }

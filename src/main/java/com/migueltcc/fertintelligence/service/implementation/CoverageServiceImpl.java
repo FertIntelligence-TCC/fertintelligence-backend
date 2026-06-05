@@ -13,7 +13,6 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CoverageService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +38,9 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public CoverageResponseDto createCoverage(Long contentRangeId, CoverageCreateRequestDto createRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
-        checkReadPermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         int expectedOrder = existingCoverages.size() + 1;
@@ -95,10 +94,10 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public CoverageResponseDto updateCoverage(Long coverageId, CoveragePostRequestDto updateRequestDto, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkReadPermission(range.getTable(), owner);
 
         Integer updatedOrder = updateRequestDto.getOrder() != null
                 ? updateRequestDto.getOrder()
@@ -133,10 +132,10 @@ public class CoverageServiceImpl implements CoverageService {
     @Transactional
     public void deleteCoverage(Long coverageId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkReadPermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         if (!existingCoverages.isEmpty()) {
@@ -199,9 +198,7 @@ public class CoverageServiceImpl implements CoverageService {
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar as coberturas desta tabela.");
-        }
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), requestingUser);
     }
 
     private List<CoverageModel> createSiblingPlaceholderCoverages(ContentRangeModel range, int currentCoverageCount,
