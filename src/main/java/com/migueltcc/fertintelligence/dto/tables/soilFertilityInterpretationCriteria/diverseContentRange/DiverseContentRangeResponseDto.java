@@ -290,6 +290,42 @@ public class DiverseContentRangeResponseDto {
     @JsonProperty("maior_valor_ph")
     private Double ph_too_hight;
 
+    // --- pH AGUA 1:2,5 ---
+    @JsonProperty("menor_valor_ph_agua")
+    private Double ph_water_too_low;
+    @JsonProperty("valor_inicial_baixo_ph_agua")
+    private Double ph_water_low_i;
+    @JsonProperty("valor_final_baixo_ph_agua")
+    private Double ph_water_low_f;
+    @JsonProperty("valor_inicial_medio_ph_agua")
+    private Double ph_water_medium_i;
+    @JsonProperty("valor_final_medio_ph_agua")
+    private Double ph_water_medium_f;
+    @JsonProperty("valor_inicial_alto_ph_agua")
+    private Double ph_water_hight_i;
+    @JsonProperty("valor_final_alto_ph_agua")
+    private Double ph_water_hight_f;
+    @JsonProperty("maior_valor_ph_agua")
+    private Double ph_water_too_hight;
+
+    // --- pH CaCl2 0,01 mol/L 1:2,5 ---
+    @JsonProperty("menor_valor_ph_cacl2")
+    private Double ph_cacl2_too_low;
+    @JsonProperty("valor_inicial_baixo_ph_cacl2")
+    private Double ph_cacl2_low_i;
+    @JsonProperty("valor_final_baixo_ph_cacl2")
+    private Double ph_cacl2_low_f;
+    @JsonProperty("valor_inicial_medio_ph_cacl2")
+    private Double ph_cacl2_medium_i;
+    @JsonProperty("valor_final_medio_ph_cacl2")
+    private Double ph_cacl2_medium_f;
+    @JsonProperty("valor_inicial_alto_ph_cacl2")
+    private Double ph_cacl2_hight_i;
+    @JsonProperty("valor_final_alto_ph_cacl2")
+    private Double ph_cacl2_hight_f;
+    @JsonProperty("maior_valor_ph_cacl2")
+    private Double ph_cacl2_too_hight;
+
     // --- BORO ---
     @JsonProperty("menor_teor_boro")
     private Double boron_too_low;

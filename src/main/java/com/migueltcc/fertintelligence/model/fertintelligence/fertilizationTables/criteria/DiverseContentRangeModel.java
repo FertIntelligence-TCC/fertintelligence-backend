@@ -165,7 +165,7 @@ public class DiverseContentRangeModel {
     Double sum_of_bases_too_hight;
 
     // =================================================================================
-    // ACIDEZ TROCÁVEL (Al3+) - mmolc/dm³
+    // ACIDEZ TROCÁVEL (Al3+) - cmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_ALUMINIO", nullable = false)
     Double aluminum_too_low;
@@ -185,7 +185,7 @@ public class DiverseContentRangeModel {
     Double aluminum_too_hight;
 
     // =================================================================================
-    // ACIDEZ POTENCIAL (H+Al) - mmolc/dm³
+    // ACIDEZ POTENCIAL (H+Al) - cmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_ACIDEZ_POTENCIAL", nullable = false)
     Double potential_acidity_too_low;
@@ -205,7 +205,7 @@ public class DiverseContentRangeModel {
     Double potential_acidity_too_hight;
 
     // =================================================================================
-    // CTC EFETIVA (t) - mmolc/dm³
+    // CTC EFETIVA (t) - cmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_CTC_EFETIVA", nullable = false)
     Double effective_cec_too_low;
@@ -225,7 +225,7 @@ public class DiverseContentRangeModel {
     Double effective_cec_too_hight;
 
     // =================================================================================
-    // CTC pH 7,0 (T) - mmolc/dm³
+    // CTC pH 7,0 (T) - cmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_CTC_PH_7", nullable = false)
     Double ph7_cec_too_low;
@@ -323,6 +323,46 @@ public class DiverseContentRangeModel {
     Double ph_hight_f;
     @Column(name = "MAIOR_VALOR_PH", nullable = false)
     Double ph_too_hight;
+
+    // =================================================================================
+    // pH EM AGUA 1:2,5 - Adimensional
+    // =================================================================================
+    @Column(name = "MENOR_VALOR_PH_AGUA", nullable = false)
+    Double ph_water_too_low;
+    @Column(name = "VALOR_INICIAL_BAIXO_PH_AGUA", nullable = false)
+    Double ph_water_low_i;
+    @Column(name = "VALOR_FINAL_BAIXO_PH_AGUA", nullable = false)
+    Double ph_water_low_f;
+    @Column(name = "VALOR_INICIAL_MEDIO_PH_AGUA", nullable = false)
+    Double ph_water_medium_i;
+    @Column(name = "VALOR_FINAL_MEDIO_PH_AGUA", nullable = false)
+    Double ph_water_medium_f;
+    @Column(name = "VALOR_INICIAL_ALTO_PH_AGUA", nullable = false)
+    Double ph_water_hight_i;
+    @Column(name = "VALOR_FINAL_ALTO_PH_AGUA", nullable = false)
+    Double ph_water_hight_f;
+    @Column(name = "MAIOR_VALOR_PH_AGUA", nullable = false)
+    Double ph_water_too_hight;
+
+    // =================================================================================
+    // pH EM CaCl2 0,01 mol/L 1:2,5 - Adimensional
+    // =================================================================================
+    @Column(name = "MENOR_VALOR_PH_CACL2", nullable = false)
+    Double ph_cacl2_too_low;
+    @Column(name = "VALOR_INICIAL_BAIXO_PH_CACL2", nullable = false)
+    Double ph_cacl2_low_i;
+    @Column(name = "VALOR_FINAL_BAIXO_PH_CACL2", nullable = false)
+    Double ph_cacl2_low_f;
+    @Column(name = "VALOR_INICIAL_MEDIO_PH_CACL2", nullable = false)
+    Double ph_cacl2_medium_i;
+    @Column(name = "VALOR_FINAL_MEDIO_PH_CACL2", nullable = false)
+    Double ph_cacl2_medium_f;
+    @Column(name = "VALOR_INICIAL_ALTO_PH_CACL2", nullable = false)
+    Double ph_cacl2_hight_i;
+    @Column(name = "VALOR_FINAL_ALTO_PH_CACL2", nullable = false)
+    Double ph_cacl2_hight_f;
+    @Column(name = "MAIOR_VALOR_PH_CACL2", nullable = false)
+    Double ph_cacl2_too_hight;
 
     // =================================================================================
     // BORO DISPONÍVEL (B) - mg/dm³
@@ -581,6 +621,26 @@ public class DiverseContentRangeModel {
                 .ph_hight_i(this.ph_hight_i)
                 .ph_hight_f(this.ph_hight_f)
                 .ph_too_hight(this.ph_too_hight)
+
+                // pH Water
+                .ph_water_too_low(this.ph_water_too_low)
+                .ph_water_low_i(this.ph_water_low_i)
+                .ph_water_low_f(this.ph_water_low_f)
+                .ph_water_medium_i(this.ph_water_medium_i)
+                .ph_water_medium_f(this.ph_water_medium_f)
+                .ph_water_hight_i(this.ph_water_hight_i)
+                .ph_water_hight_f(this.ph_water_hight_f)
+                .ph_water_too_hight(this.ph_water_too_hight)
+
+                // pH CaCl2
+                .ph_cacl2_too_low(this.ph_cacl2_too_low)
+                .ph_cacl2_low_i(this.ph_cacl2_low_i)
+                .ph_cacl2_low_f(this.ph_cacl2_low_f)
+                .ph_cacl2_medium_i(this.ph_cacl2_medium_i)
+                .ph_cacl2_medium_f(this.ph_cacl2_medium_f)
+                .ph_cacl2_hight_i(this.ph_cacl2_hight_i)
+                .ph_cacl2_hight_f(this.ph_cacl2_hight_f)
+                .ph_cacl2_too_hight(this.ph_cacl2_too_hight)
 
                 // Boron
                 .boron_too_low(this.boron_too_low)
