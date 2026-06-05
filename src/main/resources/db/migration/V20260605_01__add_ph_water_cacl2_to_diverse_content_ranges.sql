@@ -1,0 +1,17 @@
+ALTER TABLE faixas_de_teores_diversos
+    ADD COLUMN menor_valor_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    ADD COLUMN valor_inicial_baixo_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 5.0,
+    ADD COLUMN valor_final_baixo_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 10.0,
+    ADD COLUMN valor_inicial_medio_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 10.0,
+    ADD COLUMN valor_final_medio_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 20.0,
+    ADD COLUMN valor_inicial_alto_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 20.0,
+    ADD COLUMN valor_final_alto_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 999.0,
+    ADD COLUMN maior_valor_ph_agua DOUBLE PRECISION NOT NULL DEFAULT 999.0,
+    ADD COLUMN menor_valor_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    ADD COLUMN valor_inicial_baixo_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 5.0,
+    ADD COLUMN valor_final_baixo_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 10.0,
+    ADD COLUMN valor_inicial_medio_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 10.0,
+    ADD COLUMN valor_final_medio_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 20.0,
+    ADD COLUMN valor_inicial_alto_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 20.0,
+    ADD COLUMN valor_final_alto_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 999.0,
+    ADD COLUMN maior_valor_ph_cacl2 DOUBLE PRECISION NOT NULL DEFAULT 999.0;
