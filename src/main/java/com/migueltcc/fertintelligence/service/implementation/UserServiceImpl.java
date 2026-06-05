@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
@@ -27,9 +26,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String createUser(UserCreateRequestDto userDTO) {
-        if (userDTO.getCargo() == Cargo.USUARIO_SUPREMO) {
-            throw new IllegalArgumentException("USUARIO_SUPREMO cannot be created through regular registration.");
-        }
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new RuntimeException("Name already exists!");
         }
@@ -58,12 +54,6 @@ public class UserServiceImpl implements UserService {
         System.out.println("Esse é o id da foto: "+userDTO.getIdfoto());
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
-        if (userDTO.getCargo() == Cargo.USUARIO_SUPREMO) {
-            throw new IllegalArgumentException("USUARIO_SUPREMO cannot be assigned through regular update.");
-        }
-        if (user.getCargo() == Cargo.USUARIO_SUPREMO && userDTO.getCargo() != null) {
-            throw new IllegalArgumentException("USUARIO_SUPREMO role cannot be changed through regular update.");
-        }
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
         user.setUsername(userDTO.getUsername() == null ? user.getUsername() : userDTO.getUsername());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
@@ -86,9 +76,6 @@ public class UserServiceImpl implements UserService {
     public String deleteUser(String userName) {
         UserModel user = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
-        if (user.getCargo() == Cargo.USUARIO_SUPREMO) {
-            throw new IllegalArgumentException("USUARIO_SUPREMO cannot be deleted through regular deletion.");
-        }
 
         userRepository.delete(user);
         return "User deleted successfully!";

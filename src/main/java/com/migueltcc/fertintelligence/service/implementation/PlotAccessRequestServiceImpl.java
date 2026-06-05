@@ -154,7 +154,7 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
         boolean isManager = request.getProperty().getManager() != null && request.getProperty().getManager().getId().equals(user.getId());
         boolean isRequester = request.getRequester().getId().equals(user.getId());
 
-        if (!isManager && !isRequester) {
+        if (user.getCargo() != Cargo.USUARIO_SUPREMO && !isManager && !isRequester) {
             throw new AccessDeniedException("Você não tem permissão para revogar ou cancelar esta solicitação.");
         }
 
@@ -187,6 +187,8 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     }
 
     private void checkManagerPermission(PropertyModel property, UserModel manager) {
+        if (manager.getCargo() == Cargo.USUARIO_SUPREMO) return;
+
         if (property.getManager() == null || !property.getManager().getId().equals(manager.getId())) {
             throw new AccessDeniedException("Apenas o gerente da propriedade pode gerenciar essas solicitações.");
         }

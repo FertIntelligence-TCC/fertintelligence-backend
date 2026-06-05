@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.user.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -49,6 +50,14 @@ public class UserCreateRequestDto {
 
     @JsonProperty("cargo")
     @NotNull
+    @Schema(allowableValues = {
+            "PROPRIETARIO",
+            "GERENTE",
+            "AGRONOMO_RESIDENTE",
+            "AGRONOMO_CONSULTOR",
+            "SUPERVISOR_DE_AREA",
+            "SECRETARIO"
+    })
     private Cargo cargo;
 
     @JsonProperty("senha")

@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
@@ -9,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.BioFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.BioFertilizerService;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -171,6 +173,18 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     }
 
     // --- Helpers ---
+
+    private void checkOwnership(BioFertilizerModel fertilizer, UserModel owner) {
+        if (!fertilizer.getUser().getId().equals(owner.getId())) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+
+    private void checkUserRole(UserModel user) {
+        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
+            throw new AccessDeniedException("Permissão insuficiente.");
+        }
+    }
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;

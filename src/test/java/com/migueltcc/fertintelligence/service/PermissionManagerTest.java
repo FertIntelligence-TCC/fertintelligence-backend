@@ -139,6 +139,10 @@ class PermissionManagerTest {
         when(residente.getCargo()).thenReturn(Cargo.AGRONOMO_RESIDENTE);
         assertDoesNotThrow(() -> permissionManager.assertCanPrintRecommendation(residente));
 
+        UserModel supremo = mock(UserModel.class);
+        when(supremo.getCargo()).thenReturn(Cargo.USUARIO_SUPREMO);
+        assertDoesNotThrow(() -> permissionManager.assertCanPrintRecommendation(supremo));
+
         UserModel gerenteUser = mock(UserModel.class);
         when(gerenteUser.getCargo()).thenReturn(Cargo.GERENTE);
         assertThrows(AccessDeniedException.class, () -> permissionManager.assertCanPrintRecommendation(gerenteUser));

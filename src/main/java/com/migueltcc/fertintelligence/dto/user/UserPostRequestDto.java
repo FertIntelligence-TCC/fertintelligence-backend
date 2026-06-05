@@ -50,7 +50,17 @@ public class UserPostRequestDto {
     @JsonProperty("nova_profissao")
     private String profissao;
 
-    @Schema(defaultValue = "cargo")
+    @Schema(
+            defaultValue = "cargo",
+            allowableValues = {
+                    "PROPRIETARIO",
+                    "GERENTE",
+                    "AGRONOMO_RESIDENTE",
+                    "AGRONOMO_CONSULTOR",
+                    "SUPERVISOR_DE_AREA",
+                    "SECRETARIO"
+            }
+    )
     @JsonProperty("novo_cargo")
     private Cargo cargo;
 

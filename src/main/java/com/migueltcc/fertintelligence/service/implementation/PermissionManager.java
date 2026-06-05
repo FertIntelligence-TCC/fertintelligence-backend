@@ -55,11 +55,13 @@ public class PermissionManager {
     public boolean canManageProperty(Long propertyId, String username) {
         UserModel user = findUser(username);
         PropertyModel property = findProperty(propertyId);
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) return true;
         return isOwner(user, property) || isManager(user, property);
     }
 
     @Transactional(readOnly = true)
     public void assertCanManageProperty(PropertyModel property, UserModel user) {
+        if (user != null && user.getCargo() == Cargo.USUARIO_SUPREMO) return;
         if (!(isOwner(user, property) || isManager(user, property))) {
             throw new AccessDeniedException("Você não tem permissão para gerenciar esta propriedade.");
         }
@@ -88,6 +90,8 @@ public class PermissionManager {
 
         PropertyModel property = plot.getProperty();
 
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) return true;
+
         // owner/manager: leitura total
         if (isOwner(user, property) || isManager(user, property)) return true;
 
@@ -105,7 +109,7 @@ public class PermissionManager {
             throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
         }
 
-        if (isOwner(user, property) || isManager(user, property)) return;
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO || isOwner(user, property) || isManager(user, property)) return;
         if (!hasApprovedPropertyMembership(user, property)) {
             throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
         }
@@ -127,8 +131,7 @@ public class PermissionManager {
 
     @Transactional(readOnly = true)
     public void assertCanPrintRecommendation(UserModel user) {
-        if (user == null || user.getCargo() == null ||
-                (user.getCargo() != Cargo.AGRONOMO_RESIDENTE && user.getCargo() != Cargo.AGRONOMO_CONSULTOR)) {
+        if (user == null || user.getCargo() == null || !user.getCargo().canPrintRecommendations()) {
             throw new AccessDeniedException("Somente agrônomos residentes e consultores podem imprimir recomendações formais.");
         }
     }
@@ -207,6 +210,8 @@ public class PermissionManager {
 
     private boolean hasEditPermission(PropertyModel property, PlotModel plot, UserModel user, EnumSet<PermissionType> allowedTypes) {
         if (property == null || user == null) return false;
+
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) return true;
 
         // 1) Owner/Manager fazem tudo
         if (isOwner(user, property) || isManager(user, property)) return true;
