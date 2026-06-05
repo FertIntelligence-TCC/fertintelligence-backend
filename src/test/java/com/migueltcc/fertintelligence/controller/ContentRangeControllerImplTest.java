@@ -30,6 +30,7 @@ import java.util.stream.StreamSupport;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -398,6 +399,118 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.aplicacao_recomendada_plantio").value(70.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateContentRangeChangingNutrientCreatesCoveragePlaceholdersFromTargetRanges() throws Exception {
+        ContentRangeModel potassioRange = ContentRangeModel.builder()
+                .id(300L)
+                .table(ownerTable)
+                .nutrient(Nutriente.POTASSIO)
+                .order(1)
+                .smallest(null)
+                .largest(10.0)
+                .application(50.0)
+                .build();
+
+        CoverageModel oldCoverage = CoverageModel.builder()
+                .id(500L)
+                .range(fosforoFinalRange)
+                .order(1)
+                .application(25.0)
+                .build();
+
+        CoverageModel targetCoverage = CoverageModel.builder()
+                .id(501L)
+                .range(potassioRange)
+                .order(1)
+                .application(15.0)
+                .build();
+
+        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+                .nutrient(Nutriente.POTASSIO)
+                .order(2)
+                .smallest(10.0)
+                .largest(null)
+                .application(60.0)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(fosforoFinalRange.getId())).thenReturn(Optional.of(fosforoFinalRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange, fosforoFinalRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.POTASSIO))
+                .thenReturn(List.of(potassioRange));
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoFinalRange)).thenReturn(List.of(oldCoverage));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(potassioRange)).thenReturn(List.of(targetCoverage));
+
+        mockMvc.perform(put("/content-range/update")
+                        .param("contentRangeId", fosforoFinalRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nutriente").value("POTASSIO"));
+
+        ArgumentCaptor<Iterable<CoverageModel>> deletedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).deleteAll(deletedCaptor.capture());
+        List<CoverageModel> deletedCoverages = StreamSupport.stream(deletedCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(1, deletedCoverages.size());
+        assertEquals(oldCoverage.getId(), deletedCoverages.get(0).getId());
+
+        ArgumentCaptor<Iterable<CoverageModel>> placeholdersCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).saveAll(placeholdersCaptor.capture());
+        List<CoverageModel> placeholders = StreamSupport.stream(placeholdersCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(1, placeholders.size());
+        assertEquals(fosforoFinalRange.getId(), placeholders.get(0).getRange().getId());
+        assertEquals(targetCoverage.getOrder(), placeholders.get(0).getOrder());
+        assertNull(placeholders.get(0).getApplication());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateContentRangeChangingNutrientRemovesCoveragesWhenTargetHasNoCoverages() throws Exception {
+        CoverageModel oldCoverage = CoverageModel.builder()
+                .id(500L)
+                .range(fosforoFinalRange)
+                .order(1)
+                .application(25.0)
+                .build();
+
+        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+                .nutrient(Nutriente.POTASSIO)
+                .order(1)
+                .smallest(null)
+                .largest(10.0)
+                .application(60.0)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(fosforoFinalRange.getId())).thenReturn(Optional.of(fosforoFinalRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange, fosforoFinalRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.POTASSIO))
+                .thenReturn(List.of());
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoFinalRange)).thenReturn(List.of(oldCoverage));
+
+        mockMvc.perform(put("/content-range/update")
+                        .param("contentRangeId", fosforoFinalRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nutriente").value("POTASSIO"));
+
+        ArgumentCaptor<Iterable<CoverageModel>> deletedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).deleteAll(deletedCaptor.capture());
+        List<CoverageModel> deletedCoverages = StreamSupport.stream(deletedCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(1, deletedCoverages.size());
+        assertEquals(oldCoverage.getId(), deletedCoverages.get(0).getId());
+        verify(coverageRepository, never()).saveAll(any());
     }
 
     @Test

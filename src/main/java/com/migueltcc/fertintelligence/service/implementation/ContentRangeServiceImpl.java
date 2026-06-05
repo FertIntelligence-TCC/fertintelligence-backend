@@ -107,6 +107,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         Nutriente updatedNutrient = updateRequestDto.getNutrient() != null
                 ? updateRequestDto.getNutrient()
                 : originalNutrient;
+        List<ContentRangeModel> targetRangesForCoverageSync = List.of();
 
         Integer updatedOrder = updateRequestDto.getOrder() != null
                 ? updateRequestDto.getOrder()
@@ -163,6 +164,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
             List<ContentRangeModel> newRanges = contentRangeRepository
                     .findAllByTableAndNutrientOrderByOrderAsc(table, updatedNutrient);
+            targetRangesForCoverageSync = newRanges;
 
             List<ContentRangeModel> adjustedNewRanges = new ArrayList<>(newRanges);
             adjustedNewRanges.add(updatedRange);
@@ -176,6 +178,11 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         range.setApplication(updatedApplication);
 
         ContentRangeModel savedRange = contentRangeRepository.save(range);
+
+        if (originalNutrient != updatedNutrient) {
+            synchronizeCoveragesAfterNutrientChange(savedRange, targetRangesForCoverageSync);
+        }
+
         return savedRange.toDto();
     }
 
@@ -324,6 +331,15 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 .collect(Collectors.toList());
 
         coverageRepository.saveAll(placeholderCoverages);
+    }
+
+    private void synchronizeCoveragesAfterNutrientChange(ContentRangeModel range, List<ContentRangeModel> targetRanges) {
+        List<CoverageModel> currentCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+        if (!currentCoverages.isEmpty()) {
+            coverageRepository.deleteAll(currentCoverages);
+        }
+
+        createPlaceholderCoveragesForNewRange(range, targetRanges);
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {
