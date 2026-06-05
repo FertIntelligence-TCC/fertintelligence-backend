@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -169,6 +170,10 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
         return FertilityAnalysisExtractPostRequestDto.builder()
                 .phAgua(6.0)
                 .somaBases(65.0)
+                .ctcEfetiva(70.0)
+                .ctcPh7(80.0)
+                .saturacaoBasesV(75.0)
+                .saturacaoAluminioM(10.0)
                 .build();
     }
 
@@ -209,11 +214,14 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
     @WithMockUser(username = "testuser")
     void createFertilityAnalysisExtractWithRangeSuccessfully() throws Exception {
         FertilityAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        FertilityAnalysisExtractModel savedExtract = createFertilityAnalysisExtractModel(1L, ownerRangeExtract, null);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(fertilityAnalysisExtractRepository.save(any(FertilityAnalysisExtractModel.class))).thenReturn(savedExtract);
+        when(fertilityAnalysisExtractRepository.save(any(FertilityAnalysisExtractModel.class))).thenAnswer(invocation -> {
+            FertilityAnalysisExtractModel extract = invocation.getArgument(0);
+            extract.setId(1L);
+            return extract;
+        });
 
         mockMvc.perform(post("/fertility-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
@@ -224,7 +232,12 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.profundidade_inicial").value(0))
-                .andExpect(jsonPath("$.ph_agua").value(5.6));
+                .andExpect(jsonPath("$.ph_agua").value(5.6))
+                .andExpect(jsonPath("$.soma_bases").value(65.9))
+                .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
+                .andExpect(jsonPath("$.ctc_ph7").value(70.1))
+                .andExpect(jsonPath("$.saturacao_bases_v").value(closeTo(94.008559, 0.000001)))
+                .andExpect(jsonPath("$.saturacao_aluminio_m").value(closeTo(0.753012, 0.000001)));
     }
 
     @Test
@@ -309,7 +322,11 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ph_agua").value(6.0))
-                .andExpect(jsonPath("$.soma_bases").value(65.0));
+                .andExpect(jsonPath("$.soma_bases").value(65.9))
+                .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
+                .andExpect(jsonPath("$.ctc_ph7").value(70.1))
+                .andExpect(jsonPath("$.saturacao_bases_v").value(closeTo(94.008559, 0.000001)))
+                .andExpect(jsonPath("$.saturacao_aluminio_m").value(closeTo(0.753012, 0.000001)));
     }
 
     @Test

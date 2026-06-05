@@ -59,11 +59,6 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                 .sodio(createRequestDto.getSodio())
                 .aluminio(createRequestDto.getAluminio())
                 .aluminioMaisHidrogenio(createRequestDto.getAluminioMaisHidrogenio())
-                .somaBases(createRequestDto.getSomaBases())
-                .ctcEfetiva(createRequestDto.getCtcEfetiva())
-                .ctcPh7(createRequestDto.getCtcPh7())
-                .saturacaoBasesV(createRequestDto.getSaturacaoBasesV())
-                .saturacaoAluminioM(createRequestDto.getSaturacaoAluminioM())
                 .fosforoMehlich1(createRequestDto.getFosforoMehlich1())
                 .fosforoResina(createRequestDto.getFosforoResina())
                 .enxofre(createRequestDto.getEnxofre())
@@ -75,6 +70,8 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                 .molibdenio(createRequestDto.getMolibdenio())
                 .zinco(createRequestDto.getZinco())
                 .build();
+
+        recalculateExchangeComplex(analysisExtract);
 
         return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
     }
@@ -154,11 +151,6 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         updateIfNotNull(updateRequestDto.getSodio(), analysisExtract::setSodio);
         updateIfNotNull(updateRequestDto.getAluminio(), analysisExtract::setAluminio);
         updateIfNotNull(updateRequestDto.getAluminioMaisHidrogenio(), analysisExtract::setAluminioMaisHidrogenio);
-        updateIfNotNull(updateRequestDto.getSomaBases(), analysisExtract::setSomaBases);
-        updateIfNotNull(updateRequestDto.getCtcEfetiva(), analysisExtract::setCtcEfetiva);
-        updateIfNotNull(updateRequestDto.getCtcPh7(), analysisExtract::setCtcPh7);
-        updateIfNotNull(updateRequestDto.getSaturacaoBasesV(), analysisExtract::setSaturacaoBasesV);
-        updateIfNotNull(updateRequestDto.getSaturacaoAluminioM(), analysisExtract::setSaturacaoAluminioM);
         updateIfNotNull(updateRequestDto.getFosforoMehlich1(), analysisExtract::setFosforoMehlich1);
         updateIfNotNull(updateRequestDto.getFosforoResina(), analysisExtract::setFosforoResina);
         updateIfNotNull(updateRequestDto.getEnxofre(), analysisExtract::setEnxofre);
@@ -169,6 +161,8 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         updateIfNotNull(updateRequestDto.getManganes(), analysisExtract::setManganes);
         updateIfNotNull(updateRequestDto.getMolibdenio(), analysisExtract::setMolibdenio);
         updateIfNotNull(updateRequestDto.getZinco(), analysisExtract::setZinco);
+
+        recalculateExchangeComplex(analysisExtract);
 
         return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
     }
@@ -192,6 +186,34 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
     private void updateIfNotNull(Double value, Consumer<Double> setter) {
         if (value != null) setter.accept(value);
+    }
+
+    private void recalculateExchangeComplex(FertilityAnalysisExtractModel analysisExtract) {
+        double somaBases = zeroIfNull(analysisExtract.getCalcio())
+                + zeroIfNull(analysisExtract.getMagnesio())
+                + zeroIfNull(analysisExtract.getPotassio())
+                + zeroIfNull(analysisExtract.getSodio());
+        double aluminio = zeroIfNull(analysisExtract.getAluminio());
+        double aluminioMaisHidrogenio = zeroIfNull(analysisExtract.getAluminioMaisHidrogenio());
+        double ctcEfetiva = somaBases + aluminio;
+        double ctcPh7 = somaBases + aluminioMaisHidrogenio;
+
+        analysisExtract.setSomaBases(somaBases);
+        analysisExtract.setCtcEfetiva(ctcEfetiva);
+        analysisExtract.setCtcPh7(ctcPh7);
+        analysisExtract.setSaturacaoBasesV(percentage(somaBases, ctcPh7));
+        analysisExtract.setSaturacaoAluminioM(percentage(aluminio, ctcEfetiva));
+    }
+
+    private Double percentage(double numerator, double denominator) {
+        if (denominator == 0.0) {
+            return null;
+        }
+        return 100.0 * numerator / denominator;
+    }
+
+    private double zeroIfNull(Double value) {
+        return value != null ? value : 0.0;
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {
