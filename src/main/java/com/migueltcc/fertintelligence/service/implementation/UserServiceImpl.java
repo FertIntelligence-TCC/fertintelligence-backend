@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new RuntimeException("Name already exists!");
         }
+        assertCadastroComumPermitido(userDTO.getCargo());
         UserModel user = UserModel.builder()
                 .username(userDTO.getUsername())
                 .cpf(userDTO.getCpf())
@@ -54,6 +56,9 @@ public class UserServiceImpl implements UserService {
         System.out.println("Esse é o id da foto: "+userDTO.getIdfoto());
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
+        if (userDTO.getCargo() != null) {
+            assertCadastroComumPermitido(userDTO.getCargo());
+        }
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
         user.setUsername(userDTO.getUsername() == null ? user.getUsername() : userDTO.getUsername());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
@@ -87,6 +92,12 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
 
         return user.toDto();
+    }
+
+    private void assertCadastroComumPermitido(Cargo cargo) {
+        if (cargo == null || !cargo.isCadastroComumPermitido()) {
+            throw new IllegalArgumentException("Cargo não permitido para cadastro comum de usuários.");
+        }
     }
 
 }

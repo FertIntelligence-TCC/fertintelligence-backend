@@ -128,6 +128,13 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
     public List<PropertyResponseDto> getApprovedPropertiesForUser(String username) {
         UserModel user = findUserByUsernameOrThrow(username);
 
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return propertyRepository.findAll()
+                    .stream()
+                    .map(PropertyModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
         // Busca todas as solicitações deste usuário que foram APROVADAS
         List<PropertyAccessRequestModel> approvedRequests = propertyAccessRequestRepository
                 .findAllByRequesterAndStatus(user, AccessRequestStatus.APPROVED);
@@ -172,6 +179,11 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
                 .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada"));
 
         if (property.getOwner().getUsername().equals(username)) {
+            return true;
+        }
+
+        UserModel user = findUserByUsernameOrThrow(username);
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) {
             return true;
         }
 
@@ -240,6 +252,8 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
 
     // Substitua os métodos checkOwnerPermission e checkUserIsProprietario por este novo:
     private void checkManagementPermission(PropertyModel property, UserModel requestingUser) {
+        if (requestingUser.getCargo() == Cargo.USUARIO_SUPREMO) return;
+
         boolean isOwner = property.getOwner().getId().equals(requestingUser.getId());
         boolean isManager = property.getManager() != null && property.getManager().getId().equals(requestingUser.getId());
 

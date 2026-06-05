@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionType;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.permissions.EffectivePermissionsResponseDto;
 import com.migueltcc.fertintelligence.dto.permissions.PlotSummaryDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
@@ -49,7 +50,7 @@ public class EffectivePermissionsServiceImpl implements EffectivePermissionsServ
         PropertyModel property = findProperty(propertyId);
 
         // Owner/Manager: tudo liberado (counts = total de talhões)
-        if (isOwner(user, property) || isManager(user, property)) {
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO || isOwner(user, property) || isManager(user, property)) {
             int totalPlots = plotRepository.findAllByProperty(property).size();
 
             return EffectivePermissionsResponseDto.builder()
@@ -98,7 +99,7 @@ public class EffectivePermissionsServiceImpl implements EffectivePermissionsServ
         List<PlotModel> plots = plotRepository.findAllByProperty(property);
 
         // Owner/Manager: todos os plots
-        if (isOwner(user, property) || isManager(user, property)) {
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO || isOwner(user, property) || isManager(user, property)) {
             return plots.stream().map(this::toPlotSummary).toList();
         }
 

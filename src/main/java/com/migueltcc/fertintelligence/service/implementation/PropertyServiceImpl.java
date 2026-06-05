@@ -152,6 +152,13 @@ public class PropertyServiceImpl implements PropertyService {
 
         UserModel user = findUserByUsernameOrThrow(username);
 
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return propertyRepository.findAll()
+                    .stream()
+                    .map(PropertyModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
         if (user.getCargo() == Cargo.PROPRIETARIO) {
             return propertyRepository.findAllByOwner(user)
                     .stream()
@@ -288,7 +295,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
+        if (!user.getCargo().canManageProperties()) {
             throw new AccessDeniedException(
                     "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar propriedades."
             );
@@ -296,6 +303,8 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void checkPropertyPermission(PropertyModel property, UserModel user) {
+
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) return;
 
         if (property.getOwner().getId().equals(user.getId())) return;
 

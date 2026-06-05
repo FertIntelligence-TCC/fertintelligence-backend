@@ -248,14 +248,12 @@ public class PlotServiceImpl implements PlotService {
      *   mas NÃO deve bloquear a listagem de talhões se o usuário já foi aceito na propriedade.
      */
     private void checkPermission(PropertyModel property, PlotModel plot, UserModel requestingUser, boolean requireEdit) {
-        if (requestingUser.getCargo() != Cargo.PROPRIETARIO
-                && requestingUser.getCargo() != Cargo.GERENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
-                && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
-                && requestingUser.getCargo() != Cargo.SECRETARIO
-                && requestingUser.getCargo() != Cargo.SUPERVISOR_DE_AREA
-        ) {
+        if (!requestingUser.getCargo().canAccessGeneralResources()) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        if (requestingUser.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return;
         }
 
         // dono

@@ -55,6 +55,6 @@ public class RecommendationResponseDto {
     private LocalDateTime updatedAt;
 
     public static boolean isPrintableForRole(Cargo cargo) {
-        return cargo == Cargo.AGRONOMO_RESIDENTE || cargo == Cargo.AGRONOMO_CONSULTOR;
+        return cargo != null && cargo.canPrintRecommendations();
     }
 }
