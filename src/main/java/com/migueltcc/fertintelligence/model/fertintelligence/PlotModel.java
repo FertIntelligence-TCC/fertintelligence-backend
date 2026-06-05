@@ -56,11 +56,29 @@ public class PlotModel {
     @Column(name = "LATITUDE")
     Double latitude;
 
+    @Column(name = "LATITUDE_GRAUS")
+    Integer latitudeGraus;
+
+    @Column(name = "LATITUDE_MINUTOS")
+    Integer latitudeMinutos;
+
+    @Column(name = "LATITUDE_SEGUNDOS")
+    Double latitudeSegundos;
+
     @Column(name = "NORTE/SUL")
     LatitudeDirection latitudeDirection;
 
     @Column(name = "LONGITUDE")
     Double longitude;
+
+    @Column(name = "LONGITUDE_GRAUS")
+    Integer longitudeGraus;
+
+    @Column(name = "LONGITUDE_MINUTOS")
+    Integer longitudeMinutos;
+
+    @Column(name = "LONGITUDE_SEGUNDOS")
+    Double longitudeSegundos;
 
     @Column(name = "OESTE/LESTE")
     LongitudeDirection longitudeDirection;
@@ -84,8 +102,14 @@ public class PlotModel {
                 .monthlyPluviosity(this.monthlyPluviosity)
                 .annualPluviosity(this.annualPluviosity)
                 .latitude(this.latitude)
+                .latitudeGraus(this.latitudeGraus)
+                .latitudeMinutos(this.latitudeMinutos)
+                .latitudeSegundos(this.latitudeSegundos)
                 .latitudeDirection(this.latitudeDirection)
                 .longitude(this.longitude)
+                .longitudeGraus(this.longitudeGraus)
+                .longitudeMinutos(this.longitudeMinutos)
+                .longitudeSegundos(this.longitudeSegundos)
                 .longitudeDirection(this.longitudeDirection)
                 .altitude(this.altitude)
                 .idFoto(this.idFoto)

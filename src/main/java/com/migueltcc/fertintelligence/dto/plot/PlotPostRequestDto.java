@@ -8,6 +8,10 @@ import com.migueltcc.fertintelligence.composedAttributes.plot.TexturaSolo;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -59,6 +63,24 @@ public class PlotPostRequestDto {
     @JsonProperty("nova_latitude")
     Double latitude;
 
+    @Schema(example = "15")
+    @JsonProperty("nova_latitude_graus")
+    @Min(value = 0, message = "Latitude em graus deve ser maior ou igual a 0")
+    @Max(value = 90, message = "Latitude em graus deve ser menor ou igual a 90")
+    Integer latitudeGraus;
+
+    @Schema(example = "46")
+    @JsonProperty("nova_latitude_minutos")
+    @Min(value = 0, message = "Latitude em minutos deve ser maior ou igual a 0")
+    @Max(value = 59, message = "Latitude em minutos deve ser menor ou igual a 59")
+    Integer latitudeMinutos;
+
+    @Schema(example = "48.36")
+    @JsonProperty("nova_latitude_segundos")
+    @DecimalMin(value = "0.0", message = "Latitude em segundos deve ser maior ou igual a 0")
+    @DecimalMax(value = "59.999999", message = "Latitude em segundos deve ser menor que 60")
+    Double latitudeSegundos;
+
     @Schema(example = "SUL")
     @JsonProperty("nova_latitudeDirection")
     LatitudeDirection latitudeDirection;
@@ -66,6 +88,24 @@ public class PlotPostRequestDto {
     @Schema(example = "-47.9292")
     @JsonProperty("nova_longitude")
     Double longitude;
+
+    @Schema(example = "47")
+    @JsonProperty("nova_longitude_graus")
+    @Min(value = 0, message = "Longitude em graus deve ser maior ou igual a 0")
+    @Max(value = 180, message = "Longitude em graus deve ser menor ou igual a 180")
+    Integer longitudeGraus;
+
+    @Schema(example = "55")
+    @JsonProperty("nova_longitude_minutos")
+    @Min(value = 0, message = "Longitude em minutos deve ser maior ou igual a 0")
+    @Max(value = 59, message = "Longitude em minutos deve ser menor ou igual a 59")
+    Integer longitudeMinutos;
+
+    @Schema(example = "45.12")
+    @JsonProperty("nova_longitude_segundos")
+    @DecimalMin(value = "0.0", message = "Longitude em segundos deve ser maior ou igual a 0")
+    @DecimalMax(value = "59.999999", message = "Longitude em segundos deve ser menor que 60")
+    Double longitudeSegundos;
 
     @Schema(example = "OESTE")
     @JsonProperty("nova_longitudeDirection")

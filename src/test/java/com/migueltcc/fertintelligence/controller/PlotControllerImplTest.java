@@ -135,6 +135,16 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .declivity(5.0)
                 .monthlyPluviosity(200.0)
                 .annualPluviosity(1200.0)
+                .latitude(7.11)
+                .latitudeGraus(7)
+                .latitudeMinutos(6)
+                .latitudeSegundos(36.0)
+                .latitudeDirection(LatitudeDirection.SUL)
+                .longitude(34.86)
+                .longitudeGraus(34)
+                .longitudeMinutos(51)
+                .longitudeSegundos(36.0)
+                .longitudeDirection(LongitudeDirection.OESTE)
                 .build();
     }
 
@@ -149,6 +159,16 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .declivity(8.0)
                 .monthlyPluviosity(250.0)
                 .annualPluviosity(1500.0)
+                .latitude(8.0)
+                .latitudeGraus(8)
+                .latitudeMinutos(1)
+                .latitudeSegundos(12.0)
+                .latitudeDirection(LatitudeDirection.SUL)
+                .longitude(35.0)
+                .longitudeGraus(35)
+                .longitudeMinutos(2)
+                .longitudeSegundos(24.0)
+                .longitudeDirection(LongitudeDirection.OESTE)
                 .build();
     }
 
@@ -164,6 +184,16 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .declivity(5.0)
                 .monthlyPluviosity(200.0)
                 .annualPluviosity(1200.0)
+                .latitude(7.11)
+                .latitudeGraus(7)
+                .latitudeMinutos(6)
+                .latitudeSegundos(36.0)
+                .latitudeDirection(LatitudeDirection.SUL)
+                .longitude(34.86)
+                .longitudeGraus(34)
+                .longitudeMinutos(51)
+                .longitudeSegundos(36.0)
+                .longitudeDirection(LongitudeDirection.OESTE)
                 .property(property)
                 .build();
     }
@@ -210,6 +240,12 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.identificacao").value("Talhao 01"))
+                .andExpect(jsonPath("$.latitude_graus").value(7))
+                .andExpect(jsonPath("$.latitude_minutos").value(6))
+                .andExpect(jsonPath("$.latitude_segundos").value(36.0))
+                .andExpect(jsonPath("$.longitude_graus").value(34))
+                .andExpect(jsonPath("$.longitude_minutos").value(51))
+                .andExpect(jsonPath("$.longitude_segundos").value(36.0))
                 .andExpect(jsonPath("$.id_propriedade").value(10L));
     }
 
@@ -294,6 +330,8 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                         .param("plotId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.latitude_graus").value(7))
+                .andExpect(jsonPath("$.longitude_graus").value(34))
                 .andExpect(jsonPath("$.id_propriedade").value(10L));
     }
 
@@ -363,7 +401,9 @@ public class PlotControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.identificacao").value("Talhao Atualizado"))
-                .andExpect(jsonPath("$.area").value(18.0));
+                .andExpect(jsonPath("$.area").value(18.0))
+                .andExpect(jsonPath("$.latitude_graus").value(8))
+                .andExpect(jsonPath("$.longitude_graus").value(35));
     }
 
     @Test

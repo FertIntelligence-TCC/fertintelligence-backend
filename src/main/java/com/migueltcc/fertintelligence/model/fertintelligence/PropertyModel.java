@@ -50,8 +50,14 @@ public class PropertyModel {
                 .cnpj(this.cnpj)
                 .localizacao(new LocalizacaoDto(
                         this.localizacao.getLatitude(),
+                        this.localizacao.getLatitudeGraus(),
+                        this.localizacao.getLatitudeMinutos(),
+                        this.localizacao.getLatitudeSegundos(),
                         this.localizacao.getLatDirection(),
                         this.localizacao.getLongitude(),
+                        this.localizacao.getLongitudeGraus(),
+                        this.localizacao.getLongitudeMinutos(),
+                        this.localizacao.getLongitudeSegundos(),
                         this.localizacao.getLongDirection(),
                         this.localizacao.getAltitude()
                 ))

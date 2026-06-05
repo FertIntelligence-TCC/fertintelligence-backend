@@ -102,6 +102,12 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
 
     private PropertyCreateRequestDto createCreateRequestDto() {
         LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
+        localizacaoDto.setLatitudeGraus(7);
+        localizacaoDto.setLatitudeMinutos(6);
+        localizacaoDto.setLatitudeSegundos(36.0);
+        localizacaoDto.setLongitudeGraus(34);
+        localizacaoDto.setLongitudeMinutos(51);
+        localizacaoDto.setLongitudeSegundos(36.0);
         return PropertyCreateRequestDto.builder()
                 .nome("Fazenda Santa Clara")
                 .cnpj("12345678000199")
@@ -112,6 +118,12 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
 
     private PropertyPostRequestDto createPostRequestDto() {
         LocalizacaoDto localizacaoDto = new LocalizacaoDto(7.11, SUL, 34.86, OESTE, 10.0);
+        localizacaoDto.setLatitudeGraus(7);
+        localizacaoDto.setLatitudeMinutos(6);
+        localizacaoDto.setLatitudeSegundos(36.0);
+        localizacaoDto.setLongitudeGraus(34);
+        localizacaoDto.setLongitudeMinutos(51);
+        localizacaoDto.setLongitudeSegundos(36.0);
         return PropertyPostRequestDto.builder()
                 .nome("Fazenda Santa Clara")
                 .cnpj("12345678000199")
@@ -126,7 +138,7 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                 .nome(nome)
                 .cnpj("12.345.678/0001-99")
                 .endereco("Rodovia PB 031, KM 25")
-                .localizacao(new Localizacao(7.11, SUL, 34.86, OESTE, 10.0))
+                .localizacao(new Localizacao(7.11, 7, 6, 36.0, SUL, 34.86, 34, 51, 36.0, OESTE, 10.0))
                 .owner(owner)
                 .build();
     }
@@ -151,6 +163,12 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara"))
                 .andExpect(jsonPath("$.cnpj").value("12.345.678/0001-99"))
+                .andExpect(jsonPath("$.localizacao.latitude_graus").value(7))
+                .andExpect(jsonPath("$.localizacao.latitude_minutos").value(6))
+                .andExpect(jsonPath("$.localizacao.latitude_segundos").value(36.0))
+                .andExpect(jsonPath("$.localizacao.longitude_graus").value(34))
+                .andExpect(jsonPath("$.localizacao.longitude_minutos").value(51))
+                .andExpect(jsonPath("$.localizacao.longitude_segundos").value(36.0))
                 .andExpect(jsonPath("$.owner_id").value(1L))
                 .andDo(print()); // Imprime detalhes da requisição/resposta
     }
@@ -201,6 +219,8 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk()) // Espera 200 OK
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara"))
+                .andExpect(jsonPath("$.localizacao.latitude_graus").value(7))
+                .andExpect(jsonPath("$.localizacao.longitude_graus").value(34))
                 .andExpect(jsonPath("$.owner_id").value(proprietarioUser.getId()))
                 .andDo(print());
     }
@@ -269,6 +289,8 @@ public class PropertyControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk()) // Espera 200 OK
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome").value("Fazenda Santa Clara (Atualizada)"))
+                .andExpect(jsonPath("$.localizacao.latitude_graus").value(7))
+                .andExpect(jsonPath("$.localizacao.longitude_graus").value(34))
                 .andDo(print());
     }
 
