@@ -2,12 +2,15 @@ package com.migueltcc.fertintelligence.dto.tables.contentRange;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder(toBuilder = true)
@@ -36,4 +39,7 @@ public class ContentRangeCreateRequestDto {
     @JsonProperty("aplicacao_recomendada_plantio")
     @Schema(example = "80.0")
     private Double application;
+
+    @JsonProperty("coberturas")
+    private List<CoverageCreateRequestDto> coverages;
 }

@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
@@ -66,6 +67,9 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         ContentRangeModel savedRange = contentRangeRepository.save(newRange);
         createPlaceholderCoveragesForNewRange(savedRange, existingRanges);
+        if (createRequestDto.getCoverages() != null) {
+            synchronizeCoverages(savedRange, createRequestDto.getCoverages());
+        }
         return savedRange.toDto();
     }
 
@@ -180,6 +184,9 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         if (originalNutrient != updatedNutrient) {
             synchronizeCoveragesAfterNutrientChange(savedRange, targetRangesForCoverageSync);
+        }
+        if (updateRequestDto.getCoverages() != null) {
+            synchronizeCoverages(savedRange, updateRequestDto.getCoverages());
         }
 
         return savedRange.toDto();
@@ -339,6 +346,111 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         }
 
         createPlaceholderCoveragesForNewRange(range, targetRanges);
+    }
+
+    private void synchronizeCoverages(ContentRangeModel range, List<CoverageCreateRequestDto> requestedCoverages) {
+        List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+        validateRequestedCoverages(requestedCoverages);
+
+        int requestedCount = requestedCoverages.size();
+        int existingCount = existingCoverages.size();
+
+        if (requestedCount < existingCount) {
+            deleteTrailingCoverages(range, existingCount, requestedCount);
+            existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+            existingCount = existingCoverages.size();
+        }
+
+        List<CoverageModel> coveragesToSave = new ArrayList<>();
+        for (int i = 0; i < Math.min(requestedCount, existingCount); i++) {
+            CoverageModel coverage = existingCoverages.get(i);
+            CoverageCreateRequestDto requestedCoverage = requestedCoverages.get(i);
+            coverage.setOrder(requestedCoverage.getOrder());
+            coverage.setApplication(requestedCoverage.getApplication());
+            coveragesToSave.add(coverage);
+        }
+
+        for (int i = existingCount; i < requestedCount; i++) {
+            CoverageCreateRequestDto requestedCoverage = requestedCoverages.get(i);
+            coveragesToSave.add(CoverageModel.builder()
+                    .range(range)
+                    .order(requestedCoverage.getOrder())
+                    .application(requestedCoverage.getApplication())
+                    .build());
+        }
+
+        if (!coveragesToSave.isEmpty()) {
+            coverageRepository.saveAll(coveragesToSave);
+        }
+
+        if (requestedCount > existingCount) {
+            createSiblingPlaceholderCoverages(range, existingCount, requestedCount);
+        }
+    }
+
+    private void validateRequestedCoverages(List<CoverageCreateRequestDto> requestedCoverages) {
+        for (int i = 0; i < requestedCoverages.size(); i++) {
+            CoverageCreateRequestDto coverage = requestedCoverages.get(i);
+            Integer order = coverage.getOrder();
+
+            if (order == null || order <= 0) {
+                throw new IllegalArgumentException("A ordem das coberturas deve ser positiva.");
+            }
+
+            if (!order.equals(i + 1)) {
+                throw new IllegalArgumentException("As coberturas devem ser ordenadas sequencialmente sem lacunas.");
+            }
+        }
+    }
+
+    private void deleteTrailingCoverages(ContentRangeModel range, int existingCount, int requestedCount) {
+        List<ContentRangeModel> siblingRanges = contentRangeRepository
+                .findAllByTableAndNutrientOrderByOrderAsc(range.getTable(), range.getNutrient());
+
+        List<CoverageModel> coveragesToDelete = new ArrayList<>();
+        for (ContentRangeModel sibling : siblingRanges) {
+            List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
+            if (siblingCoverages.size() != existingCount) {
+                throw new IllegalStateException(
+                        "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
+            }
+
+            coveragesToDelete.addAll(siblingCoverages.subList(requestedCount, existingCount));
+        }
+
+        if (!coveragesToDelete.isEmpty()) {
+            coverageRepository.deleteAll(coveragesToDelete);
+        }
+    }
+
+    private void createSiblingPlaceholderCoverages(ContentRangeModel range, int existingCount, int requestedCount) {
+        List<ContentRangeModel> siblingRanges = contentRangeRepository
+                .findAllByTableAndNutrientOrderByOrderAsc(range.getTable(), range.getNutrient());
+
+        List<CoverageModel> placeholderCoverages = new ArrayList<>();
+        for (ContentRangeModel sibling : siblingRanges) {
+            if (Objects.equals(sibling.getId(), range.getId())) {
+                continue;
+            }
+
+            List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
+            if (siblingCoverages.size() != existingCount) {
+                throw new IllegalStateException(
+                        "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
+            }
+
+            for (int i = existingCount; i < requestedCount; i++) {
+                placeholderCoverages.add(CoverageModel.builder()
+                        .range(sibling)
+                        .order(i + 1)
+                        .application(null)
+                        .build());
+            }
+        }
+
+        if (!placeholderCoverages.isEmpty()) {
+            coverageRepository.saveAll(placeholderCoverages);
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

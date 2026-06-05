@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -399,6 +400,132 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.aplicacao_recomendada_plantio").value(70.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateContentRangeAddsCoveragesFromPayloadAndCreatesSiblingPlaceholders() throws Exception {
+        CoverageModel existingCoverage = CoverageModel.builder()
+                .id(500L)
+                .range(fosforoRange)
+                .order(1)
+                .application(30.0)
+                .build();
+
+        CoverageModel siblingExistingCoverage = CoverageModel.builder()
+                .id(501L)
+                .range(fosforoFinalRange)
+                .order(1)
+                .application(20.0)
+                .build();
+
+        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+                .coverages(List.of(
+                        CoverageCreateRequestDto.builder().order(1).application(35.0).build(),
+                        CoverageCreateRequestDto.builder().order(2).application(25.0).build()
+                ))
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(fosforoRange.getId())).thenReturn(Optional.of(fosforoRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange, fosforoFinalRange));
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoRange)).thenReturn(List.of(existingCoverage));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoFinalRange)).thenReturn(List.of(siblingExistingCoverage));
+
+        mockMvc.perform(put("/content-range/update")
+                        .param("contentRangeId", fosforoRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Iterable<CoverageModel>> savedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository, org.mockito.Mockito.times(2)).saveAll(savedCaptor.capture());
+
+        List<CoverageModel> updatedCoverages = StreamSupport.stream(savedCaptor.getAllValues().get(0).spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(2, updatedCoverages.size());
+        assertEquals(existingCoverage.getId(), updatedCoverages.get(0).getId());
+        assertEquals(35.0, updatedCoverages.get(0).getApplication());
+        assertNull(updatedCoverages.get(1).getId());
+        assertEquals(fosforoRange.getId(), updatedCoverages.get(1).getRange().getId());
+        assertEquals(2, updatedCoverages.get(1).getOrder());
+
+        List<CoverageModel> placeholders = StreamSupport.stream(savedCaptor.getAllValues().get(1).spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(1, placeholders.size());
+        assertEquals(fosforoFinalRange.getId(), placeholders.get(0).getRange().getId());
+        assertEquals(2, placeholders.get(0).getOrder());
+        assertNull(placeholders.get(0).getApplication());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateContentRangeRemovesTrailingCoveragesFromPayloadAndSiblings() throws Exception {
+        CoverageModel coverageOne = CoverageModel.builder()
+                .id(500L)
+                .range(fosforoRange)
+                .order(1)
+                .application(30.0)
+                .build();
+        CoverageModel coverageTwo = CoverageModel.builder()
+                .id(501L)
+                .range(fosforoRange)
+                .order(2)
+                .application(20.0)
+                .build();
+        CoverageModel siblingCoverageOne = CoverageModel.builder()
+                .id(502L)
+                .range(fosforoFinalRange)
+                .order(1)
+                .application(15.0)
+                .build();
+        CoverageModel siblingCoverageTwo = CoverageModel.builder()
+                .id(503L)
+                .range(fosforoFinalRange)
+                .order(2)
+                .application(10.0)
+                .build();
+
+        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+                .coverages(List.of(
+                        CoverageCreateRequestDto.builder().order(1).application(40.0).build()
+                ))
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(fosforoRange.getId())).thenReturn(Optional.of(fosforoRange));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange, fosforoFinalRange));
+        when(contentRangeRepository.save(any(ContentRangeModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoRange))
+                .thenReturn(List.of(coverageOne, coverageTwo))
+                .thenReturn(List.of(coverageOne));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoFinalRange))
+                .thenReturn(List.of(siblingCoverageOne, siblingCoverageTwo));
+
+        mockMvc.perform(put("/content-range/update")
+                        .param("contentRangeId", fosforoRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Iterable<CoverageModel>> deletedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).deleteAll(deletedCaptor.capture());
+        List<CoverageModel> deletedCoverages = StreamSupport.stream(deletedCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(2, deletedCoverages.size());
+        assertEquals(coverageTwo.getId(), deletedCoverages.get(0).getId());
+        assertEquals(siblingCoverageTwo.getId(), deletedCoverages.get(1).getId());
+
+        ArgumentCaptor<Iterable<CoverageModel>> savedCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(coverageRepository).saveAll(savedCaptor.capture());
+        List<CoverageModel> savedCoverages = StreamSupport.stream(savedCaptor.getValue().spliterator(), false)
+                .collect(Collectors.toList());
+        assertEquals(1, savedCoverages.size());
+        assertEquals(coverageOne.getId(), savedCoverages.get(0).getId());
+        assertEquals(40.0, savedCoverages.get(0).getApplication());
     }
 
     @Test
