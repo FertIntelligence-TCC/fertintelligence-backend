@@ -121,9 +121,9 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.formula.n").value(4))
-                .andExpect(jsonPath("$.relacao.n").value(2.0))
-                .andExpect(jsonPath("$.relacao.p").value(7.0))
-                .andExpect(jsonPath("$.relacao.k").value(4.0))
+                .andExpect(jsonPath("$.relacao.n").value(1.0))
+                .andExpect(jsonPath("$.relacao.p").value(3.5))
+                .andExpect(jsonPath("$.relacao.k").value(2.0))
                 .andExpect(jsonPath("$.k2o").value(8.0))
                 .andExpect(jsonPath("$.user_id").value(1L))
                 .andExpect(jsonPath("$.user_nome").value("Test Owner"));
@@ -142,7 +142,7 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.relacao.k").value(4.0))
+                .andExpect(jsonPath("$.relacao.k").value(2.0))
                 .andExpect(jsonPath("$.p2o5").value(14.0))
                 .andExpect(jsonPath("$.user_id").value(1L));
     }
@@ -212,8 +212,8 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
                 .andExpect(jsonPath("$.formula.p").value(14))
                 .andExpect(jsonPath("$.formula.k").value(8))
 
-                // A relação preserva a proporção do modelo original, expressa em inteiros
-                .andExpect(jsonPath("$.relacao.p").value(7.0));
+                // A relação preserva a proporção do modelo original, dividida pelo menor teor
+                .andExpect(jsonPath("$.relacao.p").value(3.5));
     }
 
     @Test
