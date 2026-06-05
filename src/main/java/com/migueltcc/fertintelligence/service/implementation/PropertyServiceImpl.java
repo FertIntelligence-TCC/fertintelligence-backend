@@ -262,8 +262,14 @@ public class PropertyServiceImpl implements PropertyService {
     private Localizacao buildLocalizacao(com.migueltcc.fertintelligence.dto.property.LocalizacaoDto dto) {
         return new Localizacao(
                 dto.getLatitude(),
+                dto.getLatitudeGraus(),
+                dto.getLatitudeMinutos(),
+                dto.getLatitudeSegundos(),
                 dto.getLatitudeDirection(),
                 dto.getLongitude(),
+                dto.getLongitudeGraus(),
+                dto.getLongitudeMinutos(),
+                dto.getLongitudeSegundos(),
                 dto.getLongitudeDirection(),
                 dto.getAltitude()
         );

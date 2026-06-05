@@ -68,8 +68,14 @@ public class PlotServiceImpl implements PlotService {
                 .monthlyPluviosity(createRequestDto.getMonthlyPluviosity())
                 .annualPluviosity(createRequestDto.getAnnualPluviosity())
                 .latitude(createRequestDto.getLatitude())
+                .latitudeGraus(createRequestDto.getLatitudeGraus())
+                .latitudeMinutos(createRequestDto.getLatitudeMinutos())
+                .latitudeSegundos(createRequestDto.getLatitudeSegundos())
                 .latitudeDirection(createRequestDto.getLatitudeDirection())
                 .longitude(createRequestDto.getLongitude())
+                .longitudeGraus(createRequestDto.getLongitudeGraus())
+                .longitudeMinutos(createRequestDto.getLongitudeMinutos())
+                .longitudeSegundos(createRequestDto.getLongitudeSegundos())
                 .longitudeDirection(createRequestDto.getLongitudeDirection())
                 .altitude(createRequestDto.getAltitude())
                 .idFoto(createRequestDto.getIdFoto())
@@ -159,12 +165,36 @@ public class PlotServiceImpl implements PlotService {
             plot.setLatitude(updateRequestDto.getLatitude());
         }
 
+        if (updateRequestDto.getLatitudeGraus() != null) {
+            plot.setLatitudeGraus(updateRequestDto.getLatitudeGraus());
+        }
+
+        if (updateRequestDto.getLatitudeMinutos() != null) {
+            plot.setLatitudeMinutos(updateRequestDto.getLatitudeMinutos());
+        }
+
+        if (updateRequestDto.getLatitudeSegundos() != null) {
+            plot.setLatitudeSegundos(updateRequestDto.getLatitudeSegundos());
+        }
+
         if (updateRequestDto.getLatitudeDirection() != null) {
             plot.setLatitudeDirection(updateRequestDto.getLatitudeDirection());
         }
 
         if (updateRequestDto.getLongitude() != null) {
             plot.setLongitude(updateRequestDto.getLongitude());
+        }
+
+        if (updateRequestDto.getLongitudeGraus() != null) {
+            plot.setLongitudeGraus(updateRequestDto.getLongitudeGraus());
+        }
+
+        if (updateRequestDto.getLongitudeMinutos() != null) {
+            plot.setLongitudeMinutos(updateRequestDto.getLongitudeMinutos());
+        }
+
+        if (updateRequestDto.getLongitudeSegundos() != null) {
+            plot.setLongitudeSegundos(updateRequestDto.getLongitudeSegundos());
         }
 
         if (updateRequestDto.getLongitudeDirection() != null) {

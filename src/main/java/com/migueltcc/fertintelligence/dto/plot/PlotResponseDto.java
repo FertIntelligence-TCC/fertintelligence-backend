@@ -63,6 +63,18 @@ public class PlotResponseDto {
     @JsonProperty("latitude")
     Double latitude;
 
+    @Schema(example = "15")
+    @JsonProperty("latitude_graus")
+    Integer latitudeGraus;
+
+    @Schema(example = "46")
+    @JsonProperty("latitude_minutos")
+    Integer latitudeMinutos;
+
+    @Schema(example = "48.36")
+    @JsonProperty("latitude_segundos")
+    Double latitudeSegundos;
+
     @Schema(example = "SUL")
     @JsonProperty("latitudeDirection")
     LatitudeDirection latitudeDirection;
@@ -70,6 +82,18 @@ public class PlotResponseDto {
     @Schema(example = "-47.9292")
     @JsonProperty("longitude")
     Double longitude;
+
+    @Schema(example = "47")
+    @JsonProperty("longitude_graus")
+    Integer longitudeGraus;
+
+    @Schema(example = "55")
+    @JsonProperty("longitude_minutos")
+    Integer longitudeMinutos;
+
+    @Schema(example = "45.12")
+    @JsonProperty("longitude_segundos")
+    Double longitudeSegundos;
 
     @Schema(example = "OESTE")
     @JsonProperty("longitudeDirection")
