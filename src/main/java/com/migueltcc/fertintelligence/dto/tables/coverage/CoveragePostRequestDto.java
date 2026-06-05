@@ -20,4 +20,12 @@ public class CoveragePostRequestDto {
     @JsonProperty("novo_aplicacao_recomendada_cobertura")
     @Schema(example = "25.0")
     private Double application;
+
+    @JsonProperty("novo_observacoes")
+    @Schema(example = "Observação atualizada para a cobertura.")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @Schema(example = "Manual atualizado; boletim técnico complementar")
+    private String sources;
 }

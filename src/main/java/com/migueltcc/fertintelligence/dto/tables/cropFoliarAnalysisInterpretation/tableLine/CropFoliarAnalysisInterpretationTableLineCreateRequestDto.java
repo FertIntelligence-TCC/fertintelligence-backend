@@ -59,4 +59,12 @@ public class CropFoliarAnalysisInterpretationTableLineCreateRequestDto {
 
     @JsonProperty("teores_zn")
     private MenorMaiorTeores zn_content;
+
+    @JsonProperty("observacoes")
+    @Schema(example = "Coletar folhas diagnósticas em plantas representativas.")
+    private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de diagnose foliar; recomendações técnicas regionais")
+    private String sources;
 }

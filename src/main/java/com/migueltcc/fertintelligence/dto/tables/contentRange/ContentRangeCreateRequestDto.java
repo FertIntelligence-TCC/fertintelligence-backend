@@ -36,4 +36,12 @@ public class ContentRangeCreateRequestDto {
     @JsonProperty("aplicacao_recomendada_plantio")
     @Schema(example = "80.0")
     private Double application;
+
+    @JsonProperty("observacoes")
+    @Schema(example = "Aplicar no sulco de plantio conforme disponibilidade do nutriente.")
+    private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de adubação regional; boletim técnico local")
+    private String sources;
 }

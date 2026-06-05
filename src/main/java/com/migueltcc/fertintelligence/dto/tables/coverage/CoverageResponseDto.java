@@ -28,4 +28,12 @@ public class CoverageResponseDto {
     @Schema(example = "30.0")
     @JsonProperty("aplicacao_recomendada_cobertura")
     private Double application;
+
+    @Schema(example = "Aplicar em cobertura com umidade adequada no solo.")
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @Schema(example = "Manual de adubação regional; boletim técnico local")
+    @JsonProperty("fontes")
+    private String sources;
 }

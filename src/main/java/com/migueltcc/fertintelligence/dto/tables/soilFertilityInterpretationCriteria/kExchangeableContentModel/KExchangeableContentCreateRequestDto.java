@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class KExchangeableContentCreateRequestDto {
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
     // --- CTC < 20 mmolc/dm³ ---
     @JsonProperty("menor_teor_k_ctc_menor_20")
     private Double k_content_cec_less_20_too_low;

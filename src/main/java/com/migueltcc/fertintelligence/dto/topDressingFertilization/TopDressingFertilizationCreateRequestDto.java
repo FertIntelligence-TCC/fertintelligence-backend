@@ -42,4 +42,10 @@ public class TopDressingFertilizationCreateRequestDto {
 
     @JsonProperty("monoamonio_fosfato")
     Double monoammonium_phosphate;
+
+    @JsonProperty("observacoes")
+    String observations;
+
+    @JsonProperty("fontes")
+    String sources;
 }

@@ -24,6 +24,12 @@ public class KExchangeableContentModel {
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     /**
      * Regras de negócio:
      * A interpretação dos teores de potássio (mg/dm3) varia de acordo com a CTC (Capacidade de Troca Catiônica) a pH 7.0.
@@ -159,6 +165,8 @@ public class KExchangeableContentModel {
         return KExchangeableContentResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .observations(this.observations)
+                .sources(this.sources)
 
                 // CEC < 20
                 .k_content_cec_less_20_too_low(this.k_content_cec_less_20_too_low)

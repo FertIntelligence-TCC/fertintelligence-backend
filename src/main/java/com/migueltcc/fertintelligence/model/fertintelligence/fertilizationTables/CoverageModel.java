@@ -29,12 +29,20 @@ public class CoverageModel {
     @Column(name = "APLICACAO_RECOMENDADA_COBERTURA", nullable = true)
     Double application;
 
+    @Column(name = "OBSERVACOES")
+    private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
+
     public CoverageResponseDto toDto() {
         return CoverageResponseDto.builder()
                 .id(this.id)
                 .contentRangeId(this.range.getId())
                 .order(this.order)
                 .application(this.application)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 

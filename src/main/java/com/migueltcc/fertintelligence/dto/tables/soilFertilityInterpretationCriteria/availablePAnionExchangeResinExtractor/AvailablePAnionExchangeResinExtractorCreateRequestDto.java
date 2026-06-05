@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AvailablePAnionExchangeResinExtractorCreateRequestDto {
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
     // --- ALGODAO ---
     @JsonProperty("menor_teor_fosforo_solo_algodao")
     private Double p_content_cotton_too_low;

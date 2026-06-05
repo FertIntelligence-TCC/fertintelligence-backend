@@ -33,4 +33,12 @@ public class ContentRangePostRequestDto {
     @JsonProperty("novo_aplicacao_recomendada_plantio")
     @Schema(example = "60.0")
     private Double application;
+
+    @JsonProperty("novo_observacoes")
+    @Schema(example = "Observação atualizada para o intervalo de teor.")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @Schema(example = "Manual atualizado; boletim técnico complementar")
+    private String sources;
 }

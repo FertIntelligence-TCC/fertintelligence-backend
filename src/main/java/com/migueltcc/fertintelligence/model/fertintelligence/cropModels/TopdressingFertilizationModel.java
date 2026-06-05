@@ -54,6 +54,12 @@ public class TopdressingFertilizationModel {
     @Column(name = "MONOAMONIO_FOSFATO", nullable = true)
     Double monoammonium_phosphate;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     // --- CÓDIGO ADICIONADO ABAIXO ---
 
     public TopDressingFertilizationResponseDto toDto() {
@@ -69,6 +75,8 @@ public class TopdressingFertilizationModel {
                 .triple_superphosphate(this.triple_superphosphate)
                 .simple_superphosphate(this.simple_superphosphate)
                 .monoammonium_phosphate(this.monoammonium_phosphate)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 

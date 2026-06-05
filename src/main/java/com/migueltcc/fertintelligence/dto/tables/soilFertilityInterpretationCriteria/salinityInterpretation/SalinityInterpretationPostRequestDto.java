@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SalinityInterpretationPostRequestDto {
 
+    @JsonProperty("novo_observacoes")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    private String sources;
+
     // --- SOLO NORMAL ---
     @JsonProperty("novo_maior_ce_solo_normal")
     private Double normal_soil_highest_ce;

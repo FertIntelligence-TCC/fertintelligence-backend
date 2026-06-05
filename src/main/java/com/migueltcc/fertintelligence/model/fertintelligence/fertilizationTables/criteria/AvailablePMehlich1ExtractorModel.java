@@ -24,6 +24,12 @@ public class AvailablePMehlich1ExtractorModel {
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     /**
      * Regras de negócio, para cada intervalo de teor de argila, os teores de fosforo (mg/dm3) tem relação:
      * - too_low = low_i - 0.1
@@ -136,6 +142,8 @@ public class AvailablePMehlich1ExtractorModel {
         return AvailablePMehlich1ExtractorResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .observations(this.observations)
+                .sources(this.sources)
 
                 // Sandy
                 .p_content_sandy_too_low(this.p_content_sandy_too_low)

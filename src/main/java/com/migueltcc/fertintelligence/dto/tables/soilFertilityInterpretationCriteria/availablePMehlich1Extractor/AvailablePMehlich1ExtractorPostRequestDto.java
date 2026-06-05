@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AvailablePMehlich1ExtractorPostRequestDto {
 
+    @JsonProperty("novo_observacoes")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    private String sources;
+
     // --- SOLO ARENOSO ---
     @JsonProperty("novo_menor_teor_fosforo_solo_arenoso")
     private Double p_content_sandy_too_low;

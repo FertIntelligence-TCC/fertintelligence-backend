@@ -41,4 +41,12 @@ public class ContentRangeResponseDto {
     @Schema(example = "80.0")
     @JsonProperty("aplicacao_recomendada_plantio")
     private Double application;
+
+    @Schema(example = "Aplicar no sulco de plantio conforme disponibilidade do nutriente.")
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @Schema(example = "Manual de adubação regional; boletim técnico local")
+    @JsonProperty("fontes")
+    private String sources;
 }

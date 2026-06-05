@@ -54,4 +54,12 @@ public class CropFoliarAnalysisInterpretationTableLinePostRequestDto {
 
     @JsonProperty("novo_teores_zn")
     private MenorMaiorTeores zn_content;
+
+    @JsonProperty("novo_observacoes")
+    @Schema(example = "Observação atualizada para a linha de interpretação foliar.")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @Schema(example = "Manual atualizado; boletim técnico complementar")
+    private String sources;
 }

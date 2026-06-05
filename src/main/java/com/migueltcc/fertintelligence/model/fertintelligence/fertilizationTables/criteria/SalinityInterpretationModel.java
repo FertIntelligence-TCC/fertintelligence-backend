@@ -24,6 +24,12 @@ public class SalinityInterpretationModel {
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     // --- SOLO NORMAL ---
     @Column(name = "MAIOR_CE_SOLO_NORMAL", nullable = false)
     Double normal_soil_highest_ce; // ds per m
@@ -84,6 +90,8 @@ public class SalinityInterpretationModel {
         return SalinityInterpretationResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .observations(this.observations)
+                .sources(this.sources)
 
                 // Normal Soil
                 .normal_soil_highest_ce(this.normal_soil_highest_ce)

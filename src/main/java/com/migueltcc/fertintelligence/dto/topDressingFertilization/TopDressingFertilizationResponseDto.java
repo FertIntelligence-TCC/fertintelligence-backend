@@ -57,4 +57,12 @@ public class TopDressingFertilizationResponseDto {
     @Schema(example = "50.0")
     @JsonProperty("monoamonio_fosfato")
     Double monoammonium_phosphate;
+
+    @Schema(example = "Aplicar em cobertura com umidade adequada no solo.")
+    @JsonProperty("observacoes")
+    String observations;
+
+    @Schema(example = "Manual de adubação regional; boletim técnico local")
+    @JsonProperty("fontes")
+    String sources;
 }

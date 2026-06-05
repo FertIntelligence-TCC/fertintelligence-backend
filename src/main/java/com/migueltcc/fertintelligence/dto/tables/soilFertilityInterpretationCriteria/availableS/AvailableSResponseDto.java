@@ -20,6 +20,12 @@ public class AvailableSResponseDto {
     @JsonProperty("id_tabela")
     private Long tableId;
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
     // --- SOLO ARENOSO (< 15% Argila) ---
     @JsonProperty("menor_teor_enxofre_solo_arenoso")
     private Double s_content_sandy_too_low;

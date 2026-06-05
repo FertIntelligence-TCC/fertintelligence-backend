@@ -66,6 +66,8 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
                 .mn_content(createRequestDto.getMn_content())
                 .mo_content(createRequestDto.getMo_content())
                 .zn_content(createRequestDto.getZn_content())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .build();
 
         CropFoliarAnalysisInterpretationTableLineModel savedLine = tableLineRepository.save(line);
@@ -132,6 +134,8 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
         if (updateRequestDto.getMn_content() != null) line.setMn_content(updateRequestDto.getMn_content());
         if (updateRequestDto.getMo_content() != null) line.setMo_content(updateRequestDto.getMo_content());
         if (updateRequestDto.getZn_content() != null) line.setZn_content(updateRequestDto.getZn_content());
+        if (updateRequestDto.getObservations() != null) line.setObservations(updateRequestDto.getObservations());
+        if (updateRequestDto.getSources() != null) line.setSources(updateRequestDto.getSources());
 
         CropFoliarAnalysisInterpretationTableLineModel updatedLine = tableLineRepository.save(line);
         return updatedLine.toDto();

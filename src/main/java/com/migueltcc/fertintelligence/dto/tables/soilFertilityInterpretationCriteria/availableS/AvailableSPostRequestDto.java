@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AvailableSPostRequestDto {
 
+    @JsonProperty("novo_observacoes")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    private String sources;
+
     // --- SOLO ARENOSO ---
     @JsonProperty("novo_menor_teor_enxofre_solo_arenoso")
     private Double s_content_sandy_too_low;

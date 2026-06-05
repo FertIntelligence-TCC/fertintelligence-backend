@@ -25,6 +25,12 @@ public class AvailableSModel {
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     /**
      * Regras de negócio, para cada intervalo de teor de argila, os teores de enxofre (mg/dm3) tem relação:
      * - too_low = low_i - 0.1
@@ -137,6 +143,8 @@ public class AvailableSModel {
         return AvailableSResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .observations(this.observations)
+                .sources(this.sources)
 
                 // Sandy
                 .s_content_sandy_too_low(this.s_content_sandy_too_low)

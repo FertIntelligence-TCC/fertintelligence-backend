@@ -56,6 +56,8 @@ public class CoverageServiceImpl implements CoverageService {
                 .range(range)
                 .order(createRequestDto.getOrder())
                 .application(createRequestDto.getApplication())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .build();
 
         CoverageModel savedCoverage = coverageRepository.save(coverage);
@@ -108,6 +110,14 @@ public class CoverageServiceImpl implements CoverageService {
                 ? updateRequestDto.getApplication()
                 : coverage.getApplication();
 
+        String updatedObservations = updateRequestDto.getObservations() != null
+                ? updateRequestDto.getObservations()
+                : coverage.getObservations();
+
+        String updatedSources = updateRequestDto.getSources() != null
+                ? updateRequestDto.getSources()
+                : coverage.getSources();
+
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         List<CoverageModel> adjustedCoverages = existingCoverages.stream()
                 .map(current -> Objects.equals(current.getId(), coverage.getId())
@@ -116,6 +126,8 @@ public class CoverageServiceImpl implements CoverageService {
                         .range(range)
                         .order(updatedOrder)
                         .application(updatedApplication)
+                        .observations(updatedObservations)
+                        .sources(updatedSources)
                         .build()
                         : current)
                 .collect(Collectors.toList());
@@ -124,6 +136,8 @@ public class CoverageServiceImpl implements CoverageService {
 
         coverage.setOrder(updatedOrder);
         coverage.setApplication(updatedApplication);
+        coverage.setObservations(updatedObservations);
+        coverage.setSources(updatedSources);
 
         CoverageModel savedCoverage = coverageRepository.save(coverage);
         return savedCoverage.toDto();

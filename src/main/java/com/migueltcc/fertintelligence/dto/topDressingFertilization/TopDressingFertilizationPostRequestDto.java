@@ -49,4 +49,12 @@ public class TopDressingFertilizationPostRequestDto {
     @Schema(example = "50.0")
     @JsonProperty("novo_monoamonio_fosfato")
     Double monoammonium_phosphate;
+
+    @Schema(example = "Observação atualizada para a adubação de cobertura.")
+    @JsonProperty("novo_observacoes")
+    String observations;
+
+    @Schema(example = "Manual atualizado; boletim técnico complementar")
+    @JsonProperty("novo_fontes")
+    String sources;
 }

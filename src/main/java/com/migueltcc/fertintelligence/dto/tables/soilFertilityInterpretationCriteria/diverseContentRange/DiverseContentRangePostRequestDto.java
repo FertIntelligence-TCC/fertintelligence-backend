@@ -12,6 +12,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DiverseContentRangePostRequestDto {
 
+    @JsonProperty("novo_observacoes")
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    private String sources;
+
     // --- CARBONO ORGÂNICO ---
     @JsonProperty("novo_menor_teor_carbono_organico")
     private Double organic_carbon_too_low;

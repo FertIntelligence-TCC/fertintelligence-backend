@@ -23,4 +23,12 @@ public class CoverageCreateRequestDto {
     @NotNull
     @Schema(example = "30.0")
     private Double application;
+
+    @JsonProperty("observacoes")
+    @Schema(example = "Aplicar em cobertura com umidade adequada no solo.")
+    private String observations;
+
+    @JsonProperty("fontes")
+    @Schema(example = "Manual de adubação regional; boletim técnico local")
+    private String sources;
 }

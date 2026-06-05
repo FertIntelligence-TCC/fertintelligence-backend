@@ -20,6 +20,12 @@ public class DiverseContentRangeResponseDto {
     @JsonProperty("id_tabela")
     private Long tableId;
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
     // --- CARBONO ORGÂNICO ---
     @JsonProperty("menor_teor_carbono_organico")
     private Double organic_carbon_too_low;

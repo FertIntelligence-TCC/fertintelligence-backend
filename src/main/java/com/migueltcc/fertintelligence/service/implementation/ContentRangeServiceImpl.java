@@ -60,6 +60,8 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 .smallest(createRequestDto.getSmallest())
                 .largest(createRequestDto.getLargest())
                 .application(createRequestDto.getApplication())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .build();
 
         updatedRanges.add(newRange);
@@ -124,6 +126,14 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 ? updateRequestDto.getApplication()
                 : range.getApplication();
 
+        String updatedObservations = updateRequestDto.getObservations() != null
+                ? updateRequestDto.getObservations()
+                : range.getObservations();
+
+        String updatedSources = updateRequestDto.getSources() != null
+                ? updateRequestDto.getSources()
+                : range.getSources();
+
         ContentRangeModel updatedRange = ContentRangeModel.builder()
                 .id(range.getId())
                 .table(table)
@@ -132,6 +142,8 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 .smallest(updatedSmallest)
                 .largest(updatedLargest)
                 .application(updatedApplication)
+                .observations(updatedObservations)
+                .sources(updatedSources)
                 .build();
 
         if (originalNutrient == updatedNutrient) {
@@ -174,6 +186,8 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         range.setSmallest(updatedSmallest);
         range.setLargest(updatedLargest);
         range.setApplication(updatedApplication);
+        range.setObservations(updatedObservations);
+        range.setSources(updatedSources);
 
         ContentRangeModel savedRange = contentRangeRepository.save(range);
         return savedRange.toDto();

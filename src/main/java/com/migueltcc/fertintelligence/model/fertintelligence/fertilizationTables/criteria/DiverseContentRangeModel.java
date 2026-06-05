@@ -24,6 +24,12 @@ public class DiverseContentRangeModel {
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 
+    @Column(name = "OBSERVACOES")
+    String observations;
+
+    @Column(name = "FONTES")
+    String sources;
+
     // =================================================================================
     // CARBONO ORGÂNICO (C.O.) - dag/kg
     // =================================================================================
@@ -431,6 +437,8 @@ public class DiverseContentRangeModel {
         return DiverseContentRangeResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .observations(this.observations)
+                .sources(this.sources)
 
                 // Organic Carbon
                 .organic_carbon_too_low(this.organic_carbon_too_low)

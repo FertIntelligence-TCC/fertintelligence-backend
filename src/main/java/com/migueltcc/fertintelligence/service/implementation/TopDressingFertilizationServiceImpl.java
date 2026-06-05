@@ -59,6 +59,8 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
                 .triple_superphosphate(createRequestDto.getTriple_superphosphate())
                 .simple_superphosphate(createRequestDto.getSimple_superphosphate())
                 .monoammonium_phosphate(createRequestDto.getMonoammonium_phosphate())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .build();
 
         return topDressingFertilizationRepository.save(fertilization).toDto();
@@ -124,6 +126,8 @@ public class TopDressingFertilizationServiceImpl implements TopDressingFertiliza
         if (updateRequestDto.getTriple_superphosphate() != null) fertilization.setTriple_superphosphate(updateRequestDto.getTriple_superphosphate());
         if (updateRequestDto.getSimple_superphosphate() != null) fertilization.setSimple_superphosphate(updateRequestDto.getSimple_superphosphate());
         if (updateRequestDto.getMonoammonium_phosphate() != null) fertilization.setMonoammonium_phosphate(updateRequestDto.getMonoammonium_phosphate());
+        if (updateRequestDto.getObservations() != null) fertilization.setObservations(updateRequestDto.getObservations());
+        if (updateRequestDto.getSources() != null) fertilization.setSources(updateRequestDto.getSources());
 
         return topDressingFertilizationRepository.save(fertilization).toDto();
     }

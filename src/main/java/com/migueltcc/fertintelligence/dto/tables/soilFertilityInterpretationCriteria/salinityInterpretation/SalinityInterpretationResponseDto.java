@@ -20,6 +20,12 @@ public class SalinityInterpretationResponseDto {
     @JsonProperty("table_id")
     private Long tableId;
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
     // --- SOLO NORMAL ---
     @Schema(description = "Maior CE para solo normal (dS/m)")
     @JsonProperty("normal_soil_highest_ce")

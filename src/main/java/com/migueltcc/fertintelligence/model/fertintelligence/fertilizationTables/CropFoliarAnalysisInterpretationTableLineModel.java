@@ -140,6 +140,12 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
     })
     private MenorMaiorTeores zn_content;
 
+    @Column(name = "OBSERVACOES")
+    private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
+
     public CropFoliarAnalysisInterpretationTableLineResponseDto toDto() {
         return CropFoliarAnalysisInterpretationTableLineResponseDto.builder()
                 .id(this.id)
@@ -157,6 +163,8 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
                 .mn_content(this.mn_content)
                 .mo_content(this.mo_content)
                 .zn_content(this.zn_content)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }

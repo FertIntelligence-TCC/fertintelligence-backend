@@ -39,6 +39,12 @@ public class ContentRangeModel {
     @Column(name = "APLICACAO_RECOMENDADA_PLANTIO", nullable = true)
     Double application;
 
+    @Column(name = "OBSERVACOES")
+    private String observations;
+
+    @Column(name = "FONTES")
+    private String sources;
+
     public ContentRangeResponseDto toDto() {
         return ContentRangeResponseDto.builder()
                 .id(this.id)
@@ -48,6 +54,8 @@ public class ContentRangeModel {
                 .smallest(this.smallest)
                 .largest(this.largest)
                 .application(this.application)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }
