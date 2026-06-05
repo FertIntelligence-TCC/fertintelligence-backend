@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -161,7 +162,12 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
     private PhysicalAnalysisExtractPostRequestDto createUpdateRequestDto() {
         return PhysicalAnalysisExtractPostRequestDto.builder()
                 .teorAreia(500.0)
-                .aguaDisponivel(14.0)
+                .densidadeAparente(1.3)
+                .densidadeReal(2.5)
+                .porosidadeTotal(999.0)
+                .umidadeCapacidadeCampo(30.0)
+                .umidadePontoMurchaPermanente(16.0)
+                .aguaDisponivel(999.0)
                 .build();
     }
 
@@ -195,11 +201,16 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
     @WithMockUser(username = "testuser")
     void createPhysicalAnalysisExtractWithRangeSuccessfully() throws Exception {
         PhysicalAnalysisExtractCreateRequestDto requestDto = createCreateRequestDto();
-        PhysicalAnalysisExtractModel savedExtract = createPhysicalAnalysisExtractModel(1L, ownerRangeExtract, null);
+        requestDto.setPorosidadeTotal(999.0);
+        requestDto.setAguaDisponivel(999.0);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(rangeExtractRepository.findById(ownerRangeExtract.getId())).thenReturn(Optional.of(ownerRangeExtract));
-        when(physicalAnalysisExtractRepository.save(any(PhysicalAnalysisExtractModel.class))).thenReturn(savedExtract);
+        when(physicalAnalysisExtractRepository.save(any(PhysicalAnalysisExtractModel.class))).thenAnswer(invocation -> {
+            PhysicalAnalysisExtractModel savedExtract = invocation.getArgument(0);
+            savedExtract.setId(1L);
+            return savedExtract;
+        });
 
         mockMvc.perform(post("/physical-analysis-extract/register")
                         .param("rangeExtractId", ownerRangeExtract.getId().toString())
@@ -209,7 +220,9 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .andExpect(header().string("Location", "http://localhost/physical-analysis-extract/get?physicalAnalysisExtractId=1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
-                .andExpect(jsonPath("$.teor_areia").value(450.0));
+                .andExpect(jsonPath("$.teor_areia").value(450.0))
+                .andExpect(jsonPath("$.porosidade_total", closeTo(53.84615384615385, 0.000001)))
+                .andExpect(jsonPath("$.agua_disponivel").value(13.0));
     }
 
     @Test
@@ -294,6 +307,7 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teor_areia").value(500.0))
+                .andExpect(jsonPath("$.porosidade_total").value(48.0))
                 .andExpect(jsonPath("$.agua_disponivel").value(14.0));
     }
 

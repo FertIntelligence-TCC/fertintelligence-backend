@@ -91,6 +91,15 @@ public class PhysicalAnalysisExtractModel {
     @Column(name = "PERC_AGREGADOS_MENOR_1_0MM", nullable = true)
     double percAgregadosMenor1_0mm;
 
+    @PrePersist
+    @PreUpdate
+    public void recalculateComputedFields() {
+        this.porosidadeTotal = densidadeReal != 0.0
+                ? ((densidadeReal - densidadeAparente) / densidadeReal) * 100.0
+                : 0.0;
+        this.aguaDisponivel = umidadeCapacidadeCampo - umidadePontoMurchaPermanente;
+    }
+
     public PhysicalAnalysisExtractResponseDto toDto() {
         RangeExtractModel range = this.rangeExtract;
         LayerExtractModel layer = this.layerExtract;
