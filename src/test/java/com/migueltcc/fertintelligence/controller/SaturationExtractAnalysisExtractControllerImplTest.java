@@ -466,7 +466,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                         .param("rangeExtractId", ownerRangeExtract.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].ph").value(7.2));
+                .andExpect(jsonPath("$[0].ph").value(7.2))
+                .andExpect(jsonPath("$[0].teor_cl").value(16.0));
     }
 
     @Test
@@ -486,7 +487,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(2L))
                 .andExpect(jsonPath("$[0].id_extrato_camada").value(ownerLayerExtract.getId()))
-                .andExpect(jsonPath("$[0].camada").value(Camada.A.name()));
+                .andExpect(jsonPath("$[0].camada").value(Camada.A.name()))
+                .andExpect(jsonPath("$[0].teor_cl").value(16.0));
     }
 
     @Test
