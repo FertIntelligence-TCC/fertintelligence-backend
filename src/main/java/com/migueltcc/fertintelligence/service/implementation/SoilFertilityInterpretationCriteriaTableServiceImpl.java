@@ -10,13 +10,12 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SoilFertilityInterpretationCriteriaTableService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class SoilFertilityInterpretationCriteriaTableServiceImpl implements SoilFertilityInterpretationCriteriaTableService {
@@ -34,6 +33,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             String username) {
 
         UserModel creator = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(creator);
 
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .creator(creator)
@@ -57,7 +57,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
         UserModel user = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, user);
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), user);
 
         return table.toDto();
     }
@@ -70,7 +70,19 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         UserModel creator = findUserByUsernameOrThrow(username);
         List<SoilFertilityInterpretationCriteriaTableModel> tables = soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator);
 
-        return tables.stream()
+        if (StandardEntityAuthorization.isSupremeUser(creator)) {
+            return tables.stream()
+                    .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<SoilFertilityInterpretationCriteriaTableModel> standardTables =
+                soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue().stream()
+                        .filter(table -> StandardEntityAuthorization.isStandardEntity(table.getCreator(), table.isPublicTable()))
+                        .toList();
+
+        return Stream.concat(tables.stream(), standardTables.stream())
+                .distinct()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -91,8 +103,8 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             String username) {
 
         UserModel user = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(user);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, user);
 
         if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
             table.setName(updateRequestDto.getName());
@@ -121,9 +133,9 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     @Transactional
     public void deleteSoilFertilityInterpretationCriteriaTable(Long tableId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
 
         soilFertilityInterpretationCriteriaTableRepository.delete(table);
     }
@@ -138,9 +150,4 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                 .orElseThrow(() -> new EntityNotFoundException("Tabela de critérios de interpretação da fertilidade do solo não encontrada com o ID: " + tableId));
     }
 
-    private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
-        }
-    }
 }

@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
@@ -10,12 +9,12 @@ import com.migueltcc.fertintelligence.repository.BioFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.BioFertilizerService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class BioFertilizerServiceImpl implements BioFertilizerService {
@@ -35,7 +34,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         BioFertilizerModel fertilizer = BioFertilizerModel.builder()
                 .user(owner)
@@ -69,7 +68,8 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     public BioFertilizerResponseDto getBioFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         BioFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        StandardEntityAuthorization.assertCanRead(
+                fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico()), owner);
         return fertilizer.toDto();
     }
 
@@ -77,8 +77,21 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     @Transactional(readOnly = true)
     public List<BioFertilizerResponseDto> getAllBioFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUser(owner)
+        List<BioFertilizerModel> ownFertilizers = repository.findAllByUser(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownFertilizers.stream()
+                    .map(BioFertilizerModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<BioFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(BioFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -98,8 +111,17 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     @Transactional(readOnly = true)
     public List<BioFertilizerResponseDto> getBioFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        List<BioFertilizerModel> ownFertilizers = repository.findAllByNameContainingIgnoreCaseAndUser(name, owner);
+        List<BioFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .filter(fertilizer -> fertilizer.getName() != null
+                        && fertilizer.getName().toLowerCase().contains(name.toLowerCase()))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(BioFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -112,8 +134,8 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         BioFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
 
@@ -143,24 +165,12 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     @Transactional
     public void deleteBioFertilizer(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         BioFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
         repository.delete(fertilizer);
     }
 
     // --- Helpers ---
-
-    private void checkOwnership(BioFertilizerModel fertilizer, UserModel owner) {
-        if (!fertilizer.getUser().getId().equals(owner.getId())) {
-            throw new AccessDeniedException("Acesso negado.");
-        }
-    }
-
-    private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
-            throw new AccessDeniedException("Permissão insuficiente.");
-        }
-    }
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;

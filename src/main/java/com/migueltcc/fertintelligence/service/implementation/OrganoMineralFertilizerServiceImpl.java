@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
-import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organoMineralFertilizer.OrganoMineralFertilizerResponseDto;
@@ -11,12 +10,12 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.OrganoMineralFertilizerService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertilizerService {
@@ -40,7 +39,7 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserRole(owner);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         OrganoMineralFertilizerModel fertilizer = OrganoMineralFertilizerModel.builder()
                 .user(owner)
@@ -75,7 +74,8 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     public OrganoMineralFertilizerResponseDto getOrganoMineralFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         OrganoMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        StandardEntityAuthorization.assertCanRead(
+                fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico()), owner);
         return fertilizer.toDto();
     }
 
@@ -83,8 +83,21 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Transactional(readOnly = true)
     public List<OrganoMineralFertilizerResponseDto> getAllOrganoMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUser(owner)
+        List<OrganoMineralFertilizerModel> ownFertilizers = repository.findAllByUser(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownFertilizers.stream()
+                    .map(OrganoMineralFertilizerModel::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<OrganoMineralFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -104,8 +117,17 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Transactional(readOnly = true)
     public List<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        List<OrganoMineralFertilizerModel> ownFertilizers = repository.findAllByNameContainingIgnoreCaseAndUser(name, owner);
+        List<OrganoMineralFertilizerModel> standardFertilizers = repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
+                .filter(fertilizer -> StandardEntityAuthorization.isStandardEntity(
+                        fertilizer.getUser(), Boolean.TRUE.equals(fertilizer.getPublico())))
+                .filter(fertilizer -> fertilizer.getName() != null
+                        && fertilizer.getName().toLowerCase().contains(name.toLowerCase()))
+                .toList();
+
+        return Stream.concat(ownFertilizers.stream(), standardFertilizers.stream())
+                .distinct()
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -118,8 +140,8 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         OrganoMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
         if (dto.getC() != null) fertilizer.setC(dto.getC());
@@ -149,21 +171,9 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Transactional
     public void deleteOrganoMineralFertilizer(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
         OrganoMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
         repository.delete(fertilizer);
-    }
-
-    private void checkOwnership(OrganoMineralFertilizerModel fertilizer, UserModel owner) {
-        if (!fertilizer.getUser().getId().equals(owner.getId())) {
-            throw new AccessDeniedException("Acesso negado.");
-        }
-    }
-
-    private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
-            throw new AccessDeniedException("Permissão insuficiente.");
-        }
     }
 
     private double getOrDefault(Double value) {

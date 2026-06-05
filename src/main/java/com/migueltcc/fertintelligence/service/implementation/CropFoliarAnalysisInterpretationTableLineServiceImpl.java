@@ -12,7 +12,6 @@ import com.migueltcc.fertintelligence.repository.CropFoliarAnalysisInterpretatio
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFoliarAnalysisInterpretationTableLineService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,8 +45,8 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             String username) {
 
         UserModel requestUser = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(requestUser);
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, requestUser);
 
         validateUniqueCropInTable(table, createRequestDto.getCrop(), null);
 
@@ -80,7 +79,7 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
 
         UserModel requestUser = findUserByUsernameOrThrow(username);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        checkCreatorPermission(line.getTable(), requestUser);
+        checkReadPermission(line.getTable(), requestUser);
 
         return line.toDto();
     }
@@ -110,8 +109,8 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
             String username) {
 
         UserModel requestUser = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(requestUser);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        checkCreatorPermission(line.getTable(), requestUser);
 
         if (updateRequestDto.getCrop() != null && !updateRequestDto.getCrop().equals(line.getCrop())) {
             validateUniqueCropInTable(line.getTable(), updateRequestDto.getCrop(), line.getId());
@@ -141,8 +140,8 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
     @Transactional
     public void deleteCropFoliarAnalysisInterpretationTableLine(Long lineId, String username) {
         UserModel requestUser = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(requestUser);
         CropFoliarAnalysisInterpretationTableLineModel line = findLineByIdOrThrow(lineId);
-        checkCreatorPermission(line.getTable(), requestUser);
 
         tableLineRepository.delete(line);
     }
@@ -173,20 +172,11 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado: " + username));
     }
 
-    private void checkCreatorPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
-        if (!table.getCreator().getId().equals(requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
-        }
-    }
-
     private void checkReadPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
         if (table.isPublicTable()) {
             return;
         }
 
-        UserModel tableCreator = table.getCreator();
-        if (tableCreator == null || tableCreator.getId() == null || !tableCreator.getId().equals(requestingUser.getId())) {
-            throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
-        }
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), requestingUser);
     }
 }

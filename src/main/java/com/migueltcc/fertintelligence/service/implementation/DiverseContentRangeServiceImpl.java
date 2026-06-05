@@ -15,7 +15,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,9 +39,9 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
             DiverseContentRangeCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
 
         diverseContentRangeRepository.findByTable(table).ifPresent(existing -> {
             throw new IllegalStateException("Já existe um critério cadastrado para esta tabela.");
@@ -90,9 +89,9 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
             DiverseContentRangePostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         DiverseContentRangeModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
 
         copyNonNullProperties(updateRequestDto, criterion);
 
@@ -104,9 +103,9 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
     @Transactional
     public void deleteDiverseContentRange(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         DiverseContentRangeModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
 
         diverseContentRangeRepository.delete(criterion);
     }
@@ -129,9 +128,7 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
     }
 
     private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
-        if (!table.getCreator().equals(user)) {
-            throw new AccessDeniedException("Acesso negado. O usuário não é o criador da tabela.");
-        }
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), user);
     }
 
     private void copyNonNullProperties(Object source, Object target) {

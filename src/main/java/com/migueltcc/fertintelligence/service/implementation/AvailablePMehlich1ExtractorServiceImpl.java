@@ -15,7 +15,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,9 +39,9 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             AvailablePMehlich1ExtractorCreateRequestDto createRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
 
         availablePMehlich1ExtractorRepository.findByTable(table).ifPresent(existing -> {
             throw new IllegalStateException("Já existe um critério cadastrado para esta tabela.");
@@ -94,9 +93,9 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
             AvailablePMehlich1ExtractorPostRequestDto updateRequestDto,
             String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         AvailablePMehlich1ExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
 
         copyNonNullProperties(updateRequestDto, criterion);
 
@@ -108,9 +107,9 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
     @Transactional
     public void deleteAvailablePMehlich1Extractor(Long criterionId, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         AvailablePMehlich1ExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
 
         availablePMehlich1ExtractorRepository.delete(criterion);
     }
@@ -133,9 +132,7 @@ public class AvailablePMehlich1ExtractorServiceImpl implements AvailablePMehlich
     }
 
     private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
-        if (!table.getCreator().equals(user)) {
-            throw new AccessDeniedException("Acesso negado. O usuário não é o criador da tabela.");
-        }
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), user);
     }
 
     private void copyNonNullProperties(Object source, Object target) {

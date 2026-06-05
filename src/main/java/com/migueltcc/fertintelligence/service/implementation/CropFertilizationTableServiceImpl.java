@@ -15,11 +15,11 @@ import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepositor
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class CropFertilizationTableServiceImpl implements CropFertilizationTableService {
@@ -49,6 +49,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             String username
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(owner);
 
         validateCropNames(createRequestDto.getCrop_common_name(), createRequestDto.getCrop_scientific_nome());
 
@@ -85,7 +86,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public CropFertilizationTableResponseDto getCropFertilizationTableById(Long tableId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
+        StandardEntityAuthorization.assertCanRead(table.getCreator(), table.isPublicTable(), requester);
         return table.toDto();
     }
 
@@ -94,8 +95,20 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return cropFertilizationTableRepository.findAllByCreator(owner)
+        List<CropFertilizationTableModel> ownTables = cropFertilizationTableRepository.findAllByCreator(owner);
+        if (StandardEntityAuthorization.isSupremeUser(owner)) {
+            return ownTables.stream()
+                    .map(CropFertilizationTableModel::toDto)
+                    .toList();
+        }
+
+        List<CropFertilizationTableModel> standardTables = cropFertilizationTableRepository.findAllByPublicTableTrue()
                 .stream()
+                .filter(table -> StandardEntityAuthorization.isStandardEntity(table.getCreator(), table.isPublicTable()))
+                .toList();
+
+        return Stream.concat(ownTables.stream(), standardTables.stream())
+                .distinct()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
     }
@@ -117,8 +130,8 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             String username
     ) {
         UserModel requester = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(requester);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
 
         if (updateRequestDto.getCrop_common_name() != null || updateRequestDto.getCrop_scientific_nome() != null) {
             NomeComum common = updateRequestDto.getCrop_common_name() != null
@@ -142,8 +155,8 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional
     public void deleteCropFertilizationTable(Long tableId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
+        StandardEntityAuthorization.assertSupremeUser(requester);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
 
         // --- INÍCIO DA CORREÇÃO: Deleção Manual em Cascata ---
 
@@ -198,15 +211,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     private CropFertilizationTableModel findTableByIdOrThrow(Long tableId) {
         return cropFertilizationTableRepository.findById(tableId)
                 .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada com ID: " + tableId));
-    }
-
-    private void assertIsCreator(CropFertilizationTableModel table, UserModel requester) {
-        if (table.getCreator() == null || requester == null || table.getCreator().getId() == null) {
-            throw new AccessDeniedException("Acesso negado: Propriedades de criador inválidas.");
-        }
-        if (!table.getCreator().getId().equals(requester.getId())) {
-            throw new AccessDeniedException("Acesso negado: Você não tem permissão para modificar esta tabela.");
-        }
     }
 
     private void validateCropNames(NomeComum commonName, NomeCientifico scientificName) {
