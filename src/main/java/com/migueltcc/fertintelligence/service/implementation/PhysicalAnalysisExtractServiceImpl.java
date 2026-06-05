@@ -58,11 +58,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                 .teorArgila(zeroIfNull(dto.getTeorArgila()))
                 .densidadeAparente(zeroIfNull(dto.getDensidadeAparente()))
                 .densidadeReal(zeroIfNull(dto.getDensidadeReal()))
-                .porosidadeTotal(zeroIfNull(dto.getPorosidadeTotal()))
                 .microporosidade(zeroIfNull(dto.getMicroporosidade()))
                 .umidadeCapacidadeCampo(zeroIfNull(dto.getUmidadeCapacidadeCampo()))
                 .umidadePontoMurchaPermanente(zeroIfNull(dto.getUmidadePontoMurchaPermanente()))
-                .aguaDisponivel(zeroIfNull(dto.getAguaDisponivel()))
                 .resistenciaPenetracao(zeroIfNull(dto.getResistenciaPenetracao()))
                 .percAgregados6_0mm(zeroIfNull(dto.getPercAgregados6_0mm()))
                 .percAgregados4_1a6_0mm(zeroIfNull(dto.getPercAgregados4_1a6_0mm()))
@@ -70,6 +68,7 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                 .percAgregados1_0a2_0mm(zeroIfNull(dto.getPercAgregados1_0a2_0mm()))
                 .percAgregadosMenor1_0mm(zeroIfNull(dto.getPercAgregadosMenor1_0mm()))
                 .build();
+        model.recalculateComputedFields();
 
         return physicalAnalysisExtractRepository.save(model).toDto();
     }
@@ -155,17 +154,16 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         applyIfNonNull(dto.getTeorArgila(), model::setTeorArgila);
         applyIfNonNull(dto.getDensidadeAparente(), model::setDensidadeAparente);
         applyIfNonNull(dto.getDensidadeReal(), model::setDensidadeReal);
-        applyIfNonNull(dto.getPorosidadeTotal(), model::setPorosidadeTotal);
         applyIfNonNull(dto.getMicroporosidade(), model::setMicroporosidade);
         applyIfNonNull(dto.getUmidadeCapacidadeCampo(), model::setUmidadeCapacidadeCampo);
         applyIfNonNull(dto.getUmidadePontoMurchaPermanente(), model::setUmidadePontoMurchaPermanente);
-        applyIfNonNull(dto.getAguaDisponivel(), model::setAguaDisponivel);
         applyIfNonNull(dto.getResistenciaPenetracao(), model::setResistenciaPenetracao);
         applyIfNonNull(dto.getPercAgregados6_0mm(), model::setPercAgregados6_0mm);
         applyIfNonNull(dto.getPercAgregados4_1a6_0mm(), model::setPercAgregados4_1a6_0mm);
         applyIfNonNull(dto.getPercAgregados2_1a4_0mm(), model::setPercAgregados2_1a4_0mm);
         applyIfNonNull(dto.getPercAgregados1_0a2_0mm(), model::setPercAgregados1_0a2_0mm);
         applyIfNonNull(dto.getPercAgregadosMenor1_0mm(), model::setPercAgregadosMenor1_0mm);
+        model.recalculateComputedFields();
 
         return physicalAnalysisExtractRepository.save(model).toDto();
     }
