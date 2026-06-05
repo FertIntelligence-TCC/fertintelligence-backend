@@ -9,7 +9,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -95,7 +96,7 @@ public class FormulatedMineralFertilizerModel {
                 .id(this.id)
                 .formulate(this.formulate != null ?
                         new FormulateDto(this.formulate.getN(), this.formulate.getP(), this.formulate.getK()) : null)
-                .relation(toIntegerRelationDto(this.relation))
+                .relation(toRelationDto(this.relation))
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)
@@ -116,51 +117,35 @@ public class FormulatedMineralFertilizerModel {
                 .build();
     }
 
-    private static NPKrelationDto toIntegerRelationDto(NPKrelation relation) {
+    private static NPKrelationDto toRelationDto(NPKrelation relation) {
         if (relation == null) {
             return null;
         }
 
-        List<Double> values = List.of(relation.getN(), relation.getP(), relation.getK());
-        int multiplier = findIntegerMultiplier(values);
-        List<Long> integers = values.stream()
-                .map(value -> Math.round(value * multiplier))
-                .toList();
-
-        long gcd = integers.stream()
-                .map(Math::abs)
-                .reduce(0L, FormulatedMineralFertilizerModel::gcd);
-
-        if (gcd == 0L) {
+        double min = minPositive(relation.getN(), relation.getP(), relation.getK());
+        if (min == 0.0) {
             return new NPKrelationDto(0.0, 0.0, 0.0);
         }
 
         return new NPKrelationDto(
-                (double) integers.get(0) / gcd,
-                (double) integers.get(1) / gcd,
-                (double) integers.get(2) / gcd
+                roundToTwoDecimalPlaces(relation.getN() / min),
+                roundToTwoDecimalPlaces(relation.getP() / min),
+                roundToTwoDecimalPlaces(relation.getK() / min)
         );
     }
 
-    private static int findIntegerMultiplier(List<Double> values) {
-        double tolerance = 1e-6;
-        for (int multiplier = 1; multiplier <= 1000; multiplier++) {
-            int candidate = multiplier;
-            boolean allIntegers = values.stream()
-                    .allMatch(value -> Math.abs(value * candidate - Math.round(value * candidate)) < tolerance);
-            if (allIntegers) {
-                return candidate;
-            }
-        }
-        return 1;
+    private static double minPositive(double n, double p, double k) {
+        double min = Double.MAX_VALUE;
+        if (n > 0.0) min = Math.min(min, n);
+        if (p > 0.0) min = Math.min(min, p);
+        if (k > 0.0) min = Math.min(min, k);
+        return min == Double.MAX_VALUE ? 0.0 : min;
     }
 
-    private static long gcd(long a, long b) {
-        while (b != 0L) {
-            long remainder = a % b;
-            a = b;
-            b = remainder;
-        }
-        return Math.abs(a);
+    private static double roundToTwoDecimalPlaces(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .doubleValue();
     }
 }

@@ -9,28 +9,56 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class FormulatedMineralFertilizerModelTest {
 
     @Test
-    void toDtoExpressesDecimalNpkRelationAsIntegers() {
+    void toDtoExpressesNpkRelationDividedBySmallestQuantity() {
+        FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
+                .relation(new NPKrelation(4.0, 14.0, 18.0))
+                .build();
+
+        FormulatedMineralFertilizerResponseDto dto = fertilizer.toDto();
+
+        assertEquals(1.0, dto.getRelation().getN());
+        assertEquals(3.5, dto.getRelation().getP());
+        assertEquals(4.5, dto.getRelation().getK());
+    }
+
+    @Test
+    void toDtoKeepsDecimalRelationWhenSmallestQuantityIsOne() {
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
                 .relation(new NPKrelation(1.0, 3.5, 2.0))
                 .build();
 
         FormulatedMineralFertilizerResponseDto dto = fertilizer.toDto();
 
-        assertEquals(2.0, dto.getRelation().getN());
-        assertEquals(7.0, dto.getRelation().getP());
-        assertEquals(4.0, dto.getRelation().getK());
+        // A regra anterior expressava 1-3.5-2 como 2-7-4; sem regra de negocio
+        // documentada no codigo para manter inteiros, prevalece a divisao pelo menor teor.
+        assertEquals(1.0, dto.getRelation().getN());
+        assertEquals(3.5, dto.getRelation().getP());
+        assertEquals(2.0, dto.getRelation().getK());
     }
 
     @Test
-    void toDtoExpressesRepeatingDecimalNpkRelationAsIntegers() {
+    void toDtoExpressesNpkRelationWithNitrogenAndPotassiumAboveSmallestQuantity() {
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
-                .relation(new NPKrelation(1.0, 0.3333333333333333, 0.5))
+                .relation(new NPKrelation(10.0, 5.0, 20.0))
                 .build();
 
         FormulatedMineralFertilizerResponseDto dto = fertilizer.toDto();
 
-        assertEquals(6.0, dto.getRelation().getN());
-        assertEquals(2.0, dto.getRelation().getP());
-        assertEquals(3.0, dto.getRelation().getK());
+        assertEquals(2.0, dto.getRelation().getN());
+        assertEquals(1.0, dto.getRelation().getP());
+        assertEquals(4.0, dto.getRelation().getK());
+    }
+
+    @Test
+    void toDtoExpressesNpkRelationWithPotassiumAsSmallestQuantity() {
+        FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
+                .relation(new NPKrelation(20.0, 30.0, 5.0))
+                .build();
+
+        FormulatedMineralFertilizerResponseDto dto = fertilizer.toDto();
+
+        assertEquals(4.0, dto.getRelation().getN());
+        assertEquals(6.0, dto.getRelation().getP());
+        assertEquals(1.0, dto.getRelation().getK());
     }
 }
