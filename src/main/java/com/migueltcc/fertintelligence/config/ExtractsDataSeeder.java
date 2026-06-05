@@ -231,6 +231,7 @@ public class ExtractsDataSeeder implements CommandLineRunner {
                 .teorNO3(2.0 + (index % 5) * 0.5)
                 .teorH2PO4(0.4 + (index % 4) * 0.15)
                 .teorSO4(1.2 + (index % 5) * 0.25)
+                .teorCl(1.1 + (index % 5) * 0.2)
                 .ras(1.0 + (index % 5) * 0.4)
                 .pst(2.0 + (index % 5))
                 .residuosSuspensao(10.0 + (index % 4) * 3.0)

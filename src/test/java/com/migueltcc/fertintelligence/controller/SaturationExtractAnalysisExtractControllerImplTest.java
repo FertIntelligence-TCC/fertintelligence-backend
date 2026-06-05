@@ -175,6 +175,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .teorNO3(25.0)
                 .teorH2PO4(5.0)
                 .teorSO4(14.0)
+                .teorCl(16.0)
                 .teorNa(10.0)
                 .teorK(8.0)
                 .teorCa(20.0)
@@ -191,6 +192,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
         return SaturationExtractAnalysisExtractPostRequestDto.builder()
                 .ph(7.5)
                 .ce(0.6)
+                .teorCl(17.0)
                 .build();
     }
 
@@ -208,6 +210,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .teorNO3(25.0)
                 .teorH2PO4(5.0)
                 .teorSO4(14.0)
+                .teorCl(16.0)
                 .teorNa(10.0)
                 .teorK(8.0)
                 .teorCa(20.0)
@@ -332,7 +335,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 ))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
-                .andExpect(jsonPath("$.ph").value(7.2));
+                .andExpect(jsonPath("$.ph").value(7.2))
+                .andExpect(jsonPath("$.teor_cl").value(16.0));
     }
 
     @Test
@@ -442,7 +446,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                         .param("saturationExtractAnalysisExtractId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.ph").value(7.2));
+                .andExpect(jsonPath("$.ph").value(7.2))
+                .andExpect(jsonPath("$.teor_cl").value(16.0));
     }
 
     @Test
@@ -502,7 +507,8 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ph").value(7.5))
-                .andExpect(jsonPath("$.ce").value(0.6));
+                .andExpect(jsonPath("$.ce").value(0.6))
+                .andExpect(jsonPath("$.teor_cl").value(17.0));
     }
 
     @Test

@@ -33,6 +33,9 @@ public class SaturationExtractAnalysisExtractPostRequestDto {
     @JsonProperty("novo_teor_so4")
     Double teorSO4;
 
+    @JsonProperty("novo_teor_cl")
+    Double teorCl;
+
     @JsonProperty("novo_teor_na")
     Double teorNa;
 
