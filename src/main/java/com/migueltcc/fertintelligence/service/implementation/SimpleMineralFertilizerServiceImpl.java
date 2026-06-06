@@ -66,7 +66,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     public List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return simpleMineralFertilizerRepository.findAllByUser(owner)
+        return simpleMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -76,7 +76,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     @Transactional(readOnly = true)
     public List<SimpleMineralFertilizerResponseDto> getAllPublicSimpleMineralFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+        return simpleMineralFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -88,7 +88,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     public List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -145,7 +145,8 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     }
 
     private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO
+        if (user.getCargo() != Cargo.USUARIO_SUPREMO
+                && user.getCargo() != Cargo.PROPRIETARIO
                 && user.getCargo() != Cargo.GERENTE
                 && user.getCargo() != Cargo.AGRONOMO_RESIDENTE
                 && user.getCargo() != Cargo.AGRONOMO_CONSULTOR

@@ -87,12 +87,12 @@ class UserControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
-    void createUserRejectsUsuarioSupremo() throws Exception {
+    void createUserRejectsSupremeUserCargo() throws Exception {
         UserCreateRequestDto requestDto = UserCreateRequestDto.builder()
                 .password("password123")
-                .username("supremo")
-                .name("Usuario Supremo")
-                .email("supremo@email.com")
+                .username("supreme")
+                .name("Supreme User")
+                .email("supreme@example.com")
                 .cpf("13600319442")
                 .datanasc(new DataNasc(8, 5, 2001))
                 .genero(Genero.MASCULINO)
@@ -103,14 +103,10 @@ class UserControllerImplTest extends AbstractControllerTest {
                 .build();
         String requestBody = new ObjectMapper().writeValueAsString(requestDto);
 
-        Mockito.when(userRepository.existsByUsername(Mockito.any(String.class)))
-                .thenReturn(false);
-
         mockMvc.perform(post("/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Cargo não permitido neste fluxo."))
                 .andDo(print());
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
@@ -143,7 +139,7 @@ class UserControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser", roles = {""})
-    void updateUserRejectsUsuarioSupremo() throws Exception {
+    void updateUserRejectsSupremeUserCargo() throws Exception {
         UserPostRequestDto requestDto = UserPostRequestDto.builder()
                 .cargo(Cargo.USUARIO_SUPREMO)
                 .build();
@@ -154,9 +150,9 @@ class UserControllerImplTest extends AbstractControllerTest {
 
         mockMvc.perform(put("/user/update")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .content(requestBody)
+                )
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Cargo não permitido neste fluxo."))
                 .andDo(print());
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));

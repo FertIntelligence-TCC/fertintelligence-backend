@@ -113,7 +113,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersSuccessfully() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(fertilizer));
+        when(simpleMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(fertilizer));
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -125,7 +125,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersByNameSuccessfully() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq("Ureia"), eq(owner)))
+        when(simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq("Ureia"), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(fertilizer));
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-by-name")
@@ -138,7 +138,7 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersEmpty() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByUser(owner)).thenReturn(Collections.emptyList());
+        when(simpleMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())

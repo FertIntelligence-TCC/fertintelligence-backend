@@ -136,7 +136,7 @@ public class MineralFertilizerControllerImplTest extends AbstractControllerTest 
         MineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(mineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(mineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         mockMvc.perform(get("/mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -151,7 +151,7 @@ public class MineralFertilizerControllerImplTest extends AbstractControllerTest 
         String searchName = "Adubo";
 
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(owner));
-        when(mineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+        when(mineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq(searchName), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/mineral-fertilizer/get-by-name")

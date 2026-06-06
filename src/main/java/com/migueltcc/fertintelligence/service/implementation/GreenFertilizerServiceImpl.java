@@ -67,7 +67,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     public GreenFertilizerResponseDto getGreenFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         GreenFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        checkReadAccess(fertilizer, owner);
         return fertilizer.toDto();
     }
 
@@ -75,7 +75,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getAllGreenFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByUser(owner)
+        return greenFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -85,7 +85,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+        return greenFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -96,7 +96,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getGreenFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        return greenFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -154,8 +154,16 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         }
     }
 
+    private void checkReadAccess(GreenFertilizerModel fertilizer, UserModel owner) {
+        if (!fertilizer.getUser().getId().equals(owner.getId())
+                && !Boolean.TRUE.equals(fertilizer.getPublico())
+                && fertilizer.getUser().getCargo() != Cargo.USUARIO_SUPREMO) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+
     private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
+        if (user.getCargo() != Cargo.USUARIO_SUPREMO && user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
             throw new AccessDeniedException("Permissão insuficiente.");
         }
     }

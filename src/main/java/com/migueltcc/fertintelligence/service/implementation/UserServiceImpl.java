@@ -27,11 +27,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String createUser(UserCreateRequestDto userDTO) {
+        rejectSupremeUserCargo(userDTO.getCargo());
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new RuntimeException("Name already exists!");
         }
-        checkPublicCargo(userDTO.getCargo());
-
         UserModel user = UserModel.builder()
                 .username(userDTO.getUsername())
                 .cpf(userDTO.getCpf())
@@ -57,6 +56,7 @@ public class UserServiceImpl implements UserService {
         System.out.println("Esse é o id da foto: "+userDTO.getIdfoto());
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
+        rejectSupremeUserCargo(userDTO.getCargo());
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
         user.setUsername(userDTO.getUsername() == null ? user.getUsername() : userDTO.getUsername());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
@@ -66,7 +66,6 @@ public class UserServiceImpl implements UserService {
         user.setTelefone(userDTO.getTelefone() == null ? user.getTelefone() : userDTO.getTelefone());
         user.setFormacao(userDTO.getFormacao() == null ? user.getFormacao() : userDTO.getFormacao());
         user.setProfissao(userDTO.getProfissao() == null ? user.getProfissao() : userDTO.getProfissao());
-        checkPublicCargo(userDTO.getCargo());
         user.setCargo(userDTO.getCargo() == null ? user.getCargo() : userDTO.getCargo());
         user.setPassword(userDTO.getPassword() == null ? user.getPassword() : passwordEncoder.encode(userDTO.getPassword()));
         user.setIdfoto(userDTO.getIdfoto() == null ? user.getIdfoto() : userDTO.getIdfoto());
@@ -93,9 +92,9 @@ public class UserServiceImpl implements UserService {
         return user.toDto();
     }
 
-    private void checkPublicCargo(Cargo cargo) {
+    private void rejectSupremeUserCargo(Cargo cargo) {
         if (cargo == Cargo.USUARIO_SUPREMO) {
-            throw new IllegalArgumentException("Cargo não permitido neste fluxo.");
+            throw new IllegalArgumentException("Cargo USUARIO_SUPREMO is reserved for system bootstrap.");
         }
     }
 

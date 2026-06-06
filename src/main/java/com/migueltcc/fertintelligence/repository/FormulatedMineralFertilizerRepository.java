@@ -1,8 +1,11 @@
 package com.migueltcc.fertintelligence.repository;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,7 +15,12 @@ public interface FormulatedMineralFertilizerRepository extends JpaRepository<For
 
     List<FormulatedMineralFertilizerModel> findAllByUser(UserModel user);
 
+    @Query("select f from FormulatedMineralFertilizerModel f where f.user = :user or f.user.cargo = :defaultCreatorCargo order by f.id asc")
+    List<FormulatedMineralFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<FormulatedMineralFertilizerModel> findAllByPublicoTrueOrderByIdAsc();
+
+    @Query("select f from FormulatedMineralFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.id asc")
+    List<FormulatedMineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByIdAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
 }

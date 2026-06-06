@@ -2,12 +2,15 @@ package com.migueltcc.fertintelligence.config;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.*;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,11 +22,21 @@ public class UserDataSeeder implements CommandLineRunner {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public static final String ADMIN_USER = "admin@fertintelligence.com";
+    private static final String SUPREME_USERNAME = "G&MSupremos";
+    private static final String SUPREME_EMAIL = "miguel_macedo18@hotmail.com";
+    private static final String SUPREME_CPF = "13600319442";
 
     @Override
     public void run(String... args) throws Exception {
         createSystemUserIfNotFound();
+        createSupremeUserIfNotFound();
     }
 
     private void createSystemUserIfNotFound() {
@@ -140,5 +153,34 @@ public class UserDataSeeder implements CommandLineRunner {
                 System.err.println("Erro ao criar Usuários de Gilvan e filhos: " + gm.getMessage());
             }
         }
+    }
+
+    private void createSupremeUserIfNotFound() {
+        if (userRepository.existsByCargo(Cargo.USUARIO_SUPREMO)
+                || userRepository.existsByUsername(SUPREME_USERNAME)
+                || userRepository.existsByEmail(SUPREME_EMAIL)
+                || userRepository.existsByCpf(SUPREME_CPF)) {
+            System.out.println("UserDataSeeder: Usuário supremo já existe.");
+            return;
+        }
+
+        System.out.println("UserDataSeeder: Criando usuário supremo...");
+
+        UserModel supremeUser = UserModel.builder()
+                .name("Gilvan e Miguel")
+                .username(SUPREME_USERNAME)
+                .email(SUPREME_EMAIL)
+                .password(passwordEncoder.encode("miniprojetofosforico"))
+                .cpf(SUPREME_CPF)
+                .profissao("Engenheiro de Software")
+                .datanasc(new DataNasc(8, 5, 2001))
+                .genero(Genero.MASCULINO)
+                .telefone(new Telefone("55", "83", "991214231"))
+                .formacao(Formacao.GRADUACAO)
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+
+        userRepository.save(supremeUser);
+        System.out.println("UserDataSeeder: Usuário supremo criado com sucesso.");
     }
 }

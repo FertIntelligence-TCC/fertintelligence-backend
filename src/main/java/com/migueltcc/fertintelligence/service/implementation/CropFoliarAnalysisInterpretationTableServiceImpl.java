@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
@@ -15,8 +16,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CropFoliarAnalysisInterpretationTableServiceImpl
@@ -61,7 +67,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkViewPermission(table, owner);
 
         return table.toDto();
     }
@@ -73,7 +79,15 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
 
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return tableRepository.findAllByCreator(owner).stream()
+        List<CropFoliarAnalysisInterpretationTableModel> tables = isSupremeUser(owner)
+                ? tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                : mergeTables(
+                        tableRepository.findAllByCreator(owner),
+                        tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                        tableRepository.findAllByPublicTableTrue()
+                );
+
+        return tables.stream()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -81,7 +95,10 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     @Override
     @Transactional(readOnly = true)
     public List<CropFoliarAnalysisInterpretationTableResponseDto> getAllPublicCropFoliarAnalysisInterpretationTables() {
-        return tableRepository.findAllByPublicTableTrue().stream()
+        return mergeTables(
+                tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                tableRepository.findAllByPublicTableTrue()
+        ).stream()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -96,7 +113,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkModifyPermission(table, owner);
 
         if (updateRequestDto.getRegion() != null) {
             table.setRegion(updateRequestDto.getRegion());
@@ -124,7 +141,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFoliarAnalysisInterpretationTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkModifyPermission(table, owner);
 
         tableLineRepository.deleteAllByTable(table);
         tableRepository.delete(table);
@@ -141,9 +158,50 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                         "Tabela de interpretação de análise foliar não encontrada com o ID: " + tableId));
     }
 
+    private void checkViewPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
+        if (isCreator(table, requestingUser) || table.isPublicTable() || isDefaultTable(table)) {
+            return;
+        }
+        throw new AccessDeniedException("Você não tem permissão para acessar esta tabela.");
+    }
+
+    private void checkModifyPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(requestingUser)) {
+                return;
+            }
+            throw new AccessDeniedException("Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+        checkCreatorPermission(table, requestingUser);
+    }
+
     private void checkCreatorPermission(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
-        if (!table.getCreator().getId().equals(requestingUser.getId())) {
+        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
         }
+    }
+
+    private boolean isCreator(CropFoliarAnalysisInterpretationTableModel table, UserModel requestingUser) {
+        return table.getCreator() != null
+                && requestingUser != null
+                && Objects.equals(table.getCreator().getId(), requestingUser.getId());
+    }
+
+    private boolean isDefaultTable(CropFoliarAnalysisInterpretationTableModel table) {
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    @SafeVarargs
+    private List<CropFoliarAnalysisInterpretationTableModel> mergeTables(
+            List<CropFoliarAnalysisInterpretationTableModel>... tableLists) {
+        Map<Long, CropFoliarAnalysisInterpretationTableModel> byId = Stream.of(tableLists)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(CropFoliarAnalysisInterpretationTableModel::getId, Function.identity(), (first, ignored) -> first, LinkedHashMap::new));
+        return List.copyOf(byId.values());
     }
 }
