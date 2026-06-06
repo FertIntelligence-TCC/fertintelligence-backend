@@ -33,6 +33,7 @@ public class JwtServiceImpl implements JwtService {
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiry))
                 .subject(authentication.getName())
+                .claim("scope", scopes)
                 .claim("scopes", scopes)
                 .build();
 
