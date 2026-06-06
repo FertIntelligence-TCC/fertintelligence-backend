@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
@@ -20,6 +21,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CropFertilizationTableServiceImpl implements CropFertilizationTableService {
@@ -85,7 +92,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public CropFertilizationTableResponseDto getCropFertilizationTableById(Long tableId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
+        assertCanView(table, requester);
         return table.toDto();
     }
 
@@ -94,7 +101,18 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        return cropFertilizationTableRepository.findAllByCreator(owner)
+        if (isSupremeUser(owner)) {
+            return cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                    .stream()
+                    .map(CropFertilizationTableModel::toDto)
+                    .toList();
+        }
+
+        return mergeTables(
+                cropFertilizationTableRepository.findAllByCreator(owner),
+                cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                cropFertilizationTableRepository.findAllByPublicTableTrue()
+        )
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
@@ -103,7 +121,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Override
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables() {
-        return cropFertilizationTableRepository.findAllByPublicTableTrue()
+        return mergeTables(
+                cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                cropFertilizationTableRepository.findAllByPublicTableTrue()
+        )
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
@@ -118,7 +139,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     ) {
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
+        assertCanModify(table, requester);
 
         if (updateRequestDto.getCrop_common_name() != null || updateRequestDto.getCrop_scientific_nome() != null) {
             NomeComum common = updateRequestDto.getCrop_common_name() != null
@@ -143,7 +164,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public void deleteCropFertilizationTable(Long tableId, String username) {
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        assertIsCreator(table, requester);
+        assertCanModify(table, requester);
 
         // --- INÍCIO DA CORREÇÃO: Deleção Manual em Cascata ---
 
@@ -200,6 +221,23 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação não encontrada com ID: " + tableId));
     }
 
+    private void assertCanView(CropFertilizationTableModel table, UserModel requester) {
+        if (isCreator(table, requester) || table.isPublicTable() || isDefaultTable(table)) {
+            return;
+        }
+        throw new AccessDeniedException("Acesso negado: Você não tem permissão para acessar esta tabela.");
+    }
+
+    private void assertCanModify(CropFertilizationTableModel table, UserModel requester) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(requester)) {
+                return;
+            }
+            throw new AccessDeniedException("Acesso negado: Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+        assertIsCreator(table, requester);
+    }
+
     private void assertIsCreator(CropFertilizationTableModel table, UserModel requester) {
         if (table.getCreator() == null || requester == null || table.getCreator().getId() == null) {
             throw new AccessDeniedException("Acesso negado: Propriedades de criador inválidas.");
@@ -207,6 +245,30 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (!table.getCreator().getId().equals(requester.getId())) {
             throw new AccessDeniedException("Acesso negado: Você não tem permissão para modificar esta tabela.");
         }
+    }
+
+    private boolean isCreator(CropFertilizationTableModel table, UserModel requester) {
+        return table.getCreator() != null
+                && requester != null
+                && table.getCreator().getId() != null
+                && table.getCreator().getId().equals(requester.getId());
+    }
+
+    private boolean isDefaultTable(CropFertilizationTableModel table) {
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    @SafeVarargs
+    private List<CropFertilizationTableModel> mergeTables(List<CropFertilizationTableModel>... tableLists) {
+        Map<Long, CropFertilizationTableModel> byId = Stream.of(tableLists)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(CropFertilizationTableModel::getId, Function.identity(), (first, ignored) -> first, LinkedHashMap::new));
+        return List.copyOf(byId.values());
     }
 
     private void validateCropNames(NomeComum commonName, NomeCientifico scientificName) {

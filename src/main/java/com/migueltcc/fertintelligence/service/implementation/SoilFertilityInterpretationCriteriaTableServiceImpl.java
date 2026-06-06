@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
@@ -14,9 +15,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class SoilFertilityInterpretationCriteriaTableServiceImpl implements SoilFertilityInterpretationCriteriaTableService {
@@ -57,7 +62,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
         UserModel user = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, user);
+        checkViewPermission(table, user);
 
         return table.toDto();
     }
@@ -68,7 +73,13 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             String username) {
 
         UserModel creator = findUserByUsernameOrThrow(username);
-        List<SoilFertilityInterpretationCriteriaTableModel> tables = soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator);
+        List<SoilFertilityInterpretationCriteriaTableModel> tables = isSupremeUser(creator)
+                ? soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                : mergeTables(
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator),
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue()
+                );
 
         return tables.stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
@@ -78,7 +89,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     @Override
     @Transactional(readOnly = true)
     public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllPublicSoilFertilityInterpretationCriteriaTables() {
-        return soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue().stream()
+        return mergeTables(
+                soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue()
+        ).stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -92,7 +106,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
         UserModel user = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, user);
+        checkModifyPermission(table, user);
 
         if (updateRequestDto.getName() != null && !updateRequestDto.getName().isEmpty()) {
             table.setName(updateRequestDto.getName());
@@ -123,7 +137,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         UserModel owner = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkModifyPermission(table, owner);
 
         soilFertilityInterpretationCriteriaTableRepository.delete(table);
     }
@@ -138,9 +152,50 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                 .orElseThrow(() -> new EntityNotFoundException("Tabela de critérios de interpretação da fertilidade do solo não encontrada com o ID: " + tableId));
     }
 
+    private void checkViewPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
+        if (isCreator(table, requestingUser) || table.isPublicTable() || isDefaultTable(table)) {
+            return;
+        }
+        throw new AccessDeniedException("Você não tem permissão para acessar esta tabela.");
+    }
+
+    private void checkModifyPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(requestingUser)) {
+                return;
+            }
+            throw new AccessDeniedException("Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+        checkCreatorPermission(table, requestingUser);
+    }
+
     private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
         if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar esta tabela.");
         }
+    }
+
+    private boolean isCreator(SoilFertilityInterpretationCriteriaTableModel table, UserModel requestingUser) {
+        return table.getCreator() != null
+                && requestingUser != null
+                && Objects.equals(table.getCreator().getId(), requestingUser.getId());
+    }
+
+    private boolean isDefaultTable(SoilFertilityInterpretationCriteriaTableModel table) {
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    @SafeVarargs
+    private List<SoilFertilityInterpretationCriteriaTableModel> mergeTables(
+            List<SoilFertilityInterpretationCriteriaTableModel>... tableLists) {
+        Map<Long, SoilFertilityInterpretationCriteriaTableModel> byId = Stream.of(tableLists)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(SoilFertilityInterpretationCriteriaTableModel::getId, Function.identity(), (first, ignored) -> first, LinkedHashMap::new));
+        return List.copyOf(byId.values());
     }
 }
