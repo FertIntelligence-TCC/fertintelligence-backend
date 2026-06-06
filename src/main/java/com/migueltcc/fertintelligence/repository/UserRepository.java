@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.repository;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -13,5 +14,7 @@ public interface UserRepository extends JpaRepository<UserModel, Long> {
     boolean existsByUsername(String username);
     Optional<UserModel> findByEmail(String email);
     boolean existsByEmail(String email);
+    boolean existsByCpf(String cpf);
+    boolean existsByCargo(Cargo cargo);
 
 }
