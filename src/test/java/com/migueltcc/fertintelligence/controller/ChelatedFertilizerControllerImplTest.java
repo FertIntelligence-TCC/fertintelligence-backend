@@ -136,7 +136,7 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         ChelatedFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(chelatedFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(chelatedFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         mockMvc.perform(get("/chelated-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -151,7 +151,7 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         String searchName = "Adubo";
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(chelatedFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+        when(chelatedFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq(searchName), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/chelated-fertilizer/get-by-name")

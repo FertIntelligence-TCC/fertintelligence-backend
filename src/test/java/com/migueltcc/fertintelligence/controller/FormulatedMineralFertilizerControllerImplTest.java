@@ -160,7 +160,7 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
         FormulatedMineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(formulatedMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(formulatedMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         String endpoint = resolveGetByUserEndpoint();
         Assumptions.assumeTrue(endpoint != null && !endpoint.isBlank(),

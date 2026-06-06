@@ -139,7 +139,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
         GreenFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(greenFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(greenFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         mockMvc.perform(get("/green-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -154,7 +154,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
         String searchName = "Adubo";
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(greenFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+        when(greenFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq(searchName), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/green-fertilizer/get-by-name")

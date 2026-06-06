@@ -69,7 +69,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     public ChelatedFertilizerResponseDto getChelatedFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        checkReadAccess(fertilizer, owner);
         return fertilizer.toDto();
     }
 
@@ -77,7 +77,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUser(owner)
+        return repository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -87,7 +87,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return repository.findAllByPublicoTrueOrderByNameAsc()
+        return repository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -98,7 +98,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getChelatedFertilizersByName(String name, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByNameContainingIgnoreCaseAndUser(name, owner)
+        return repository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -156,8 +156,16 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         }
     }
 
+    private void checkReadAccess(ChelatedFertilizerModel fertilizer, UserModel owner) {
+        if (!fertilizer.getUser().getId().equals(owner.getId())
+                && !Boolean.TRUE.equals(fertilizer.getPublico())
+                && fertilizer.getUser().getCargo() != Cargo.USUARIO_SUPREMO) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+
     private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
+        if (user.getCargo() != Cargo.USUARIO_SUPREMO && user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
             throw new AccessDeniedException("Permissão insuficiente.");
         }
     }
