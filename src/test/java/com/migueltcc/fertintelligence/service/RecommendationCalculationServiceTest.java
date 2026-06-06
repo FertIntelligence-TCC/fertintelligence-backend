@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import static com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -68,10 +70,10 @@ class RecommendationCalculationServiceTest {
         lenient().when(folderRepo.findById(6L)).thenReturn(Optional.of(folder));
         lenient().when(cropRepo.findById(7L)).thenReturn(Optional.of(crop));
         lenient().when(foliarRepo.findTopByCropOrderByIdDesc(crop)).thenReturn(Optional.empty());
-        lenient().when(formulatedRepo.findAllByUser(any())).thenReturn(List.of());
-        lenient().when(formulatedRepo.findAllByPublicoTrueOrderByIdAsc()).thenReturn(List.of());
-        lenient().when(simpleRepo.findAllByUser(any())).thenReturn(List.of());
-        lenient().when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of());
+        lenient().when(formulatedRepo.findAllByUserOrDefaultCreator(any(), eq(Cargo.USUARIO_SUPREMO))).thenReturn(List.of());
+        lenient().when(formulatedRepo.findAllByPublicoTrueOrDefaultCreatorOrderByIdAsc(Cargo.USUARIO_SUPREMO)).thenReturn(List.of());
+        lenient().when(simpleRepo.findAllByUserOrDefaultCreator(any(), eq(Cargo.USUARIO_SUPREMO))).thenReturn(List.of());
+        lenient().when(simpleRepo.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)).thenReturn(List.of());
         lenient().when(coverageRepo.findAllByRangeOrderByOrderAsc(any())).thenReturn(List.of());
         lenient().when(fertilityExtractRepo.findAll()).thenReturn(List.of());
     }
@@ -95,7 +97,7 @@ class RecommendationCalculationServiceTest {
         CropFertilizationTableModel table=CropFertilizationTableModel.builder().id(1L).build();
         when(tableRepo.findById(1L)).thenReturn(Optional.of(table));
         when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(any(),any())).thenReturn(List.of(ContentRangeModel.builder().id(1L).application(60d).build()));
-        when(formulatedRepo.findAllByUser(user)).thenReturn(List.of(FormulatedMineralFertilizerModel.builder().id(5L).N(4).P2O5(14).K2O(8).build()));
+        when(formulatedRepo.findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(FormulatedMineralFertilizerModel.builder().id(5L).N(4).P2O5(14).K2O(8).build()));
         var result=service.calculate(dto(),user,property,plot);
         assertTrue(result.getFertilizerSuggestions().stream().anyMatch(s->"FORMULADO".equals(s.getFertilizerType())));
     }
@@ -104,7 +106,7 @@ class RecommendationCalculationServiceTest {
         CropFertilizationTableModel table=CropFertilizationTableModel.builder().id(1L).build();
         when(tableRepo.findById(1L)).thenReturn(Optional.of(table));
         when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(any(),any())).thenReturn(List.of(ContentRangeModel.builder().id(1L).application(60d).build()));
-        when(simpleRepo.findAllByUser(user)).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(8L).name("Ureia").N(45).build()));
+        when(simpleRepo.findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(8L).name("Ureia").N(45).build()));
         var result=service.calculate(dto(),user,property,plot);
         assertTrue(result.getFertilizerSuggestions().stream().anyMatch(s->"SIMPLES".equals(s.getFertilizerType())));
     }
@@ -134,7 +136,7 @@ class RecommendationCalculationServiceTest {
         when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(table,Nutriente.FOSFORO)).thenReturn(List.of(ContentRangeModel.builder().id(12L).nutrient(Nutriente.FOSFORO).application(80d).build()));
         when(rangeRepo.findAllByTableAndNutrientOrderByOrderAsc(table,Nutriente.POTASSIO)).thenReturn(List.of(ContentRangeModel.builder().id(13L).nutrient(Nutriente.POTASSIO).application(70d).build()));
         when(coverageRepo.findAllByRangeOrderByOrderAsc(rangeN)).thenReturn(List.of(CoverageModel.builder().id(100L).order(1).range(rangeN).application(30d).build()));
-        when(simpleRepo.findAllByUser(user)).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(8L).name("Ureia").N(45).build()));
+        when(simpleRepo.findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(SimpleMineralFertilizerModel.builder().id(8L).name("Ureia").N(45).build()));
         var result=service.calculate(dto(),user,property,plot);
         assertTrue(result.getFertilizationRecommendationRows().stream().anyMatch(r->r.getPhase().contains("Cobertura 1")));
     }

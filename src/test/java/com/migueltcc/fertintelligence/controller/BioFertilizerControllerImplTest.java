@@ -136,7 +136,7 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         BioFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(bioFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(bioFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         mockMvc.perform(get("/bio-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -151,7 +151,7 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         String searchName = "Adubo";
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(bioFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+        when(bioFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq(searchName), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/bio-fertilizer/get-by-name")

@@ -123,7 +123,7 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
         OrganoMineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(organoMineralFertilizerRepository.findAllByUser(owner)).thenReturn(List.of(model));
+        when(organoMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
 
         mockMvc.perform(get("/organo-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -140,7 +140,7 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
         String searchName = "Organo";
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(organoMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUser(eq(searchName), eq(owner)))
+        when(organoMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(eq(searchName), eq(owner), eq(Cargo.USUARIO_SUPREMO)))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/organo-mineral-fertilizer/get-by-name")

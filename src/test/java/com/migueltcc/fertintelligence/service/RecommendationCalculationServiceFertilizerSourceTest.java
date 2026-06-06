@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.*;
@@ -41,24 +42,24 @@ class RecommendationCalculationServiceFertilizerSourceTest {
 
     @Test
     void shouldSelectOnlyPrivateFertilizers() throws Exception {
-        when(simpleRepo.findAllByUser(user)).thenReturn(List.of(f(1L, "Privado")));
+        when(simpleRepo.findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(f(1L, "Privado")));
         List<?> result = callSelectSimple(FertilizerSourceOption.PRIVATE);
         assertEquals(1, result.size());
-        verify(simpleRepo, never()).findAllByPublicoTrueOrderByNameAsc();
+        verify(simpleRepo, never()).findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO);
     }
 
     @Test
     void shouldSelectOnlyPublicFertilizers() throws Exception {
-        when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of(f(2L, "Publico")));
+        when(simpleRepo.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)).thenReturn(List.of(f(2L, "Publico")));
         List<?> result = callSelectSimple(FertilizerSourceOption.PUBLIC);
         assertEquals(1, result.size());
-        verify(simpleRepo, never()).findAllByUser(user);
+        verify(simpleRepo, never()).findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO);
     }
 
     @Test
     void shouldMergeAndDeduplicateForBoth() throws Exception {
-        when(simpleRepo.findAllByUser(user)).thenReturn(List.of(f(1L, "Privado"), f(10L, "Duplicado")));
-        when(simpleRepo.findAllByPublicoTrueOrderByNameAsc()).thenReturn(List.of(f(10L, "Duplicado"), f(2L, "Publico")));
+        when(simpleRepo.findAllByUserOrDefaultCreator(user, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(f(1L, "Privado"), f(10L, "Duplicado")));
+        when(simpleRepo.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)).thenReturn(List.of(f(10L, "Duplicado"), f(2L, "Publico")));
         List<?> result = callSelectSimple(FertilizerSourceOption.BOTH);
         assertEquals(3, result.size());
     }

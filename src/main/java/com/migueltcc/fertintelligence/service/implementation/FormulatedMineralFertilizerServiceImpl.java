@@ -79,7 +79,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     public FormulatedMineralFertilizerResponseDto getFormulatedMineralFertilizerById(Long id, String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
-        checkOwnership(fertilizer, owner);
+        checkReadAccess(fertilizer, owner);
         return fertilizer.toDto();
     }
 
@@ -87,7 +87,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByUser(owner)
+        return formulatedMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -97,7 +97,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc()
+        return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByIdAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -170,8 +170,16 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         }
     }
 
+    private void checkReadAccess(FormulatedMineralFertilizerModel fertilizer, UserModel owner) {
+        if (!fertilizer.getUser().getId().equals(owner.getId())
+                && !Boolean.TRUE.equals(fertilizer.getPublico())
+                && fertilizer.getUser().getCargo() != Cargo.USUARIO_SUPREMO) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+    }
+
     private void checkUserRole(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
+        if (user.getCargo() != Cargo.USUARIO_SUPREMO && user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
             throw new AccessDeniedException("Permissão insuficiente para criar adubos.");
         }
     }
