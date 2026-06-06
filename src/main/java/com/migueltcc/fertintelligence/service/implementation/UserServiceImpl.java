@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
@@ -29,6 +30,8 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new RuntimeException("Name already exists!");
         }
+        checkPublicCargo(userDTO.getCargo());
+
         UserModel user = UserModel.builder()
                 .username(userDTO.getUsername())
                 .cpf(userDTO.getCpf())
@@ -63,6 +66,7 @@ public class UserServiceImpl implements UserService {
         user.setTelefone(userDTO.getTelefone() == null ? user.getTelefone() : userDTO.getTelefone());
         user.setFormacao(userDTO.getFormacao() == null ? user.getFormacao() : userDTO.getFormacao());
         user.setProfissao(userDTO.getProfissao() == null ? user.getProfissao() : userDTO.getProfissao());
+        checkPublicCargo(userDTO.getCargo());
         user.setCargo(userDTO.getCargo() == null ? user.getCargo() : userDTO.getCargo());
         user.setPassword(userDTO.getPassword() == null ? user.getPassword() : passwordEncoder.encode(userDTO.getPassword()));
         user.setIdfoto(userDTO.getIdfoto() == null ? user.getIdfoto() : userDTO.getIdfoto());
@@ -87,6 +91,12 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
 
         return user.toDto();
+    }
+
+    private void checkPublicCargo(Cargo cargo) {
+        if (cargo == Cargo.USUARIO_SUPREMO) {
+            throw new IllegalArgumentException("Cargo não permitido neste fluxo.");
+        }
     }
 
 }
