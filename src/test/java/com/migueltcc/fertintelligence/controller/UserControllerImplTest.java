@@ -87,6 +87,32 @@ class UserControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    void createUserRejectsSupremeUserCargo() throws Exception {
+        UserCreateRequestDto requestDto = UserCreateRequestDto.builder()
+                .password("password123")
+                .username("supreme")
+                .name("Supreme User")
+                .email("supreme@example.com")
+                .cpf("13600319442")
+                .datanasc(new DataNasc(8, 5, 2001))
+                .genero(Genero.MASCULINO)
+                .telefone(new Telefone("+55", "11", "99121-4231"))
+                .formacao(Formacao.GRADUACAO)
+                .profissao("Engenheiro de Software")
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        String requestBody = new ObjectMapper().writeValueAsString(requestDto);
+
+        mockMvc.perform(post("/user/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andDo(print());
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
+    }
+
+    @Test
     @WithMockUser(username = "testuser", roles = {""})
     void updateUserSuccessfully() throws Exception {
         UserPostRequestDto requestDto = UserPostRequestDto.builder()
@@ -109,6 +135,27 @@ class UserControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("User updated successfully!"))
                 .andDo(print());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser", roles = {""})
+    void updateUserRejectsSupremeUserCargo() throws Exception {
+        UserPostRequestDto requestDto = UserPostRequestDto.builder()
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        String requestBody = new ObjectMapper().writeValueAsString(requestDto);
+
+        Mockito.when(userRepository.findByUsername(Mockito.any(String.class)))
+                .thenReturn(Optional.of(new UserModel()));
+
+        mockMvc.perform(put("/user/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(print());
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
     }
 
     @Test
