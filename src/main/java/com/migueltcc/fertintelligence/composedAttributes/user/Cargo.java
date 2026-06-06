@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.composedAttributes.user;
 
 public enum Cargo {
+    USUARIO_SUPREMO,
     PROPRIETARIO,
     GERENTE,
     AGRONOMO_RESIDENTE,
