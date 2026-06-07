@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
@@ -46,7 +47,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
-        checkReadPermission(table, owner);
+        checkWritePermission(table, owner);
 
         List<ContentRangeModel> existingRanges = contentRangeRepository
                 .findAllByTableAndNutrientOrderByOrderAsc(table, createRequestDto.getNutrient());
@@ -101,7 +102,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkReadPermission(table, owner);
+        checkWritePermission(table, owner);
 
         Nutriente originalNutrient = range.getNutrient();
         Nutriente updatedNutrient = updateRequestDto.getNutrient() != null
@@ -193,7 +194,7 @@ public class ContentRangeServiceImpl implements ContentRangeService {
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
         CropFertilizationTableModel table = range.getTable();
-        checkReadPermission(table, owner);
+        checkWritePermission(table, owner);
 
         if (range.getNutrient() == Nutriente.NITROGENIO) {
             throw new IllegalArgumentException("Não é permitido remover o intervalo do nutriente Nitrogênio.");
@@ -366,8 +367,27 @@ public class ContentRangeServiceImpl implements ContentRangeService {
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
+        if (table.getCreator() == null || requestingUser == null || !Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar os intervalos desta tabela.");
         }
+    }
+
+    private void checkWritePermission(CropFertilizationTableModel table, UserModel requestingUser) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(requestingUser)) {
+                return;
+            }
+            throw new AccessDeniedException("Acesso negado: Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+
+        checkCreatorPermission(table, requestingUser);
+    }
+
+    private boolean isDefaultTable(CropFertilizationTableModel table) {
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 }
