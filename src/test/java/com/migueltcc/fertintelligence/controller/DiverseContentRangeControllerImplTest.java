@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -149,6 +150,22 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .potential_acidity_hight_i(6.0)
                 .potential_acidity_hight_f(7.0)
                 .potential_acidity_too_hight(8.0)
+                .effective_cec_too_low(1.0)
+                .effective_cec_low_i(2.0)
+                .effective_cec_low_f(3.0)
+                .effective_cec_medium_i(4.0)
+                .effective_cec_medium_f(5.0)
+                .effective_cec_hight_i(6.0)
+                .effective_cec_hight_f(7.0)
+                .effective_cec_too_hight(8.0)
+                .ph7_cec_too_low(1.0)
+                .ph7_cec_low_i(2.0)
+                .ph7_cec_low_f(3.0)
+                .ph7_cec_medium_i(4.0)
+                .ph7_cec_medium_f(5.0)
+                .ph7_cec_hight_i(6.0)
+                .ph7_cec_hight_f(7.0)
+                .ph7_cec_too_hight(8.0)
                 .base_saturation_too_low(1.0)
                 .base_saturation_low_i(2.0)
                 .base_saturation_low_f(3.0)
@@ -173,6 +190,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .ph_hight_i(6.0)
                 .ph_hight_f(7.0)
                 .ph_too_hight(8.0)
+                .ph_cacl2_too_low(1.0)
+                .ph_cacl2_low_i(2.0)
+                .ph_cacl2_low_f(3.0)
+                .ph_cacl2_medium_i(4.0)
+                .ph_cacl2_medium_f(5.0)
+                .ph_cacl2_hight_i(6.0)
+                .ph_cacl2_hight_f(7.0)
+                .ph_cacl2_too_hight(8.0)
                 .build();
     }
 
@@ -201,6 +226,49 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/diverse-content-range/get?criterionId=321"))
                 .andExpect(jsonPath("$.id").value(321L));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createDiverseContentRangeAcceptsRequestedNutrientAliases() throws Exception {
+        String requestJson = """
+                {
+                  "menor_teor_al_trocavel": 0.1,
+                  "teor_inicial_baixo_h_al": 1.1,
+                  "teor_final_baixo_ctc_t": 2.2,
+                  "teor_inicial_medio_ctc_T": 3.3,
+                  "menor_valor_ph_agua": 4.4,
+                  "valor_inicial_baixo_ph_cacl2_0_01_mol_l": 5.5
+                }
+                """;
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+        when(diverseContentRangeRepository.findByTable(ownerTable)).thenReturn(Optional.empty());
+        when(diverseContentRangeRepository.save(any(DiverseContentRangeModel.class))).thenAnswer(invocation -> {
+            DiverseContentRangeModel criterion = invocation.getArgument(0);
+            criterion.setId(323L);
+            assertEquals(0.1, criterion.getAluminum_too_low());
+            assertEquals(1.1, criterion.getPotential_acidity_low_i());
+            assertEquals(2.2, criterion.getEffective_cec_low_f());
+            assertEquals(3.3, criterion.getPh7_cec_medium_i());
+            assertEquals(4.4, criterion.getPh_too_low());
+            assertEquals(5.5, criterion.getPh_cacl2_low_i());
+            return criterion;
+        });
+
+        mockMvc.perform(post("/diverse-content-range/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.menor_teor_aluminio").value(0.1))
+                .andExpect(jsonPath("$.teor_inicial_baixo_acidez_potencial").value(1.1))
+                .andExpect(jsonPath("$.teor_final_baixo_ctc_efetiva").value(2.2))
+                .andExpect(jsonPath("$.teor_inicial_medio_ctc_ph_7").value(3.3))
+                .andExpect(jsonPath("$.menor_valor_ph").value(4.4))
+                .andExpect(jsonPath("$.valor_inicial_baixo_ph_cacl2").value(5.5));
     }
 
     @Test
