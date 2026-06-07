@@ -53,6 +53,13 @@ public interface MineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos padrão", description = "Retorna adubos criados pelo usuário supremo.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-default")
+    ResponseEntity<List<MineralFertilizerResponseDto>> getAllDefaultMineralFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
 
     @Operation(summary = "Buscar por nome")
     @GetMapping("/get-by-name")

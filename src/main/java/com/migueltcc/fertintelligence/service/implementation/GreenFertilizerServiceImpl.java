@@ -91,6 +91,16 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<GreenFertilizerResponseDto> getAllDefaultGreenFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(GreenFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)

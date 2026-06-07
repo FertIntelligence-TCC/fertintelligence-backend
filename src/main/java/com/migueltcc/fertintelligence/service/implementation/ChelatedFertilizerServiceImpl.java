@@ -93,6 +93,16 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChelatedFertilizerResponseDto> getAllDefaultChelatedFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(ChelatedFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)

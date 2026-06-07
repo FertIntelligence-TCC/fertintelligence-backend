@@ -91,6 +91,14 @@ public class GreenFertilizerControllerImpl implements GreenFertilizerController 
         return ResponseEntity.ok(list);
     }
 
+    @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<GreenFertilizerResponseDto>> getAllDefaultGreenFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<GreenFertilizerResponseDto> list = greenFertilizerService.getAllDefaultGreenFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
 
     @Override
     @GetMapping("/get-by-name")

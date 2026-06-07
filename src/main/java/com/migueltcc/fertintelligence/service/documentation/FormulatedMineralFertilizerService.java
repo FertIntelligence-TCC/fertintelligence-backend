@@ -20,6 +20,7 @@ public interface FormulatedMineralFertilizerService {
 
     List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username);
     List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username);
+    List<FormulatedMineralFertilizerResponseDto> getAllDefaultFormulatedMineralFertilizers(String username);
 
 
     FormulatedMineralFertilizerResponseDto updateFormulatedMineralFertilizer(

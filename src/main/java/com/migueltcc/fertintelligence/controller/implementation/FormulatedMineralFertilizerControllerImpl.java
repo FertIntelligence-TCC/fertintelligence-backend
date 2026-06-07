@@ -92,6 +92,14 @@ public class FormulatedMineralFertilizerControllerImpl implements FormulatedMine
         return ResponseEntity.ok(list);
     }
 
+    @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getAllDefaultFormulatedMineralFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<FormulatedMineralFertilizerResponseDto> list = formulatedMineralFertilizerService.getAllDefaultFormulatedMineralFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
 
     @Override
     @PutMapping("/update")

@@ -86,6 +86,14 @@ public class ChelatedFertilizerControllerImpl implements ChelatedFertilizerContr
         return ResponseEntity.ok(list);
     }
 
+    @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<ChelatedFertilizerResponseDto>> getAllDefaultChelatedFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<ChelatedFertilizerResponseDto> list = service.getAllDefaultChelatedFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
 
     @Override
     @GetMapping("/get-by-name")

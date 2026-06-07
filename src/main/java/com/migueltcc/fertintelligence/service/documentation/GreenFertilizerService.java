@@ -14,6 +14,7 @@ public interface GreenFertilizerService {
 
     List<GreenFertilizerResponseDto> getAllGreenFertilizers(String username);
     List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username);
+    List<GreenFertilizerResponseDto> getAllDefaultGreenFertilizers(String username);
 
 
     List<GreenFertilizerResponseDto> getGreenFertilizersByName(String name, String username);

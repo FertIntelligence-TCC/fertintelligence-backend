@@ -99,6 +99,16 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrganoMineralFertilizerResponseDto> getAllDefaultOrganoMineralFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(OrganoMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)

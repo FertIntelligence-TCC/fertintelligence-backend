@@ -86,6 +86,14 @@ public class MineralFertilizerControllerImpl implements MineralFertilizerControl
         return ResponseEntity.ok(list);
     }
 
+    @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<MineralFertilizerResponseDto>> getAllDefaultMineralFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<MineralFertilizerResponseDto> list = service.getAllDefaultMineralFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
 
     @Override
     @GetMapping("/get-by-name")

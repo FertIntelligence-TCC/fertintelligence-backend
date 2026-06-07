@@ -41,6 +41,10 @@ public interface CropFertilizationTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<List<CropFertilizationTableResponseDto>> getDefaultCropFertilizationTables(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<CropFertilizationTableResponseDto> updateCropFertilizationTable(
             @Parameter(description = "ID da tabela de adubação a ser atualizada", required = true)
             @RequestParam(name = "tableId") Long tableId,

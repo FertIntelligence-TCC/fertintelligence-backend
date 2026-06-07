@@ -103,6 +103,16 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
     }
 
     @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>> getDefaultCropFoliarAnalysisInterpretationTables(
+            Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<CropFoliarAnalysisInterpretationTableResponseDto> tables = tableService
+                .getAllDefaultCropFoliarAnalysisInterpretationTables(username);
+        return ResponseEntity.ok(tables);
+    }
+
+    @Override
     @PutMapping("/update")
     public ResponseEntity<CropFoliarAnalysisInterpretationTableResponseDto>
     updateCropFoliarAnalysisInterpretationTable(

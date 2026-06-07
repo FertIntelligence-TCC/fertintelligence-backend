@@ -53,6 +53,13 @@ public interface FormulatedMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos padrão", description = "Retorna adubos criados pelo usuário supremo.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-default")
+    ResponseEntity<List<FormulatedMineralFertilizerResponseDto>> getAllDefaultFormulatedMineralFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
 
     @Operation(summary = "Atualizar adubo", description = "Atualiza os dados de um adubo existente.")
     @PutMapping("/update")

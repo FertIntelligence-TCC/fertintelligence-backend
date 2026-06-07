@@ -117,6 +117,17 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllDefaultSoilFertilityInterpretationCriteriaTables(
+            String username) {
+        findUserByUsernameOrThrow(username);
+        return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public SoilFertilityInterpretationCriteriaTableResponseDto updateSoilFertilityInterpretationCriteriaTable(
             Long tableId,

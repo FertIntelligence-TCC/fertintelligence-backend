@@ -82,6 +82,16 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SimpleMineralFertilizerResponseDto> getAllDefaultSimpleMineralFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(SimpleMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)

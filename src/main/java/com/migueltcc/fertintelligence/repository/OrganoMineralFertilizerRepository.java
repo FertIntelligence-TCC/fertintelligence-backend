@@ -28,4 +28,6 @@ public interface OrganoMineralFertilizerRepository extends JpaRepository<OrganoM
     @Query("select f from OrganoMineralFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.name asc")
     List<OrganoMineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
+    List<OrganoMineralFertilizerModel> findAllByUser_CargoOrderByNameAsc(Cargo cargo);
+
 }

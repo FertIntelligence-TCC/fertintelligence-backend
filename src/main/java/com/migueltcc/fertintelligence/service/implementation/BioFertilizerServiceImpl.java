@@ -93,6 +93,16 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BioFertilizerResponseDto> getAllDefaultBioFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(BioFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional(readOnly = true)
