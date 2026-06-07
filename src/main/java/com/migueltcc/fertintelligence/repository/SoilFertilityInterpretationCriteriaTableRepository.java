@@ -13,10 +13,14 @@ import java.util.Optional;
 public interface SoilFertilityInterpretationCriteriaTableRepository extends JpaRepository<SoilFertilityInterpretationCriteriaTableModel, Long> {
 
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator(UserModel creator);
+    List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreatorAndCreator_CargoNot(UserModel creator, Cargo cargo);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator_Cargo(Cargo cargo);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrue();
+    List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrueAndCreator_CargoNot(Cargo cargo);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreator(Long id, UserModel creator);
+    Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreatorAndCreator_CargoNot(Long id, UserModel creator, Cargo cargo);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndPublicTableTrue(Long id);
+    Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndPublicTableTrueAndCreator_CargoNot(Long id, Cargo cargo);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
     boolean existsByCreatorAndName(UserModel creator, String name);
 }
