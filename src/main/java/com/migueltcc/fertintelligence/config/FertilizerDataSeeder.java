@@ -111,10 +111,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
         formulate.setP(p);
         formulate.setK(k);
 
-        NPKrelation relation = new NPKrelation();
-        relation.setN(n > 0 ? 1.0 : 0.0);
-        relation.setP(n > 0 && p > 0 ? (double) p / n : 0.0);
-        relation.setK(n > 0 && k > 0 ? (double) k / n : 0.0);
+        NPKrelation relation = FormulatedMineralFertilizerModel.calculateRelation(formulate);
 
         FormulatedMineralFertilizerModel model = FormulatedMineralFertilizerModel.builder()
                 .user(user)

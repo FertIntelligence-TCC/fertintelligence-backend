@@ -49,12 +49,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             formulate.setK((int) getOrDefault(Double.valueOf(dto.getFormulate().getK())));
         }
 
-        NPKrelation relation = new NPKrelation();
-        if (dto.getRelation() != null) {
-            relation.setN(getOrDefault(dto.getRelation().getN()));
-            relation.setP(getOrDefault(dto.getRelation().getP()));
-            relation.setK(getOrDefault(dto.getRelation().getK()));
-        }
+        NPKrelation relation = FormulatedMineralFertilizerModel.calculateRelation(formulate);
 
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
                 .user(owner)
@@ -120,9 +115,10 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             fertilizer.getFormulate().setN((int) getOrDefault(Double.valueOf(dto.getFormulate().getN())));
             fertilizer.getFormulate().setP((int) getOrDefault(Double.valueOf(dto.getFormulate().getP())));
             fertilizer.getFormulate().setK((int) getOrDefault(Double.valueOf(dto.getFormulate().getK())));
+            fertilizer.setRelation(FormulatedMineralFertilizerModel.calculateRelation(fertilizer.getFormulate()));
         }
 
-        if (dto.getRelation() != null) {
+        if (dto.getFormulate() == null && dto.getRelation() != null) {
             if (fertilizer.getRelation() == null) fertilizer.setRelation(new NPKrelation());
             fertilizer.getRelation().setN(getOrDefault(dto.getRelation().getN()));
             fertilizer.getRelation().setP(getOrDefault(dto.getRelation().getP()));

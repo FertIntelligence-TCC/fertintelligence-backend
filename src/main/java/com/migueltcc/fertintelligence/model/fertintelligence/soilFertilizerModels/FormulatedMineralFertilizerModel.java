@@ -9,7 +9,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -95,7 +96,7 @@ public class FormulatedMineralFertilizerModel {
                 .id(this.id)
                 .formulate(this.formulate != null ?
                         new FormulateDto(this.formulate.getN(), this.formulate.getP(), this.formulate.getK()) : null)
-                .relation(toIntegerRelationDto(this.relation))
+                .relation(toRelationDto(this.formulate, this.relation))
                 .n(this.N)
                 .p2o5(this.P2O5)
                 .k2o(this.K2O)
@@ -116,51 +117,52 @@ public class FormulatedMineralFertilizerModel {
                 .build();
     }
 
-    private static NPKrelationDto toIntegerRelationDto(NPKrelation relation) {
-        if (relation == null) {
-            return null;
+    public static NPKrelation calculateRelation(Formulate formulate) {
+        if (formulate == null) {
+            return new NPKrelation(0.0, 0.0, 0.0);
         }
 
-        List<Double> values = List.of(relation.getN(), relation.getP(), relation.getK());
-        int multiplier = findIntegerMultiplier(values);
-        List<Long> integers = values.stream()
-                .map(value -> Math.round(value * multiplier))
-                .toList();
-
-        long gcd = integers.stream()
-                .map(Math::abs)
-                .reduce(0L, FormulatedMineralFertilizerModel::gcd);
-
-        if (gcd == 0L) {
-            return new NPKrelationDto(0.0, 0.0, 0.0);
+        int minimum = smallestPositiveValue(formulate);
+        if (minimum == 0) {
+            return new NPKrelation(0.0, 0.0, 0.0);
         }
 
-        return new NPKrelationDto(
-                (double) integers.get(0) / gcd,
-                (double) integers.get(1) / gcd,
-                (double) integers.get(2) / gcd
+        return new NPKrelation(
+                divideByMinimum(formulate.getN(), minimum),
+                divideByMinimum(formulate.getP(), minimum),
+                divideByMinimum(formulate.getK(), minimum)
         );
     }
 
-    private static int findIntegerMultiplier(List<Double> values) {
-        double tolerance = 1e-6;
-        for (int multiplier = 1; multiplier <= 1000; multiplier++) {
-            int candidate = multiplier;
-            boolean allIntegers = values.stream()
-                    .allMatch(value -> Math.abs(value * candidate - Math.round(value * candidate)) < tolerance);
-            if (allIntegers) {
-                return candidate;
-            }
+    private static NPKrelationDto toRelationDto(Formulate formulate, NPKrelation relation) {
+        NPKrelation calculated = formulate != null ? calculateRelation(formulate) : relation;
+        if (calculated == null) {
+            return null;
         }
-        return 1;
+
+        return new NPKrelationDto(
+                roundToTwoDecimalPlaces(calculated.getN()),
+                roundToTwoDecimalPlaces(calculated.getP()),
+                roundToTwoDecimalPlaces(calculated.getK())
+        );
     }
 
-    private static long gcd(long a, long b) {
-        while (b != 0L) {
-            long remainder = a % b;
-            a = b;
-            b = remainder;
-        }
-        return Math.abs(a);
+    private static int smallestPositiveValue(Formulate formulate) {
+        int minimum = Integer.MAX_VALUE;
+        if (formulate.getN() > 0) minimum = Math.min(minimum, formulate.getN());
+        if (formulate.getP() > 0) minimum = Math.min(minimum, formulate.getP());
+        if (formulate.getK() > 0) minimum = Math.min(minimum, formulate.getK());
+        return minimum == Integer.MAX_VALUE ? 0 : minimum;
+    }
+
+    private static double divideByMinimum(int value, int minimum) {
+        return roundToTwoDecimalPlaces((double) value / minimum);
+    }
+
+    private static double roundToTwoDecimalPlaces(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .doubleValue();
     }
 }
