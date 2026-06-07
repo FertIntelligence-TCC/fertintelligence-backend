@@ -284,6 +284,29 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "employee")
+    void createCoverageFailsForPublicTableWhenUserIsNotOwner() throws Exception {
+        CropFertilizationTableModel publicTable = ownerTable.toBuilder()
+                .publicTable(true)
+                .build();
+
+        ContentRangeModel publicRange = ownerRange.toBuilder()
+                .table(publicTable)
+                .build();
+
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 30.0);
+
+        when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+        when(contentRangeRepository.findById(publicRange.getId())).thenReturn(Optional.of(publicRange));
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", publicRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void getCoverageSuccessfully() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -462,7 +485,30 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
         when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne, coverageTwo));
 
         mockMvc.perform(delete("/coverage/delete")
-                        .param("coverageId", coverageOne.getId().toString()))
+                .param("coverageId", coverageOne.getId().toString()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "employee")
+    void deleteCoverageFailsForPublicTableWhenUserIsNotOwner() throws Exception {
+        CropFertilizationTableModel publicTable = ownerTable.toBuilder()
+                .publicTable(true)
+                .build();
+
+        ContentRangeModel publicRange = ownerRange.toBuilder()
+                .table(publicTable)
+                .build();
+
+        CoverageModel publicCoverage = coverageOne.toBuilder()
+                .range(publicRange)
+                .build();
+
+        when(userRepository.findByUsername("employee")).thenReturn(Optional.of(funcionarioUser));
+        when(coverageRepository.findById(publicCoverage.getId())).thenReturn(Optional.of(publicCoverage));
+
+        mockMvc.perform(delete("/coverage/delete")
+                        .param("coverageId", publicCoverage.getId().toString()))
+                .andExpect(status().isForbidden());
     }
 }

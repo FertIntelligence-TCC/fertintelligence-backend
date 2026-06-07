@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoveragePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
@@ -41,7 +42,7 @@ public class CoverageServiceImpl implements CoverageService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         ContentRangeModel range = findContentRangeByIdOrThrow(contentRangeId);
-        checkReadPermission(range.getTable(), owner);
+        checkWritePermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         Integer requestedOrder = createRequestDto.getOrder();
@@ -112,7 +113,7 @@ public class CoverageServiceImpl implements CoverageService {
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkReadPermission(range.getTable(), owner);
+        checkWritePermission(range.getTable(), owner);
 
         Integer updatedOrder = updateRequestDto.getOrder() != null
                 ? updateRequestDto.getOrder()
@@ -150,7 +151,7 @@ public class CoverageServiceImpl implements CoverageService {
 
         CoverageModel coverage = findCoverageByIdOrThrow(coverageId);
         ContentRangeModel range = coverage.getRange();
-        checkReadPermission(range.getTable(), owner);
+        checkWritePermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         if (!existingCoverages.isEmpty()) {
@@ -223,9 +224,28 @@ public class CoverageServiceImpl implements CoverageService {
     }
 
     private void checkCreatorPermission(CropFertilizationTableModel table, UserModel requestingUser) {
-        if (!Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
+        if (table.getCreator() == null || requestingUser == null || !Objects.equals(table.getCreator().getId(), requestingUser.getId())) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar as coberturas desta tabela.");
         }
+    }
+
+    private void checkWritePermission(CropFertilizationTableModel table, UserModel requestingUser) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(requestingUser)) {
+                return;
+            }
+            throw new AccessDeniedException("Acesso negado: Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+
+        checkCreatorPermission(table, requestingUser);
+    }
+
+    private boolean isDefaultTable(CropFertilizationTableModel table) {
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
     private List<CoverageModel> createSiblingPlaceholderCoverages(ContentRangeModel range, int currentCoverageCount,
