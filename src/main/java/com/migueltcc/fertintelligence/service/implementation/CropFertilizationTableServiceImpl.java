@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
@@ -99,7 +100,19 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Override
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username) {
+        return getAllCropFertilizationTables(username, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username, TechnicalTableGroup group) {
         UserModel owner = findUserByUsernameOrThrow(username);
+
+        if (group != null) {
+            return findTablesByGroup(owner, group).stream()
+                    .map(CropFertilizationTableModel::toDto)
+                    .toList();
+        }
 
         if (isSupremeUser(owner)) {
             return cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
@@ -116,6 +129,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
+    }
+
+    private List<CropFertilizationTableModel> findTablesByGroup(UserModel owner, TechnicalTableGroup group) {
+        return switch (group) {
+            case PRIVADAS -> cropFertilizationTableRepository.findAllByCreator(owner);
+            case PUBLICAS -> cropFertilizationTableRepository.findAllByPublicTableTrue();
+            case PADRAO -> cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+        };
     }
 
     @Override

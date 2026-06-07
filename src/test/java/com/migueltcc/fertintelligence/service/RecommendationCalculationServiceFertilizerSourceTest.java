@@ -35,7 +35,9 @@ class RecommendationCalculationServiceFertilizerSourceTest {
                 mock(CoverageRepository.class),
                 mock(FormulatedMineralFertilizerRepository.class),
                 simpleRepo,
-                mock(FertilityAnalysisExtractRepository.class)
+                mock(FertilityAnalysisExtractRepository.class),
+                mock(SoilFertilityInterpretationCriteriaTableRepository.class),
+                mock(CropFoliarAnalysisInterpretationTableRepository.class)
         );
         user = UserModel.builder().id(1L).build();
     }

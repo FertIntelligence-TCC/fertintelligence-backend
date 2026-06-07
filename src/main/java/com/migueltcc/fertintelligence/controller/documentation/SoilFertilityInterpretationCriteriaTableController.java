@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
@@ -31,6 +32,8 @@ public interface SoilFertilityInterpretationCriteriaTableController {
     );
 
     ResponseEntity<List<SoilFertilityInterpretationCriteriaTableResponseDto>> getSoilFertilityInterpretationCriteriaTables(
+            @Parameter(description = "Grupo da tabela: PRIVADAS, PUBLICAS ou PADRAO")
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
             @Parameter(hidden = true) Authentication authentication
     );
 

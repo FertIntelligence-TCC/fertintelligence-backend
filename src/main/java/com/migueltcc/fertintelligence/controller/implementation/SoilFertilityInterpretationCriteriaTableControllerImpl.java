@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.SoilFertilityInterpretationCriteriaTableController;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
@@ -63,9 +64,10 @@ public class SoilFertilityInterpretationCriteriaTableControllerImpl implements S
     @Override
     @GetMapping("/get-all")
     public ResponseEntity<List<SoilFertilityInterpretationCriteriaTableResponseDto>> getSoilFertilityInterpretationCriteriaTables(
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
             Authentication authentication) {
         List<SoilFertilityInterpretationCriteriaTableResponseDto> tables = soilFertilityInterpretationCriteriaTableService
-                .getAllSoilFertilityInterpretationCriteriaTablesByCreator(authentication.getName());
+                .getAllSoilFertilityInterpretationCriteriaTablesByCreator(authentication.getName(), group);
         return ResponseEntity.ok(tables);
     }
 

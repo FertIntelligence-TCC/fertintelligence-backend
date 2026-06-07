@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.CropFoliarAnalysisInterpretationTableController;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
@@ -71,12 +72,14 @@ public class CropFoliarAnalysisInterpretationTableControllerImpl
     @Override
     @GetMapping("/get-all")
     public ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>>
-    getCropFoliarAnalysisInterpretationTables(Authentication authentication) {
+    getCropFoliarAnalysisInterpretationTables(
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
+            Authentication authentication) {
 
         try {
             String username = getAuthenticatedUsername(authentication);
             List<CropFoliarAnalysisInterpretationTableResponseDto> tables = tableService
-                    .getAllCropFoliarAnalysisInterpretationTablesByCreator(username);
+                    .getAllCropFoliarAnalysisInterpretationTablesByCreator(username, group);
             return ResponseEntity.ok(tables);
         } catch (Exception e) {
             logger.error("Erro ao listar tabelas de interpretação foliar: ", e);

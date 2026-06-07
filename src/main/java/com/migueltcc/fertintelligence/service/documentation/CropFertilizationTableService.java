@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
@@ -19,6 +20,8 @@ public interface CropFertilizationTableService {
     );
 
     List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username);
+
+    List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username, TechnicalTableGroup group);
 
     List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables();
 

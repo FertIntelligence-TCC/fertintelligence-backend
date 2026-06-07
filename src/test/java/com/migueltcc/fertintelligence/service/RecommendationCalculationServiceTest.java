@@ -49,6 +49,8 @@ class RecommendationCalculationServiceTest {
     @Mock private FormulatedMineralFertilizerRepository formulatedRepo;
     @Mock private SimpleMineralFertilizerRepository simpleRepo;
     @Mock private FertilityAnalysisExtractRepository fertilityExtractRepo;
+    @Mock private SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepo;
+    @Mock private CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepo;
 
     @InjectMocks private RecommendationCalculationService service;
     private final RecommendationReportService reportService = new RecommendationReportService();

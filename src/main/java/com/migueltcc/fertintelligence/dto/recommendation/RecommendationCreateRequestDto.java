@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -46,13 +47,28 @@ public class RecommendationCreateRequestDto {
     private Long cropId;
 
     @JsonProperty("id_tabela_adubacao_cultura")
+    @NotNull
     private Long cropFertilizationTableId;
 
+    @JsonProperty("grupo_tabela_adubacao_cultura")
+    @NotNull
+    private TechnicalTableGroup cropFertilizationTableGroup;
+
     @JsonProperty("id_tabela_interpretacao_fertilidade_solo")
+    @NotNull
     private Long soilFertilityInterpretationCriteriaTableId;
 
+    @JsonProperty("grupo_tabela_interpretacao_fertilidade_solo")
+    @NotNull
+    private TechnicalTableGroup soilFertilityInterpretationCriteriaTableGroup;
+
     @JsonProperty("id_tabela_interpretacao_analise_foliar")
+    @NotNull
     private Long cropFoliarAnalysisInterpretationTableId;
+
+    @JsonProperty("grupo_tabela_interpretacao_analise_foliar")
+    @NotNull
+    private TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
 
     @JsonProperty("criterio_calagem")
     private CriterioCalagem limingCriteria;

@@ -17,4 +17,7 @@ public interface CropFoliarAnalysisInterpretationTableRepository
     List<CropFoliarAnalysisInterpretationTableModel> findAllByCreator_Cargo(Cargo cargo);
     Optional<CropFoliarAnalysisInterpretationTableModel> findByCreatorAndName(UserModel creator, String name);
     List<CropFoliarAnalysisInterpretationTableModel> findAllByPublicTableTrue();
+    Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndCreator(Long id, UserModel creator);
+    Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndPublicTableTrue(Long id);
+    Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
 }

@@ -66,8 +66,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .limingCriteria(dto.getLimingCriteria())
                 .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
+                .cropFertilizationTableGroup(dto.getCropFertilizationTableGroup())
                 .soilFertilityInterpretationCriteriaTableId(dto.getSoilFertilityInterpretationCriteriaTableId())
+                .soilFertilityInterpretationCriteriaTableGroup(dto.getSoilFertilityInterpretationCriteriaTableGroup())
                 .cropFoliarAnalysisInterpretationTableId(dto.getCropFoliarAnalysisInterpretationTableId())
+                .cropFoliarAnalysisInterpretationTableGroup(dto.getCropFoliarAnalysisInterpretationTableGroup())
                 .technicalReport(technicalReport)
                 .build();
 
@@ -161,8 +164,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .limingCriteria(model.getLimingCriteria())
                 .origemAdubos(model.getOrigemAdubos() != null ? model.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(model.getCropFertilizationTableId())
+                .cropFertilizationTableGroup(model.getCropFertilizationTableGroup())
                 .soilFertilityInterpretationCriteriaTableId(model.getSoilFertilityInterpretationCriteriaTableId())
+                .soilFertilityInterpretationCriteriaTableGroup(model.getSoilFertilityInterpretationCriteriaTableGroup())
                 .cropFoliarAnalysisInterpretationTableId(model.getCropFoliarAnalysisInterpretationTableId())
+                .cropFoliarAnalysisInterpretationTableGroup(model.getCropFoliarAnalysisInterpretationTableGroup())
                 .technicalReport(model.getTechnicalReport())
                 .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
                 .createdAt(model.getCreatedAt())

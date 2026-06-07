@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
@@ -12,7 +13,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.*;
@@ -41,6 +44,8 @@ public class RecommendationCalculationService {
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
+    private final SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository;
+    private final CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -53,7 +58,9 @@ public class RecommendationCalculationService {
                                             CoverageRepository coverageRepository,
                                             FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
-                                            FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository) {
+                                            FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository,
+                                            SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository,
+                                            CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -66,6 +73,8 @@ public class RecommendationCalculationService {
         this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.fertilityAnalysisExtractRepository = fertilityAnalysisExtractRepository;
+        this.soilFertilityInterpretationCriteriaTableRepository = soilFertilityInterpretationCriteriaTableRepository;
+        this.cropFoliarAnalysisInterpretationTableRepository = cropFoliarAnalysisInterpretationTableRepository;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -78,6 +87,9 @@ public class RecommendationCalculationService {
         diagnostics.add("Extrato de saturação selecionado: ID " + dto.getSaturationExtractAnalysisExtractId());
         diagnostics.add("Pasta de cultura anual selecionada: ID " + dto.getAnnualCropFolderId());
         diagnostics.add("Cultura selecionada: ID " + dto.getCropId());
+        diagnostics.add("Tabela de adubação de culturas selecionada: grupo " + dto.getCropFertilizationTableGroup() + ", ID " + dto.getCropFertilizationTableId());
+        diagnostics.add("Tabela de interpretação da fertilidade do solo selecionada: grupo " + dto.getSoilFertilityInterpretationCriteriaTableGroup() + ", ID " + dto.getSoilFertilityInterpretationCriteriaTableId());
+        diagnostics.add("Tabela de interpretação de análise foliar selecionada: grupo " + dto.getCropFoliarAnalysisInterpretationTableGroup() + ", ID " + dto.getCropFoliarAnalysisInterpretationTableId());
         FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
         diagnostics.add("Origem de adubos selecionada: " + sourceOption);
         List<String> warnings = new ArrayList<>();
@@ -87,6 +99,12 @@ public class RecommendationCalculationService {
         SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrThrow(dto.getSaturationExtractAnalysisExtractId());
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(dto.getAnnualCropFolderId());
         CropModel crop = findCropByIdOrThrow(dto.getCropId());
+        CropFertilizationTableModel cropFertilizationTable = findCropFertilizationTableBySelectionOrThrow(
+                dto.getCropFertilizationTableId(), dto.getCropFertilizationTableGroup(), user);
+        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = findSoilFertilityInterpretationTableBySelectionOrThrow(
+                dto.getSoilFertilityInterpretationCriteriaTableId(), dto.getSoilFertilityInterpretationCriteriaTableGroup(), user);
+        CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
+                dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user);
 
         validateSamePlot(resolvePlot(physicalAnalysis), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
         validateSamePlot(soilFertilityAnalysis.getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
@@ -95,6 +113,8 @@ public class RecommendationCalculationService {
         if (crop.getFolder() == null || !Objects.equals(crop.getFolder().getId(), annualCropFolder.getId())) {
             throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
         }
+        diagnostics.add("Tabela de fertilidade validada: ID " + soilInterpretationTable.getId());
+        diagnostics.add("Tabela foliar validada: ID " + foliarInterpretationTable.getId());
 
         Optional<FoliarAnalysisModel> foliarAnalysis = findLatestFoliarAnalysis(crop);
 
@@ -113,12 +133,8 @@ public class RecommendationCalculationService {
         Double requiredN = null, requiredP2O5 = null, requiredK2O = null;
         Long nRangeId = null, pRangeId = null, kRangeId = null;
 
-        Optional<CropFertilizationTableModel> tableOpt = Optional.ofNullable(dto.getCropFertilizationTableId())
-                .flatMap(cropFertilizationTableRepository::findById);
-        if (tableOpt.isEmpty()) {
-            warnings.add("Tabela de adubação da cultura não encontrada para o ID informado.");
-        } else {
-            CropFertilizationTableModel table = tableOpt.get();
+        {
+            CropFertilizationTableModel table = cropFertilizationTable;
             Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
             Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(fertilityExtract), warnings, "fósforo");
             Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(fertilityExtract), warnings, "potássio");
@@ -208,6 +224,12 @@ return rows;}
     private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {return saturationExtractAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));}
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {return annualCropFolderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));}
     private CropModel findCropByIdOrThrow(Long id) {return cropRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + id));}
+    private CropFertilizationTableModel findCropFertilizationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findCropFertilizationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de adubação de culturas não encontrada para o grupo " + group + " e ID: " + id));}
+    private SoilFertilityInterpretationCriteriaTableModel findSoilFertilityInterpretationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findSoilFertilityInterpretationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação da fertilidade do solo não encontrada para o grupo " + group + " e ID: " + id));}
+    private CropFoliarAnalysisInterpretationTableModel findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findCropFoliarAnalysisInterpretationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação de análise foliar não encontrada para o grupo " + group + " e ID: " + id));}
+    private Optional<CropFertilizationTableModel> findCropFertilizationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {if (group == null) throw new IllegalArgumentException("Grupo da tabela de adubação de culturas é obrigatório."); return switch (group) {case PRIVADAS -> cropFertilizationTableRepository.findByIdAndCreator(id, user); case PUBLICAS -> cropFertilizationTableRepository.findByIdAndPublicTableTrue(id); case PADRAO -> cropFertilizationTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);};}
+    private Optional<SoilFertilityInterpretationCriteriaTableModel> findSoilFertilityInterpretationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {if (group == null) throw new IllegalArgumentException("Grupo da tabela de interpretação da fertilidade do solo é obrigatório."); return switch (group) {case PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator(id, user); case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndPublicTableTrue(id); case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);};}
+    private Optional<CropFoliarAnalysisInterpretationTableModel> findCropFoliarAnalysisInterpretationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {if (group == null) throw new IllegalArgumentException("Grupo da tabela de interpretação de análise foliar é obrigatório."); return switch (group) {case PRIVADAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator(id, user); case PUBLICAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndPublicTableTrue(id); case PADRAO -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);};}
     private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) throw new IllegalArgumentException(message);}
     private PlotModel resolvePlot(PhysicalAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");}
     private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");}
