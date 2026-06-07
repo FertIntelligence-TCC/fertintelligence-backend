@@ -32,6 +32,4 @@ public interface SimpleMineralFertilizerRepository extends JpaRepository<SimpleM
     @Query("select f from SimpleMineralFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.name asc")
     List<SimpleMineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
-    List<SimpleMineralFertilizerModel> findAllByUser_CargoOrderByNameAsc(Cargo cargo);
-
 }

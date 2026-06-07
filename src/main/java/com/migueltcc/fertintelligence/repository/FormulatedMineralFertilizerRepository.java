@@ -27,6 +27,4 @@ public interface FormulatedMineralFertilizerRepository extends JpaRepository<For
     @Query("select f from FormulatedMineralFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.id asc")
     List<FormulatedMineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByIdAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
-    List<FormulatedMineralFertilizerModel> findAllByUser_CargoOrderByIdAsc(Cargo cargo);
-
 }
