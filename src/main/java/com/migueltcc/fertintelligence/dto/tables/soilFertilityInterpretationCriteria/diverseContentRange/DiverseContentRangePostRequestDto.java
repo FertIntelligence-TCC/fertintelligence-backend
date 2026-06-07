@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.diverseContentRange;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -264,23 +265,49 @@ public class DiverseContentRangePostRequestDto {
     @JsonProperty("novo_maior_teor_pst")
     private Double sodium_saturation_too_hight;
 
-    // --- pH ---
+    // --- pH EM ÁGUA ---
     @JsonProperty("novo_menor_valor_ph")
+    @JsonAlias("novo_menor_valor_ph_agua")
     private Double ph_too_low;
     @JsonProperty("novo_valor_inicial_baixo_ph")
+    @JsonAlias("novo_valor_inicial_baixo_ph_agua")
     private Double ph_low_i;
     @JsonProperty("novo_valor_final_baixo_ph")
+    @JsonAlias("novo_valor_final_baixo_ph_agua")
     private Double ph_low_f;
     @JsonProperty("novo_valor_inicial_medio_ph")
+    @JsonAlias("novo_valor_inicial_medio_ph_agua")
     private Double ph_medium_i;
     @JsonProperty("novo_valor_final_medio_ph")
+    @JsonAlias("novo_valor_final_medio_ph_agua")
     private Double ph_medium_f;
     @JsonProperty("novo_valor_inicial_alto_ph")
+    @JsonAlias("novo_valor_inicial_alto_ph_agua")
     private Double ph_hight_i;
     @JsonProperty("novo_valor_final_alto_ph")
+    @JsonAlias("novo_valor_final_alto_ph_agua")
     private Double ph_hight_f;
     @JsonProperty("novo_maior_valor_ph")
+    @JsonAlias("novo_maior_valor_ph_agua")
     private Double ph_too_hight;
+
+    // --- pH EM CaCl2 0,01 mol/L ---
+    @JsonProperty("novo_menor_valor_ph_cacl2")
+    private Double ph_cacl2_too_low;
+    @JsonProperty("novo_valor_inicial_baixo_ph_cacl2")
+    private Double ph_cacl2_low_i;
+    @JsonProperty("novo_valor_final_baixo_ph_cacl2")
+    private Double ph_cacl2_low_f;
+    @JsonProperty("novo_valor_inicial_medio_ph_cacl2")
+    private Double ph_cacl2_medium_i;
+    @JsonProperty("novo_valor_final_medio_ph_cacl2")
+    private Double ph_cacl2_medium_f;
+    @JsonProperty("novo_valor_inicial_alto_ph_cacl2")
+    private Double ph_cacl2_hight_i;
+    @JsonProperty("novo_valor_final_alto_ph_cacl2")
+    private Double ph_cacl2_hight_f;
+    @JsonProperty("novo_maior_valor_ph_cacl2")
+    private Double ph_cacl2_too_hight;
 
     // --- BORO ---
     @JsonProperty("novo_menor_teor_boro")
