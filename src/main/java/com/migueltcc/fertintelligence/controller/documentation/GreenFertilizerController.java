@@ -51,6 +51,13 @@ public interface GreenFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos padrão", description = "Retorna adubos criados pelo usuário supremo.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-default")
+    ResponseEntity<List<GreenFertilizerResponseDto>> getAllDefaultGreenFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
 
     @GetMapping("/get-by-name")
     ResponseEntity<List<GreenFertilizerResponseDto>> getGreenFertilizersByName(

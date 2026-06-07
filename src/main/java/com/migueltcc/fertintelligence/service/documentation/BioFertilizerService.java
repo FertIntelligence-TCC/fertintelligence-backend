@@ -14,6 +14,7 @@ public interface BioFertilizerService {
 
     List<BioFertilizerResponseDto> getAllBioFertilizers(String username);
     List<BioFertilizerResponseDto> getAllPublicBioFertilizers(String username);
+    List<BioFertilizerResponseDto> getAllDefaultBioFertilizers(String username);
 
 
     List<BioFertilizerResponseDto> getBioFertilizersByName(String name, String username);

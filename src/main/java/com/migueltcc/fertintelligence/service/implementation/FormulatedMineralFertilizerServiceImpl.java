@@ -103,6 +103,16 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<FormulatedMineralFertilizerResponseDto> getAllDefaultFormulatedMineralFertilizers(String username) {
+        findUserByUsernameOrThrow(username);
+        return formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(FormulatedMineralFertilizerModel::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @Transactional

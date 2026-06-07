@@ -122,6 +122,17 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CropFoliarAnalysisInterpretationTableResponseDto> getAllDefaultCropFoliarAnalysisInterpretationTables(
+            String username) {
+        findUserByUsernameOrThrow(username);
+        return tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(CropFoliarAnalysisInterpretationTableModel::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public CropFoliarAnalysisInterpretationTableResponseDto updateCropFoliarAnalysisInterpretationTable(
             Long tableId,

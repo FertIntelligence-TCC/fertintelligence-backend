@@ -51,6 +51,13 @@ public interface SimpleMineralFertilizerController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    @Operation(summary = "Listar adubos padrão", description = "Retorna adubos criados pelo usuário supremo.")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @GetMapping("/get-all-default")
+    ResponseEntity<List<SimpleMineralFertilizerResponseDto>> getAllDefaultSimpleMineralFertilizers(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
 
     @Operation(summary = "Buscar por nome", description = "Busca adubos que contenham o texto fornecido no nome.")
     @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso")

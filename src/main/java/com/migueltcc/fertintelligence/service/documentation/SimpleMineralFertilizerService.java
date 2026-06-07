@@ -16,6 +16,7 @@ public interface SimpleMineralFertilizerService {
     // CORREÇÃO: O nome aqui deve ser getAllSimpleMineralFertilizers para bater com o Controller
     List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username);
     List<SimpleMineralFertilizerResponseDto> getAllPublicSimpleMineralFertilizers(String username);
+    List<SimpleMineralFertilizerResponseDto> getAllDefaultSimpleMineralFertilizers(String username);
 
 
     List<SimpleMineralFertilizerResponseDto> getSimpleMineralFertilizersByName(

@@ -86,6 +86,14 @@ public class BioFertilizerControllerImpl implements BioFertilizerController {
         return ResponseEntity.ok(list);
     }
 
+    @Override
+    @GetMapping("/get-all-default")
+    public ResponseEntity<List<BioFertilizerResponseDto>> getAllDefaultBioFertilizers(Authentication authentication) {
+        String username = getAuthenticatedUsername(authentication);
+        List<BioFertilizerResponseDto> list = service.getAllDefaultBioFertilizers(username);
+        return ResponseEntity.ok(list);
+    }
+
 
     @Override
     @GetMapping("/get-by-name")

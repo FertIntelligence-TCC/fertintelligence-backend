@@ -20,6 +20,7 @@ public interface OrganoMineralFertilizerService {
 
     List<OrganoMineralFertilizerResponseDto> getAllOrganoMineralFertilizers(String username);
     List<OrganoMineralFertilizerResponseDto> getAllPublicOrganoMineralFertilizers(String username);
+    List<OrganoMineralFertilizerResponseDto> getAllDefaultOrganoMineralFertilizers(String username);
 
 
     List<OrganoMineralFertilizerResponseDto> getOrganoMineralFertilizersByName(

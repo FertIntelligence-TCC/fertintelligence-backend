@@ -41,6 +41,10 @@ public interface SoilFertilityInterpretationCriteriaTableController {
             @Parameter(hidden = true) Authentication authentication
     );
 
+    ResponseEntity<List<SoilFertilityInterpretationCriteriaTableResponseDto>> getDefaultSoilFertilityInterpretationCriteriaTables(
+            @Parameter(hidden = true) Authentication authentication
+    );
+
     ResponseEntity<SoilFertilityInterpretationCriteriaTableResponseDto> updateSoilFertilityInterpretationCriteriaTable(
             @Parameter(description = "ID da tabela de critérios de interpretação da fertilidade do solo a ser atualizada", required = true)
             @RequestParam(name = "tableId") Long tableId,

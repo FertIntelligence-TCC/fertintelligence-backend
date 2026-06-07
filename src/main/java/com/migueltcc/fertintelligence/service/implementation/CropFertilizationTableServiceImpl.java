@@ -152,6 +152,16 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CropFertilizationTableResponseDto> getAllDefaultCropFertilizationTables(String username) {
+        findUserByUsernameOrThrow(username);
+        return cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                .stream()
+                .map(CropFertilizationTableModel::toDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public CropFertilizationTableResponseDto updateCropFertilizationTable(
             Long tableId,
