@@ -17,10 +17,14 @@ import java.util.Optional;
 public interface CropFertilizationTableRepository extends JpaRepository<CropFertilizationTableModel, Long> {
 
     List<CropFertilizationTableModel> findAllByCreator(UserModel creator);
+    List<CropFertilizationTableModel> findAllByCreatorAndCreator_CargoNot(UserModel creator, Cargo cargo);
     List<CropFertilizationTableModel> findAllByCreator_Cargo(Cargo cargo);
     List<CropFertilizationTableModel> findAllByPublicTableTrue();
+    List<CropFertilizationTableModel> findAllByPublicTableTrueAndCreator_CargoNot(Cargo cargo);
     Optional<CropFertilizationTableModel> findByIdAndCreator(Long id, UserModel creator);
+    Optional<CropFertilizationTableModel> findByIdAndCreatorAndCreator_CargoNot(Long id, UserModel creator, Cargo cargo);
     Optional<CropFertilizationTableModel> findByIdAndPublicTableTrue(Long id);
+    Optional<CropFertilizationTableModel> findByIdAndPublicTableTrueAndCreator_CargoNot(Long id, Cargo cargo);
     Optional<CropFertilizationTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CropFertilizationTableModel c WHERE c.crop_common_name = :nomeComum AND c.region = :regiao")

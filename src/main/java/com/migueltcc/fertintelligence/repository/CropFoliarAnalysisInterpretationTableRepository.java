@@ -14,10 +14,14 @@ public interface CropFoliarAnalysisInterpretationTableRepository
         extends JpaRepository<CropFoliarAnalysisInterpretationTableModel, Long> {
 
     List<CropFoliarAnalysisInterpretationTableModel> findAllByCreator(UserModel creator);
+    List<CropFoliarAnalysisInterpretationTableModel> findAllByCreatorAndCreator_CargoNot(UserModel creator, Cargo cargo);
     List<CropFoliarAnalysisInterpretationTableModel> findAllByCreator_Cargo(Cargo cargo);
     Optional<CropFoliarAnalysisInterpretationTableModel> findByCreatorAndName(UserModel creator, String name);
     List<CropFoliarAnalysisInterpretationTableModel> findAllByPublicTableTrue();
+    List<CropFoliarAnalysisInterpretationTableModel> findAllByPublicTableTrueAndCreator_CargoNot(Cargo cargo);
     Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndCreator(Long id, UserModel creator);
+    Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndCreatorAndCreator_CargoNot(Long id, UserModel creator, Cargo cargo);
     Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndPublicTableTrue(Long id);
+    Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndPublicTableTrueAndCreator_CargoNot(Long id, Cargo cargo);
     Optional<CropFoliarAnalysisInterpretationTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
 }

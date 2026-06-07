@@ -104,8 +104,8 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
 
     private List<CropFoliarAnalysisInterpretationTableModel> findTablesByGroup(UserModel owner, TechnicalTableGroup group) {
         return switch (group) {
-            case PRIVADAS -> tableRepository.findAllByCreator(owner);
-            case PUBLICAS -> tableRepository.findAllByPublicTableTrue();
+            case PRIVADAS -> tableRepository.findAllByCreatorAndCreator_CargoNot(owner, Cargo.USUARIO_SUPREMO);
+            case PUBLICAS -> tableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
             case PADRAO -> tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
         };
     }
