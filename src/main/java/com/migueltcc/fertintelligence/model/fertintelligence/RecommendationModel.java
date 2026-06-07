@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Cri
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -56,11 +57,23 @@ public class RecommendationModel {
     @Column(name = "CROP_FERTILIZATION_TABLE_ID")
     Long cropFertilizationTableId;
 
+    @Column(name = "CROP_FERTILIZATION_TABLE_GROUP")
+    @Enumerated(EnumType.STRING)
+    TechnicalTableGroup cropFertilizationTableGroup;
+
     @Column(name = "SOIL_FERTILITY_INTERPRETATION_CRITERIA_TABLE_ID")
     Long soilFertilityInterpretationCriteriaTableId;
 
+    @Column(name = "SOIL_FERTILITY_INTERPRETATION_CRITERIA_TABLE_GROUP")
+    @Enumerated(EnumType.STRING)
+    TechnicalTableGroup soilFertilityInterpretationCriteriaTableGroup;
+
     @Column(name = "CROP_FOLIAR_ANALYSIS_INTERPRETATION_TABLE_ID")
     Long cropFoliarAnalysisInterpretationTableId;
+
+    @Column(name = "CROP_FOLIAR_ANALYSIS_INTERPRETATION_TABLE_GROUP")
+    @Enumerated(EnumType.STRING)
+    TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
 
     @Lob
     @Column(name = "TECHNICAL_REPORT", nullable = false)

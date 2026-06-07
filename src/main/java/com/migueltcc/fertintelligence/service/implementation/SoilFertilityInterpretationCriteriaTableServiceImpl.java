@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
@@ -71,9 +72,19 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     @Transactional(readOnly = true)
     public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
             String username) {
+        return getAllSoilFertilityInterpretationCriteriaTablesByCreator(username, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
+            String username,
+            TechnicalTableGroup group) {
 
         UserModel creator = findUserByUsernameOrThrow(username);
-        List<SoilFertilityInterpretationCriteriaTableModel> tables = isSupremeUser(creator)
+        List<SoilFertilityInterpretationCriteriaTableModel> tables = group != null
+                ? findTablesByGroup(creator, group)
+                : isSupremeUser(creator)
                 ? soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
                 : mergeTables(
                         soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator),
@@ -84,6 +95,14 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         return tables.stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private List<SoilFertilityInterpretationCriteriaTableModel> findTablesByGroup(UserModel creator, TechnicalTableGroup group) {
+        return switch (group) {
+            case PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator);
+            case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue();
+            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+        };
     }
 
     @Override

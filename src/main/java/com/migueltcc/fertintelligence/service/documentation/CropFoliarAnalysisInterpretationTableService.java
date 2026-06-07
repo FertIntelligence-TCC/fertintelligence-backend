@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
@@ -18,6 +19,10 @@ public interface CropFoliarAnalysisInterpretationTableService {
 
     List<CropFoliarAnalysisInterpretationTableResponseDto> getAllCropFoliarAnalysisInterpretationTablesByCreator(
             String username);
+
+    List<CropFoliarAnalysisInterpretationTableResponseDto> getAllCropFoliarAnalysisInterpretationTablesByCreator(
+            String username,
+            TechnicalTableGroup group);
 
     List<CropFoliarAnalysisInterpretationTableResponseDto> getAllPublicCropFoliarAnalysisInterpretationTables();
 

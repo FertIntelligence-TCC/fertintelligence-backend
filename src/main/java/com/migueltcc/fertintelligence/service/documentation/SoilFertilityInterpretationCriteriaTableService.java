@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
@@ -20,6 +21,11 @@ public interface SoilFertilityInterpretationCriteriaTableService {
 
     List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
             String username
+    );
+
+    List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllSoilFertilityInterpretationCriteriaTablesByCreator(
+            String username,
+            TechnicalTableGroup group
     );
 
     List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllPublicSoilFertilityInterpretationCriteriaTables();

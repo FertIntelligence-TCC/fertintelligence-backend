@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.CropFertilizationTableController;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
@@ -60,10 +61,11 @@ public class CropFertilizationTableControllerImpl implements CropFertilizationTa
     @Override
     @GetMapping("/get-all")
     public ResponseEntity<List<CropFertilizationTableResponseDto>> getCropFertilizationTables(
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
             Authentication authentication
     ) {
         List<CropFertilizationTableResponseDto> tables = cropFertilizationTableService
-                .getAllCropFertilizationTables(authentication.getName());
+                .getAllCropFertilizationTables(authentication.getName(), group);
 
         return ResponseEntity.ok(tables);
     }

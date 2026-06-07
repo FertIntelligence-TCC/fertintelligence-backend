@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableResponseDto;
@@ -41,6 +42,8 @@ public interface CropFoliarAnalysisInterpretationTableController {
     @GetMapping("/get-all")
     ResponseEntity<List<CropFoliarAnalysisInterpretationTableResponseDto>>
     getCropFoliarAnalysisInterpretationTables(
+            @Parameter(description = "Grupo da tabela: PRIVADAS, PUBLICAS ou PADRAO")
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
             @Parameter(hidden = true) Authentication authentication
     );
 

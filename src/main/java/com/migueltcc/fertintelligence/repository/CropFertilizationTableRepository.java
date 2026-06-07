@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CropFertilizationTableRepository extends JpaRepository<CropFertilizationTableModel, Long> {
@@ -18,6 +19,9 @@ public interface CropFertilizationTableRepository extends JpaRepository<CropFert
     List<CropFertilizationTableModel> findAllByCreator(UserModel creator);
     List<CropFertilizationTableModel> findAllByCreator_Cargo(Cargo cargo);
     List<CropFertilizationTableModel> findAllByPublicTableTrue();
+    Optional<CropFertilizationTableModel> findByIdAndCreator(Long id, UserModel creator);
+    Optional<CropFertilizationTableModel> findByIdAndPublicTableTrue(Long id);
+    Optional<CropFertilizationTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CropFertilizationTableModel c WHERE c.crop_common_name = :nomeComum AND c.region = :regiao")
     boolean existsByCropCommonNameAndRegion(@Param("nomeComum") NomeComum nomeComum, @Param("regiao") Regiao regiao);

@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Cri
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import lombok.*;
 
@@ -41,10 +42,16 @@ public class RecommendationResponseDto {
     private FertilizerSourceOption origemAdubos;
     @JsonProperty("id_tabela_adubacao_cultura")
     private Long cropFertilizationTableId;
+    @JsonProperty("grupo_tabela_adubacao_cultura")
+    private TechnicalTableGroup cropFertilizationTableGroup;
     @JsonProperty("id_tabela_interpretacao_fertilidade_solo")
     private Long soilFertilityInterpretationCriteriaTableId;
+    @JsonProperty("grupo_tabela_interpretacao_fertilidade_solo")
+    private TechnicalTableGroup soilFertilityInterpretationCriteriaTableGroup;
     @JsonProperty("id_tabela_interpretacao_analise_foliar")
     private Long cropFoliarAnalysisInterpretationTableId;
+    @JsonProperty("grupo_tabela_interpretacao_analise_foliar")
+    private TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
     @JsonProperty("laudo_tecnico")
     private String technicalReport;
     @JsonProperty("imprimivel")

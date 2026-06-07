@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.table.CropFoliarAnalysisInterpretationTablePostRequestDto;
@@ -76,10 +77,19 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     @Transactional(readOnly = true)
     public List<CropFoliarAnalysisInterpretationTableResponseDto>
     getAllCropFoliarAnalysisInterpretationTablesByCreator(String username) {
+        return getAllCropFoliarAnalysisInterpretationTablesByCreator(username, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CropFoliarAnalysisInterpretationTableResponseDto>
+    getAllCropFoliarAnalysisInterpretationTablesByCreator(String username, TechnicalTableGroup group) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
 
-        List<CropFoliarAnalysisInterpretationTableModel> tables = isSupremeUser(owner)
+        List<CropFoliarAnalysisInterpretationTableModel> tables = group != null
+                ? findTablesByGroup(owner, group)
+                : isSupremeUser(owner)
                 ? tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
                 : mergeTables(
                         tableRepository.findAllByCreator(owner),
@@ -90,6 +100,14 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
         return tables.stream()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private List<CropFoliarAnalysisInterpretationTableModel> findTablesByGroup(UserModel owner, TechnicalTableGroup group) {
+        return switch (group) {
+            case PRIVADAS -> tableRepository.findAllByCreator(owner);
+            case PUBLICAS -> tableRepository.findAllByPublicTableTrue();
+            case PADRAO -> tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+        };
     }
 
     @Override

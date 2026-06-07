@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
@@ -31,6 +32,8 @@ public interface CropFertilizationTableController {
     );
 
     ResponseEntity<List<CropFertilizationTableResponseDto>> getCropFertilizationTables(
+            @Parameter(description = "Grupo da tabela: PRIVADAS, PUBLICAS ou PADRAO")
+            @RequestParam(name = "grupo", required = false) TechnicalTableGroup group,
             @Parameter(hidden = true) Authentication authentication
     );
 
