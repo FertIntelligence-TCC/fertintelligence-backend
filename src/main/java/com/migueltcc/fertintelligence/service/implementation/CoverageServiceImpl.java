@@ -44,17 +44,31 @@ public class CoverageServiceImpl implements CoverageService {
         checkReadPermission(range.getTable(), owner);
 
         List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
+        Integer requestedOrder = createRequestDto.getOrder();
+        CoverageModel existingCoverageForOrder = findCoverageByOrder(existingCoverages, requestedOrder);
+
+        if (existingCoverageForOrder != null) {
+            if (existingCoverageForOrder.getApplication() != null) {
+                throw new IllegalArgumentException("Já existe uma cobertura cadastrada para a ordem informada.");
+            }
+
+            validateCoverageOrders(existingCoverages);
+            existingCoverageForOrder.setApplication(createRequestDto.getApplication());
+            CoverageModel savedCoverage = coverageRepository.save(existingCoverageForOrder);
+            return savedCoverage.toDto();
+        }
+
         int expectedOrder = existingCoverages.size() + 1;
 
-        if (createRequestDto.getOrder() == null || createRequestDto.getOrder() != expectedOrder) {
+        if (requestedOrder == null || requestedOrder != expectedOrder) {
             throw new IllegalArgumentException("A ordem da cobertura deve ser sequencial e iniciar em 1.");
         }
 
-        List<CoverageModel> siblingPlaceholders = createSiblingPlaceholderCoverages(range, existingCoverages.size(), expectedOrder);
+        List<CoverageModel> siblingPlaceholders = createSiblingPlaceholderCoverages(range, existingCoverages.size(), requestedOrder);
 
         CoverageModel coverage = CoverageModel.builder()
                 .range(range)
-                .order(createRequestDto.getOrder())
+                .order(requestedOrder)
                 .application(createRequestDto.getApplication())
                 .build();
 
@@ -146,8 +160,7 @@ public class CoverageServiceImpl implements CoverageService {
             }
         }
 
-        List<CoverageModel> siblingCoveragesToDelete = collectSiblingCoveragesForDeletion(range,
-                existingCoverages.size());
+        List<CoverageModel> siblingCoveragesToDelete = collectSiblingCoveragesForDeletion(range, coverage.getOrder());
 
         coverageRepository.delete(coverage);
 
@@ -156,9 +169,20 @@ public class CoverageServiceImpl implements CoverageService {
         }
     }
 
+    private CoverageModel findCoverageByOrder(List<CoverageModel> coverages, Integer order) {
+        if (order == null) {
+            return null;
+        }
+
+        return coverages.stream()
+                .filter(coverage -> Objects.equals(coverage.getOrder(), order))
+                .findFirst()
+                .orElse(null);
+    }
+
     private void validateCoverageOrders(List<CoverageModel> coverages) {
         List<CoverageModel> sortedCoverages = coverages.stream()
-                .sorted(Comparator.comparing(CoverageModel::getOrder))
+                .sorted(Comparator.comparing(CoverageModel::getOrder, Comparator.nullsFirst(Integer::compareTo)))
                 .collect(Collectors.toList());
 
         for (int i = 0; i < sortedCoverages.size(); i++) {
@@ -217,6 +241,13 @@ public class CoverageServiceImpl implements CoverageService {
             }
 
             List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
+            validateCoverageOrders(siblingCoverages);
+
+            CoverageModel siblingCoverageForOrder = findCoverageByOrder(siblingCoverages, newOrder);
+            if (siblingCoverageForOrder != null) {
+                continue;
+            }
+
             if (siblingCoverages.size() != currentCoverageCount) {
                 throw new IllegalStateException(
                         "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
@@ -232,7 +263,11 @@ public class CoverageServiceImpl implements CoverageService {
         return placeholders;
     }
 
-    private List<CoverageModel> collectSiblingCoveragesForDeletion(ContentRangeModel range, int currentCoverageCount) {
+    private List<CoverageModel> collectSiblingCoveragesForDeletion(ContentRangeModel range, Integer deletedOrder) {
+        if (deletedOrder == null) {
+            throw new IllegalArgumentException("A ordem das coberturas deve ser positiva.");
+        }
+
         List<ContentRangeModel> siblingRanges = contentRangeRepository
                 .findAllByTableAndNutrientOrderByOrderAsc(range.getTable(), range.getNutrient());
 
@@ -244,14 +279,24 @@ public class CoverageServiceImpl implements CoverageService {
             }
 
             List<CoverageModel> siblingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(sibling);
-            if (siblingCoverages.size() != currentCoverageCount) {
+            validateCoverageOrders(siblingCoverages);
+
+            CoverageModel siblingCoverageForOrder = findCoverageByOrder(siblingCoverages, deletedOrder);
+            if (siblingCoverageForOrder == null) {
+                if (siblingCoverages.size() == deletedOrder - 1) {
+                    continue;
+                }
+
                 throw new IllegalStateException(
                         "Todos os intervalos do nutriente devem possuir a mesma quantidade de coberturas cadastradas.");
             }
 
-            if (currentCoverageCount > 0) {
-                coveragesToDelete.add(siblingCoverages.get(currentCoverageCount - 1));
+            CoverageModel lastCoverage = siblingCoverages.get(siblingCoverages.size() - 1);
+            if (!Objects.equals(lastCoverage.getId(), siblingCoverageForOrder.getId())) {
+                throw new IllegalArgumentException("Somente a última cobertura cadastrada pode ser removida.");
             }
+
+            coveragesToDelete.add(siblingCoverageForOrder);
         }
 
         return coveragesToDelete;

@@ -227,6 +227,46 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void createCoverageUpdatesExistingPlaceholderForSameOrder() throws Exception {
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 35.0);
+
+        CoverageModel placeholder = coverageOne.toBuilder()
+                .application(null)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(placeholder));
+        when(coverageRepository.save(any(CoverageModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", ownerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(coverageOne.getId()))
+                .andExpect(jsonPath("$.ordem_cobertura").value(1))
+                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(35.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCoverageFails_WhenCoverageForSameOrderAlreadyHasApplication() throws Exception {
+        CoverageCreateRequestDto requestDto = createCoverageRequest(1, 35.0);
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(contentRangeRepository.findById(ownerRange.getId())).thenReturn(Optional.of(ownerRange));
+        when(coverageRepository.findAllByRangeOrderByOrderAsc(ownerRange)).thenReturn(List.of(coverageOne));
+
+        mockMvc.perform(post("/coverage/register")
+                        .param("contentRangeId", ownerRange.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void createCoverageFails_WhenOrderNotSequential() throws Exception {
         CoverageCreateRequestDto requestDto = createCoverageRequest(2, 25.0);
 
