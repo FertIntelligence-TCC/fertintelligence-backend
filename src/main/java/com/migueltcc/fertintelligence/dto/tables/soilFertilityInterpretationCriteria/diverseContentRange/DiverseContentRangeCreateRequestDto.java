@@ -141,74 +141,106 @@ public class DiverseContentRangeCreateRequestDto {
 
     // --- ALUMÍNIO ---
     @JsonProperty("menor_teor_aluminio")
+    @JsonAlias("menor_teor_al_trocavel")
     private Double aluminum_too_low;
     @JsonProperty("teor_inicial_baixo_aluminio")
+    @JsonAlias("teor_inicial_baixo_al_trocavel")
     private Double aluminum_low_i;
     @JsonProperty("teor_final_baixo_aluminio")
+    @JsonAlias("teor_final_baixo_al_trocavel")
     private Double aluminum_low_f;
     @JsonProperty("teor_inicial_medio_aluminio")
+    @JsonAlias("teor_inicial_medio_al_trocavel")
     private Double aluminum_medium_i;
     @JsonProperty("teor_final_medio_aluminio")
+    @JsonAlias("teor_final_medio_al_trocavel")
     private Double aluminum_medium_f;
     @JsonProperty("teor_inicial_alto_aluminio")
+    @JsonAlias("teor_inicial_alto_al_trocavel")
     private Double aluminum_hight_i;
     @JsonProperty("teor_final_alto_aluminio")
+    @JsonAlias("teor_final_alto_al_trocavel")
     private Double aluminum_hight_f;
     @JsonProperty("maior_teor_aluminio")
+    @JsonAlias("maior_teor_al_trocavel")
     private Double aluminum_too_hight;
 
     // --- ACIDEZ POTENCIAL ---
     @JsonProperty("menor_teor_acidez_potencial")
+    @JsonAlias({"menor_teor_h_al", "menor_teor_h_mais_al"})
     private Double potential_acidity_too_low;
     @JsonProperty("teor_inicial_baixo_acidez_potencial")
+    @JsonAlias({"teor_inicial_baixo_h_al", "teor_inicial_baixo_h_mais_al"})
     private Double potential_acidity_low_i;
     @JsonProperty("teor_final_baixo_acidez_potencial")
+    @JsonAlias({"teor_final_baixo_h_al", "teor_final_baixo_h_mais_al"})
     private Double potential_acidity_low_f;
     @JsonProperty("teor_inicial_medio_acidez_potencial")
+    @JsonAlias({"teor_inicial_medio_h_al", "teor_inicial_medio_h_mais_al"})
     private Double potential_acidity_medium_i;
     @JsonProperty("teor_final_medio_acidez_potencial")
+    @JsonAlias({"teor_final_medio_h_al", "teor_final_medio_h_mais_al"})
     private Double potential_acidity_medium_f;
     @JsonProperty("teor_inicial_alto_acidez_potencial")
+    @JsonAlias({"teor_inicial_alto_h_al", "teor_inicial_alto_h_mais_al"})
     private Double potential_acidity_hight_i;
     @JsonProperty("teor_final_alto_acidez_potencial")
+    @JsonAlias({"teor_final_alto_h_al", "teor_final_alto_h_mais_al"})
     private Double potential_acidity_hight_f;
     @JsonProperty("maior_teor_acidez_potencial")
+    @JsonAlias({"maior_teor_h_al", "maior_teor_h_mais_al"})
     private Double potential_acidity_too_hight;
 
     // --- CTC EFETIVA ---
     @JsonProperty("menor_teor_ctc_efetiva")
+    @JsonAlias({"menor_teor_ctc_t", "menor_teor_ctc_efetiva_t"})
     private Double effective_cec_too_low;
     @JsonProperty("teor_inicial_baixo_ctc_efetiva")
+    @JsonAlias({"teor_inicial_baixo_ctc_t", "teor_inicial_baixo_ctc_efetiva_t"})
     private Double effective_cec_low_i;
     @JsonProperty("teor_final_baixo_ctc_efetiva")
+    @JsonAlias({"teor_final_baixo_ctc_t", "teor_final_baixo_ctc_efetiva_t"})
     private Double effective_cec_low_f;
     @JsonProperty("teor_inicial_medio_ctc_efetiva")
+    @JsonAlias({"teor_inicial_medio_ctc_t", "teor_inicial_medio_ctc_efetiva_t"})
     private Double effective_cec_medium_i;
     @JsonProperty("teor_final_medio_ctc_efetiva")
+    @JsonAlias({"teor_final_medio_ctc_t", "teor_final_medio_ctc_efetiva_t"})
     private Double effective_cec_medium_f;
     @JsonProperty("teor_inicial_alto_ctc_efetiva")
+    @JsonAlias({"teor_inicial_alto_ctc_t", "teor_inicial_alto_ctc_efetiva_t"})
     private Double effective_cec_hight_i;
     @JsonProperty("teor_final_alto_ctc_efetiva")
+    @JsonAlias({"teor_final_alto_ctc_t", "teor_final_alto_ctc_efetiva_t"})
     private Double effective_cec_hight_f;
     @JsonProperty("maior_teor_ctc_efetiva")
+    @JsonAlias({"maior_teor_ctc_t", "maior_teor_ctc_efetiva_t"})
     private Double effective_cec_too_hight;
 
     // --- CTC pH 7,0 ---
     @JsonProperty("menor_teor_ctc_ph_7")
+    @JsonAlias({"menor_teor_ctc_T", "menor_teor_ctc_total", "menor_teor_ctc_t_ph7"})
     private Double ph7_cec_too_low;
     @JsonProperty("teor_inicial_baixo_ctc_ph_7")
+    @JsonAlias({"teor_inicial_baixo_ctc_T", "teor_inicial_baixo_ctc_total", "teor_inicial_baixo_ctc_t_ph7"})
     private Double ph7_cec_low_i;
     @JsonProperty("teor_final_baixo_ctc_ph_7")
+    @JsonAlias({"teor_final_baixo_ctc_T", "teor_final_baixo_ctc_total", "teor_final_baixo_ctc_t_ph7"})
     private Double ph7_cec_low_f;
     @JsonProperty("teor_inicial_medio_ctc_ph_7")
+    @JsonAlias({"teor_inicial_medio_ctc_T", "teor_inicial_medio_ctc_total", "teor_inicial_medio_ctc_t_ph7"})
     private Double ph7_cec_medium_i;
     @JsonProperty("teor_final_medio_ctc_ph_7")
+    @JsonAlias({"teor_final_medio_ctc_T", "teor_final_medio_ctc_total", "teor_final_medio_ctc_t_ph7"})
     private Double ph7_cec_medium_f;
     @JsonProperty("teor_inicial_alto_ctc_ph_7")
+    @JsonAlias({"teor_inicial_alto_ctc_T", "teor_inicial_alto_ctc_total", "teor_inicial_alto_ctc_t_ph7"})
     private Double ph7_cec_hight_i;
     @JsonProperty("teor_final_alto_ctc_ph_7")
+    @JsonAlias({"teor_final_alto_ctc_T", "teor_final_alto_ctc_total", "teor_final_alto_ctc_t_ph7"})
     private Double ph7_cec_hight_f;
     @JsonProperty("maior_teor_ctc_ph_7")
+    @JsonAlias({"maior_teor_ctc_T", "maior_teor_ctc_total", "maior_teor_ctc_t_ph7"})
     private Double ph7_cec_too_hight;
 
     // --- SATURAÇÃO POR ALUMÍNIO ---
@@ -293,20 +325,28 @@ public class DiverseContentRangeCreateRequestDto {
 
     // --- pH EM CaCl2 0,01 mol/L ---
     @JsonProperty("menor_valor_ph_cacl2")
+    @JsonAlias("menor_valor_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_too_low;
     @JsonProperty("valor_inicial_baixo_ph_cacl2")
+    @JsonAlias("valor_inicial_baixo_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_low_i;
     @JsonProperty("valor_final_baixo_ph_cacl2")
+    @JsonAlias("valor_final_baixo_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_low_f;
     @JsonProperty("valor_inicial_medio_ph_cacl2")
+    @JsonAlias("valor_inicial_medio_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_medium_i;
     @JsonProperty("valor_final_medio_ph_cacl2")
+    @JsonAlias("valor_final_medio_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_medium_f;
     @JsonProperty("valor_inicial_alto_ph_cacl2")
+    @JsonAlias("valor_inicial_alto_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_hight_i;
     @JsonProperty("valor_final_alto_ph_cacl2")
+    @JsonAlias("valor_final_alto_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_hight_f;
     @JsonProperty("maior_valor_ph_cacl2")
+    @JsonAlias("maior_valor_ph_cacl2_0_01_mol_l")
     private Double ph_cacl2_too_hight;
 
     // --- BORO ---
