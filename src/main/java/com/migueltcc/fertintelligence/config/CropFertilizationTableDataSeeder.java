@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,7 +39,7 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         log.info("🌾 Iniciando o Seeding Detalhado de Tabelas de Adubação...");
 
-        Optional<UserModel> creatorOpt = userRepository.findByEmail("admin@fertintelligence.com");
+        Optional<UserModel> creatorOpt = userRepository.findAll().stream().filter(u -> u.getCargo() == Cargo.USUARIO_SUPREMO).findFirst();
 
         if (creatorOpt.isEmpty()) {
             log.error("❌ Erro Crítico: Usuário 'admin@fertintelligence.com' não encontrado.");
@@ -63,7 +64,7 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
     }
 
     private void createScenario(UserModel creator, NomeComum nome, Regiao regiao, NomeCientifico cientifico, String cultivar) {
-        if (tableRepository.existsByCropCommonNameAndRegion(nome, regiao)) {
+        if (tableRepository.findAllByCreator(creator).stream().anyMatch(t -> t.getCrop_common_name() == nome && t.getRegion() == regiao)) {
             log.info("Tabela de {} ({}) já existe. Pulando.", nome, regiao);
             return;
         }
