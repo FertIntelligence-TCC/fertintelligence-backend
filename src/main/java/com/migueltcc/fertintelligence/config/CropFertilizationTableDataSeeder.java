@@ -50,6 +50,7 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
 
         // 10 Cenários distintos
         createScenario(creator, NomeComum.MILHO, Regiao.NORDESTE, NomeCientifico.Zea_mays, "BRS Caatingueiro");
+        createScenario(creator, NomeComum.SOJA, Regiao.CENTRO_OESTE, NomeCientifico.Glycine_max, "BMX Potência");
         createScenario(creator, NomeComum.FEIJAO_COMUM, Regiao.NORDESTE, NomeCientifico.Phaseolus_vulgaris, "Carioca");
         createScenario(creator, NomeComum.SOJA, Regiao.SUL, NomeCientifico.Glycine_max, "BMX Potência");
         createScenario(creator, NomeComum.ALGODAO, Regiao.CENTRO_OESTE, NomeCientifico.Gossypium_hirsutum, "FM 975 WS");
