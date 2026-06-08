@@ -19,6 +19,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 
 import java.util.Optional;
 
@@ -71,6 +72,12 @@ public class CropFoliarInterpretationTableSeeder implements CommandLineRunner {
         seededTables += seedSpecTable(miguelOptional.orElse(null), "Interpretação Foliar Milho Privada Miguel", NomeComum.MILHO, false, Regiao.SUL);
         seededTables += seedSpecTable(gilvanOptional.orElse(null), "Interpretação Foliar Soja Privada Gilvan", NomeComum.SOJA, false, Regiao.NORDESTE);
         seededTables += seedSpecTable(mateusOptional.orElse(null), "Interpretação Foliar Consultoria Mateus", NomeComum.MILHO, false, Regiao.CENTRO_OESTE);
+
+        Optional<UserModel> supremeUserOpt = userRepository.findAll().stream().filter(u -> u.getCargo() == Cargo.USUARIO_SUPREMO).findFirst();
+        if (supremeUserOpt.isPresent()) {
+            seededTables += seedSpecTable(supremeUserOpt.get(), "Interpretação Foliar Milho Padrão", NomeComum.MILHO, true, Regiao.NORDESTE);
+            seededTables += seedSpecTable(supremeUserOpt.get(), "Interpretação Foliar Soja Padrão", NomeComum.SOJA, true, Regiao.CENTRO_OESTE);
+        }
 
         if (seededTables == 0
                 && adminOptional.isEmpty()
