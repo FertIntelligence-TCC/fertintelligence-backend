@@ -197,7 +197,7 @@ public class RecommendationTestScenarioSeeder implements CommandLineRunner {
     }
 
     private Optional<PropertyModel> findAccessibleProperty(UserModel user) {
-        if (user.getCargo() == Cargo.PROPRIETARIO) {
+        if (user.getCargo() == Cargo.PROPRIETARIO || user.getCargo() == Cargo.USUARIO_SUPREMO) {
             return propertyRepository.findAll().stream()
                     .sorted(Comparator.comparing(PropertyModel::getId))
                     .filter(property -> !plotRepository.findAllByProperty(property).isEmpty())
