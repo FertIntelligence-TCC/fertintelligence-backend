@@ -152,7 +152,7 @@ public class PropertyServiceImpl implements PropertyService {
 
         UserModel user = findUserByUsernameOrThrow(username);
 
-        if (user.getCargo() == Cargo.PROPRIETARIO) {
+        if (user.getCargo() == Cargo.PROPRIETARIO || user.getCargo() == Cargo.USUARIO_SUPREMO) {
             return propertyRepository.findAllByOwner(user)
                     .stream()
                     .map(PropertyModel::toDto)
