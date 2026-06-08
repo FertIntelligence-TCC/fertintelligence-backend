@@ -16,6 +16,10 @@ import java.util.Optional;
 @Repository
 public interface CropFertilizationTableRepository extends JpaRepository<CropFertilizationTableModel, Long> {
 
+    List<CropFertilizationTableModel> findAllByCreator_CargoAndPublicTableTrue(Cargo cargo);
+
+    Optional<CropFertilizationTableModel> findByIdAndCreator_CargoAndPublicTableTrue(Long id, Cargo cargo);
+
     List<CropFertilizationTableModel> findAllByCreator(UserModel creator);
     List<CropFertilizationTableModel> findAllByCreatorAndCreator_CargoNot(UserModel creator, Cargo cargo);
     List<CropFertilizationTableModel> findAllByCreator_Cargo(Cargo cargo);
