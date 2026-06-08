@@ -7,6 +7,7 @@ import com.migueltcc.fertintelligence.repository.SoilFertilityInterpretationCrit
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -109,6 +110,11 @@ public class SoilFertilityInterpretationTableSeeder implements CommandLineRunner
                     Regiao.CENTRO_OESTE,
                     "Dados criados automaticamente para validação do módulo Recommendation."
             );
+        }
+
+        Optional<UserModel> supremeUserOpt = userRepository.findAll().stream().filter(u -> u.getCargo() == Cargo.USUARIO_SUPREMO).findFirst();
+        if (supremeUserOpt.isPresent()) {
+            createdCount += createIfNotExists(supremeUserOpt.get(), "Tabela Fertilidade Solo Suprema", true, Regiao.NORDESTE, "Tabela padrão do sistema criada pelo usuário supremo.");
         }
 
         if (createdCount == 0
