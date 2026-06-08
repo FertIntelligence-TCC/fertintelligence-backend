@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.config;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.Formulate;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -43,12 +44,15 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         log.info("🧪 Iniciando o seeding de fertilizantes fictícios...");
 
-        Optional<UserModel> creatorOpt = userRepository.findByEmail("admin@fertintelligence.com");
+        Optional<UserModel> creatorOpt = userRepository.findAll().stream()
+                .filter(u -> u.getCargo() == Cargo.USUARIO_SUPREMO)
+                .findFirst();
         if (creatorOpt.isEmpty()) {
-            log.warn("⚠️ Usuário admin@fertintelligence.com não encontrado. Seeder de fertilizantes será encerrado.");
+            log.warn("⚠️ Usuário com cargo USUARIO_SUPREMO não encontrado. Seeder de fertilizantes será encerrado.");
             return;
         }
         UserModel creator = creatorOpt.get();
+        log.info("✅ Usuário supremo encontrado: {} (email: {})", creator.getUsername(), creator.getEmail());
 
         loadSimpleMineral(creator);
         loadFormulatedMineral(creator);
