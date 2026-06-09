@@ -81,7 +81,7 @@ public class PropertyServiceImpl implements PropertyService {
     public List<PropertyResponseDto> getAllPropertiesByOwner(String username) {
 
         UserModel owner = findUserByUsernameOrThrow(username);
-        checkUserIsProprietario(owner);
+        checkUserIsProprietarioOrSupreme(owner);
 
         return propertyRepository.findAllByOwner(owner)
                 .stream()
@@ -285,6 +285,16 @@ public class PropertyServiceImpl implements PropertyService {
         return propertyRepository.findById(propertyId)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Propriedade não encontrada com o ID: " + propertyId));
+    }
+
+    private void checkUserIsProprietarioOrSupreme(UserModel user) {
+        if (user.getCargo() == Cargo.PROPRIETARIO || user.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return;
+        }
+
+        throw new AccessDeniedException(
+                "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' ou 'USUARIO_SUPREMO' podem gerenciar propriedades."
+        );
     }
 
     private void checkUserIsProprietario(UserModel user) {
