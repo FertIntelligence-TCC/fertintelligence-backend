@@ -249,6 +249,7 @@ public class PlotServiceImpl implements PlotService {
      */
     private void checkPermission(PropertyModel property, PlotModel plot, UserModel requestingUser, boolean requireEdit) {
         if (requestingUser.getCargo() != Cargo.PROPRIETARIO
+                && requestingUser.getCargo() != Cargo.USUARIO_SUPREMO
                 && requestingUser.getCargo() != Cargo.GERENTE
                 && requestingUser.getCargo() != Cargo.AGRONOMO_RESIDENTE
                 && requestingUser.getCargo() != Cargo.AGRONOMO_CONSULTOR
@@ -256,6 +257,10 @@ public class PlotServiceImpl implements PlotService {
                 && requestingUser.getCargo() != Cargo.SUPERVISOR_DE_AREA
         ) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
+        }
+
+        if (requestingUser.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return;
         }
 
         // dono
