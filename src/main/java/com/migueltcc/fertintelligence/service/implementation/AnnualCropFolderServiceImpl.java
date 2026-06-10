@@ -5,7 +5,6 @@ import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderPostR
 import com.migueltcc.fertintelligence.dto.annualCropFolder.AnnualCropFolderResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
@@ -19,7 +18,6 @@ import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,16 +80,7 @@ public class AnnualCropFolderServiceImpl implements AnnualCropFolderService {
 
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(annualCropFolderId);
 
-        PropertyModel property = folder.getPlot().getProperty();
-
-        if (!property.getOwner().getId().equals(user.getId())) {
-
-            // Se você tiver um PermissionManager, a chamada seria algo como:
-            // permissionManager.assertCanReadPlot(property, folder.getPlot(), user);
-
-            // Se não tiver um PermissionManager ainda, lance a exceção manualmente:
-            throw new AccessDeniedException("Você não tem permissão para acessar recursos desta propriedade.");
-        }
+        permissionManager.assertCanReadPlot(folder.getPlot(), user);
 
         return folder.toDto();
     }
