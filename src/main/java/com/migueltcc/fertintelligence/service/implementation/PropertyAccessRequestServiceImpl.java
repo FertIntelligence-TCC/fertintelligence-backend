@@ -240,6 +240,10 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
 
     // Substitua os métodos checkOwnerPermission e checkUserIsProprietario por este novo:
     private void checkManagementPermission(PropertyModel property, UserModel requestingUser) {
+        if (requestingUser.getCargo() == Cargo.USUARIO_SUPREMO) {
+            return;
+        }
+
         boolean isOwner = property.getOwner().getId().equals(requestingUser.getId());
         boolean isManager = property.getManager() != null && property.getManager().getId().equals(requestingUser.getId());
 

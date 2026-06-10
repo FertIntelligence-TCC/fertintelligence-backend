@@ -55,12 +55,12 @@ public class PermissionManager {
     public boolean canManageProperty(Long propertyId, String username) {
         UserModel user = findUser(username);
         PropertyModel property = findProperty(propertyId);
-        return isOwner(user, property) || isManager(user, property);
+        return isSupreme(user) || isOwner(user, property) || isManager(user, property);
     }
 
     @Transactional(readOnly = true)
     public void assertCanManageProperty(PropertyModel property, UserModel user) {
-        if (!(isOwner(user, property) || isManager(user, property))) {
+        if (!(isSupreme(user) || isOwner(user, property) || isManager(user, property))) {
             throw new AccessDeniedException("Você não tem permissão para gerenciar esta propriedade.");
         }
     }
@@ -89,7 +89,7 @@ public class PermissionManager {
         PropertyModel property = plot.getProperty();
 
         // owner/manager: leitura total
-        if (isOwner(user, property) || isManager(user, property)) return true;
+        if (isSupreme(user) || isOwner(user, property) || isManager(user, property)) return true;
 
         // demais: precisa ter entrada aprovada na propriedade
         return hasApprovedPropertyMembership(user, property);
@@ -105,7 +105,7 @@ public class PermissionManager {
             throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
         }
 
-        if (isOwner(user, property) || isManager(user, property)) return;
+        if (isSupreme(user) || isOwner(user, property) || isManager(user, property)) return;
         if (!hasApprovedPropertyMembership(user, property)) {
             throw new AccessDeniedException("Você não tem permissão para gerar recomendações neste talhão.");
         }
@@ -209,7 +209,7 @@ public class PermissionManager {
         if (property == null || user == null) return false;
 
         // 1) Owner/Manager fazem tudo
-        if (isOwner(user, property) || isManager(user, property)) return true;
+        if (isSupreme(user) || isOwner(user, property) || isManager(user, property)) return true;
 
         // 2) Precisa ter entrada aprovada na propriedade
         if (!hasApprovedPropertyMembership(user, property)) return false;
@@ -259,6 +259,10 @@ public class PermissionManager {
         return propertyAccessRequestRepository
                 .findByPropertyAndRequesterAndStatus(property, user, AccessRequestStatus.APPROVED)
                 .isPresent();
+    }
+
+    private boolean isSupreme(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
     private boolean isOwner(UserModel user, PropertyModel property) {
