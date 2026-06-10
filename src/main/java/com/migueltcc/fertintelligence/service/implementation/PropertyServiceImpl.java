@@ -298,9 +298,10 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void checkUserIsProprietario(UserModel user) {
-        if (user.getCargo() != Cargo.PROPRIETARIO) {
+        if (user.getCargo() != Cargo.PROPRIETARIO
+                && user.getCargo() != Cargo.USUARIO_SUPREMO) {
             throw new AccessDeniedException(
-                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' podem gerenciar propriedades."
+                    "Acesso negado. Apenas usuários com o cargo 'PROPRIETARIO' ou 'USUARIO_SUPREMO' podem gerenciar propriedades."
             );
         }
     }
