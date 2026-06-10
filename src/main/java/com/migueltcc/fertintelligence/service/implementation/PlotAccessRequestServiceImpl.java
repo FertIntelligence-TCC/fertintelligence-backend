@@ -187,9 +187,6 @@ public class PlotAccessRequestServiceImpl implements PlotAccessRequestService {
     }
 
     private void checkManagerPermission(PropertyModel property, UserModel manager) {
-        if (manager.getCargo() == Cargo.USUARIO_SUPREMO) {
-            return;
-        }
 
         if (property.getManager() == null || !property.getManager().getId().equals(manager.getId())) {
             throw new AccessDeniedException("Apenas o gerente da propriedade pode gerenciar essas solicitações.");

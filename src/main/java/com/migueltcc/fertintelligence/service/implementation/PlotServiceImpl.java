@@ -259,10 +259,6 @@ public class PlotServiceImpl implements PlotService {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
 
-        if (requestingUser.getCargo() == Cargo.USUARIO_SUPREMO) {
-            return;
-        }
-
         // dono
         if (property.getOwner() != null
                 && property.getOwner().getUsername() != null
