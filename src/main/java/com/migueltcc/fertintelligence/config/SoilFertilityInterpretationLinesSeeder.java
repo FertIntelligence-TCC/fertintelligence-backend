@@ -129,8 +129,17 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
             return;
         }
 
-        KExchangeableContentModel model = KExchangeableContentModel.builder().table(table).build();
-        applyRangePattern(model, 0.0, 30.0, 60.0, 90.0, 999.0);
+        KExchangeableContentModel model = KExchangeableContentModel.builder()
+                .table(table)
+                .kContentTooLow(0.0)
+                .kContentLowI(0.0)
+                .kContentLowF(30.0)
+                .kContentMediumI(30.0)
+                .kContentMediumF(60.0)
+                .kContentHighI(60.0)
+                .kContentHighF(90.0)
+                .kContentTooHigh(90.0)
+                .build();
         kExchangeableContentRepository.save(model);
         log.info("✅ Linha K criada: tabela={} faixa={}-{}", table.getId(), 0.0, 90.0);
     }
