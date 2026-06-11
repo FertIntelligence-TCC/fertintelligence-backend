@@ -91,6 +91,10 @@ public class PhysicalAnalysisExtractModel {
     @Column(name = "PERC_AGREGADOS_MENOR_1_0MM", nullable = true)
     double percAgregadosMenor1_0mm;
 
+    // Diâmetro Médio Ponderado dos agregados (mm)
+    @Column(name = "DMP", nullable = true)
+    double dmp;
+
     @PrePersist
     @PreUpdate
     public void recalculateComputedFields() {
@@ -98,6 +102,14 @@ public class PhysicalAnalysisExtractModel {
                 ? ((densidadeReal - densidadeAparente) / densidadeReal) * 100.0
                 : 0.0;
         this.aguaDisponivel = umidadeCapacidadeCampo - umidadePontoMurchaPermanente;
+
+        this.dmp =
+                ((percAgregados6_0mm * 6.0)
+                        + (percAgregados4_1a6_0mm * 5.05)
+                        + (percAgregados2_1a4_0mm * 3.05)
+                        + (percAgregados1_0a2_0mm * 1.5)
+                        + (percAgregadosMenor1_0mm * 0.5))
+                        / 100.0;
     }
 
     public PhysicalAnalysisExtractResponseDto toDto() {
@@ -147,6 +159,7 @@ public class PhysicalAnalysisExtractModel {
                 .percAgregados2_1a4_0mm(this.percAgregados2_1a4_0mm)
                 .percAgregados1_0a2_0mm(this.percAgregados1_0a2_0mm)
                 .percAgregadosMenor1_0mm(this.percAgregadosMenor1_0mm)
+                .dmp(this.dmp)
                 .build();
     }
 

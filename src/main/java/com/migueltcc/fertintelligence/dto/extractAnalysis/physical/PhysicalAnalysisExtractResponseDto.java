@@ -105,4 +105,8 @@ public class PhysicalAnalysisExtractResponseDto {
     @Schema(example = "50.0")
     @JsonProperty("perc_agregados_menor_1_0mm")
     Double percAgregadosMenor1_0mm;
+
+    @Schema(example = "2.34")
+    @JsonProperty("dmp")
+    Double dmp;
 }
