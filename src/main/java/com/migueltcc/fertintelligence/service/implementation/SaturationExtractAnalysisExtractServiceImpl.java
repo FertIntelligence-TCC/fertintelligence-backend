@@ -78,6 +78,8 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 .pst(dto.getPst())
                 .build();
 
+        recalculateSaturationIndicators(model);
+
         return saturationRepo.save(model).toDto();
     }
 
@@ -197,6 +199,8 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         applyIfNotNull(dto.getRas(), model::setRas);
         applyIfNotNull(dto.getPst(), model::setPst);
 
+        recalculateSaturationIndicators(model);
+
         return saturationRepo.save(model).toDto();
     }
 
@@ -224,6 +228,37 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
 
     private static <T> void applyIfNotNull(T value, Consumer<T> setter) {
         if (value != null) setter.accept(value);
+    }
+
+    private void recalculateSaturationIndicators(SaturationExtractAnalysisExtractModel model) {
+        Double dureza = calculateHardness(model.getTeorCa(), model.getTeorMg());
+        model.setDurezaCaCO3(dureza);
+        model.setDurezaTotalCaCO3(dureza);
+        model.setRas(calculateRas(model.getTeorNa(), model.getTeorCa(), model.getTeorMg()));
+    }
+
+    private Double calculateHardness(Double calciumMgL, Double magnesiumMgL) {
+        if (calciumMgL == null && magnesiumMgL == null) {
+            return null;
+        }
+        return 2.247 * zeroIfNull(calciumMgL) + 4.118 * zeroIfNull(magnesiumMgL);
+    }
+
+    private Double calculateRas(Double sodiumMgL, Double calciumMgL, Double magnesiumMgL) {
+        if (sodiumMgL == null || calciumMgL == null || magnesiumMgL == null) {
+            return null;
+        }
+
+        double denominatorBase = ((calciumMgL / 20.0) + (magnesiumMgL / 12.0)) / 2.0;
+        if (denominatorBase <= 0.0) {
+            return null;
+        }
+
+        return (sodiumMgL / 23.0) / Math.sqrt(denominatorBase);
+    }
+
+    private double zeroIfNull(Double value) {
+        return value != null ? value : 0.0;
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {

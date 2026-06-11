@@ -203,6 +203,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         analysisExtract.setCtcPh7(ctcPh7);
         analysisExtract.setSaturacaoBasesV(percentage(somaBases, ctcPh7));
         analysisExtract.setSaturacaoAluminioM(percentage(aluminio, ctcEfetiva));
+        analysisExtract.setPst(percentage(zeroIfNull(analysisExtract.getSodio()), ctcPh7));
     }
 
     private Double percentage(double numerator, double denominator) {

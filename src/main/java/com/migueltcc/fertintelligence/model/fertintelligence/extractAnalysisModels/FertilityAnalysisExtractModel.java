@@ -80,6 +80,10 @@ public class FertilityAnalysisExtractModel {
     @Column(name = "SATURACAO_ALUMINIO_M", nullable = true)
     Double saturacaoAluminioM;
 
+    // Percentagem de sódio trocável (PST), %
+    @Column(name = "PST", nullable = true)
+    Double pst;
+
     // P disponível (Extrator Mehlich-1), mg/dm3
     @Column(name = "FOSFORO_MEHLICH1", nullable = true)
     Double fosforoMehlich1;
@@ -164,6 +168,7 @@ public class FertilityAnalysisExtractModel {
                 .ctcPh7(this.ctcPh7)
                 .saturacaoBasesV(this.saturacaoBasesV)
                 .saturacaoAluminioM(this.saturacaoAluminioM)
+                .pst(this.pst)
                 .fosforoMehlich1(this.fosforoMehlich1)
                 .fosforoResina(this.fosforoResina)
                 .enxofre(this.enxofre)

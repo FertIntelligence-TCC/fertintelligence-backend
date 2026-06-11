@@ -51,6 +51,9 @@ public class FertilityAnalysisExtractPostRequestDto {
     @JsonProperty("nova_saturacao_aluminio_m")
     Double saturacaoAluminioM;
 
+    @JsonProperty("novo_pst")
+    Double pst;
+
     @JsonProperty("novo_fosforo_mehlich1")
     Double fosforoMehlich1;
 
