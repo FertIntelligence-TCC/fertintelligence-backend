@@ -102,11 +102,19 @@ public class PhysicalAnalysisExtractResponseDto {
     @JsonProperty("perc_agregados_1_0_a_2_0mm")
     Double percAgregados1_0a2_0mm;
 
-    @Schema(example = "50.0")
-    @JsonProperty("perc_agregados_menor_1_0mm")
-    Double percAgregadosMenor1_0mm;
+    @Schema(example = "12.0")
+    @JsonProperty("perc_agregados_0_5_a_1_0mm")
+    Double percAgregados0_5a1_0mm;
+
+    @Schema(example = "8.0")
+    @JsonProperty("perc_agregados_0_25_a_0_5mm")
+    Double percAgregados0_25a0_5mm;
+
+    @Schema(example = "30.0")
+    @JsonProperty("perc_agregados_menor_0_25mm")
+    Double percAgregadosMenor0_25mm;
 
     @Schema(example = "2.34")
-    @JsonProperty("dmp")
-    Double dmp;
+    @JsonProperty("dm_agregados")
+    Double dmAgregados;
 }

@@ -57,6 +57,12 @@ public class PhysicalAnalysisExtractCreateRequestDto {
     @JsonProperty("perc_agregados_1_0_a_2_0mm")
     Double percAgregados1_0a2_0mm;
 
-    @JsonProperty("perc_agregados_menor_1_0mm")
-    Double percAgregadosMenor1_0mm;
+    @JsonProperty("perc_agregados_0_5_a_1_0mm")
+    Double percAgregados0_5a1_0mm;
+
+    @JsonProperty("perc_agregados_0_25_a_0_5mm")
+    Double percAgregados0_25a0_5mm;
+
+    @JsonProperty("perc_agregados_menor_0_25mm")
+    Double percAgregadosMenor0_25mm;
 }

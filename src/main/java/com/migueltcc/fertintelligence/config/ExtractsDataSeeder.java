@@ -157,7 +157,9 @@ public class ExtractsDataSeeder implements CommandLineRunner {
                 .percAgregados4_1a6_0mm(12.0 + (index % 4) * 2.0)
                 .percAgregados2_1a4_0mm(15.0 + (index % 4) * 2.0)
                 .percAgregados1_0a2_0mm(18.0 + (index % 4) * 2.0)
-                .percAgregadosMenor1_0mm(45.0 - (index % 5) * 3.0)
+                .percAgregados0_5a1_0mm(20.0 - (index % 5) * 1.0)
+                .percAgregados0_25a0_5mm(15.0 - (index % 5) * 1.0)
+                .percAgregadosMenor0_25mm(10.0 - (index % 5) * 1.0)
                 .build());
 
         log.info("✅ Análise física criada: soilAnalysis={}", soilAnalysis.getId());

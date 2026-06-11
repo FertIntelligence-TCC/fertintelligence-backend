@@ -87,13 +87,21 @@ public class PhysicalAnalysisExtractModel {
     @Column(name = "PERC_AGREGADOS_1_0_A_2_0MM", nullable = true)
     double percAgregados1_0a2_0mm;
 
-    // Percentagem de agregados < 1,0 mm (Assumindo que "1,0 mm" seja o limite inferior)
-    @Column(name = "PERC_AGREGADOS_MENOR_1_0MM", nullable = true)
-    double percAgregadosMenor1_0mm;
+    // Percentagem de agregados 0,5 a 1,0 mm
+    @Column(name = "PERC_AGREGADOS_0_5_A_1_0MM", nullable = true)
+    double percAgregados0_5a1_0mm;
 
-    // Diâmetro Médio Ponderado dos agregados (mm)
-    @Column(name = "DMP", nullable = true)
-    double dmp;
+    // Percentagem de agregados 0,25 a 0,5 mm
+    @Column(name = "PERC_AGREGADOS_0_25_A_0_5MM", nullable = true)
+    double percAgregados0_25a0_5mm;
+
+    // Percentagem de agregados < 0,25 mm
+    @Column(name = "PERC_AGREGADOS_MENOR_0_25MM", nullable = true)
+    double percAgregadosMenor0_25mm;
+
+    // Diâmetro médio dos agregados (mm)
+    @Column(name = "DM_AGREGADOS", nullable = true)
+    double dmAgregados;
 
     @PrePersist
     @PreUpdate
@@ -103,12 +111,14 @@ public class PhysicalAnalysisExtractModel {
                 : 0.0;
         this.aguaDisponivel = umidadeCapacidadeCampo - umidadePontoMurchaPermanente;
 
-        this.dmp =
+        this.dmAgregados =
                 ((percAgregados6_0mm * 6.0)
                         + (percAgregados4_1a6_0mm * 5.05)
                         + (percAgregados2_1a4_0mm * 3.05)
                         + (percAgregados1_0a2_0mm * 1.5)
-                        + (percAgregadosMenor1_0mm * 0.5))
+                        + (percAgregados0_5a1_0mm * 0.75)
+                        + (percAgregados0_25a0_5mm * 0.375)
+                        + (percAgregadosMenor0_25mm * 0.125))
                         / 100.0;
     }
 
@@ -158,8 +168,10 @@ public class PhysicalAnalysisExtractModel {
                 .percAgregados4_1a6_0mm(this.percAgregados4_1a6_0mm)
                 .percAgregados2_1a4_0mm(this.percAgregados2_1a4_0mm)
                 .percAgregados1_0a2_0mm(this.percAgregados1_0a2_0mm)
-                .percAgregadosMenor1_0mm(this.percAgregadosMenor1_0mm)
-                .dmp(this.dmp)
+                .percAgregados0_5a1_0mm(this.percAgregados0_5a1_0mm)
+                .percAgregados0_25a0_5mm(this.percAgregados0_25a0_5mm)
+                .percAgregadosMenor0_25mm(this.percAgregadosMenor0_25mm)
+                .dmAgregados(this.dmAgregados)
                 .build();
     }
 

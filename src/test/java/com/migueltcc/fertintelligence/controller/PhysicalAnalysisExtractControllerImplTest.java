@@ -155,7 +155,9 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .percAgregados4_1a6_0mm(10.0)
                 .percAgregados2_1a4_0mm(15.0)
                 .percAgregados1_0a2_0mm(20.0)
-                .percAgregadosMenor1_0mm(50.0)
+                .percAgregados0_5a1_0mm(20.0)
+                .percAgregados0_25a0_5mm(15.0)
+                .percAgregadosMenor0_25mm(15.0)
                 .build();
     }
 
@@ -193,7 +195,9 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .percAgregados4_1a6_0mm(10.0)
                 .percAgregados2_1a4_0mm(15.0)
                 .percAgregados1_0a2_0mm(20.0)
-                .percAgregadosMenor1_0mm(50.0)
+                .percAgregados0_5a1_0mm(20.0)
+                .percAgregados0_25a0_5mm(15.0)
+                .percAgregadosMenor0_25mm(15.0)
                 .build();
     }
 

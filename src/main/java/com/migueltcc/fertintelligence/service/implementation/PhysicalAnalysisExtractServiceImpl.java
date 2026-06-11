@@ -66,7 +66,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                 .percAgregados4_1a6_0mm(zeroIfNull(dto.getPercAgregados4_1a6_0mm()))
                 .percAgregados2_1a4_0mm(zeroIfNull(dto.getPercAgregados2_1a4_0mm()))
                 .percAgregados1_0a2_0mm(zeroIfNull(dto.getPercAgregados1_0a2_0mm()))
-                .percAgregadosMenor1_0mm(zeroIfNull(dto.getPercAgregadosMenor1_0mm()))
+                .percAgregados0_5a1_0mm(zeroIfNull(dto.getPercAgregados0_5a1_0mm()))
+                .percAgregados0_25a0_5mm(zeroIfNull(dto.getPercAgregados0_25a0_5mm()))
+                .percAgregadosMenor0_25mm(zeroIfNull(dto.getPercAgregadosMenor0_25mm()))
                 .build();
         model.recalculateComputedFields();
 
@@ -162,7 +164,9 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         applyIfNonNull(dto.getPercAgregados4_1a6_0mm(), model::setPercAgregados4_1a6_0mm);
         applyIfNonNull(dto.getPercAgregados2_1a4_0mm(), model::setPercAgregados2_1a4_0mm);
         applyIfNonNull(dto.getPercAgregados1_0a2_0mm(), model::setPercAgregados1_0a2_0mm);
-        applyIfNonNull(dto.getPercAgregadosMenor1_0mm(), model::setPercAgregadosMenor1_0mm);
+        applyIfNonNull(dto.getPercAgregados0_5a1_0mm(), model::setPercAgregados0_5a1_0mm);
+        applyIfNonNull(dto.getPercAgregados0_25a0_5mm(), model::setPercAgregados0_25a0_5mm);
+        applyIfNonNull(dto.getPercAgregadosMenor0_25mm(), model::setPercAgregadosMenor0_25mm);
         model.recalculateComputedFields();
 
         return physicalAnalysisExtractRepository.save(model).toDto();
