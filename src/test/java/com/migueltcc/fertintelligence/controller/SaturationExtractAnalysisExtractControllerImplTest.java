@@ -184,7 +184,6 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .durezaCaCO3(50.0)
                 .durezaTotalCaCO3(80.0)
                 .ras(12.5)
-                .pst(8.0)
                 .build();
     }
 
@@ -219,7 +218,6 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .durezaCaCO3(50.0)
                 .durezaTotalCaCO3(80.0)
                 .ras(12.5)
-                .pst(8.0)
                 .build();
     }
 

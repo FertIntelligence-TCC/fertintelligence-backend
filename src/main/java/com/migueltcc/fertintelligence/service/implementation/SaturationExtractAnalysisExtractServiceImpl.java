@@ -75,7 +75,6 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 .durezaCaCO3(dto.getDurezaCaCO3())
                 .durezaTotalCaCO3(dto.getDurezaTotalCaCO3())
                 .ras(dto.getRas())
-                .pst(dto.getPst())
                 .build();
 
         recalculateSaturationIndicators(model);
@@ -197,7 +196,6 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         applyIfNotNull(dto.getDurezaCaCO3(), model::setDurezaCaCO3);
         applyIfNotNull(dto.getDurezaTotalCaCO3(), model::setDurezaTotalCaCO3);
         applyIfNotNull(dto.getRas(), model::setRas);
-        applyIfNotNull(dto.getPst(), model::setPst);
 
         recalculateSaturationIndicators(model);
 

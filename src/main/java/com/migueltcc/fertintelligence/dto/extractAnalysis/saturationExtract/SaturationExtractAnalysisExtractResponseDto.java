@@ -106,7 +106,4 @@ public class SaturationExtractAnalysisExtractResponseDto {
     @JsonProperty("ras")
     Double ras;
 
-    @Schema(example = "8.0")
-    @JsonProperty("pst")
-    Double pst;
 }

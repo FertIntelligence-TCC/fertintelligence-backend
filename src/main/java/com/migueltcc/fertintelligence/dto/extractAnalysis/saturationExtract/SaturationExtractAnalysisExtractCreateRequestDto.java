@@ -60,6 +60,4 @@ public class SaturationExtractAnalysisExtractCreateRequestDto {
     @JsonProperty("ras")
     Double ras;
 
-    @JsonProperty("pst")
-    Double pst;
 }

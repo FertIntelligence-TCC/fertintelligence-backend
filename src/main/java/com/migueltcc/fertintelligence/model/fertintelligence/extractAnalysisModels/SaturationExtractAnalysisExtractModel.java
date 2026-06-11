@@ -91,10 +91,6 @@ public class SaturationExtractAnalysisExtractModel {
     @Column(name = "RAS", nullable = true)
     Double ras;
 
-    // PST, %
-    @Column(name = "PST", nullable = true)
-    Double pst;
-
     public SaturationExtractAnalysisExtractResponseDto toDto() {
         RangeExtractModel range = this.rangeExtract;
         LayerExtractModel layer = this.layerExtract;
@@ -142,7 +138,6 @@ public class SaturationExtractAnalysisExtractModel {
                 .durezaCaCO3(this.durezaCaCO3)
                 .durezaTotalCaCO3(this.durezaTotalCaCO3)
                 .ras(this.ras)
-                .pst(this.pst)
                 .build();
     }
 
