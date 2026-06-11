@@ -7,7 +7,7 @@ COPY pom.xml .
 COPY src src
 
 # Compila o projeto ignorando os testes
-RUN mvn clean package -DskipTests
+RUN mvn clean package -Dmaven.test.skip=true
 
 # Estágio 2: Execução da aplicação
 FROM eclipse-temurin:17-jre-alpine
