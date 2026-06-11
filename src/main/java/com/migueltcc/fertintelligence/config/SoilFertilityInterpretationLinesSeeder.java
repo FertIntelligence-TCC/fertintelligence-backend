@@ -116,8 +116,27 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
             return;
         }
 
-        AvailableSModel model = AvailableSModel.builder().table(table).build();
-        applyRangePattern(model, 0.0, 3.0, 6.0, 12.0, 999.0);
+        AvailableSModel model = AvailableSModel.builder()
+                .table(table)
+                .sContentLess400TooLow(0.0)
+                .sContentLess400LowI(0.0)
+                .sContentLess400LowF(3.0)
+                .sContentLess400MediumI(3.0)
+                .sContentLess400MediumF(6.0)
+                .sContentLess400HighI(6.0)
+                .sContentLess400HighF(12.0)
+                .sContentLess400TooHigh(12.0)
+                .sContentGreater400TooLow(0.0)
+                .sContentGreater400LowI(0.0)
+                .sContentGreater400LowF(3.0)
+                .sContentGreater400MediumI(3.0)
+                .sContentGreater400MediumF(6.0)
+                .sContentGreater400HighI(6.0)
+                .sContentGreater400HighF(12.0)
+                .sContentGreater400TooHigh(12.0)
+                .literatureSource("A definir")
+                .observations("Os teores de S disponível são os estimados por solução de 500 mg/L de P em ácido acético glacial 0,5 mol/L.\n\nE o valor considerado é a média das camadas de 0 a 20 cm e 21 a 40 cm.")
+                .build();
         availableSRepository.save(model);
         log.info("✅ Linha S criada: tabela={} faixa={}-{}", table.getId(), 0.0, 12.0);
     }
