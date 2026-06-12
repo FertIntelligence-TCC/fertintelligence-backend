@@ -133,6 +133,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
     private List<CropFertilizationTableModel> findTablesByGroup(UserModel owner, TechnicalTableGroup group) {
         return switch (group) {
+            case MINHAS -> cropFertilizationTableRepository.findAllByCreator(owner).stream()
+                    .filter(t -> t.getCreator() != null
+                            && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
+                    .collect(Collectors.toList());
             case PRIVADAS -> {
                 // Retorna tabelas do usuário logado que não são públicas (privadas)
                 List<CropFertilizationTableModel> allByOwner = cropFertilizationTableRepository.findAllByCreator(owner);
