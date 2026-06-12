@@ -99,7 +99,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
     private List<SoilFertilityInterpretationCriteriaTableModel> findTablesByGroup(UserModel creator, TechnicalTableGroup group) {
         return switch (group) {
-            case PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreatorAndCreator_CargoNot(creator, Cargo.USUARIO_SUPREMO);
+            case PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator).stream()
+                    .filter(t -> !t.isPublicTable())
+                    .filter(t -> t.getCreator() != null && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
+                    .collect(Collectors.toList());
             case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
             case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
         };
