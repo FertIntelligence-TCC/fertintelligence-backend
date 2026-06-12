@@ -108,20 +108,15 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                     .filter(t -> t.getCreator() != null
                             && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
                     .toList();
-            case PUBLICAS -> tableRepository.findAllByPublicTableTrue();
-            case PADRAO -> tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO).stream()
-                    .filter(CropFoliarAnalysisInterpretationTableModel::isPublicTable)
-                    .toList();
+            case PUBLICAS -> tableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
+            case PADRAO -> tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
         };
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CropFoliarAnalysisInterpretationTableResponseDto> getAllPublicCropFoliarAnalysisInterpretationTables() {
-        return mergeTables(
-                tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
-                tableRepository.findAllByPublicTableTrue()
-        ).stream()
+        return tableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO).stream()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
     }

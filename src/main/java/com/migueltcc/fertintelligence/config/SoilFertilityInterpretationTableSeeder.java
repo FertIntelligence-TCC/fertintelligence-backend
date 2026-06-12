@@ -114,8 +114,8 @@ public class SoilFertilityInterpretationTableSeeder implements CommandLineRunner
 
         Optional<UserModel> supremeUserOpt = userRepository.findAll().stream().filter(u -> u.getCargo() == Cargo.USUARIO_SUPREMO).findFirst();
         if (supremeUserOpt.isPresent()) {
-            createdCount += createIfNotExists(supremeUserOpt.get(), "Tabela Fertilidade Solo Suprema", true, Regiao.NORDESTE, "Tabela padrão do sistema criada pelo usuário supremo.");
-            createdCount += createIfNotExists(supremeUserOpt.get(), "Tabela Fertilidade Solo Padrão", true, Regiao.CENTRO_OESTE, "Tabela padrão pública para todos os usuários.");
+            createdCount += createIfNotExists(supremeUserOpt.get(), "Tabela Fertilidade Solo Suprema", false, Regiao.NORDESTE, "Tabela padrão do sistema criada pelo usuário supremo.");
+            createdCount += createIfNotExists(supremeUserOpt.get(), "Tabela Fertilidade Solo Padrão", false, Regiao.CENTRO_OESTE, "Tabela padrão pública para todos os usuários.");
         }
 
         if (createdCount == 0

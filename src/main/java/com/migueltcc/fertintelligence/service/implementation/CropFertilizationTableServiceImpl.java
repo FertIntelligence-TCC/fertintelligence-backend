@@ -140,24 +140,15 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                         .filter(t -> !t.isPublicTable())
                         .collect(Collectors.toList());
             }
-            case PUBLICAS -> cropFertilizationTableRepository.findAllByPublicTableTrue();
-            case PADRAO -> {
-                // Retorna apenas tabelas públicas criadas por usuário com cargo USUARIO_SUPREMO
-                List<CropFertilizationTableModel> allBySupreme = cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
-                yield allBySupreme.stream()
-                        .filter(CropFertilizationTableModel::isPublicTable)
-                        .collect(Collectors.toList());
-            }
+            case PUBLICAS -> cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
+            case PADRAO -> cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
         };
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables() {
-        return mergeTables(
-                cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
-                cropFertilizationTableRepository.findAllByPublicTableTrue()
-        )
+        return cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
