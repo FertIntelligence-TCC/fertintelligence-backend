@@ -132,4 +132,57 @@ public class PhysicalAnalysisExtractModel {
         return value != null ? value : 0.0;
     }
 
+    public PhysicalAnalysisExtractResponseDto toDto() {
+        RangeExtractModel range = this.rangeExtract;
+        LayerExtractModel layer = this.layerExtract;
+
+        Long rangeExtractId = null;
+        Long layerExtractId = null;
+        Integer initialDepth = null;
+        Integer finalDepth = null;
+        com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada camada = null;
+        Integer subLayer = null;
+
+        if (range != null) {
+            rangeExtractId = range.getId();
+            initialDepth = range.getProfundidade_inicial();
+            finalDepth = range.getProfundidade_final();
+        } else if (layer != null) {
+            layerExtractId = layer.getId();
+            initialDepth = layer.getProfundidade_inicial();
+            finalDepth = layer.getProfundidade_final();
+            camada = layer.getLayer();
+            subLayer = layer.getSub_layer();
+        }
+
+        return PhysicalAnalysisExtractResponseDto.builder()
+                .id(this.id)
+                .rangeExtractId(rangeExtractId)
+                .layerExtractId(layerExtractId)
+                .initialDepth(initialDepth)
+                .finalDepth(finalDepth)
+                .layer(camada)
+                .subLayer(subLayer)
+                .teorAreia(this.teorAreia)
+                .teorSilte(this.teorSilte)
+                .teorArgila(this.teorArgila)
+                .densidadeAparente(this.densidadeAparente)
+                .densidadeReal(this.densidadeReal)
+                .porosidadeTotal(this.porosidadeTotal)
+                .microporosidade(this.microporosidade)
+                .umidadeCapacidadeCampo(this.umidadeCapacidadeCampo)
+                .umidadePontoMurchaPermanente(this.umidadePontoMurchaPermanente)
+                .aguaDisponivel(this.aguaDisponivel)
+                .resistenciaPenetracao(this.resistenciaPenetracao)
+                .percAgregados6_0mm(this.percAgregados6_0mm)
+                .percAgregados4_1a6_0mm(this.percAgregados4_1a6_0mm)
+                .percAgregados2_1a4_0mm(this.percAgregados2_1a4_0mm)
+                .percAgregados1_0a2_0mm(this.percAgregados1_0a2_0mm)
+                .percAgregados0_5a1_0mm(this.percAgregados0_5a1_0mm)
+                .percAgregados0_25a0_5mm(this.percAgregados0_25a0_5mm)
+                .percAgregadosMenor0_25mm(this.percAgregadosMenor0_25mm)
+                .dmAgregados(this.dmAgregados)
+                .build();
+    }
+
 }
