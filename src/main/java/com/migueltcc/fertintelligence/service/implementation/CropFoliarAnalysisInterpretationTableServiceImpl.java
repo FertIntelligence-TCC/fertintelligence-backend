@@ -93,7 +93,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                 ? tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
                 : mergeTables(
                         tableRepository.findAllByCreator(owner),
-                        tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                        tableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO),
                         tableRepository.findAllByPublicTableTrue()
                 );
 
@@ -111,7 +111,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
                             && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
                     .toList();
             case PUBLICAS -> tableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
-            case PADRAO -> tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+            case PADRAO -> tableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO);
         };
     }
 
@@ -128,7 +128,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     public List<CropFoliarAnalysisInterpretationTableResponseDto> getAllDefaultCropFoliarAnalysisInterpretationTables(
             String username) {
         findUserByUsernameOrThrow(username);
-        return tableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+        return tableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(CropFoliarAnalysisInterpretationTableModel::toDto)
                 .collect(Collectors.toList());
@@ -219,7 +219,7 @@ public class CropFoliarAnalysisInterpretationTableServiceImpl
     }
 
     private boolean isDefaultTable(CropFoliarAnalysisInterpretationTableModel table) {
-        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO && table.isPublicTable();
     }
 
     private boolean isSupremeUser(UserModel user) {

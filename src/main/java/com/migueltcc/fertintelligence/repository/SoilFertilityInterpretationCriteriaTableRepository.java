@@ -15,6 +15,7 @@ public interface SoilFertilityInterpretationCriteriaTableRepository extends JpaR
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator(UserModel creator);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreatorAndCreator_CargoNot(UserModel creator, Cargo cargo);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator_Cargo(Cargo cargo);
+    List<SoilFertilityInterpretationCriteriaTableModel> findAllByCreator_CargoAndPublicTableTrue(Cargo cargo);
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrue();
     List<SoilFertilityInterpretationCriteriaTableModel> findAllByPublicTableTrueAndCreator_CargoNot(Cargo cargo);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreator(Long id, UserModel creator);
@@ -22,5 +23,6 @@ public interface SoilFertilityInterpretationCriteriaTableRepository extends JpaR
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndPublicTableTrue(Long id);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndPublicTableTrueAndCreator_CargoNot(Long id, Cargo cargo);
     Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreator_Cargo(Long id, Cargo cargo);
+    Optional<SoilFertilityInterpretationCriteriaTableModel> findByIdAndCreator_CargoAndPublicTableTrue(Long id, Cargo cargo);
     boolean existsByCreatorAndName(UserModel creator, String name);
 }

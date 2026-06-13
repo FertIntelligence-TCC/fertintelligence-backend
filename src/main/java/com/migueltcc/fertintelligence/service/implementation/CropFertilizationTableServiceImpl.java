@@ -115,7 +115,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         }
 
         if (isSupremeUser(owner)) {
-            return cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+            return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                     .stream()
                     .map(CropFertilizationTableModel::toDto)
                     .toList();
@@ -123,7 +123,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         return mergeTables(
                 cropFertilizationTableRepository.findAllByCreator(owner),
-                cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO),
                 cropFertilizationTableRepository.findAllByPublicTableTrue()
         )
                 .stream()
@@ -142,7 +142,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                         .collect(Collectors.toList());
             }
             case PUBLICAS -> cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
-            case PADRAO -> cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+            case PADRAO -> cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO);
         };
     }
 
@@ -159,7 +159,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllDefaultCropFertilizationTables(String username) {
         findUserByUsernameOrThrow(username);
-        return cropFertilizationTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+        return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(CropFertilizationTableModel::toDto)
                 .toList();
@@ -290,7 +290,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     }
 
     private boolean isDefaultTable(CropFertilizationTableModel table) {
-        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO && table.isPublicTable();
     }
 
     private boolean isSupremeUser(UserModel user) {

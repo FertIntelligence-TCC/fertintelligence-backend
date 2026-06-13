@@ -15,17 +15,17 @@ public interface OrganoMineralFertilizerRepository extends JpaRepository<OrganoM
 
     List<OrganoMineralFertilizerModel> findAllByUser(UserModel user);
 
-    @Query("select f from OrganoMineralFertilizerModel f where f.user = :user or f.user.cargo = :defaultCreatorCargo order by f.name asc")
+    @Query("select f from OrganoMineralFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<OrganoMineralFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<OrganoMineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
-    @Query("select f from OrganoMineralFertilizerModel f where lower(f.name) like lower(concat('%', :name, '%')) and (f.user = :user or f.user.cargo = :defaultCreatorCargo) order by f.name asc")
+    @Query("select f from OrganoMineralFertilizerModel f where lower(f.name) like lower(concat('%', :name, '%')) and (f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true)) order by f.name asc")
     List<OrganoMineralFertilizerModel> findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(@Param("name") String name, @Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<OrganoMineralFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
 
-    @Query("select f from OrganoMineralFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.name asc")
+    @Query("select f from OrganoMineralFertilizerModel f where f.publico = true or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<OrganoMineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<OrganoMineralFertilizerModel> findAllByUser_CargoOrderByNameAsc(Cargo cargo);

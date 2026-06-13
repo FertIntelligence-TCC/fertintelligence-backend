@@ -15,17 +15,17 @@ public interface ChelatedFertilizerRepository extends JpaRepository<ChelatedFert
 
     List<ChelatedFertilizerModel> findAllByUser(UserModel user);
 
-    @Query("select f from ChelatedFertilizerModel f where f.user = :user or f.user.cargo = :defaultCreatorCargo order by f.name asc")
+    @Query("select f from ChelatedFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<ChelatedFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<ChelatedFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
 
-    @Query("select f from ChelatedFertilizerModel f where lower(f.name) like lower(concat('%', :name, '%')) and (f.user = :user or f.user.cargo = :defaultCreatorCargo) order by f.name asc")
+    @Query("select f from ChelatedFertilizerModel f where lower(f.name) like lower(concat('%', :name, '%')) and (f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true)) order by f.name asc")
     List<ChelatedFertilizerModel> findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(@Param("name") String name, @Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<ChelatedFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
 
-    @Query("select f from ChelatedFertilizerModel f where f.publico = true or f.user.cargo = :defaultCreatorCargo order by f.name asc")
+    @Query("select f from ChelatedFertilizerModel f where f.publico = true or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<ChelatedFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
     List<ChelatedFertilizerModel> findAllByUser_CargoOrderByNameAsc(Cargo cargo);

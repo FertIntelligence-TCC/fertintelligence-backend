@@ -88,7 +88,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                 ? soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
                 : mergeTables(
                         soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator),
-                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO),
                         soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue()
                 );
 
@@ -105,7 +105,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                     .filter(t -> t.getCreator() != null && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
                     .collect(Collectors.toList());
             case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
-            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
+            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO);
         };
     }
 
@@ -122,7 +122,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     public List<SoilFertilityInterpretationCriteriaTableResponseDto> getAllDefaultSoilFertilityInterpretationCriteriaTables(
             String username) {
         findUserByUsernameOrThrow(username);
-        return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+        return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
@@ -213,7 +213,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     }
 
     private boolean isDefaultTable(SoilFertilityInterpretationCriteriaTableModel table) {
-        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO && table.isPublicTable();
     }
 
     private boolean isSupremeUser(UserModel user) {
