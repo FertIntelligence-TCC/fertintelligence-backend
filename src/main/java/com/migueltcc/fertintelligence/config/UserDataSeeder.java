@@ -23,13 +23,35 @@ public class UserDataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public static final String ADMIN_USER = "admin@fertintelligence.com";
+    /*
+     * Usuário admin legado.
+     * Mantido apenas para encontrar e migrar o registro antigo no banco,
+     * sem trocar o ID.
+     */
+    private static final String LEGACY_ADMIN_USERNAME = "admin@fertintelligence.com";
+
+    /*
+     * Usuário administrador supremo atual do sistema.
+     * Este login deve pertencer ao cargo USUARIO_SUPREMO.
+     */
+    private static final String SUPREME_ADMIN_USERNAME = "AdminUser";
+    private static final String SUPREME_ADMIN_PASSWORD = "admin123";
+    private static final String SUPREME_ADMIN_EMAIL = "miguel_macedo18@hotmail.com";
+    private static final String SUPREME_ADMIN_CPF = "13600319442";
+
+    /*
+     * Usuária Eliane.
+     * Ocupa o antigo registro do admin padrão/proprietário,
+     * preservando o ID existente no banco.
+     */
+    private static final String ELIANE_USERNAME = "eliane@email.com";
+    private static final String ELIANE_EMAIL = "eliane@email.com";
+    private static final String ELIANE_PASSWORD = "eliane123";
+    private static final String ELIANE_CPF = "00000000000";
+
     private static final String MIGUEL_USERNAME = "miguel@email.com";
     private static final String MIGUEL_EMAIL = "miguel@email.com";
     private static final String MIGUEL_CPF = "22222222222";
-    private static final String SUPREME_USERNAME = "G&MSupremos";
-    private static final String SUPREME_EMAIL = "miguel_macedo18@hotmail.com";
-    private static final String SUPREME_CPF = "13600319442";
 
     public UserDataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -40,21 +62,21 @@ public class UserDataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         seedDefaultUsers();
-        seedSupremeUser();
+        seedSupremeAdminUser();
     }
 
     private void seedDefaultUsers() {
         createOrUpdateDefaultUser(UserCreateRequestDto.builder()
-                .name("Administrador do Sistema")
-                .username(ADMIN_USER)
-                .email(ADMIN_USER)
-                .password("admin123")
-                .cpf("00000000000")
-                .profissao("System Admin")
-                .datanasc(new DataNasc(1, 1, 2000))
+                .name("Eliane")
+                .username(ELIANE_USERNAME)
+                .email(ELIANE_EMAIL)
+                .password(ELIANE_PASSWORD)
+                .cpf(ELIANE_CPF)
+                .profissao("Odontóloga")
+                .datanasc(new DataNasc(30, 5, 1981))
                 .genero(Genero.OUTRO)
                 .telefone(new Telefone("55", "11", "999999999"))
-                .formacao(Formacao.DOUTORADO)
+                .formacao(Formacao.GRADUACAO)
                 .cargo(Cargo.PROPRIETARIO)
                 .build());
 
@@ -65,7 +87,7 @@ public class UserDataSeeder implements CommandLineRunner {
                 .password("gilvan123")
                 .cpf("11111111111")
                 .profissao("Engenheiro Agrônomo")
-                .datanasc(new DataNasc(30, 05, 1972))
+                .datanasc(new DataNasc(30, 5, 1972))
                 .genero(Genero.MASCULINO)
                 .telefone(new Telefone("55", "83", "991070613"))
                 .formacao(Formacao.DOUTORADO)
@@ -129,26 +151,24 @@ public class UserDataSeeder implements CommandLineRunner {
                 .build());
     }
 
-    private void seedSupremeUser() {
-        normalizeDefaultSupremeUsers();
+    private void seedSupremeAdminUser() {
+        normalizeMiguelIfHeWasAccidentallySupreme();
 
-        Optional<UserModel> existingSupreme = findExistingUser(SUPREME_USERNAME, SUPREME_EMAIL, SUPREME_CPF);
-        if (existingSupreme.isPresent()) {
-            UserModel supremeUser = existingSupreme.get();
-            applySupremeUserFields(supremeUser);
-            userRepository.save(supremeUser);
-            System.out.println("UserDataSeeder: Usuário supremo atualizado/verificado.");
+        Optional<UserModel> existingSupremeAdmin = findExistingSupremeAdminUser();
+        if (existingSupremeAdmin.isPresent()) {
+            UserModel supremeAdmin = existingSupremeAdmin.get();
+            applySupremeAdminFields(supremeAdmin);
+            userRepository.save(supremeAdmin);
+            System.out.println("UserDataSeeder: Usuário admin supremo atualizado/verificado.");
             return;
         }
 
-        System.out.println("UserDataSeeder: Criando usuário supremo...");
-
-        UserModel supremeUser = UserModel.builder()
+        UserModel supremeAdmin = UserModel.builder()
                 .name("Gilvan e Miguel")
-                .username(SUPREME_USERNAME)
-                .email(SUPREME_EMAIL)
-                .password(passwordEncoder.encode("miniprojetofosforico"))
-                .cpf(SUPREME_CPF)
+                .username(SUPREME_ADMIN_USERNAME)
+                .email(SUPREME_ADMIN_EMAIL)
+                .password(passwordEncoder.encode(SUPREME_ADMIN_PASSWORD))
+                .cpf(SUPREME_ADMIN_CPF)
                 .profissao("Engenheiro de Software")
                 .datanasc(new DataNasc(8, 5, 2001))
                 .genero(Genero.MASCULINO)
@@ -157,12 +177,20 @@ public class UserDataSeeder implements CommandLineRunner {
                 .cargo(Cargo.USUARIO_SUPREMO)
                 .build();
 
-        userRepository.save(supremeUser);
-        System.out.println("UserDataSeeder: Usuário supremo criado com sucesso.");
+        userRepository.save(supremeAdmin);
+        System.out.println("UserDataSeeder: Usuário admin supremo criado com sucesso.");
+    }
+
+    private Optional<UserModel> findExistingSupremeAdminUser() {
+        return userRepository.findByUsername(SUPREME_ADMIN_USERNAME)
+                .or(() -> userRepository.findByUsername(LEGACY_ADMIN_USERNAME))
+                .or(() -> findExistingUser(SUPREME_ADMIN_USERNAME, SUPREME_ADMIN_EMAIL, SUPREME_ADMIN_CPF));
     }
 
     private void createOrUpdateDefaultUser(UserCreateRequestDto dto) {
-        Optional<UserModel> existingUser = findExistingUser(dto.getUsername(), dto.getEmail(), dto.getCpf());
+        Optional<UserModel> existingUser = isElianeSeed(dto)
+                ? findExistingElianeOrLegacyAdminUser(dto)
+                : findExistingUser(dto.getUsername(), dto.getEmail(), dto.getCpf());
 
         if (existingUser.isPresent()) {
             UserModel user = existingUser.get();
@@ -191,6 +219,20 @@ public class UserDataSeeder implements CommandLineRunner {
         System.out.println("UserDataSeeder: Usuário padrão criado: " + dto.getUsername());
     }
 
+    private boolean isElianeSeed(UserCreateRequestDto dto) {
+        return ELIANE_CPF.equals(dto.getCpf())
+                || ELIANE_USERNAME.equals(dto.getUsername())
+                || ELIANE_EMAIL.equals(dto.getEmail());
+    }
+
+    private Optional<UserModel> findExistingElianeOrLegacyAdminUser(UserCreateRequestDto dto) {
+        return userRepository.findByUsername(ELIANE_USERNAME)
+                .or(() -> userRepository.findByEmail(ELIANE_EMAIL))
+                .or(() -> userRepository.findByCpf(ELIANE_CPF))
+                .or(() -> userRepository.findByUsername(LEGACY_ADMIN_USERNAME))
+                .or(() -> findExistingUser(dto.getUsername(), dto.getEmail(), dto.getCpf()));
+    }
+
     private Optional<UserModel> findExistingUser(String username, String email, String cpf) {
         return userRepository.findByUsername(username)
                 .or(() -> userRepository.findByEmail(email))
@@ -209,29 +251,32 @@ public class UserDataSeeder implements CommandLineRunner {
         user.setProfissao(dto.getProfissao());
         user.setCargo(dto.getCargo());
         user.setIdfoto(dto.getIdfoto());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
     }
 
-    private void applySupremeUserFields(UserModel user) {
+    private void applySupremeAdminFields(UserModel user) {
         user.setName("Gilvan e Miguel");
-        user.setUsername(SUPREME_USERNAME);
-        user.setEmail(SUPREME_EMAIL);
-        user.setCpf(SUPREME_CPF);
+        user.setUsername(SUPREME_ADMIN_USERNAME);
+        user.setEmail(SUPREME_ADMIN_EMAIL);
+        user.setCpf(SUPREME_ADMIN_CPF);
         user.setProfissao("Engenheiro de Software");
         user.setDatanasc(new DataNasc(8, 5, 2001));
         user.setGenero(Genero.MASCULINO);
         user.setTelefone(new Telefone("55", "83", "991214231"));
         user.setFormacao(Formacao.GRADUACAO);
         user.setCargo(Cargo.USUARIO_SUPREMO);
+        user.setPassword(passwordEncoder.encode(SUPREME_ADMIN_PASSWORD));
     }
 
-    private void normalizeDefaultSupremeUsers() {
+    private void normalizeMiguelIfHeWasAccidentallySupreme() {
         userRepository.findAllByCargo(Cargo.USUARIO_SUPREMO).stream()
-                .filter(user -> isMiguelDefaultUser(user) && !SUPREME_USERNAME.equals(user.getUsername()))
+                .filter(user -> isMiguelDefaultUser(user) && !SUPREME_ADMIN_USERNAME.equals(user.getUsername()))
                 .forEach(user -> {
                     user.setUsername(MIGUEL_USERNAME);
                     user.setEmail(MIGUEL_EMAIL);
                     user.setCpf(MIGUEL_CPF);
                     user.setCargo(Cargo.AGRONOMO_RESIDENTE);
+                    user.setPassword(passwordEncoder.encode("miguel123"));
                     userRepository.save(user);
                     System.out.println("UserDataSeeder: Miguel normalizado como AGRONOMO_RESIDENTE.");
                 });
