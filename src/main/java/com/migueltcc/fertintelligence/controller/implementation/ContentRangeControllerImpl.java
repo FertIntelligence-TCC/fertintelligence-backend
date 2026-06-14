@@ -4,6 +4,8 @@ import com.migueltcc.fertintelligence.controller.documentation.ContentRangeContr
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceByNutrientRequestDto;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.service.documentation.ContentRangeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +72,20 @@ public class ContentRangeControllerImpl implements ContentRangeController {
         ContentRangeResponseDto updatedRange = contentRangeService
                 .updateContentRange(contentRangeId, updateRequestDto, authentication.getName());
         return ResponseEntity.ok(updatedRange);
+    }
+
+    @Override
+    @PutMapping("/replace-by-nutrient")
+    public ResponseEntity<List<ContentRangeResponseDto>> replaceContentRangesByNutrient(
+            @RequestParam(name = "tableId") Long tableId,
+            @RequestParam(name = "nutrient") Nutriente nutrient,
+            @Valid @RequestBody ContentRangeReplaceByNutrientRequestDto replaceRequestDto,
+            Authentication authentication) {
+
+        List<ContentRangeResponseDto> ranges = contentRangeService
+                .replaceContentRangesByNutrient(tableId, nutrient, replaceRequestDto, authentication.getName());
+
+        return ResponseEntity.ok(ranges);
     }
 
     @Override

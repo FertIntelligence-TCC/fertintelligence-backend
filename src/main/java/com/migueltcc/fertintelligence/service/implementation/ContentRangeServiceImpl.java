@@ -5,6 +5,9 @@ import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceByNutrientRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceCoverageDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceItemDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
@@ -185,6 +188,147 @@ public class ContentRangeServiceImpl implements ContentRangeService {
         }
 
         return savedRange.toDto();
+    }
+
+    @Override
+    @Transactional
+    public List<ContentRangeResponseDto> replaceContentRangesByNutrient(
+            Long tableId,
+            Nutriente nutrient,
+            ContentRangeReplaceByNutrientRequestDto replaceRequestDto,
+            String username
+    ) {
+        UserModel owner = findUserByUsernameOrThrow(username);
+        CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
+        checkWritePermission(table, owner);
+
+        if (nutrient == Nutriente.NITROGENIO) {
+            throw new IllegalArgumentException("Use a atualização comum para o intervalo de Nitrogênio.");
+        }
+
+        List<ContentRangeReplaceItemDto> requestedRanges = replaceRequestDto.getRanges();
+        if (requestedRanges == null || requestedRanges.isEmpty()) {
+            throw new IllegalArgumentException("A tabela deve manter ao menos um intervalo para o nutriente " + nutrient + ".");
+        }
+
+        List<ContentRangeModel> existingRanges = contentRangeRepository
+                .findAllByTableAndNutrientOrderByOrderAsc(table, nutrient);
+
+        List<Long> existingIds = existingRanges.stream()
+                .map(ContentRangeModel::getId)
+                .collect(Collectors.toList());
+
+        List<ContentRangeModel> finalRanges = new ArrayList<>();
+
+        for (ContentRangeReplaceItemDto item : requestedRanges) {
+            ContentRangeModel range;
+
+            if (item.getId() != null) {
+                if (!existingIds.contains(item.getId())) {
+                    throw new AccessDeniedException("Intervalo de teor não pertence à tabela/nutriente informados.");
+                }
+
+                range = existingRanges.stream()
+                        .filter(existing -> Objects.equals(existing.getId(), item.getId()))
+                        .findFirst()
+                        .orElseThrow(() -> new EntityNotFoundException("Intervalo de teor não encontrado com o ID: " + item.getId()));
+            } else {
+                range = ContentRangeModel.builder()
+                        .table(table)
+                        .nutrient(nutrient)
+                        .build();
+            }
+
+            range.setTable(table);
+            range.setNutrient(nutrient);
+            range.setOrder(item.getOrder());
+            range.setSmallest(item.getSmallest());
+            range.setLargest(item.getLargest());
+            range.setApplication(item.getApplication());
+
+            finalRanges.add(range);
+        }
+
+        validateNutrientRanges(nutrient, finalRanges);
+
+        List<Long> requestedRangeIds = requestedRanges.stream()
+                .map(ContentRangeReplaceItemDto::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        List<ContentRangeModel> rangesToDelete = existingRanges.stream()
+                .filter(existing -> !requestedRangeIds.contains(existing.getId()))
+                .collect(Collectors.toList());
+
+        for (ContentRangeModel rangeToDelete : rangesToDelete) {
+            List<CoverageModel> coverages = coverageRepository.findAllByRangeOrderByOrderAsc(rangeToDelete);
+            if (!coverages.isEmpty()) {
+                coverageRepository.deleteAll(coverages);
+            }
+            contentRangeRepository.delete(rangeToDelete);
+        }
+
+        List<ContentRangeModel> savedRanges = contentRangeRepository.saveAll(finalRanges);
+
+        for (int i = 0; i < requestedRanges.size(); i++) {
+            ContentRangeReplaceItemDto item = requestedRanges.get(i);
+            ContentRangeModel savedRange = savedRanges.get(i);
+
+            List<CoverageModel> existingCoverages = coverageRepository.findAllByRangeOrderByOrderAsc(savedRange);
+            List<Long> existingCoverageIds = existingCoverages.stream()
+                    .map(CoverageModel::getId)
+                    .collect(Collectors.toList());
+
+            List<ContentRangeReplaceCoverageDto> requestedCoverages =
+                    item.getCoverages() == null ? List.of() : item.getCoverages();
+
+            List<Long> requestedCoverageIds = requestedCoverages.stream()
+                    .map(ContentRangeReplaceCoverageDto::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            List<CoverageModel> coveragesToDelete = existingCoverages.stream()
+                    .filter(existing -> !requestedCoverageIds.contains(existing.getId()))
+                    .collect(Collectors.toList());
+
+            if (!coveragesToDelete.isEmpty()) {
+                coverageRepository.deleteAll(coveragesToDelete);
+            }
+
+            List<CoverageModel> coveragesToSave = new ArrayList<>();
+
+            for (ContentRangeReplaceCoverageDto coverageDto : requestedCoverages) {
+                CoverageModel coverage;
+
+                if (coverageDto.getId() != null) {
+                    if (!existingCoverageIds.contains(coverageDto.getId())) {
+                        throw new AccessDeniedException("Cobertura não pertence ao intervalo de teor informado.");
+                    }
+
+                    coverage = existingCoverages.stream()
+                            .filter(existing -> Objects.equals(existing.getId(), coverageDto.getId()))
+                            .findFirst()
+                            .orElseThrow(() -> new EntityNotFoundException("Cobertura não encontrada com o ID: " + coverageDto.getId()));
+                } else {
+                    coverage = CoverageModel.builder()
+                            .range(savedRange)
+                            .build();
+                }
+
+                coverage.setRange(savedRange);
+                coverage.setOrder(coverageDto.getOrder());
+                coverage.setApplication(coverageDto.getApplication());
+                coveragesToSave.add(coverage);
+            }
+
+            if (!coveragesToSave.isEmpty()) {
+                coverageRepository.saveAll(coveragesToSave);
+            }
+        }
+
+        return contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(table, nutrient).stream()
+                .map(ContentRangeModel::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override

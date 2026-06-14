@@ -3,6 +3,8 @@ package com.migueltcc.fertintelligence.controller.documentation;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceByNutrientRequestDto;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +45,16 @@ public interface ContentRangeController {
             @RequestParam(name = "contentRangeId") Long contentRangeId,
             @Parameter(description = "Dados para atualização do intervalo", required = true)
             @Valid @RequestBody ContentRangePostRequestDto updateRequestDto,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
+    ResponseEntity<List<ContentRangeResponseDto>> replaceContentRangesByNutrient(
+            @Parameter(description = "ID da tabela de adubação", required = true)
+            @RequestParam(name = "tableId") Long tableId,
+            @Parameter(description = "Nutriente cujos intervalos serão substituídos", required = true)
+            @RequestParam(name = "nutrient") Nutriente nutrient,
+            @Parameter(description = "Estado final dos intervalos do nutriente", required = true)
+            @Valid @RequestBody ContentRangeReplaceByNutrientRequestDto replaceRequestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 
