@@ -281,7 +281,7 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                         .param("tableId", ownerTable.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -551,7 +551,7 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void deleteContentRangeAllowsRemovingOnlyNonNitrogenInterval() throws Exception {
+    void deleteContentRangeFails_WhenOnlyInterval() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(contentRangeRepository.findById(fosforoRange.getId())).thenReturn(Optional.of(fosforoRange));
         when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))

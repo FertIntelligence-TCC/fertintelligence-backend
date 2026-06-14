@@ -207,9 +207,11 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                 .filter(existing -> !Objects.equals(existing.getId(), range.getId()))
                 .collect(Collectors.toList());
 
-        if (!remaining.isEmpty()) {
-            validateNutrientRanges(range.getNutrient(), remaining);
+        if (remaining.isEmpty()) {
+            throw new IllegalArgumentException("A tabela deve manter ao menos um intervalo para o nutriente " + range.getNutrient() + ".");
         }
+
+        validateNutrientRanges(range.getNutrient(), remaining);
 
         List<CoverageModel> coverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
         if (!coverages.isEmpty()) {
@@ -271,6 +273,10 @@ public class ContentRangeServiceImpl implements ContentRangeService {
             if (current.getLargest() == null) {
                 if (!isLast) {
                     throw new IllegalArgumentException("Somente o último intervalo pode possuir teor máximo nulo.");
+                }
+            } else {
+                if (isLast && sortedRanges.size() > 1) {
+                    throw new IllegalArgumentException("O último intervalo deve possuir teor máximo nulo.");
                 }
             }
 
