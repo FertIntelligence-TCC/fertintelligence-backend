@@ -141,12 +141,12 @@ public class CropFoliarInterpretationTableSeeder implements CommandLineRunner {
         CropFoliarAnalysisInterpretationTableLineModel line = new CropFoliarAnalysisInterpretationTableLineModel();
         line.setTable(table);
         line.setCrop(crop);
-        line.setN_content(createContentRange(20.0, 35.0, UnidadeTeor.dag_per_kg));
-        line.setP_content(createContentRange(1.5, 3.0, UnidadeTeor.dag_per_kg));
-        line.setK_content(createContentRange(15.0, 30.0, UnidadeTeor.dag_per_kg));
-        line.setCa_content(createContentRange(5.0, 15.0, UnidadeTeor.dag_per_kg));
-        line.setMg_content(createContentRange(2.0, 6.0, UnidadeTeor.dag_per_kg));
-        line.setS_content(createContentRange(1.5, 4.0, UnidadeTeor.dag_per_kg));
+        line.setN_content(createContentRange(20.0, 35.0, UnidadeTeor.g_per_kg));
+        line.setP_content(createContentRange(1.5, 3.0, UnidadeTeor.g_per_kg));
+        line.setK_content(createContentRange(15.0, 30.0, UnidadeTeor.g_per_kg));
+        line.setCa_content(createContentRange(5.0, 15.0, UnidadeTeor.g_per_kg));
+        line.setMg_content(createContentRange(2.0, 6.0, UnidadeTeor.g_per_kg));
+        line.setS_content(createContentRange(1.5, 4.0, UnidadeTeor.g_per_kg));
         line.setB_content(createContentRange(20.0, 60.0, UnidadeTeor.mg_per_kg));
         line.setCu_content(createContentRange(5.0, 20.0, UnidadeTeor.mg_per_kg));
         line.setFe_content(createContentRange(50.0, 250.0, UnidadeTeor.mg_per_kg));

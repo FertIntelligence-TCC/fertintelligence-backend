@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTable
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -145,12 +146,12 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
                 .id(this.id)
                 .table_id(this.table != null ? this.table.getId() : null)
                 .crop(this.crop)
-                .n_content(this.n_content)
-                .p_content(this.p_content)
-                .k_content(this.k_content)
-                .ca_content(this.ca_content)
-                .mg_content(this.mg_content)
-                .s_content(this.s_content)
+                .n_content(copyMacronutrientRange(this.n_content))
+                .p_content(copyMacronutrientRange(this.p_content))
+                .k_content(copyMacronutrientRange(this.k_content))
+                .ca_content(copyMacronutrientRange(this.ca_content))
+                .mg_content(copyMacronutrientRange(this.mg_content))
+                .s_content(copyMacronutrientRange(this.s_content))
                 .b_content(this.b_content)
                 .cu_content(this.cu_content)
                 .fe_content(this.fe_content)
@@ -158,5 +159,12 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
                 .mo_content(this.mo_content)
                 .zn_content(this.zn_content)
                 .build();
+    }
+
+    private MenorMaiorTeores copyMacronutrientRange(MenorMaiorTeores range) {
+        if (range == null) {
+            return null;
+        }
+        return new MenorMaiorTeores(range.getMenor(), range.getMaior(), UnidadeTeor.g_per_kg);
     }
 }

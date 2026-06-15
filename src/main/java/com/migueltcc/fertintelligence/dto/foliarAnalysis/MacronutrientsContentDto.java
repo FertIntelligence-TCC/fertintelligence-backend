@@ -13,27 +13,27 @@ import lombok.Setter;
 @AllArgsConstructor
 public class MacronutrientsContentDto {
 
-    @Schema(example = "3.5")
+    @Schema(example = "35.0")
     @JsonProperty("n_content")
     private Double n_content;
 
-    @Schema(example = "0.2")
+    @Schema(example = "2.0")
     @JsonProperty("p_content")
     private Double p_content;
 
-    @Schema(example = "1.8")
+    @Schema(example = "18.0")
     @JsonProperty("k_content")
     private Double k_content;
 
-    @Schema(example = "1.0")
+    @Schema(example = "10.0")
     @JsonProperty("ca_content")
     private Double ca_content;
 
-    @Schema(example = "0.3")
+    @Schema(example = "3.0")
     @JsonProperty("mg_content")
     private Double mg_content;
 
-    @Schema(example = "0.15")
+    @Schema(example = "1.5")
     @JsonProperty("s_content")
     private Double s_content;
 }

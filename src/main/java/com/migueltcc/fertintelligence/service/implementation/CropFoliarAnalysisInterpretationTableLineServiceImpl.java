@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLinePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFoliarAnalysisInterpretation.tableLine.CropFoliarAnalysisInterpretationTableLineResponseDto;
@@ -54,12 +56,12 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
         CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
                 .table(table)
                 .crop(createRequestDto.getCrop())
-                .n_content(createRequestDto.getN_content())
-                .p_content(createRequestDto.getP_content())
-                .k_content(createRequestDto.getK_content())
-                .ca_content(createRequestDto.getCa_content())
-                .mg_content(createRequestDto.getMg_content())
-                .s_content(createRequestDto.getS_content())
+                .n_content(asMacronutrientRange(createRequestDto.getN_content()))
+                .p_content(asMacronutrientRange(createRequestDto.getP_content()))
+                .k_content(asMacronutrientRange(createRequestDto.getK_content()))
+                .ca_content(asMacronutrientRange(createRequestDto.getCa_content()))
+                .mg_content(asMacronutrientRange(createRequestDto.getMg_content()))
+                .s_content(asMacronutrientRange(createRequestDto.getS_content()))
                 .b_content(createRequestDto.getB_content())
                 .cu_content(createRequestDto.getCu_content())
                 .fe_content(createRequestDto.getFe_content())
@@ -119,12 +121,12 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
         }
 
         // Atualização de nutrientes (se presentes no DTO)
-        if (updateRequestDto.getN_content() != null) line.setN_content(updateRequestDto.getN_content());
-        if (updateRequestDto.getP_content() != null) line.setP_content(updateRequestDto.getP_content());
-        if (updateRequestDto.getK_content() != null) line.setK_content(updateRequestDto.getK_content());
-        if (updateRequestDto.getCa_content() != null) line.setCa_content(updateRequestDto.getCa_content());
-        if (updateRequestDto.getMg_content() != null) line.setMg_content(updateRequestDto.getMg_content());
-        if (updateRequestDto.getS_content() != null) line.setS_content(updateRequestDto.getS_content());
+        if (updateRequestDto.getN_content() != null) line.setN_content(asMacronutrientRange(updateRequestDto.getN_content()));
+        if (updateRequestDto.getP_content() != null) line.setP_content(asMacronutrientRange(updateRequestDto.getP_content()));
+        if (updateRequestDto.getK_content() != null) line.setK_content(asMacronutrientRange(updateRequestDto.getK_content()));
+        if (updateRequestDto.getCa_content() != null) line.setCa_content(asMacronutrientRange(updateRequestDto.getCa_content()));
+        if (updateRequestDto.getMg_content() != null) line.setMg_content(asMacronutrientRange(updateRequestDto.getMg_content()));
+        if (updateRequestDto.getS_content() != null) line.setS_content(asMacronutrientRange(updateRequestDto.getS_content()));
 
         if (updateRequestDto.getB_content() != null) line.setB_content(updateRequestDto.getB_content());
         if (updateRequestDto.getCu_content() != null) line.setCu_content(updateRequestDto.getCu_content());
@@ -154,6 +156,13 @@ public class CropFoliarAnalysisInterpretationTableLineServiceImpl
                         "Já existe uma linha cadastrada para a cultura informada nesta tabela.");
             }
         });
+    }
+
+    private MenorMaiorTeores asMacronutrientRange(MenorMaiorTeores range) {
+        if (range == null) {
+            return null;
+        }
+        return new MenorMaiorTeores(range.getMenor(), range.getMaior(), UnidadeTeor.g_per_kg);
     }
 
     private CropFoliarAnalysisInterpretationTableModel findTableByIdOrThrow(Long tableId) {

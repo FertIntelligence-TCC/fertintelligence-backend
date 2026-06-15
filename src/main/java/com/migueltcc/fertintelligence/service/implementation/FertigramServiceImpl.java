@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramNutrientDto;
 import com.migueltcc.fertintelligence.dto.fertigram.FertigramResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -154,9 +155,16 @@ public class FertigramServiceImpl implements FertigramService {
                 .measuredValue(measured)
                 .recommendedMinimum(min)
                 .recommendedMaximum(max)
-                .unit(range != null && range.getUnity() != null ? range.getUnity().name() : null)
+                .unit(resolveUnit(group, range))
                 .interpretation(interpret(measured, min, max))
                 .build());
+    }
+
+    private String resolveUnit(FertigramNutrientGroupType group, MenorMaiorTeores range) {
+        if (group == FertigramNutrientGroupType.MACRO) {
+            return UnidadeTeor.g_per_kg.name();
+        }
+        return range != null && range.getUnity() != null ? range.getUnity().name() : null;
     }
 
     private String interpret(Double measured, Double min, Double max) {

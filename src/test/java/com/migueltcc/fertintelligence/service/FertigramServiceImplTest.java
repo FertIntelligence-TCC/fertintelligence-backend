@@ -56,7 +56,7 @@ class FertigramServiceImplTest {
         analysis = FoliarAnalysisModel.builder()
                 .id(100L)
                 .crop(crop)
-                .macronutrients(new MacronutrientsContent(3.0, 0.2, 2.1, null, 0.4, null))
+                .macronutrients(new MacronutrientsContent(30.0, 2.0, 21.0, null, 4.0, null))
                 .micronutrients(new MicronutrientsContent(20.0, null, 95.0, null, 40.0, 2.0, null))
                 .build();
         table = CropFoliarAnalysisInterpretationTableModel.builder().id(5L).creator(user).publicTable(true).build();
@@ -65,10 +65,10 @@ class FertigramServiceImplTest {
     @Test
     void geraFertigramaComMacroEMicroPresentes() {
         CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
-                .n_content(new MenorMaiorTeores(3.5, 5.0, UnidadeTeor.dag_per_kg))
-                .p_content(new MenorMaiorTeores(0.1, 0.3, UnidadeTeor.dag_per_kg))
-                .k_content(new MenorMaiorTeores(1.8, 2.5, UnidadeTeor.dag_per_kg))
-                .mg_content(new MenorMaiorTeores(0.3, 0.8, UnidadeTeor.dag_per_kg))
+                .n_content(new MenorMaiorTeores(35.0, 50.0, UnidadeTeor.g_per_kg))
+                .p_content(new MenorMaiorTeores(1.0, 3.0, UnidadeTeor.g_per_kg))
+                .k_content(new MenorMaiorTeores(18.0, 25.0, UnidadeTeor.g_per_kg))
+                .mg_content(new MenorMaiorTeores(3.0, 8.0, UnidadeTeor.g_per_kg))
                 .b_content(new MenorMaiorTeores(15.0, 30.0, UnidadeTeor.mg_per_kg))
                 .fe_content(new MenorMaiorTeores(60.0, 120.0, UnidadeTeor.mg_per_kg))
                 .mn_content(new MenorMaiorTeores(20.0, 50.0, UnidadeTeor.mg_per_kg))
@@ -85,8 +85,8 @@ class FertigramServiceImplTest {
         when(fertigramRepository.save(any(FertigramModel.class))).thenReturn(savedFertigram);
         when(fertigramNutrientRepository.findAllByFertigramOrderByIdAsc(savedFertigram))
                 .thenReturn(List.of(
-                        FertigramNutrientModel.builder().id(1L).fertigram(savedFertigram).nutrient("N").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(3.0).build(),
-                        FertigramNutrientModel.builder().id(2L).fertigram(savedFertigram).nutrient("P").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(0.2).build(),
+                        FertigramNutrientModel.builder().id(1L).fertigram(savedFertigram).nutrient("N").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(30.0).build(),
+                        FertigramNutrientModel.builder().id(2L).fertigram(savedFertigram).nutrient("P").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MACRO).measuredValue(2.0).build(),
                         FertigramNutrientModel.builder().id(3L).fertigram(savedFertigram).nutrient("B").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MICRO).measuredValue(20.0).build(),
                         FertigramNutrientModel.builder().id(4L).fertigram(savedFertigram).nutrient("Fe").groupType(com.migueltcc.fertintelligence.model.fertintelligence.fertigram.FertigramNutrientGroupType.MICRO).measuredValue(95.0).build()
                 ));
@@ -198,7 +198,7 @@ class FertigramServiceImplTest {
         CropFoliarAnalysisInterpretationTableLineModel line = CropFoliarAnalysisInterpretationTableLineModel.builder()
                 .crop(NomeComum.SOJA)
                 .n_content(null)
-                .p_content(new MenorMaiorTeores(0.1, 0.3, null))
+                .p_content(new MenorMaiorTeores(1.0, 3.0, null))
                 .build();
         FertigramModel savedFertigram = FertigramModel.builder().id(1L).foliarAnalysis(analysis).table(table).build();
 

@@ -96,7 +96,7 @@ public class CropFoliarAnalysisInterpretationTableLineControllerImplTest extends
         return MenorMaiorTeores.builder()
                 .menor(menor)
                 .maior(maior)
-                .unity(UnidadeTeor.dag_per_kg)
+                .unity(UnidadeTeor.g_per_kg)
                 .build();
     }
 
