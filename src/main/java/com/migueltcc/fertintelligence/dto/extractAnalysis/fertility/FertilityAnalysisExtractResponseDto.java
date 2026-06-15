@@ -94,7 +94,7 @@ public class FertilityAnalysisExtractResponseDto {
     @JsonProperty("saturacao_aluminio_m")
     Double saturacaoAluminioM;
 
-    @Schema(example = "2.69")
+    @Schema(example = "2.7")
     @JsonProperty("pst")
     Double pst;
 
