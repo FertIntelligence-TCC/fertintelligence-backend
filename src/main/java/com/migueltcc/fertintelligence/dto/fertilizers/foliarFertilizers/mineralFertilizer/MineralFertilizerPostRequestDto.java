@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NaturezaFisica;
 import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +16,18 @@ public class MineralFertilizerPostRequestDto {
 
     @JsonProperty("novo_nome_adubo")
     private String name;
+
+    @JsonProperty("nova_natureza_fisica")
+    private NaturezaFisica naturezaFisica;
+
+    @JsonProperty("nova_densidade_g_ml")
+    private Double densidadeGml;
+
+    @JsonProperty("nova_concentracao_volume_g_l")
+    private Double concentracaoVolumeGl;
+
+    @JsonProperty("nova_concentracao_massa_g_kg")
+    private Double concentracaoMassaGkg;
 
     @JsonProperty("novo_n")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")

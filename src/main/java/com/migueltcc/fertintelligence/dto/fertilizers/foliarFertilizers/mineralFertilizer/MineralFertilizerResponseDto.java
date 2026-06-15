@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NaturezaFisica;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,22 @@ public class MineralFertilizerResponseDto {
     @Schema(example = "Organo Plus 10-10-10")
     @JsonProperty("nome_adubo")
     private String name;
+
+    @Schema(example = "LÍQUIDO")
+    @JsonProperty("natureza_fisica")
+    private NaturezaFisica naturezaFisica;
+
+    @Schema(example = "1.2")
+    @JsonProperty("densidade_g_ml")
+    private Double densidadeGml;
+
+    @Schema(example = "240.0")
+    @JsonProperty("concentracao_volume_g_l")
+    private Double concentracaoVolumeGl;
+
+    @Schema(example = "200.0")
+    @JsonProperty("concentracao_massa_g_kg")
+    private Double concentracaoMassaGkg;
 
     @Schema(example = "10.0")
     @JsonProperty("n")

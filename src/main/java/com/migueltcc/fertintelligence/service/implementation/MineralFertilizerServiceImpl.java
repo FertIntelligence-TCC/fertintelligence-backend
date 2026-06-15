@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NaturezaFisica;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer.MineralFertilizerCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer.MineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer.MineralFertilizerResponseDto;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class MineralFertilizerServiceImpl implements MineralFertilizerService {
 
+    private static final String NON_NEGATIVE_VALUE_MESSAGE = "O valor não pode ser negativo";
+
     private final MineralFertilizerRepository repository;
     private final UserRepository userRepository;
 
@@ -36,10 +39,16 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
         checkUserRole(owner);
+        NaturezaFisica naturezaFisica = resolveNaturezaFisica(dto.getNaturezaFisica());
+        validateLiquidFields(naturezaFisica, dto.getDensidadeGml(), dto.getConcentracaoVolumeGl(), dto.getConcentracaoMassaGkg());
 
         MineralFertilizerModel fertilizer = MineralFertilizerModel.builder()
                 .user(owner)
                 .name(dto.getName())
+                .naturezaFisica(naturezaFisica)
+                .densidadeGml(liquidValue(naturezaFisica, dto.getDensidadeGml()))
+                .concentracaoVolumeGl(liquidValue(naturezaFisica, dto.getConcentracaoVolumeGl()))
+                .concentracaoMassaGkg(liquidValue(naturezaFisica, dto.getConcentracaoMassaGkg()))
                 // Macros
                 .N(getOrDefault(dto.getN()))
                 .P2O5(getOrDefault(dto.getP2o5()))
@@ -126,6 +135,14 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
         checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
+        if (dto.getNaturezaFisica() != null) fertilizer.setNaturezaFisica(dto.getNaturezaFisica());
+        NaturezaFisica naturezaFisica = resolveNaturezaFisica(fertilizer.getNaturezaFisica());
+
+        validateLiquidFields(naturezaFisica, dto.getDensidadeGml(), dto.getConcentracaoVolumeGl(), dto.getConcentracaoMassaGkg());
+        if (dto.getDensidadeGml() != null) fertilizer.setDensidadeGml(dto.getDensidadeGml());
+        if (dto.getConcentracaoVolumeGl() != null) fertilizer.setConcentracaoVolumeGl(dto.getConcentracaoVolumeGl());
+        if (dto.getConcentracaoMassaGkg() != null) fertilizer.setConcentracaoMassaGkg(dto.getConcentracaoMassaGkg());
+        clearLiquidFieldsWhenSolid(fertilizer);
 
         if (dto.getN() != null) fertilizer.setN(dto.getN());
         if (dto.getP2o5() != null) fertilizer.setP2O5(dto.getP2o5());
@@ -182,6 +199,34 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;
+    }
+
+    private NaturezaFisica resolveNaturezaFisica(NaturezaFisica naturezaFisica) {
+        return naturezaFisica != null ? naturezaFisica : NaturezaFisica.SOLIDO;
+    }
+
+    private Double liquidValue(NaturezaFisica naturezaFisica, Double value) {
+        return resolveNaturezaFisica(naturezaFisica) == NaturezaFisica.LIQUIDO ? value : null;
+    }
+
+    private void validateLiquidFields(NaturezaFisica naturezaFisica, Double... values) {
+        if (resolveNaturezaFisica(naturezaFisica) != NaturezaFisica.LIQUIDO) {
+            return;
+        }
+
+        for (Double value : values) {
+            if (value != null && value < 0.0) {
+                throw new IllegalArgumentException(NON_NEGATIVE_VALUE_MESSAGE);
+            }
+        }
+    }
+
+    private void clearLiquidFieldsWhenSolid(MineralFertilizerModel fertilizer) {
+        if (fertilizer.getNaturezaFisica() == NaturezaFisica.SOLIDO) {
+            fertilizer.setDensidadeGml(null);
+            fertilizer.setConcentracaoVolumeGl(null);
+            fertilizer.setConcentracaoMassaGkg(null);
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

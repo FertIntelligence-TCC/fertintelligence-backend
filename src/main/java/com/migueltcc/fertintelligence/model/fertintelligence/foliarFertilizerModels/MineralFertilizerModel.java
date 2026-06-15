@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NaturezaFisica;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer.MineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
@@ -28,6 +29,20 @@ public class MineralFertilizerModel {
 
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
+
+    @Column(name = "NATUREZA_FISICA", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private NaturezaFisica naturezaFisica = NaturezaFisica.SOLIDO;
+
+    @Column(name = "DENSIDADE_G_ML")
+    private Double densidadeGml;
+
+    @Column(name = "CONCENTRACAO_VOLUME_G_L")
+    private Double concentracaoVolumeGl;
+
+    @Column(name = "CONCENTRACAO_MASSA_G_KG")
+    private Double concentracaoMassaGkg;
 
     // Macronutrientes Primários
     @Column(name = "PORCENTAGEM_NITROGENIO")
@@ -79,6 +94,10 @@ public class MineralFertilizerModel {
         return MineralFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
+                .naturezaFisica(this.naturezaFisica != null ? this.naturezaFisica : NaturezaFisica.SOLIDO)
+                .densidadeGml(this.densidadeGml)
+                .concentracaoVolumeGl(this.concentracaoVolumeGl)
+                .concentracaoMassaGkg(this.concentracaoMassaGkg)
                 // Tratamento seguro de nulos
                 .n(this.N != null ? this.N : 0.0)
                 .p2o5(this.P2O5 != null ? this.P2O5 : 0.0)

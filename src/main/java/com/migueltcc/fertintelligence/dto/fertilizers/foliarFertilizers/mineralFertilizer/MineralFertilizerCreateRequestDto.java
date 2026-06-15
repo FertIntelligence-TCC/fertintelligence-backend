@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.mineralFertilizer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NaturezaFisica;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,18 @@ public class MineralFertilizerCreateRequestDto {
     @JsonProperty("nome_adubo")
     @NotBlank(message = "O nome do adubo é obrigatório")
     private String name;
+
+    @JsonProperty("natureza_fisica")
+    private NaturezaFisica naturezaFisica;
+
+    @JsonProperty("densidade_g_ml")
+    private Double densidadeGml;
+
+    @JsonProperty("concentracao_volume_g_l")
+    private Double concentracaoVolumeGl;
+
+    @JsonProperty("concentracao_massa_g_kg")
+    private Double concentracaoMassaGkg;
 
     // Macronutrientes Primários
     @JsonProperty("n")
