@@ -181,7 +181,13 @@ public class ExtractsDataSeeder implements CommandLineRunner {
 
         double ca = 1.0 + (index % 5) * 0.45;
         double mg = 0.4 + (index % 4) * 0.25;
+        double k = 25.0 + (index % 8) * 12.0;
+        double na = 0.2 + (index % 5) * 0.15;
+        double al = (index % 3 == 0) ? 0.4 : 0.0;
         double alH = 2.0 + (index % 5) * 0.5;
+        double somaBases = ca + mg + k + na;
+        double ctcEfetiva = somaBases + al;
+        double ctcPh7 = somaBases + alH;
 
         fertilityAnalysisExtractRepository.save(FertilityAnalysisExtractModel.builder()
                 .layerExtract(layerExtract)
@@ -189,17 +195,19 @@ public class ExtractsDataSeeder implements CommandLineRunner {
                 .phAgua(4.8 + (index % 6) * 0.25)
                 .phCacl2(4.5 + (index % 6) * 0.2)
                 .fosforoMehlich1(5.0 + (index % 7) * 6.0)
-                .potassio(25.0 + (index % 8) * 12.0)
+                .potassio(k)
+                .sodio(na)
                 .calcio(ca)
                 .magnesio(mg)
-                .aluminio((index % 3 == 0) ? 0.4 : 0.0)
+                .aluminio(al)
                 .aluminioMaisHidrogenio(alH)
                 .materiaOrganica(8.0 + (index % 6) * 3.0)
-                .somaBases(ca + mg + 1.0)
-                .ctcEfetiva(ca + mg + 1.0 + ((index % 3 == 0) ? 0.4 : 0.0))
-                .ctcPh7(ca + mg + alH + 1.0)
-                .saturacaoBasesV(35.0 + (index % 7) * 6.0)
-                .saturacaoAluminioM(5.0 + (index % 5) * 4.0)
+                .somaBases(somaBases)
+                .ctcEfetiva(ctcEfetiva)
+                .ctcPh7(ctcPh7)
+                .saturacaoBasesV(percentage(somaBases, ctcPh7))
+                .saturacaoAluminioM(percentage(al, ctcEfetiva))
+                .pst(percentage(na, ctcPh7))
                 .build());
 
         log.info("✅ Análise de fertilidade criada: soilAnalysis={}", soilAnalysis.getId());
@@ -248,5 +256,12 @@ public class ExtractsDataSeeder implements CommandLineRunner {
         if (mod == 0) return new int[]{0, 20};
         if (mod == 1) return new int[]{20, 40};
         return new int[]{40, 60};
+    }
+
+    private Double percentage(double numerator, double denominator) {
+        if (denominator == 0.0) {
+            return null;
+        }
+        return Math.round((100.0 * numerator / denominator) * 10.0) / 10.0;
     }
 }

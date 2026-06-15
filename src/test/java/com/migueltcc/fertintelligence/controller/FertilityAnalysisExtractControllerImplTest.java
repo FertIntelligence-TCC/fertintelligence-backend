@@ -38,7 +38,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.closeTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -153,6 +152,7 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .ctcPh7(80.0)
                 .saturacaoBasesV(75.0)
                 .saturacaoAluminioM(10.0)
+                .pst(3.4)
                 .fosforoMehlich1(15.0)
                 .fosforoResina(18.0)
                 .enxofre(22.0)
@@ -236,8 +236,9 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.soma_bases").value(65.9))
                 .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
                 .andExpect(jsonPath("$.ctc_ph7").value(70.1))
-                .andExpect(jsonPath("$.saturacao_bases_v").value(closeTo(94.008559, 0.000001)))
-                .andExpect(jsonPath("$.saturacao_aluminio_m").value(closeTo(0.753012, 0.000001)));
+                .andExpect(jsonPath("$.saturacao_bases_v").value(94.0))
+                .andExpect(jsonPath("$.saturacao_aluminio_m").value(0.8))
+                .andExpect(jsonPath("$.pst").value(3.4));
     }
 
     @Test
@@ -270,7 +271,8 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                         .param("fertilityAnalysisExtractId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.ph_agua").value(5.6));
+                .andExpect(jsonPath("$.ph_agua").value(5.6))
+                .andExpect(jsonPath("$.pst").value(3.4));
     }
 
     @Test
@@ -325,8 +327,9 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.soma_bases").value(65.9))
                 .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
                 .andExpect(jsonPath("$.ctc_ph7").value(70.1))
-                .andExpect(jsonPath("$.saturacao_bases_v").value(closeTo(94.008559, 0.000001)))
-                .andExpect(jsonPath("$.saturacao_aluminio_m").value(closeTo(0.753012, 0.000001)));
+                .andExpect(jsonPath("$.saturacao_bases_v").value(94.0))
+                .andExpect(jsonPath("$.saturacao_aluminio_m").value(0.8))
+                .andExpect(jsonPath("$.pst").value(3.4));
     }
 
     @Test

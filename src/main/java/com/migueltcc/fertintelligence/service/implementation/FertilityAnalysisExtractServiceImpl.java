@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -210,7 +212,13 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         if (denominator == 0.0) {
             return null;
         }
-        return 100.0 * numerator / denominator;
+        return roundToOneDecimalPlace(100.0 * numerator / denominator);
+    }
+
+    private Double roundToOneDecimalPlace(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     private double zeroIfNull(Double value) {
