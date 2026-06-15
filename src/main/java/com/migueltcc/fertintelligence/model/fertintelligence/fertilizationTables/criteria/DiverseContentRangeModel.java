@@ -16,6 +16,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "FAIXAS_DE_TEORES_DIVERSOS")
 public class DiverseContentRangeModel {
 
+    private static final String ORGANIC_CARBON_UNIT = "g/dm3";
+    private static final String ORGANIC_MATTER_UNIT = "g/dm3";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -25,8 +28,11 @@ public class DiverseContentRangeModel {
     SoilFertilityInterpretationCriteriaTableModel table;
 
     // =================================================================================
-    // CARBONO ORGÂNICO (C.O.) - dag/kg
+    // CARBONO ORGÂNICO (C.O.) - g/dm3
     // =================================================================================
+    @Column(name = "UNIDADE_CARBONO_ORGANICO", nullable = false)
+    @Builder.Default
+    String organic_carbon_unit = ORGANIC_CARBON_UNIT;
     @Column(name = "MENOR_TEOR_CARBONO_ORGANICO", nullable = false)
     Double organic_carbon_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_CARBONO_ORGANICO", nullable = false)
@@ -45,8 +51,11 @@ public class DiverseContentRangeModel {
     Double organic_carbon_too_hight;
 
     // =================================================================================
-    // MATÉRIA ORGÂNICA (M.O.) - dag/kg
+    // MATÉRIA ORGÂNICA (M.O.) - g/dm3
     // =================================================================================
+    @Column(name = "UNIDADE_MATERIA_ORGANICA", nullable = false)
+    @Builder.Default
+    String organic_matter_unit = ORGANIC_MATTER_UNIT;
     @Column(name = "MENOR_TEOR_MATERIA_ORGANICA", nullable = false)
     Double organic_matter_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_MATERIA_ORGANICA", nullable = false)
@@ -444,6 +453,13 @@ public class DiverseContentRangeModel {
     @Column(name = "MAIOR_TEOR_ZINCO", nullable = false)
     Double zinc_too_hight;
 
+    @PrePersist
+    @PreUpdate
+    private void normalizeUnits() {
+        this.organic_carbon_unit = ORGANIC_CARBON_UNIT;
+        this.organic_matter_unit = ORGANIC_MATTER_UNIT;
+    }
+
     /**
      * Converte a entidade para DTO.
      */
@@ -453,6 +469,7 @@ public class DiverseContentRangeModel {
                 .tableId(this.table != null ? this.table.getId() : null)
 
                 // Organic Carbon
+                .organic_carbon_unit(ORGANIC_CARBON_UNIT)
                 .organic_carbon_too_low(this.organic_carbon_too_low)
                 .organic_carbon_low_i(this.organic_carbon_low_i)
                 .organic_carbon_low_f(this.organic_carbon_low_f)
@@ -463,6 +480,7 @@ public class DiverseContentRangeModel {
                 .organic_carbon_too_hight(this.organic_carbon_too_hight)
 
                 // Organic Matter
+                .organic_matter_unit(ORGANIC_MATTER_UNIT)
                 .organic_matter_too_low(this.organic_matter_too_low)
                 .organic_matter_low_i(this.organic_matter_low_i)
                 .organic_matter_low_f(this.organic_matter_low_f)

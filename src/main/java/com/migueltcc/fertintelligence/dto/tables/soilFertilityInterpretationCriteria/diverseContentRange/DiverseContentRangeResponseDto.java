@@ -21,6 +21,8 @@ public class DiverseContentRangeResponseDto {
     private Long tableId;
 
     // --- CARBONO ORGÂNICO ---
+    @JsonProperty("unidade_carbono_organico")
+    private String organic_carbon_unit;
     @JsonProperty("menor_teor_carbono_organico")
     private Double organic_carbon_too_low;
     @JsonProperty("teor_inicial_baixo_carbono_organico")
@@ -39,6 +41,8 @@ public class DiverseContentRangeResponseDto {
     private Double organic_carbon_too_hight;
 
     // --- MATÉRIA ORGÂNICA ---
+    @JsonProperty("unidade_materia_organica")
+    private String organic_matter_unit;
     @JsonProperty("menor_teor_materia_organica")
     private Double organic_matter_too_low;
     @JsonProperty("teor_inicial_baixo_materia_organica")
