@@ -72,13 +72,6 @@ public class GreenFertilizerModel {
     @Column(name = "PORCENTAGEM_ZINCO")
     private Double Zn;
 
-    // Índices Físico-Químicos
-    @Column(name = "INDICE_SALINO")
-    private Double indiceSalino;
-
-    @Column(name = "INDICE_ACIDEZ")
-    private Double indiceAcidez;
-
     public GreenFertilizerResponseDto toDto() {
         return GreenFertilizerResponseDto.builder()
                 .id(this.id)
@@ -97,8 +90,6 @@ public class GreenFertilizerModel {
                 .mn(this.Mn != null ? this.Mn : 0.0)
                 .mo(this.Mo != null ? this.Mo : 0.0)
                 .zn(this.Zn != null ? this.Zn : 0.0)
-                .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
-                .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
                 .build();
     }
 }

@@ -69,8 +69,6 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .mn(0.1)
                 .mo(0.01)
                 .zn(0.07)
-                .indiceSalino(8.5)
-                .indiceAcidez(6.0)
                 .build();
     }
 
@@ -92,8 +90,6 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .Mn(0.1)
                 .Mo(0.01)
                 .Zn(0.07)
-                .indiceSalino(8.5)
-                .indiceAcidez(6.0)
                 .build();
     }
 
@@ -113,8 +109,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(header().string("Location", "http://localhost/green-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Teste"))
-                .andExpect(jsonPath("$.c").value(15.0))
-                .andExpect(jsonPath("$.indice_salino").value(8.5));
+                .andExpect(jsonPath("$.c").value(15.0));
     }
 
     @Test
@@ -171,7 +166,6 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
         GreenFertilizerPostRequestDto updateDto = GreenFertilizerPostRequestDto.builder()
                 .name("Adubo Verde Atualizado")
                 .c(18.0)
-                .indiceAcidez(6.3)
                 .build();
 
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(owner));
@@ -181,7 +175,6 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
             GreenFertilizerModel arg = invocation.getArgument(0);
             arg.setName("Adubo Verde Atualizado");
             arg.setC(18.0);
-            arg.setIndiceAcidez(6.3);
             return arg;
         });
 
@@ -191,8 +184,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                         .content(mapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Atualizado"))
-                .andExpect(jsonPath("$.c").value(18.0))
-                .andExpect(jsonPath("$.indice_acidez").value(6.3));
+                .andExpect(jsonPath("$.c").value(18.0));
     }
 
     @Test

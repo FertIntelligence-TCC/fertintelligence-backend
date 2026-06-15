@@ -64,14 +64,6 @@ public class GreenFertilizerResponseDto {
     @JsonProperty("zn")
     private Double zn;
 
-    @Schema(example = "45.0")
-    @JsonProperty("indice_salino")
-    private Double indiceSalino;
-
-    @Schema(example = "5.0")
-    @JsonProperty("indice_acidez")
-    private Double indiceAcidez;
-
     @Schema(example = "42")
     @JsonProperty("user_id")
     private Long userId;

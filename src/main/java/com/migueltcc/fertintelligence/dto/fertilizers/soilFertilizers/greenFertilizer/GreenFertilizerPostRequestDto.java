@@ -68,12 +68,6 @@ public class GreenFertilizerPostRequestDto {
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
 
-    @JsonProperty("novo_indice_salino")
-    private Double indiceSalino;
-
-    @JsonProperty("novo_indice_acidez")
-    private Double indiceAcidez;
-
     @JsonProperty("novo_publico")
     private Boolean novoPublico;
 

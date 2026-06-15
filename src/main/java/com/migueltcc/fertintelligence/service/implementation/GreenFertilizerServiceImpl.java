@@ -40,7 +40,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         GreenFertilizerModel fertilizer = GreenFertilizerModel.builder()
                 .user(owner)
                 .name(dto.getName())
-                // Nutrientes Essenciais e Indices
+                // Nutrientes Essenciais
                 .C(getOrDefault(dto.getC()))
                 .N(getOrDefault(dto.getN()))
                 .P2O5(getOrDefault(dto.getP2o5()))
@@ -54,8 +54,6 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .Mn(getOrDefault(dto.getMn()))
                 .Mo(getOrDefault(dto.getMo()))
                 .Zn(getOrDefault(dto.getZn()))
-                .indiceSalino(getOrDefault(dto.getIndiceSalino()))
-                .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .build();
 
@@ -140,8 +138,6 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
 
-        if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
-        if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
         return greenFertilizerRepository.save(fertilizer).toDto();

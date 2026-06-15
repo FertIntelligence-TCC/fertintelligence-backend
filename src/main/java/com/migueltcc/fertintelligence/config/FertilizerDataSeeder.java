@@ -171,7 +171,6 @@ public class FertilizerDataSeeder implements CommandLineRunner {
                 .P2O5(p2o5).K2O(k2o)
                 .Ca(0.0).Mg(0.0).S(0.0)
                 .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
-                .indiceSalino(0.0).indiceAcidez(0.0)
                 .build();
         greenRepository.save(model);
         log.info("➕ Adubo verde carregado: {}", name);

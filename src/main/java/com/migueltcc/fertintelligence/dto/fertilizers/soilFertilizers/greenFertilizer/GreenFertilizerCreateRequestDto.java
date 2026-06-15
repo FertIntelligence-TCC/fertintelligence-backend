@@ -3,7 +3,6 @@ package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFert
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -74,13 +73,6 @@ public class GreenFertilizerCreateRequestDto {
     @JsonProperty("zn")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
-
-    // Índices
-    @JsonProperty("indice_salino")
-    private Double indiceSalino;
-
-    @JsonProperty("indice_acidez")
-    private Double indiceAcidez;
 
     @JsonProperty("publico")
     private Boolean publico;
