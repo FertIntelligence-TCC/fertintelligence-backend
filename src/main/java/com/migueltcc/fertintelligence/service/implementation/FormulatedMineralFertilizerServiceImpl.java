@@ -22,6 +22,10 @@ import java.util.stream.Collectors;
 @Service
 public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineralFertilizerService {
 
+    private static final int MINIMUM_NPK_SUM = 24;
+    private static final String MINIMUM_NPK_SUM_MESSAGE =
+            "A soma dos valores de NPK deve ser de pelo menos 24.";
+
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final UserRepository userRepository;
 
@@ -44,10 +48,12 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         // Mapear Objetos Embutidos
         Formulate formulate = new Formulate();
         if (dto.getFormulate() != null) {
-            formulate.setN((int) getOrDefault(Double.valueOf(dto.getFormulate().getN())));
-            formulate.setP((int) getOrDefault(Double.valueOf(dto.getFormulate().getP())));
-            formulate.setK((int) getOrDefault(Double.valueOf(dto.getFormulate().getK())));
+            formulate.setN(getOrDefault(dto.getFormulate().getN()));
+            formulate.setP(getOrDefault(dto.getFormulate().getP()));
+            formulate.setK(getOrDefault(dto.getFormulate().getK()));
         }
+        validateFormulateNpkSum(formulate);
+        validatePrimaryNpkSumWhenProvided(dto.getN(), dto.getP2o5(), dto.getK2o());
 
         NPKrelation relation = FormulatedMineralFertilizerModel.calculateRelation(formulate);
 
@@ -122,9 +128,9 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
 
         if (dto.getFormulate() != null) {
             if (fertilizer.getFormulate() == null) fertilizer.setFormulate(new Formulate());
-            fertilizer.getFormulate().setN((int) getOrDefault(Double.valueOf(dto.getFormulate().getN())));
-            fertilizer.getFormulate().setP((int) getOrDefault(Double.valueOf(dto.getFormulate().getP())));
-            fertilizer.getFormulate().setK((int) getOrDefault(Double.valueOf(dto.getFormulate().getK())));
+            fertilizer.getFormulate().setN(getOrDefault(dto.getFormulate().getN()));
+            fertilizer.getFormulate().setP(getOrDefault(dto.getFormulate().getP()));
+            fertilizer.getFormulate().setK(getOrDefault(dto.getFormulate().getK()));
             fertilizer.setRelation(FormulatedMineralFertilizerModel.calculateRelation(fertilizer.getFormulate()));
         }
 
@@ -153,6 +159,9 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
 
+        validateFormulateNpkSum(fertilizer.getFormulate());
+        validatePrimaryNpkSum(fertilizer.getN(), fertilizer.getP2O5(), fertilizer.getK2O());
+
         FormulatedMineralFertilizerModel updated = formulatedMineralFertilizerRepository.save(fertilizer);
         return updated.toDto();
     }
@@ -168,6 +177,31 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;
+    }
+
+    private int getOrDefault(Integer value) {
+        return value != null ? value : 0;
+    }
+
+    private void validateFormulateNpkSum(Formulate formulate) {
+        int sum = formulate != null
+                ? formulate.getN() + formulate.getP() + formulate.getK()
+                : 0;
+        if (sum < MINIMUM_NPK_SUM) {
+            throw new IllegalArgumentException(MINIMUM_NPK_SUM_MESSAGE);
+        }
+    }
+
+    private void validatePrimaryNpkSumWhenProvided(Double n, Double p2o5, Double k2o) {
+        if (n != null || p2o5 != null || k2o != null) {
+            validatePrimaryNpkSum(getOrDefault(n), getOrDefault(p2o5), getOrDefault(k2o));
+        }
+    }
+
+    private void validatePrimaryNpkSum(double n, double p2o5, double k2o) {
+        if (n + p2o5 + k2o < MINIMUM_NPK_SUM) {
+            throw new IllegalArgumentException(MINIMUM_NPK_SUM_MESSAGE);
+        }
     }
 
     private void checkOwnership(FormulatedMineralFertilizerModel fertilizer, UserModel owner) {

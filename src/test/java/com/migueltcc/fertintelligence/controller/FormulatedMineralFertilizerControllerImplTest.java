@@ -31,6 +31,8 @@ import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -131,6 +133,26 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
 
     @Test
     @WithMockUser(username = "owner")
+    void createFormulatedMineralFertilizerRejectsFormulaWithNpkSumBelowMinimum() throws Exception {
+        FormulatedMineralFertilizerCreateRequestDto requestDto = createRequestDto();
+        requestDto.setFormulate(new FormulateDto(4, 10, 8));
+        requestDto.setN(4.0);
+        requestDto.setP2o5(10.0);
+        requestDto.setK2o(8.0);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+
+        mockMvc.perform(post("/formulated-mineral-fertilizer/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A soma dos valores de NPK deve ser de pelo menos 24."));
+
+        verify(formulatedMineralFertilizerRepository, never()).save(any(FormulatedMineralFertilizerModel.class));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
     void getFormulatedMineralFertilizerSuccessfully() throws Exception {
         FormulatedMineralFertilizerModel model = createModel(2L);
 
@@ -214,6 +236,30 @@ public class FormulatedMineralFertilizerControllerImplTest extends AbstractContr
 
                 // A relação preserva a proporção do modelo original, permitindo decimais
                 .andExpect(jsonPath("$.relacao.p").value(3.5));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void updateFormulatedMineralFertilizerRejectsPrimaryNpkSumBelowMinimum() throws Exception {
+        FormulatedMineralFertilizerModel existing = createModel(4L);
+
+        FormulatedMineralFertilizerPostRequestDto updateDto = FormulatedMineralFertilizerPostRequestDto.builder()
+                .n(4.0)
+                .p2o5(10.0)
+                .k2o(8.0)
+                .build();
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(formulatedMineralFertilizerRepository.findById(4L)).thenReturn(Optional.of(existing));
+
+        mockMvc.perform(put("/formulated-mineral-fertilizer/update")
+                        .param("formulatedMineralFertilizerId", "4")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(updateDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A soma dos valores de NPK deve ser de pelo menos 24."));
+
+        verify(formulatedMineralFertilizerRepository, never()).save(any(FormulatedMineralFertilizerModel.class));
     }
 
     @Test
