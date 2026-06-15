@@ -6,11 +6,14 @@ import com.migueltcc.fertintelligence.dto.fertilizers.attributes.FormulateDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.attributes.NPKrelationDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -83,6 +86,16 @@ public class FormulatedMineralFertilizerCreateRequestDto {
     @JsonProperty("zn")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
+
+    @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
+    @JsonProperty("ids_fotos")
+    private List<String> idsFotos;
+
+    @JsonProperty("observacao")
+    private String observation;
+
+    @JsonProperty("fonte")
+    private String source;
 
     @JsonProperty("publico")
     private Boolean publico;

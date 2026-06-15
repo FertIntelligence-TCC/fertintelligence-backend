@@ -15,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,6 +69,9 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
+                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
+                .observation(dto.getObservation())
+                .source(dto.getSource())
                 .build();
 
         return repository.save(fertilizer).toDto();
@@ -162,6 +166,9 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
+        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
+        if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
         return repository.save(fertilizer).toDto();
     }
@@ -195,6 +202,16 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
         if (user.getCargo() != Cargo.USUARIO_SUPREMO && user.getCargo() != Cargo.PROPRIETARIO && user.getCargo() != Cargo.GERENTE) {
             throw new AccessDeniedException("Permissão insuficiente.");
         }
+    }
+
+    private List<String> copyIdsFotos(List<String> idsFotos) {
+        if (idsFotos == null) {
+            return new ArrayList<>();
+        }
+        if (idsFotos.size() > 5) {
+            throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
+        }
+        return new ArrayList<>(idsFotos);
     }
 
     private double getOrDefault(Double value) {

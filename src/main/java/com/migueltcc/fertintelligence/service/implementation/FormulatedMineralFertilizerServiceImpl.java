@@ -16,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,6 +70,9 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
                 .B(getOrDefault(dto.getB())).Cu(getOrDefault(dto.getCu())).Fe(getOrDefault(dto.getFe()))
                 .Mn(getOrDefault(dto.getMn())).Mo(getOrDefault(dto.getMo())).Zn(getOrDefault(dto.getZn()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
+                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
+                .observation(dto.getObservation())
+                .source(dto.getSource())
                 .build();
 
         FormulatedMineralFertilizerModel saved = formulatedMineralFertilizerRepository.save(fertilizer);
@@ -158,6 +162,9 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
+        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
+        if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
         validateFormulateNpkSum(fertilizer.getFormulate());
         validatePrimaryNpkSum(fertilizer.getN(), fertilizer.getP2O5(), fertilizer.getK2O());
@@ -173,6 +180,16 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkOwnership(fertilizer, owner);
         formulatedMineralFertilizerRepository.delete(fertilizer);
+    }
+
+    private List<String> copyIdsFotos(List<String> idsFotos) {
+        if (idsFotos == null) {
+            return new ArrayList<>();
+        }
+        if (idsFotos.size() > 5) {
+            throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
+        }
+        return new ArrayList<>(idsFotos);
     }
 
     private double getOrDefault(Double value) {

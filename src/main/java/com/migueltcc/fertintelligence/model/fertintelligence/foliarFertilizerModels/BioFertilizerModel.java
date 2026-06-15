@@ -5,6 +5,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,6 +28,19 @@ public class BioFertilizerModel {
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
+
+    @ElementCollection
+    @CollectionTable(name = "BIO_FERTILIZANTES_FOTOS", joinColumns = @JoinColumn(name = "ADUBO_ID"))
+    @OrderColumn(name = "ORDEM")
+    @Column(name = "ID_FOTO", nullable = false)
+    @Builder.Default
+    private List<String> idsFotos = new ArrayList<>();
+
+    @Column(name = "OBSERVACAO", columnDefinition = "TEXT")
+    private String observation;
+
+    @Column(name = "FONTE", columnDefinition = "TEXT")
+    private String source;
 
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
@@ -126,6 +142,9 @@ public class BioFertilizerModel {
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
                 .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
+                .idsFotos(this.idsFotos)
+                .observation(this.observation)
+                .source(this.source)
                 .build();
     }
 }

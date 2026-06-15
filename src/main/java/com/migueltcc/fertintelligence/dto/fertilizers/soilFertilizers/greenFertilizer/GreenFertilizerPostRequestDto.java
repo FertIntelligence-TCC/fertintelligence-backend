@@ -2,10 +2,13 @@ package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFert
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -67,6 +70,16 @@ public class GreenFertilizerPostRequestDto {
     @JsonProperty("novo_zn")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
+
+    @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
+    @JsonProperty("novos_ids_fotos")
+    private List<String> idsFotos;
+
+    @JsonProperty("novo_observacao")
+    private String observation;
+
+    @JsonProperty("novo_fonte")
+    private String source;
 
     @JsonProperty("novo_publico")
     private Boolean novoPublico;

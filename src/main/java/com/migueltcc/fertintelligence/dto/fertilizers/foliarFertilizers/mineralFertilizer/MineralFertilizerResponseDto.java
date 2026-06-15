@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -99,6 +101,15 @@ public class MineralFertilizerResponseDto {
     private Boolean publico;
 
     @Schema(example = "João Agrônomo")
+    @JsonProperty("ids_fotos")
+    private List<String> idsFotos;
+
+    @JsonProperty("observacao")
+    private String observation;
+
+    @JsonProperty("fonte")
+    private String source;
+
     @JsonProperty("nome_criador")
     private String nomeCriador;
 }

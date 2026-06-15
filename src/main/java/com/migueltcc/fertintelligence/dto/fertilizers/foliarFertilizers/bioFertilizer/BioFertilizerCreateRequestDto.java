@@ -2,12 +2,15 @@ package com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFert
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -112,6 +115,16 @@ public class BioFertilizerCreateRequestDto {
     @JsonProperty("indice_acidez")
     private Double indiceAcidez;
 
+
+    @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
+    @JsonProperty("ids_fotos")
+    private List<String> idsFotos;
+
+    @JsonProperty("observacao")
+    private String observation;
+
+    @JsonProperty("fonte")
+    private String source;
 
     @JsonProperty("publico")
     private Boolean publico;

@@ -15,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,9 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .indiceSalino(getOrDefault(createRequestDto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(createRequestDto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(createRequestDto.getPublico()))
+                .idsFotos(copyIdsFotos(createRequestDto.getIdsFotos()))
+                .observation(createRequestDto.getObservation())
+                .source(createRequestDto.getSource())
                 .build();
 
         SimpleMineralFertilizerModel saved = simpleMineralFertilizerRepository.save(fertilizer);
@@ -132,6 +136,9 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
+        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
+        if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
         SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
         return updated.toDto();
@@ -164,6 +171,16 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 && user.getCargo() != Cargo.SUPERVISOR_DE_AREA) {
             throw new AccessDeniedException("Você não tem permissão para acessar ou modificar este recurso.");
         }
+    }
+
+    private List<String> copyIdsFotos(List<String> idsFotos) {
+        if (idsFotos == null) {
+            return new ArrayList<>();
+        }
+        if (idsFotos.size() > 5) {
+            throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
+        }
+        return new ArrayList<>(idsFotos);
     }
 
     private double getOrDefault(Double value) {
