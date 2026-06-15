@@ -1,0 +1,33 @@
+package com.migueltcc.fertintelligence.repository;
+
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.OrganicFertilizerModel;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface OrganicFertilizerRepository extends JpaRepository<OrganicFertilizerModel, Long> {
+
+    List<OrganicFertilizerModel> findAllByUser(UserModel user);
+
+    @Query("select f from OrganicFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
+    List<OrganicFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
+
+    List<OrganicFertilizerModel> findAllByNameContainingIgnoreCaseAndUser(String name, UserModel user);
+
+    @Query("select f from OrganicFertilizerModel f where lower(f.name) like lower(concat('%', :name, '%')) and (f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true)) order by f.name asc")
+    List<OrganicFertilizerModel> findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(@Param("name") String name, @Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
+
+    List<OrganicFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
+
+    @Query("select f from OrganicFertilizerModel f where f.publico = true or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
+    List<OrganicFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
+
+    List<OrganicFertilizerModel> findAllByUser_CargoOrderByNameAsc(Cargo cargo);
+
+}

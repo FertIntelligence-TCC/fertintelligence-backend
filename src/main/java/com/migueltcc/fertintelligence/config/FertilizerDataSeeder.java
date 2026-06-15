@@ -34,6 +34,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     private final FormulatedMineralFertilizerRepository formulatedRepository;
     private final OrganoMineralFertilizerRepository organoRepository;
     private final GreenFertilizerRepository greenRepository;
+    private final OrganicFertilizerRepository organicRepository;
 
     private final MineralFertilizerRepository foliarMineralRepository;
     private final ChelatedFertilizerRepository chelatedRepository;
@@ -58,6 +59,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
         loadFormulatedMineral(creator);
         loadOrganoMineral(creator);
         loadGreen(creator);
+        loadOrganic(creator);
         loadFoliarMineral(creator);
         loadChelated(creator);
         loadBio(creator);
@@ -174,6 +176,30 @@ public class FertilizerDataSeeder implements CommandLineRunner {
                 .build();
         greenRepository.save(model);
         log.info("➕ Adubo verde carregado: {}", name);
+    }
+
+    private void loadOrganic(UserModel user) {
+        createOrganicIfMissing(user, "Composto Orgânico", 25.0, 1.5, 1.0, 1.2, 35.0, 20.0);
+    }
+
+    private void createOrganicIfMissing(UserModel user, String name, double carbono, double nitrogenio, double p2o5,
+                                        double k2o, double teorUmidade, double teorCinzas) {
+        if (organicRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
+
+        OrganicFertilizerModel model = OrganicFertilizerModel.builder()
+                .user(user)
+                .publico(true)
+                .name(name)
+                .C(carbono)
+                .N(nitrogenio)
+                .P2O5(p2o5).K2O(k2o)
+                .Ca(0.0).Mg(0.0).S(0.0)
+                .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
+                .teorUmidade(teorUmidade)
+                .teorCinzas(teorCinzas)
+                .build();
+        organicRepository.save(model);
+        log.info("➕ Adubo orgânico carregado: {}", name);
     }
 
     private void loadFoliarMineral(UserModel user) {
