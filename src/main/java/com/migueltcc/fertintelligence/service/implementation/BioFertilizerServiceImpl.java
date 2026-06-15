@@ -40,6 +40,14 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         BioFertilizerModel fertilizer = BioFertilizerModel.builder()
                 .user(owner)
                 .name(dto.getName())
+                .densidadeGml(dto.getDensidadeGml())
+                .concentracaoVolumeGl(dto.getConcentracaoVolumeGl())
+                .concentracaoMassaGkg(dto.getConcentracaoMassaGkg())
+                .proteinasGl(dto.getProteinasGl())
+                .aminoacidosGl(dto.getAminoacidosGl())
+                .amidosGl(dto.getAmidosGl())
+                .acucaresGl(dto.getAcucaresGl())
+                .compostosDiversosGl(dto.getCompostosDiversosGl())
                 // Macros
                 .N(getOrDefault(dto.getN()))
                 .P2O5(getOrDefault(dto.getP2o5()))
@@ -126,6 +134,14 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
+        if (dto.getDensidadeGml() != null) fertilizer.setDensidadeGml(dto.getDensidadeGml());
+        if (dto.getConcentracaoVolumeGl() != null) fertilizer.setConcentracaoVolumeGl(dto.getConcentracaoVolumeGl());
+        if (dto.getConcentracaoMassaGkg() != null) fertilizer.setConcentracaoMassaGkg(dto.getConcentracaoMassaGkg());
+        if (dto.getProteinasGl() != null) fertilizer.setProteinasGl(dto.getProteinasGl());
+        if (dto.getAminoacidosGl() != null) fertilizer.setAminoacidosGl(dto.getAminoacidosGl());
+        if (dto.getAmidosGl() != null) fertilizer.setAmidosGl(dto.getAmidosGl());
+        if (dto.getAcucaresGl() != null) fertilizer.setAcucaresGl(dto.getAcucaresGl());
+        if (dto.getCompostosDiversosGl() != null) fertilizer.setCompostosDiversosGl(dto.getCompostosDiversosGl());
 
         if (dto.getN() != null) fertilizer.setN(dto.getN());
         if (dto.getP2o5() != null) fertilizer.setP2O5(dto.getP2o5());

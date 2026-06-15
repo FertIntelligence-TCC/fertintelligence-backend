@@ -16,6 +16,38 @@ public class BioFertilizerPostRequestDto {
     @JsonProperty("novo_nome_adubo")
     private String name;
 
+    @JsonProperty("nova_densidade_g_ml")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double densidadeGml;
+
+    @JsonProperty("nova_concentracao_volume_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoVolumeGl;
+
+    @JsonProperty("nova_concentracao_massa_g_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoMassaGkg;
+
+    @JsonProperty("novas_proteinas_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double proteinasGl;
+
+    @JsonProperty("novos_aminoacidos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double aminoacidosGl;
+
+    @JsonProperty("novos_amidos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double amidosGl;
+
+    @JsonProperty("novos_acucares_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double acucaresGl;
+
+    @JsonProperty("novos_compostos_diversos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double compostosDiversosGl;
+
     @JsonProperty("novo_n")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double n;

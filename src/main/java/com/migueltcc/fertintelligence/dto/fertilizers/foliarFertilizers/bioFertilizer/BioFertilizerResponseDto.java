@@ -21,6 +21,38 @@ public class BioFertilizerResponseDto {
     @JsonProperty("nome_adubo")
     private String name;
 
+    @Schema(example = "1.2")
+    @JsonProperty("densidade_g_ml")
+    private Double densidadeGml;
+
+    @Schema(example = "240.0")
+    @JsonProperty("concentracao_volume_g_l")
+    private Double concentracaoVolumeGl;
+
+    @Schema(example = "200.0")
+    @JsonProperty("concentracao_massa_g_kg")
+    private Double concentracaoMassaGkg;
+
+    @Schema(example = "18.0")
+    @JsonProperty("proteinas_g_l")
+    private Double proteinasGl;
+
+    @Schema(example = "12.0")
+    @JsonProperty("aminoacidos_g_l")
+    private Double aminoacidosGl;
+
+    @Schema(example = "8.0")
+    @JsonProperty("amidos_g_l")
+    private Double amidosGl;
+
+    @Schema(example = "6.0")
+    @JsonProperty("acucares_g_l")
+    private Double acucaresGl;
+
+    @Schema(example = "3.0")
+    @JsonProperty("compostos_diversos_g_l")
+    private Double compostosDiversosGl;
+
     @Schema(example = "10.0")
     @JsonProperty("n")
     private Double n;

@@ -19,6 +19,38 @@ public class BioFertilizerCreateRequestDto {
     @NotBlank(message = "O nome do adubo é obrigatório")
     private String name;
 
+    @JsonProperty("densidade_g_ml")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double densidadeGml;
+
+    @JsonProperty("concentracao_volume_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoVolumeGl;
+
+    @JsonProperty("concentracao_massa_g_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoMassaGkg;
+
+    @JsonProperty("proteinas_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double proteinasGl;
+
+    @JsonProperty("aminoacidos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double aminoacidosGl;
+
+    @JsonProperty("amidos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double amidosGl;
+
+    @JsonProperty("acucares_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double acucaresGl;
+
+    @JsonProperty("compostos_diversos_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double compostosDiversosGl;
+
     // Macronutrientes Primários
     @JsonProperty("n")
     @NotNull(message = "A porcentagem de Nitrogênio (N) é obrigatória")

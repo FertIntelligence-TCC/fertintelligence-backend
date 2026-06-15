@@ -29,6 +29,30 @@ public class BioFertilizerModel {
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
+    @Column(name = "DENSIDADE_G_ML")
+    private Double densidadeGml;
+
+    @Column(name = "CONCENTRACAO_VOLUME_G_L")
+    private Double concentracaoVolumeGl;
+
+    @Column(name = "CONCENTRACAO_MASSA_G_KG")
+    private Double concentracaoMassaGkg;
+
+    @Column(name = "PROTEINAS_G_L")
+    private Double proteinasGl;
+
+    @Column(name = "AMINOACIDOS_G_L")
+    private Double aminoacidosGl;
+
+    @Column(name = "AMIDOS_G_L")
+    private Double amidosGl;
+
+    @Column(name = "ACUCARES_G_L")
+    private Double acucaresGl;
+
+    @Column(name = "COMPOSTOS_DIVERSOS_G_L")
+    private Double compostosDiversosGl;
+
     // Macronutrientes Primários
     @Column(name = "PORCENTAGEM_NITROGENIO")
     private Double N;
@@ -79,6 +103,14 @@ public class BioFertilizerModel {
         return BioFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
+                .densidadeGml(this.densidadeGml)
+                .concentracaoVolumeGl(this.concentracaoVolumeGl)
+                .concentracaoMassaGkg(this.concentracaoMassaGkg)
+                .proteinasGl(this.proteinasGl)
+                .aminoacidosGl(this.aminoacidosGl)
+                .amidosGl(this.amidosGl)
+                .acucaresGl(this.acucaresGl)
+                .compostosDiversosGl(this.compostosDiversosGl)
                 // Tratamento seguro de nulos (Null-Safe)
                 .n(this.N != null ? this.N : 0.0)
                 .p2o5(this.P2O5 != null ? this.P2O5 : 0.0)

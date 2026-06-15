@@ -69,6 +69,14 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                 .zn(0.07)
                 .indiceSalino(8.5)
                 .indiceAcidez(6.0)
+                .densidadeGml(1.1)
+                .concentracaoVolumeGl(110.0)
+                .concentracaoMassaGkg(100.0)
+                .proteinasGl(18.0)
+                .aminoacidosGl(12.0)
+                .amidosGl(8.0)
+                .acucaresGl(6.0)
+                .compostosDiversosGl(3.0)
                 .build();
     }
 
@@ -91,6 +99,14 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                 .Zn(0.07)
                 .indiceSalino(8.5)
                 .indiceAcidez(6.0)
+                .densidadeGml(1.1)
+                .concentracaoVolumeGl(110.0)
+                .concentracaoMassaGkg(100.0)
+                .proteinasGl(18.0)
+                .aminoacidosGl(12.0)
+                .amidosGl(8.0)
+                .acucaresGl(6.0)
+                .compostosDiversosGl(3.0)
                 .build();
     }
 
@@ -111,6 +127,14 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Bio Teste"))
                 .andExpect(jsonPath("$.n").value(3.0))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.1))
+                .andExpect(jsonPath("$.concentracao_volume_g_l").value(110.0))
+                .andExpect(jsonPath("$.concentracao_massa_g_kg").value(100.0))
+                .andExpect(jsonPath("$.proteinas_g_l").value(18.0))
+                .andExpect(jsonPath("$.aminoacidos_g_l").value(12.0))
+                .andExpect(jsonPath("$.amidos_g_l").value(8.0))
+                .andExpect(jsonPath("$.acucares_g_l").value(6.0))
+                .andExpect(jsonPath("$.compostos_diversos_g_l").value(3.0))
                 .andExpect(jsonPath("$.indice_salino").value(8.5));
     }
 
@@ -127,7 +151,9 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Bio Teste"))
-                .andExpect(jsonPath("$.n").value(3.0));
+                .andExpect(jsonPath("$.n").value(3.0))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.1))
+                .andExpect(jsonPath("$.proteinas_g_l").value(18.0));
     }
 
     @Test
@@ -141,7 +167,41 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(get("/bio-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
+                .andExpect(jsonPath("$[0].densidade_g_ml").value(1.1))
+                .andExpect(jsonPath("$[0].proteinas_g_l").value(18.0))
                 .andExpect(jsonPath("$[0].user_id").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllPublicBioFertilizersSuccessfully() throws Exception {
+        BioFertilizerModel model = createModel(7L);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(bioFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(model));
+
+        mockMvc.perform(get("/bio-fertilizer/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(7L))
+                .andExpect(jsonPath("$[0].concentracao_volume_g_l").value(110.0))
+                .andExpect(jsonPath("$[0].aminoacidos_g_l").value(12.0));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllDefaultBioFertilizersSuccessfully() throws Exception {
+        BioFertilizerModel model = createModel(8L);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(bioFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(model));
+
+        mockMvc.perform(get("/bio-fertilizer/get-all-default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(8L))
+                .andExpect(jsonPath("$[0].concentracao_massa_g_kg").value(100.0))
+                .andExpect(jsonPath("$[0].compostos_diversos_g_l").value(3.0));
     }
 
     @Test
@@ -158,7 +218,9 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                         .param("name", searchName))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(6L))
-                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Bio Teste"));
+                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Bio Teste"))
+                .andExpect(jsonPath("$[0].amidos_g_l").value(8.0))
+                .andExpect(jsonPath("$[0].acucares_g_l").value(6.0));
     }
 
     @Test
@@ -168,6 +230,8 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         BioFertilizerPostRequestDto updateDto = BioFertilizerPostRequestDto.builder()
                 .name("Adubo Bio Atualizado")
                 .n(3.5)
+                .densidadeGml(1.2)
+                .proteinasGl(20.0)
                 .indiceAcidez(6.3)
                 .build();
 
@@ -178,6 +242,8 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
             BioFertilizerModel arg = invocation.getArgument(0);
             arg.setName("Adubo Bio Atualizado");
             arg.setN(3.5);
+            arg.setDensidadeGml(1.2);
+            arg.setProteinasGl(20.0);
             arg.setIndiceAcidez(6.3);
             return arg;
         });
@@ -189,6 +255,8 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Bio Atualizado"))
                 .andExpect(jsonPath("$.n").value(3.5))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$.proteinas_g_l").value(20.0))
                 .andExpect(jsonPath("$.indice_acidez").value(6.3));
     }
 
