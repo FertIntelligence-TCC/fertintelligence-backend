@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "FOSFORO_DISPONIVEL_COM_EXTRATOR_RESINA_TROCA_ANIONICA")
 public class AvailablePAnionExchangeResinExtractorModel {
 
+    private static final String DEFAULT_UNIT = "g/dm3";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -25,369 +27,56 @@ public class AvailablePAnionExchangeResinExtractorModel {
     SoilFertilityInterpretationCriteriaTableModel table;
 
     /**
-     * Regras de negócio, para cada cultura, os teores de fosforo (mg/dm3) no solo tem relação:
-     * - too_low = low_i - 0.1
-     * - low_f = medium_i - 0.1;
-     * - medium_f = hight_i - 0.1;
-     * - hight_f = too_hight - 0.1;
+     * Interpretação geral de fósforo disponível por resina de troca aniônica.
+     * Critério único, independente da cultura.
      */
+    @Column(name = "UNIDADE", nullable = false)
+    @Builder.Default
+    String unit = DEFAULT_UNIT;
 
-    // ALGODAO:
+    @Column(name = "MUITO_BAIXO", nullable = false)
+    Double pContentTooLow;
 
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_too_low;
+    @Column(name = "BAIXO_MENOR", nullable = false)
+    Double pContentLowI;
 
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_low_i;
+    @Column(name = "BAIXO_MAIOR", nullable = false)
+    Double pContentLowF;
 
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_low_f;
+    @Column(name = "MEDIO_MENOR", nullable = false)
+    Double pContentMediumI;
 
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_medium_i;
+    @Column(name = "MEDIO_MAIOR", nullable = false)
+    Double pContentMediumF;
 
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_medium_f;
+    @Column(name = "ALTO_MENOR", nullable = false)
+    Double pContentHighI;
 
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_hight_i;
+    @Column(name = "ALTO_MAIOR", nullable = false)
+    Double pContentHighF;
 
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_hight_f;
+    @Column(name = "MUITO_ALTO", nullable = false)
+    Double pContentTooHigh;
 
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_ALGODAO", nullable = false)
-    Double p_content_cotton_too_hight;
-
-    // AMENDOIM:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_AMENDOIM", nullable = false)
-    Double p_content_peanut_too_hight;
-
-    // CANA_DE_ACUCAR:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_CANA_DE_ACUCAR", nullable = false)
-    Double p_content_sugar_cane_too_hight;
-
-    // FEIJAO_CAUPI:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_CAUPI", nullable = false)
-    Double p_content_cowpea_too_hight;
-
-    // FEIJAO_COMUM:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_FEIJAO_COMUM", nullable = false)
-    Double p_content_common_bean_too_hight;
-
-    // GERGELIM:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_GERGELIM", nullable = false)
-    Double p_content_sesame_too_hight;
-
-    // MAMONA:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_MAMONA", nullable = false)
-    Double p_content_castor_bean_too_hight;
-
-    // MILHO:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_MILHO", nullable = false)
-    Double p_content_corn_too_hight;
-
-    // SISAL:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_SISAL", nullable = false)
-    Double p_content_sisal_too_hight;
-
-    // SOJA:
-    @Column(name = "MENOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_too_low;
-
-    @Column(name = "TEOR_INICIAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_low_i;
-
-    @Column(name = "TEOR_FINAL_BAIXO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_low_f;
-
-    @Column(name = "TEOR_INICIAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_medium_i;
-
-    @Column(name = "TEOR_FINAL_MEDIO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_medium_f;
-
-    @Column(name = "TEOR_INICIAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_hight_i;
-
-    @Column(name = "TEOR_FINAL_ALTO_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_hight_f;
-
-    @Column(name = "MAIOR_TEOR_DE_FOSFORO_NO_SOLO_PARA_SOJA", nullable = false)
-    Double p_content_soybean_too_hight;
+    @PrePersist
+    @PreUpdate
+    private void normalizeUnit() {
+        this.unit = DEFAULT_UNIT;
+    }
 
     public AvailablePAnionExchangeResinExtractorResponseDto toDto() {
         return AvailablePAnionExchangeResinExtractorResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
-
-                // Cotton
-                .p_content_cotton_too_low(this.p_content_cotton_too_low)
-                .p_content_cotton_low_i(this.p_content_cotton_low_i)
-                .p_content_cotton_low_f(this.p_content_cotton_low_f)
-                .p_content_cotton_medium_i(this.p_content_cotton_medium_i)
-                .p_content_cotton_medium_f(this.p_content_cotton_medium_f)
-                .p_content_cotton_hight_i(this.p_content_cotton_hight_i)
-                .p_content_cotton_hight_f(this.p_content_cotton_hight_f)
-                .p_content_cotton_too_hight(this.p_content_cotton_too_hight)
-
-                // Peanut
-                .p_content_peanut_too_low(this.p_content_peanut_too_low)
-                .p_content_peanut_low_i(this.p_content_peanut_low_i)
-                .p_content_peanut_low_f(this.p_content_peanut_low_f)
-                .p_content_peanut_medium_i(this.p_content_peanut_medium_i)
-                .p_content_peanut_medium_f(this.p_content_peanut_medium_f)
-                .p_content_peanut_hight_i(this.p_content_peanut_hight_i)
-                .p_content_peanut_hight_f(this.p_content_peanut_hight_f)
-                .p_content_peanut_too_hight(this.p_content_peanut_too_hight)
-
-                // Sugar Cane
-                .p_content_sugar_cane_too_low(this.p_content_sugar_cane_too_low)
-                .p_content_sugar_cane_low_i(this.p_content_sugar_cane_low_i)
-                .p_content_sugar_cane_low_f(this.p_content_sugar_cane_low_f)
-                .p_content_sugar_cane_medium_i(this.p_content_sugar_cane_medium_i)
-                .p_content_sugar_cane_medium_f(this.p_content_sugar_cane_medium_f)
-                .p_content_sugar_cane_hight_i(this.p_content_sugar_cane_hight_i)
-                .p_content_sugar_cane_hight_f(this.p_content_sugar_cane_hight_f)
-                .p_content_sugar_cane_too_hight(this.p_content_sugar_cane_too_hight)
-
-                // Cowpea
-                .p_content_cowpea_too_low(this.p_content_cowpea_too_low)
-                .p_content_cowpea_low_i(this.p_content_cowpea_low_i)
-                .p_content_cowpea_low_f(this.p_content_cowpea_low_f)
-                .p_content_cowpea_medium_i(this.p_content_cowpea_medium_i)
-                .p_content_cowpea_medium_f(this.p_content_cowpea_medium_f)
-                .p_content_cowpea_hight_i(this.p_content_cowpea_hight_i)
-                .p_content_cowpea_hight_f(this.p_content_cowpea_hight_f)
-                .p_content_cowpea_too_hight(this.p_content_cowpea_too_hight)
-
-                // Common Bean
-                .p_content_common_bean_too_low(this.p_content_common_bean_too_low)
-                .p_content_common_bean_low_i(this.p_content_common_bean_low_i)
-                .p_content_common_bean_low_f(this.p_content_common_bean_low_f)
-                .p_content_common_bean_medium_i(this.p_content_common_bean_medium_i)
-                .p_content_common_bean_medium_f(this.p_content_common_bean_medium_f)
-                .p_content_common_bean_hight_i(this.p_content_common_bean_hight_i)
-                .p_content_common_bean_hight_f(this.p_content_common_bean_hight_f)
-                .p_content_common_bean_too_hight(this.p_content_common_bean_too_hight)
-
-                // Sesame
-                .p_content_sesame_too_low(this.p_content_sesame_too_low)
-                .p_content_sesame_low_i(this.p_content_sesame_low_i)
-                .p_content_sesame_low_f(this.p_content_sesame_low_f)
-                .p_content_sesame_medium_i(this.p_content_sesame_medium_i)
-                .p_content_sesame_medium_f(this.p_content_sesame_medium_f)
-                .p_content_sesame_hight_i(this.p_content_sesame_hight_i)
-                .p_content_sesame_hight_f(this.p_content_sesame_hight_f)
-                .p_content_sesame_too_hight(this.p_content_sesame_too_hight)
-
-                // Castor Bean
-                .p_content_castor_bean_too_low(this.p_content_castor_bean_too_low)
-                .p_content_castor_bean_low_i(this.p_content_castor_bean_low_i)
-                .p_content_castor_bean_low_f(this.p_content_castor_bean_low_f)
-                .p_content_castor_bean_medium_i(this.p_content_castor_bean_medium_i)
-                .p_content_castor_bean_medium_f(this.p_content_castor_bean_medium_f)
-                .p_content_castor_bean_hight_i(this.p_content_castor_bean_hight_i)
-                .p_content_castor_bean_hight_f(this.p_content_castor_bean_hight_f)
-                .p_content_castor_bean_too_hight(this.p_content_castor_bean_too_hight)
-
-                // Corn
-                .p_content_corn_too_low(this.p_content_corn_too_low)
-                .p_content_corn_low_i(this.p_content_corn_low_i)
-                .p_content_corn_low_f(this.p_content_corn_low_f)
-                .p_content_corn_medium_i(this.p_content_corn_medium_i)
-                .p_content_corn_medium_f(this.p_content_corn_medium_f)
-                .p_content_corn_hight_i(this.p_content_corn_hight_i)
-                .p_content_corn_hight_f(this.p_content_corn_hight_f)
-                .p_content_corn_too_hight(this.p_content_corn_too_hight)
-
-                // Sisal
-                .p_content_sisal_too_low(this.p_content_sisal_too_low)
-                .p_content_sisal_low_i(this.p_content_sisal_low_i)
-                .p_content_sisal_low_f(this.p_content_sisal_low_f)
-                .p_content_sisal_medium_i(this.p_content_sisal_medium_i)
-                .p_content_sisal_medium_f(this.p_content_sisal_medium_f)
-                .p_content_sisal_hight_i(this.p_content_sisal_hight_i)
-                .p_content_sisal_hight_f(this.p_content_sisal_hight_f)
-                .p_content_sisal_too_hight(this.p_content_sisal_too_hight)
-
-                // Soybean
-                .p_content_soybean_too_low(this.p_content_soybean_too_low)
-                .p_content_soybean_low_i(this.p_content_soybean_low_i)
-                .p_content_soybean_low_f(this.p_content_soybean_low_f)
-                .p_content_soybean_medium_i(this.p_content_soybean_medium_i)
-                .p_content_soybean_medium_f(this.p_content_soybean_medium_f)
-                .p_content_soybean_hight_i(this.p_content_soybean_hight_i)
-                .p_content_soybean_hight_f(this.p_content_soybean_hight_f)
-                .p_content_soybean_too_hight(this.p_content_soybean_too_hight)
+                .unit(DEFAULT_UNIT)
+                .pContentTooLow(this.pContentTooLow)
+                .pContentLowI(this.pContentLowI)
+                .pContentLowF(this.pContentLowF)
+                .pContentMediumI(this.pContentMediumI)
+                .pContentMediumF(this.pContentMediumF)
+                .pContentHighI(this.pContentHighI)
+                .pContentHighF(this.pContentHighF)
+                .pContentTooHigh(this.pContentTooHigh)
                 .build();
     }
-
 }

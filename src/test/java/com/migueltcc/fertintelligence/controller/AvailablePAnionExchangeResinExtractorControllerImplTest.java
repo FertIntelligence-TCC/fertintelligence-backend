@@ -71,22 +71,14 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
         existingCriterion = AvailablePAnionExchangeResinExtractorModel.builder()
                 .id(100L)
                 .table(ownerTable)
-                .p_content_cotton_too_low(1.0)
-                .p_content_cotton_low_i(2.0)
-                .p_content_cotton_low_f(3.0)
-                .p_content_cotton_medium_i(4.0)
-                .p_content_cotton_medium_f(5.0)
-                .p_content_cotton_hight_i(6.0)
-                .p_content_cotton_hight_f(7.0)
-                .p_content_cotton_too_hight(8.0)
-                .p_content_peanut_too_low(1.0)
-                .p_content_peanut_low_i(2.0)
-                .p_content_peanut_low_f(3.0)
-                .p_content_peanut_medium_i(4.0)
-                .p_content_peanut_medium_f(5.0)
-                .p_content_peanut_hight_i(6.0)
-                .p_content_peanut_hight_f(7.0)
-                .p_content_peanut_too_hight(8.0)
+                .pContentTooLow(1.0)
+                .pContentLowI(2.0)
+                .pContentLowF(3.0)
+                .pContentMediumI(4.0)
+                .pContentMediumF(5.0)
+                .pContentHighI(6.0)
+                .pContentHighF(7.0)
+                .pContentTooHigh(8.0)
                 .build();
     }
 
@@ -95,8 +87,8 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
     void createAvailablePAnionExchangeResinExtractorSuccessfully() throws Exception {
         AvailablePAnionExchangeResinExtractorCreateRequestDto requestDto =
                 AvailablePAnionExchangeResinExtractorCreateRequestDto.builder()
-                        .p_content_cotton_too_low(1.0)
-                        .p_content_cotton_low_i(2.0)
+                        .pContentTooLow(1.0)
+                        .pContentLowI(2.0)
                         .build();
 
         AvailablePAnionExchangeResinExtractorModel savedCriterion = existingCriterion.toBuilder()
@@ -119,7 +111,8 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                 .andExpect(header().string("Location",
                         "http://localhost/available-p-anion-exchange-resin-extractor/get?criterionId=120"))
                 .andExpect(jsonPath("$.id").value(120L))
-                .andExpect(jsonPath("$.menor_teor_fosforo_solo_algodao").value(1.0));
+                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.muito_baixo").value(1.0));
     }
 
     @Test
@@ -127,7 +120,7 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
     void createAvailablePAnionExchangeResinExtractorAsManagerSuccessfully() throws Exception {
         AvailablePAnionExchangeResinExtractorCreateRequestDto requestDto =
                 AvailablePAnionExchangeResinExtractorCreateRequestDto.builder()
-                        .p_content_cotton_too_low(1.0)
+                        .pContentTooLow(1.0)
                         .build();
 
         AvailablePAnionExchangeResinExtractorModel savedCriterion = existingCriterion.toBuilder()
@@ -164,7 +157,8 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.teor_inicial_baixo_fosforo_solo_algodao").value(2.0));
+                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.baixo_menor").value(2.0));
     }
 
     @Test
@@ -172,11 +166,11 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
     void updateAvailablePAnionExchangeResinExtractorSuccessfully() throws Exception {
         AvailablePAnionExchangeResinExtractorPostRequestDto requestDto =
                 AvailablePAnionExchangeResinExtractorPostRequestDto.builder()
-                        .p_content_cotton_too_low(1.5)
+                        .pContentTooLow(1.5)
                         .build();
 
         AvailablePAnionExchangeResinExtractorModel updatedCriterion = existingCriterion.toBuilder()
-                .p_content_cotton_too_low(1.5)
+                .pContentTooLow(1.5)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -190,7 +184,8 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.menor_teor_fosforo_solo_algodao").value(1.5));
+                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.muito_baixo").value(1.5));
     }
 
     @Test

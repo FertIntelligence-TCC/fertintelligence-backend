@@ -90,8 +90,17 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
             return;
         }
 
-        AvailablePAnionExchangeResinExtractorModel model = AvailablePAnionExchangeResinExtractorModel.builder().table(table).build();
-        applyRangePattern(model, 0.0, 5.0, 10.0, 20.0, 999.0);
+        AvailablePAnionExchangeResinExtractorModel model = AvailablePAnionExchangeResinExtractorModel.builder()
+                .table(table)
+                .pContentTooLow(0.0)
+                .pContentLowI(5.0)
+                .pContentLowF(10.0)
+                .pContentMediumI(10.0)
+                .pContentMediumF(20.0)
+                .pContentHighI(20.0)
+                .pContentHighF(999.0)
+                .pContentTooHigh(999.0)
+                .build();
         availablePAnionExchangeResinExtractorRepository.save(model);
         log.info("✅ Linha P Resina criada: tabela={} faixa={}-{}", table.getId(), 0.0, 20.0);
     }
