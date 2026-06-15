@@ -71,38 +71,22 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
         existingCriterion = AvailableSModel.builder()
                 .id(201L)
                 .table(ownerTable)
-                .s_content_sandy_too_low(1.0)
-                .s_content_sandy_low_i(2.0)
-                .s_content_sandy_low_f(3.0)
-                .s_content_sandy_medium_i(4.0)
-                .s_content_sandy_medium_f(5.0)
-                .s_content_sandy_hight_i(6.0)
-                .s_content_sandy_hight_f(7.0)
-                .s_content_sandy_too_hight(8.0)
-                .s_content_sandy_clayey_too_low(1.0)
-                .s_content_sandy_clayey_low_i(2.0)
-                .s_content_sandy_clayey_low_f(3.0)
-                .s_content_sandy_clayey_medium_i(4.0)
-                .s_content_sandy_clayey_medium_f(5.0)
-                .s_content_sandy_clayey_hight_i(6.0)
-                .s_content_sandy_clayey_hight_f(7.0)
-                .s_content_sandy_clayey_too_hight(8.0)
-                .s_content_clayey_too_low(1.0)
-                .s_content_clayey_low_i(2.0)
-                .s_content_clayey_low_f(3.0)
-                .s_content_clayey_medium_i(4.0)
-                .s_content_clayey_medium_f(5.0)
-                .s_content_clayey_hight_i(6.0)
-                .s_content_clayey_hight_f(7.0)
-                .s_content_clayey_too_hight(8.0)
-                .s_content_very_clayey_too_low(1.0)
-                .s_content_very_clayey_low_i(2.0)
-                .s_content_very_clayey_low_f(3.0)
-                .s_content_very_clayey_medium_i(4.0)
-                .s_content_very_clayey_medium_f(5.0)
-                .s_content_very_clayey_hight_i(6.0)
-                .s_content_very_clayey_hight_f(7.0)
-                .s_content_very_clayey_too_hight(8.0)
+                .sContentLess400TooLow(1.0)
+                .sContentLess400LowI(2.0)
+                .sContentLess400LowF(3.0)
+                .sContentLess400MediumI(4.0)
+                .sContentLess400MediumF(5.0)
+                .sContentLess400HighI(6.0)
+                .sContentLess400HighF(7.0)
+                .sContentLess400TooHigh(8.0)
+                .sContentGreater400TooLow(1.0)
+                .sContentGreater400LowI(2.0)
+                .sContentGreater400LowF(3.0)
+                .sContentGreater400MediumI(4.0)
+                .sContentGreater400MediumF(5.0)
+                .sContentGreater400HighI(6.0)
+                .sContentGreater400HighF(7.0)
+                .sContentGreater400TooHigh(8.0)
                 .build();
     }
 
@@ -110,8 +94,8 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "testuser")
     void createAvailableSSuccessfully() throws Exception {
         AvailableSCreateRequestDto requestDto = AvailableSCreateRequestDto.builder()
-                .s_content_sandy_too_low(1.0)
-                .s_content_sandy_low_i(2.0)
+                .sContentLess400TooLow(1.0)
+                .sContentLess400LowI(2.0)
                 .build();
 
         AvailableSModel savedCriterion = existingCriterion.toBuilder()
@@ -145,18 +129,18 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.menor_teor_enxofre_solo_arenoso").value(1.0));
+                .andExpect(jsonPath("$.menor_teor_enxofre_argila_menor_400").value(1.0));
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void updateAvailableSSuccessfully() throws Exception {
         AvailableSPostRequestDto requestDto = AvailableSPostRequestDto.builder()
-                .s_content_sandy_too_low(1.5)
+                .sContentLess400TooLow(1.5)
                 .build();
 
         AvailableSModel updatedCriterion = existingCriterion.toBuilder()
-                .s_content_sandy_too_low(1.5)
+                .sContentLess400TooLow(1.5)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -167,9 +151,9 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(put("/available-s/update")
                         .param("criterionId", existingCriterion.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
+                .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.menor_teor_enxofre_solo_arenoso").value(1.5));
+                .andExpect(jsonPath("$.menor_teor_enxofre_argila_menor_400").value(1.5));
     }
 
     @Test
@@ -191,7 +175,7 @@ public class AvailableSControllerImplTest extends AbstractControllerTest {
     @WithMockUser(username = "manager")
     void createAvailableSAsManagerSuccessfully() throws Exception {
         AvailableSCreateRequestDto requestDto = AvailableSCreateRequestDto.builder()
-                .s_content_clayey_too_low(1.0)
+                .sContentGreater400TooLow(1.0)
                 .build();
 
         SoilFertilityInterpretationCriteriaTableModel managerTable = ownerTable.toBuilder()

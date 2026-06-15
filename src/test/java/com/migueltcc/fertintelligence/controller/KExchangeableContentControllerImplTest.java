@@ -77,46 +77,14 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
         existingCriterion = KExchangeableContentModel.builder()
                 .id(401L)
                 .table(ownerTable)
-                .k_content_cec_less_20_too_low(1.0)
-                .k_content_cec_less_20_low_i(2.0)
-                .k_content_cec_less_20_low_f(3.0)
-                .k_content_cec_less_20_medium_i(4.0)
-                .k_content_cec_less_20_medium_f(5.0)
-                .k_content_cec_less_20_hight_i(6.0)
-                .k_content_cec_less_20_hight_f(7.0)
-                .k_content_cec_less_20_too_hight(8.0)
-                .k_content_cec_20_40_too_low(1.0)
-                .k_content_cec_20_40_low_i(2.0)
-                .k_content_cec_20_40_low_f(3.0)
-                .k_content_cec_20_40_medium_i(4.0)
-                .k_content_cec_20_40_medium_f(5.0)
-                .k_content_cec_20_40_hight_i(6.0)
-                .k_content_cec_20_40_hight_f(7.0)
-                .k_content_cec_20_40_too_hight(8.0)
-                .k_content_cec_41_80_too_low(1.0)
-                .k_content_cec_41_80_low_i(2.0)
-                .k_content_cec_41_80_low_f(3.0)
-                .k_content_cec_41_80_medium_i(4.0)
-                .k_content_cec_41_80_medium_f(5.0)
-                .k_content_cec_41_80_hight_i(6.0)
-                .k_content_cec_41_80_hight_f(7.0)
-                .k_content_cec_41_80_too_hight(8.0)
-                .k_content_cec_81_120_too_low(1.0)
-                .k_content_cec_81_120_low_i(2.0)
-                .k_content_cec_81_120_low_f(3.0)
-                .k_content_cec_81_120_medium_i(4.0)
-                .k_content_cec_81_120_medium_f(5.0)
-                .k_content_cec_81_120_hight_i(6.0)
-                .k_content_cec_81_120_hight_f(7.0)
-                .k_content_cec_81_120_too_hight(8.0)
-                .k_content_cec_greater_120_too_low(1.0)
-                .k_content_cec_greater_120_low_i(2.0)
-                .k_content_cec_greater_120_low_f(3.0)
-                .k_content_cec_greater_120_medium_i(4.0)
-                .k_content_cec_greater_120_medium_f(5.0)
-                .k_content_cec_greater_120_hight_i(6.0)
-                .k_content_cec_greater_120_hight_f(7.0)
-                .k_content_cec_greater_120_too_hight(8.0)
+                .kContentTooLow(1.0)
+                .kContentLowI(2.0)
+                .kContentLowF(3.0)
+                .kContentMediumI(4.0)
+                .kContentMediumF(5.0)
+                .kContentHighI(6.0)
+                .kContentHighF(7.0)
+                .kContentTooHigh(8.0)
                 .build();
     }
 
@@ -124,8 +92,8 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
     @WithMockUser(username = "testuser")
     void createKExchangeableContentSuccessfully() throws Exception {
         KExchangeableContentCreateRequestDto requestDto = KExchangeableContentCreateRequestDto.builder()
-                .k_content_cec_less_20_too_low(1.0)
-                .k_content_cec_less_20_low_i(2.0)
+                .kContentTooLow(1.0)
+                .kContentLowI(2.0)
                 .build();
 
         KExchangeableContentModel savedCriterion = existingCriterion.toBuilder()
@@ -151,8 +119,8 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
     @WithMockUser(username = "manager")
     void createKExchangeableContentForManagerOwnedTable() throws Exception {
         KExchangeableContentCreateRequestDto requestDto = KExchangeableContentCreateRequestDto.builder()
-                .k_content_cec_less_20_too_low(1.5)
-                .k_content_cec_less_20_low_i(2.5)
+                .kContentTooLow(1.5)
+                .kContentLowI(2.5)
                 .build();
 
         KExchangeableContentModel savedCriterion = existingCriterion.toBuilder()
@@ -172,8 +140,7 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(422L))
-                // campo e valor conforme o JSON de resposta
-                .andExpect(jsonPath("$.menor_teor_k_ctc_menor_20").value(1.0));
+                .andExpect(jsonPath("$.menor_teor_k").value(1.0));
     }
 
     @Test
@@ -188,18 +155,18 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.menor_teor_k_ctc_menor_20").value(1.0));
+                .andExpect(jsonPath("$.menor_teor_k").value(1.0));
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void updateKExchangeableContentSuccessfully() throws Exception {
         KExchangeableContentPostRequestDto requestDto = KExchangeableContentPostRequestDto.builder()
-                .k_content_cec_less_20_too_low(1.5)
+                .kContentTooLow(1.5)
                 .build();
 
         KExchangeableContentModel updatedCriterion = existingCriterion.toBuilder()
-                .k_content_cec_less_20_too_low(1.5)
+                .kContentTooLow(1.5)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -210,9 +177,9 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
         mockMvc.perform(put("/k-exchangeable-content/update")
                         .param("criterionId", existingCriterion.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
+                .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.menor_teor_k_ctc_menor_20").value(1.5));
+                .andExpect(jsonPath("$.menor_teor_k").value(1.5));
     }
 
     @Test
