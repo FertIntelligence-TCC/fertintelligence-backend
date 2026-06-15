@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 @Service
 public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService {
 
+    private static final String NON_NEGATIVE_VALUE_MESSAGE = "O valor não pode ser negativo";
+
     private final ChelatedFertilizerRepository repository;
     private final UserRepository userRepository;
 
@@ -36,10 +38,14 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     ) {
         UserModel owner = findUserByUsernameOrThrow(username);
         checkUserRole(owner);
+        validateTechnicalFields(dto.getDensidadeGml(), dto.getConcentracaoVolumeGl(), dto.getConcentracaoMassaGkg());
 
         ChelatedFertilizerModel fertilizer = ChelatedFertilizerModel.builder()
                 .user(owner)
                 .name(dto.getName())
+                .densidadeGml(dto.getDensidadeGml())
+                .concentracaoVolumeGl(dto.getConcentracaoVolumeGl())
+                .concentracaoMassaGkg(dto.getConcentracaoMassaGkg())
                 // Macros
                 .N(getOrDefault(dto.getN()))
                 .P2O5(getOrDefault(dto.getP2o5()))
@@ -126,6 +132,10 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
+        validateTechnicalFields(dto.getDensidadeGml(), dto.getConcentracaoVolumeGl(), dto.getConcentracaoMassaGkg());
+        if (dto.getDensidadeGml() != null) fertilizer.setDensidadeGml(dto.getDensidadeGml());
+        if (dto.getConcentracaoVolumeGl() != null) fertilizer.setConcentracaoVolumeGl(dto.getConcentracaoVolumeGl());
+        if (dto.getConcentracaoMassaGkg() != null) fertilizer.setConcentracaoMassaGkg(dto.getConcentracaoMassaGkg());
 
         if (dto.getN() != null) fertilizer.setN(dto.getN());
         if (dto.getP2o5() != null) fertilizer.setP2O5(dto.getP2o5());
@@ -182,6 +192,14 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
 
     private double getOrDefault(Double value) {
         return value != null ? value : 0.0;
+    }
+
+    private void validateTechnicalFields(Double... values) {
+        for (Double value : values) {
+            if (value != null && value < 0.0) {
+                throw new IllegalArgumentException(NON_NEGATIVE_VALUE_MESSAGE);
+            }
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

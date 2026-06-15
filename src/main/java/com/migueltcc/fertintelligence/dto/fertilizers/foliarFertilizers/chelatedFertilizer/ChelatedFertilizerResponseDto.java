@@ -21,6 +21,18 @@ public class ChelatedFertilizerResponseDto {
     @JsonProperty("nome_adubo")
     private String name;
 
+    @Schema(example = "1.2")
+    @JsonProperty("densidade_g_ml")
+    private Double densidadeGml;
+
+    @Schema(example = "240.0")
+    @JsonProperty("concentracao_volume_g_l")
+    private Double concentracaoVolumeGl;
+
+    @Schema(example = "200.0")
+    @JsonProperty("concentracao_massa_g_kg")
+    private Double concentracaoMassaGkg;
+
     @Schema(example = "10.0")
     @JsonProperty("n")
     private Double n;

@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerMod
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -55,6 +57,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
     private ChelatedFertilizerCreateRequestDto createRequestDto() {
         return ChelatedFertilizerCreateRequestDto.builder()
                 .name("Adubo Quelatado Teste")
+                .densidadeGml(1.2)
+                .concentracaoVolumeGl(240.0)
+                .concentracaoMassaGkg(200.0)
                 .n(10.0)
                 .p2o5(5.0)
                 .k2o(8.0)
@@ -77,6 +82,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                 .id(id)
                 .user(owner)
                 .name("Adubo Quelatado Teste")
+                .densidadeGml(1.2)
+                .concentracaoVolumeGl(240.0)
+                .concentracaoMassaGkg(200.0)
                 .N(10.0)
                 .P2O5(5.0)
                 .K2O(8.0)
@@ -110,8 +118,18 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                 .andExpect(header().string("Location", "http://localhost/chelated-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Quelatado Teste"))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$.concentracao_volume_g_l").value(240.0))
+                .andExpect(jsonPath("$.concentracao_massa_g_kg").value(200.0))
                 .andExpect(jsonPath("$.n").value(10.0))
                 .andExpect(jsonPath("$.indice_salino").value(12.0));
+
+        ArgumentCaptor<ChelatedFertilizerModel> captor = ArgumentCaptor.forClass(ChelatedFertilizerModel.class);
+        verify(chelatedFertilizerRepository).save(captor.capture());
+        ChelatedFertilizerModel saved = captor.getValue();
+        org.assertj.core.api.Assertions.assertThat(saved.getDensidadeGml()).isEqualTo(1.2);
+        org.assertj.core.api.Assertions.assertThat(saved.getConcentracaoVolumeGl()).isEqualTo(240.0);
+        org.assertj.core.api.Assertions.assertThat(saved.getConcentracaoMassaGkg()).isEqualTo(200.0);
     }
 
     @Test
@@ -127,6 +145,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Quelatado Teste"))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$.concentracao_volume_g_l").value(240.0))
+                .andExpect(jsonPath("$.concentracao_massa_g_kg").value(200.0))
                 .andExpect(jsonPath("$.k2o").value(8.0));
     }
 
@@ -141,7 +162,44 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         mockMvc.perform(get("/chelated-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
+                .andExpect(jsonPath("$[0].densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$[0].concentracao_volume_g_l").value(240.0))
+                .andExpect(jsonPath("$[0].concentracao_massa_g_kg").value(200.0))
                 .andExpect(jsonPath("$[0].user_id").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllPublicChelatedFertilizersSuccessfully() throws Exception {
+        ChelatedFertilizerModel model = createModel(7L);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(chelatedFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(model));
+
+        mockMvc.perform(get("/chelated-fertilizer/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(7L))
+                .andExpect(jsonPath("$[0].densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$[0].concentracao_volume_g_l").value(240.0))
+                .andExpect(jsonPath("$[0].concentracao_massa_g_kg").value(200.0));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllDefaultChelatedFertilizersSuccessfully() throws Exception {
+        ChelatedFertilizerModel model = createModel(8L);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(chelatedFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(model));
+
+        mockMvc.perform(get("/chelated-fertilizer/get-all-default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(8L))
+                .andExpect(jsonPath("$[0].densidade_g_ml").value(1.2))
+                .andExpect(jsonPath("$[0].concentracao_volume_g_l").value(240.0))
+                .andExpect(jsonPath("$[0].concentracao_massa_g_kg").value(200.0));
     }
 
     @Test
@@ -158,7 +216,8 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                         .param("name", searchName))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(6L))
-                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Quelatado Teste"));
+                .andExpect(jsonPath("$[0].nome_adubo").value("Adubo Quelatado Teste"))
+                .andExpect(jsonPath("$[0].densidade_g_ml").value(1.2));
     }
 
     @Test
@@ -167,6 +226,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         ChelatedFertilizerModel existing = createModel(4L);
         ChelatedFertilizerPostRequestDto updateDto = ChelatedFertilizerPostRequestDto.builder()
                 .name("Adubo Quelatado Atualizado")
+                .densidadeGml(1.3)
+                .concentracaoVolumeGl(260.0)
+                .concentracaoMassaGkg(220.0)
                 .n(12.0)
                 .indiceAcidez(6.8)
                 .build();
@@ -177,6 +239,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         when(chelatedFertilizerRepository.save(any(ChelatedFertilizerModel.class))).thenAnswer(invocation -> {
             ChelatedFertilizerModel arg = invocation.getArgument(0);
             arg.setName("Adubo Quelatado Atualizado");
+            arg.setDensidadeGml(1.3);
+            arg.setConcentracaoVolumeGl(260.0);
+            arg.setConcentracaoMassaGkg(220.0);
             arg.setN(12.0);
             arg.setIndiceAcidez(6.8);
             return arg;
@@ -188,6 +253,9 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                         .content(mapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Quelatado Atualizado"))
+                .andExpect(jsonPath("$.densidade_g_ml").value(1.3))
+                .andExpect(jsonPath("$.concentracao_volume_g_l").value(260.0))
+                .andExpect(jsonPath("$.concentracao_massa_g_kg").value(220.0))
                 .andExpect(jsonPath("$.n").value(12.0))
                 .andExpect(jsonPath("$.indice_acidez").value(6.8));
     }

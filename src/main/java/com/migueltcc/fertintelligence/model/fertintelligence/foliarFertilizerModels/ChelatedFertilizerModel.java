@@ -29,6 +29,15 @@ public class ChelatedFertilizerModel {
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
+    @Column(name = "DENSIDADE_G_ML")
+    private Double densidadeGml;
+
+    @Column(name = "CONCENTRACAO_VOLUME_G_L")
+    private Double concentracaoVolumeGl;
+
+    @Column(name = "CONCENTRACAO_MASSA_G_KG")
+    private Double concentracaoMassaGkg;
+
     // Macronutrientes Primários
     @Column(name = "PORCENTAGEM_NITROGENIO")
     private Double N;
@@ -79,6 +88,9 @@ public class ChelatedFertilizerModel {
         return ChelatedFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
+                .densidadeGml(this.densidadeGml)
+                .concentracaoVolumeGl(this.concentracaoVolumeGl)
+                .concentracaoMassaGkg(this.concentracaoMassaGkg)
                 // Tratamento seguro de nulos
                 .n(this.N != null ? this.N : 0.0)
                 .p2o5(this.P2O5 != null ? this.P2O5 : 0.0)

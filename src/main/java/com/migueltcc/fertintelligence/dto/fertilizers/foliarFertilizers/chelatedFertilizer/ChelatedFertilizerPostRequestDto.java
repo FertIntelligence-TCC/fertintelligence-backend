@@ -16,6 +16,18 @@ public class ChelatedFertilizerPostRequestDto {
     @JsonProperty("novo_nome_adubo")
     private String name;
 
+    @JsonProperty("nova_densidade_g_ml")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double densidadeGml;
+
+    @JsonProperty("nova_concentracao_volume_g_l")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoVolumeGl;
+
+    @JsonProperty("nova_concentracao_massa_g_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double concentracaoMassaGkg;
+
     @JsonProperty("novo_n")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double n;
