@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -58,6 +59,14 @@ public class CropServiceImpl implements CropService {
                             "Já existe uma cultura cadastrada com o mesmo nome e variedade nesta pasta de culturas anuais."
                     );
                 });
+
+        validateUsedAreaLimit(
+                folder,
+                null,
+                createRequestDto.getUsedAreaInThePlot(),
+                createRequestDto.getPlantingDate(),
+                createRequestDto.getHarvestDate()
+        );
 
         CropModel crop = CropModel.builder()
                 .folder(folder)
@@ -133,6 +142,12 @@ public class CropServiceImpl implements CropService {
                     });
         }
 
+        Double newUsedArea = Optional.ofNullable(updateRequestDto.getUsedAreaInThePlot()).orElse(crop.getUsedAreaInThePlot());
+        Date newPlantingDate = Optional.ofNullable(updateRequestDto.getPlantingDate()).orElse(crop.getPlantingDate());
+        Date newHarvestDate = Optional.ofNullable(updateRequestDto.getHarvestDate()).orElse(crop.getHarvestDate());
+
+        validateUsedAreaLimit(crop.getFolder(), cropId, newUsedArea, newPlantingDate, newHarvestDate);
+
         if (updateRequestDto.getCultivationType() != null) crop.setCultivationType(updateRequestDto.getCultivationType());
         crop.setName(newName);
         crop.setVariety(newVariety);
@@ -205,5 +220,57 @@ public class CropServiceImpl implements CropService {
     private Date copyDate(Date source) {
         if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
+    }
+
+    private void validateUsedAreaLimit(
+            AnnualCropFolderModel folder,
+            Long ignoredCropId,
+            Double usedAreaInThePlot,
+            Date plantingDate,
+            Date harvestDate
+    ) {
+        double plotArea = folder.getPlot().getArea();
+        YearMonth newStart = toYearMonth(plantingDate);
+        YearMonth newEnd = toYearMonth(harvestDate);
+
+        if (newStart.isAfter(newEnd)) {
+            throw new IllegalArgumentException("A data de plantio não pode ser posterior à data de colheita.");
+        }
+
+        List<CropModel> existingCrops = annualCropFolderRepository.findAllByPlot(folder.getPlot()).stream()
+                .flatMap(plotFolder -> cropRepository.findAllByFolder(plotFolder).stream())
+                .toList();
+        for (YearMonth currentMonth = newStart;
+             !currentMonth.isAfter(newEnd);
+             currentMonth = currentMonth.plusMonths(1)) {
+            double occupiedArea = usedAreaInThePlot;
+
+            for (CropModel existingCrop : existingCrops) {
+                if (ignoredCropId != null && ignoredCropId.equals(existingCrop.getId())) {
+                    continue;
+                }
+
+                YearMonth existingStart = toYearMonth(existingCrop.getPlantingDate());
+                YearMonth existingEnd = toYearMonth(existingCrop.getHarvestDate());
+
+                if (monthWithinRange(currentMonth, existingStart, existingEnd)) {
+                    occupiedArea += existingCrop.getUsedAreaInThePlot();
+                }
+            }
+
+            if (occupiedArea > plotArea) {
+                throw new IllegalArgumentException(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."
+                );
+            }
+        }
+    }
+
+    private YearMonth toYearMonth(Date date) {
+        return YearMonth.of(date.getYear(), date.getMonth());
+    }
+
+    private boolean monthWithinRange(YearMonth month, YearMonth start, YearMonth end) {
+        return !month.isBefore(start) && !month.isAfter(end);
     }
 }

@@ -32,6 +32,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -123,7 +124,7 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .id(OWNER_PLOT_ID)
                 .property(ownerProperty)
                 .identification("Talhao Principal")
-                .area(25.0)
+                .area(100.0)
                 .soilClass(ClasseSolo.ARGISSOLO)
                 .soilTexture(TexturaSolo.FRANCO_ARGILOSO_ARENOSA)
                 .cropIncorporationYear(2020)
@@ -146,6 +147,8 @@ public class CropControllerImplTest extends AbstractControllerTest {
         // MOCK NECESSÁRIO PARA O PermissionManager.findPlotInProperty()
         when(plotRepository.findByIdAndPropertyId(ownerPlot.getId(), ownerProperty.getId()))
                 .thenReturn(Optional.of(ownerPlot));
+        when(annualCropFolderRepository.findAllByPlot(ownerPlot)).thenReturn(List.of(ownerFolder));
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of());
     }
 
     /* =========================
@@ -241,6 +244,41 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .floweringDate(new Date(20, 12, 2024))
                 .harvestDate(new Date(12, 3, 2025))
                 .build();
+    }
+
+    private CropModel createCropModel(
+            Long id,
+            NomeComum name,
+            String variety,
+            AnnualCropFolderModel folder,
+            Double usedAreaInThePlot,
+            Date plantingDate,
+            Date harvestDate
+    ) {
+        CropModel crop = createCropModel(id, name, variety, folder);
+        crop.setUsedAreaInThePlot(usedAreaInThePlot);
+        crop.setPlantingDate(plantingDate);
+        crop.setEmergenceDate(plantingDate);
+        crop.setButtoningDate(plantingDate);
+        crop.setFloweringDate(harvestDate);
+        crop.setHarvestDate(harvestDate);
+        return crop;
+    }
+
+    private void mockOwnerCreateFlow(CropCreateRequestDto requestDto, CropModel savedCrop) {
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
+        when(annualCropFolderRepository.findById(OWNER_FOLDER_ID)).thenReturn(Optional.of(ownerFolder));
+        when(cropRepository.findByNameAndVarietyAndFolder(requestDto.getName(), requestDto.getVariety(), ownerFolder))
+                .thenReturn(Optional.empty());
+        when(cropRepository.save(any(CropModel.class))).thenReturn(savedCrop);
+    }
+
+    private void mockOwnerUpdateFlow(CropModel existingCrop, CropPostRequestDto updateRequestDto) {
+        when(userRepository.findByUsername(OWNER_USERNAME)).thenReturn(Optional.of(proprietarioUser));
+        when(cropRepository.findById(existingCrop.getId())).thenReturn(Optional.of(existingCrop));
+        when(cropRepository.findByNameAndVarietyAndFolder(updateRequestDto.getName(), updateRequestDto.getVariety(), ownerFolder))
+                .thenReturn(Optional.empty());
+        when(cropRepository.save(any(CropModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     private AnnualCropFolderModel createFolderForOtherOwner() {
@@ -414,6 +452,179 @@ public class CropControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = OWNER_USERNAME)
+    void createCropSucceeds_WhenOccupiedAreasDoNotOverlapByMonth() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(80.0);
+        requestDto.setPlantingDate(new Date(1, 4, 2024));
+        requestDto.setEmergenceDate(new Date(3, 4, 2024));
+        requestDto.setButtoningDate(new Date(1, 5, 2024));
+        requestDto.setFloweringDate(new Date(1, 6, 2024));
+        requestDto.setHarvestDate(new Date(30, 6, 2024));
+
+        CropModel existingCrop = createCropModel(
+                10L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                80.0, new Date(1, 1, 2024), new Date(31, 3, 2024));
+        CropModel savedCrop = createCropModel(11L, requestDto.getName(), requestDto.getVariety(), ownerFolder);
+
+        mockOwnerCreateFlow(requestDto, savedCrop);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop));
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(11L));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createCropSucceeds_WhenPartiallyOverlappingAreasEqualPlotArea() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(45.0);
+        requestDto.setPlantingDate(new Date(1, 5, 2024));
+        requestDto.setEmergenceDate(new Date(3, 5, 2024));
+        requestDto.setButtoningDate(new Date(1, 6, 2024));
+        requestDto.setFloweringDate(new Date(1, 7, 2024));
+        requestDto.setHarvestDate(new Date(31, 8, 2024));
+
+        CropModel existingCrop = createCropModel(
+                12L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                55.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+        CropModel savedCrop = createCropModel(13L, requestDto.getName(), requestDto.getVariety(), ownerFolder);
+
+        mockOwnerCreateFlow(requestDto, savedCrop);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop));
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(13L));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createCropFails_WhenPartiallyOverlappingAreasExceedPlotArea() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(50.0);
+        requestDto.setPlantingDate(new Date(1, 5, 2024));
+        requestDto.setEmergenceDate(new Date(3, 5, 2024));
+        requestDto.setButtoningDate(new Date(1, 6, 2024));
+        requestDto.setFloweringDate(new Date(1, 7, 2024));
+        requestDto.setHarvestDate(new Date(31, 8, 2024));
+
+        CropModel existingCrop = createCropModel(
+                14L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                60.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+
+        mockOwnerCreateFlow(requestDto, createCropModel(15L, requestDto.getName(), requestDto.getVariety(), ownerFolder));
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop));
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createCropFails_WhenFullyOverlappingAreasExceedPlotArea() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(50.0);
+        requestDto.setPlantingDate(new Date(1, 1, 2024));
+        requestDto.setEmergenceDate(new Date(3, 1, 2024));
+        requestDto.setButtoningDate(new Date(1, 2, 2024));
+        requestDto.setFloweringDate(new Date(1, 3, 2024));
+        requestDto.setHarvestDate(new Date(31, 5, 2024));
+
+        CropModel existingCrop = createCropModel(
+                16L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                55.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+
+        mockOwnerCreateFlow(requestDto, createCropModel(17L, requestDto.getName(), requestDto.getVariety(), ownerFolder));
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop));
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createCropFails_WhenMonthlySumAcrossMultipleOverlapsExceedsPlotArea() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(30.0);
+        requestDto.setPlantingDate(new Date(1, 5, 2024));
+        requestDto.setEmergenceDate(new Date(3, 5, 2024));
+        requestDto.setButtoningDate(new Date(1, 6, 2024));
+        requestDto.setFloweringDate(new Date(1, 7, 2024));
+        requestDto.setHarvestDate(new Date(31, 8, 2024));
+
+        CropModel firstExistingCrop = createCropModel(
+                18L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                40.0, new Date(1, 4, 2024), new Date(31, 5, 2024));
+        CropModel secondExistingCrop = createCropModel(
+                19L, NomeComum.ALGODAO, "FM 985", ownerFolder,
+                40.0, new Date(1, 5, 2024), new Date(31, 6, 2024));
+
+        mockOwnerCreateFlow(requestDto, createCropModel(20L, requestDto.getName(), requestDto.getVariety(), ownerFolder));
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(firstExistingCrop, secondExistingCrop));
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createCropFails_WhenOverlappingCropInAnotherFolderOfSamePlotExceedsPlotArea() throws Exception {
+        AnnualCropFolderModel previousFolder = AnnualCropFolderModel.builder()
+                .id(OWNER_FOLDER_ID - 1)
+                .plot(ownerPlot)
+                .cropsYear(2023)
+                .build();
+
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setUsedAreaInThePlot(50.0);
+        requestDto.setPlantingDate(new Date(1, 1, 2024));
+        requestDto.setEmergenceDate(new Date(3, 1, 2024));
+        requestDto.setButtoningDate(new Date(1, 2, 2024));
+        requestDto.setFloweringDate(new Date(1, 3, 2024));
+        requestDto.setHarvestDate(new Date(31, 3, 2024));
+
+        CropModel existingCrop = createCropModel(
+                29L, NomeComum.MILHO, "AG 8088", previousFolder,
+                60.0, new Date(1, 2, 2024), new Date(31, 5, 2024));
+
+        mockOwnerCreateFlow(requestDto, createCropModel(30L, requestDto.getName(), requestDto.getVariety(), ownerFolder));
+        when(annualCropFolderRepository.findAllByPlot(ownerPlot)).thenReturn(List.of(previousFolder, ownerFolder));
+        when(cropRepository.findAllByFolder(previousFolder)).thenReturn(List.of(existingCrop));
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of());
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
     void getCropSuccessfully() throws Exception {
         CropModel crop = createCropModel(1L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder);
 
@@ -459,6 +670,120 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.nome").value("MILHO"))
                 .andExpect(jsonPath("$.variedade").value("TBIO Toruk"))
                 .andExpect(jsonPath("$.ciclo").value(135));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void updateCropSucceeds_WhenOccupiedAreasDoNotOverlapByMonth() throws Exception {
+        CropModel existingCrop = createCropModel(
+                21L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder,
+                40.0, new Date(1, 1, 2024), new Date(29, 2, 2024));
+        CropModel otherCrop = createCropModel(
+                22L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                90.0, new Date(1, 3, 2024), new Date(30, 4, 2024));
+        CropPostRequestDto updateRequestDto = createPostRequestDto();
+        updateRequestDto.setUsedAreaInThePlot(90.0);
+        updateRequestDto.setPlantingDate(new Date(1, 1, 2024));
+        updateRequestDto.setEmergenceDate(new Date(3, 1, 2024));
+        updateRequestDto.setButtoningDate(new Date(1, 2, 2024));
+        updateRequestDto.setFloweringDate(new Date(10, 2, 2024));
+        updateRequestDto.setHarvestDate(new Date(29, 2, 2024));
+
+        mockOwnerUpdateFlow(existingCrop, updateRequestDto);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop, otherCrop));
+
+        mockMvc.perform(put("/crop/update")
+                        .param("cropId", existingCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.area_usada_no_talhao").value(90.0));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void updateCropSucceeds_WhenOverlappingAreasEqualPlotArea() throws Exception {
+        CropModel existingCrop = createCropModel(
+                23L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder,
+                40.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+        CropModel otherCrop = createCropModel(
+                24L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                60.0, new Date(1, 3, 2024), new Date(31, 5, 2024));
+        CropPostRequestDto updateRequestDto = createPostRequestDto();
+        updateRequestDto.setUsedAreaInThePlot(40.0);
+        updateRequestDto.setPlantingDate(new Date(1, 1, 2024));
+        updateRequestDto.setEmergenceDate(new Date(3, 1, 2024));
+        updateRequestDto.setButtoningDate(new Date(1, 2, 2024));
+        updateRequestDto.setFloweringDate(new Date(1, 3, 2024));
+        updateRequestDto.setHarvestDate(new Date(31, 5, 2024));
+
+        mockOwnerUpdateFlow(existingCrop, updateRequestDto);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop, otherCrop));
+
+        mockMvc.perform(put("/crop/update")
+                        .param("cropId", existingCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.area_usada_no_talhao").value(40.0));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void updateCropFails_WhenPartiallyOverlappingAreasExceedPlotArea() throws Exception {
+        CropModel existingCrop = createCropModel(
+                25L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder,
+                40.0, new Date(1, 1, 2024), new Date(31, 3, 2024));
+        CropModel otherCrop = createCropModel(
+                26L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                60.0, new Date(1, 3, 2024), new Date(31, 5, 2024));
+        CropPostRequestDto updateRequestDto = createPostRequestDto();
+        updateRequestDto.setUsedAreaInThePlot(50.0);
+        updateRequestDto.setPlantingDate(new Date(1, 1, 2024));
+        updateRequestDto.setEmergenceDate(new Date(3, 1, 2024));
+        updateRequestDto.setButtoningDate(new Date(1, 2, 2024));
+        updateRequestDto.setFloweringDate(new Date(1, 3, 2024));
+        updateRequestDto.setHarvestDate(new Date(31, 3, 2024));
+
+        mockOwnerUpdateFlow(existingCrop, updateRequestDto);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop, otherCrop));
+
+        mockMvc.perform(put("/crop/update")
+                        .param("cropId", existingCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void updateCropFails_WhenFullyOverlappingAreasExceedPlotArea() throws Exception {
+        CropModel existingCrop = createCropModel(
+                27L, NomeComum.SOJA, "TMG 7062 IPRO", ownerFolder,
+                40.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+        CropModel otherCrop = createCropModel(
+                28L, NomeComum.MILHO, "AG 8088", ownerFolder,
+                55.0, new Date(1, 1, 2024), new Date(31, 5, 2024));
+        CropPostRequestDto updateRequestDto = createPostRequestDto();
+        updateRequestDto.setUsedAreaInThePlot(50.0);
+        updateRequestDto.setPlantingDate(new Date(1, 1, 2024));
+        updateRequestDto.setEmergenceDate(new Date(3, 1, 2024));
+        updateRequestDto.setButtoningDate(new Date(1, 2, 2024));
+        updateRequestDto.setFloweringDate(new Date(1, 3, 2024));
+        updateRequestDto.setHarvestDate(new Date(31, 5, 2024));
+
+        mockOwnerUpdateFlow(existingCrop, updateRequestDto);
+        when(cropRepository.findAllByFolder(ownerFolder)).thenReturn(List.of(existingCrop, otherCrop));
+
+        mockMvc.perform(put("/crop/update")
+                        .param("cropId", existingCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "A soma das áreas ocupadas por culturas com meses sobrepostos não pode exceder a área do talhão."));
     }
 
     @Test
