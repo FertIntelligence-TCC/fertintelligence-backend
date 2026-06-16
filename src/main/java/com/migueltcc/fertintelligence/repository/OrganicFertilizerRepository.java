@@ -12,6 +12,7 @@ import java.util.List;
 
 @Repository
 public interface OrganicFertilizerRepository extends JpaRepository<OrganicFertilizerModel, Long> {
+    List<OrganicFertilizerModel> findAllByUserAndPublicoFalseOrderByNameAsc(UserModel user);
 
     List<OrganicFertilizerModel> findAllByUser(UserModel user);
 

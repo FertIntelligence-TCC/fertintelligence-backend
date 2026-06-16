@@ -87,7 +87,7 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Transactional(readOnly = true)
     public List<OrganoMineralFertilizerResponseDto> getAllOrganoMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -97,7 +97,7 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Transactional(readOnly = true)
     public List<OrganoMineralFertilizerResponseDto> getAllPublicOrganoMineralFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return repository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+        return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -109,6 +109,7 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

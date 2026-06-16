@@ -87,7 +87,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -97,7 +97,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllPublicChelatedFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return repository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+        return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -109,6 +109,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

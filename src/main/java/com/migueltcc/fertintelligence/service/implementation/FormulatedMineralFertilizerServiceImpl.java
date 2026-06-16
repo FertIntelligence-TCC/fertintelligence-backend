@@ -92,7 +92,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -102,7 +102,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllPublicFormulatedMineralFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByIdAsc(Cargo.USUARIO_SUPREMO)
+        return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc()
                 .stream()
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -114,6 +114,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         findUserByUsernameOrThrow(username);
         return formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

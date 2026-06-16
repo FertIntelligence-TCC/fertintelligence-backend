@@ -79,7 +79,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
     @Transactional(readOnly = true)
     public List<OrganicFertilizerResponseDto> getAllOrganicFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return organicFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return organicFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(OrganicFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -89,7 +89,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
     @Transactional(readOnly = true)
     public List<OrganicFertilizerResponseDto> getAllPublicOrganicFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return organicFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+        return organicFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(OrganicFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -101,6 +101,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         findUserByUsernameOrThrow(username);
         return organicFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(OrganicFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

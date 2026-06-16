@@ -12,6 +12,7 @@ import java.util.List;
 
 @Repository
 public interface GreenFertilizerRepository extends JpaRepository<GreenFertilizerModel, Long> {
+    List<GreenFertilizerModel> findAllByUserAndPublicoFalseOrderByNameAsc(UserModel user);
 
     List<GreenFertilizerModel> findAllByUser(UserModel user);
 

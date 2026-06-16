@@ -90,7 +90,7 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
     @Transactional(readOnly = true)
     public List<MineralFertilizerResponseDto> getAllMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(MineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -100,7 +100,7 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
     @Transactional(readOnly = true)
     public List<MineralFertilizerResponseDto> getAllPublicMineralFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return repository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+        return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(MineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -112,6 +112,7 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(MineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

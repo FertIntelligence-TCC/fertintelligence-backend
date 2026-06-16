@@ -77,7 +77,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getAllGreenFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)
+        return greenFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -87,7 +87,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO)
+        return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
@@ -99,6 +99,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
+                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
