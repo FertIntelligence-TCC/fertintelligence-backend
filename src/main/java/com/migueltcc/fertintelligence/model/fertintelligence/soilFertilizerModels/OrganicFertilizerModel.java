@@ -114,9 +114,13 @@ public class OrganicFertilizerModel {
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .teorUmidade(this.teorUmidade != null ? this.teorUmidade : 0.0)
                 .teorCinzas(this.teorCinzas != null ? this.teorCinzas : 0.0)
+                .userId(this.user != null ? this.user.getId() : null)
+                .userNome(this.user != null ? this.user.getName() : null)
+                .publico(this.publico != null ? this.publico : false)
                 .idsFotos(this.idsFotos)
                 .observation(this.observation)
                 .source(this.source)
+                .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 }

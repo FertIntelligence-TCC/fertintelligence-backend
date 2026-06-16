@@ -111,7 +111,6 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(BioFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

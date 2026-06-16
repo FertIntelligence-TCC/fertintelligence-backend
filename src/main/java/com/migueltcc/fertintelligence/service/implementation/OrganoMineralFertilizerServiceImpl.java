@@ -109,7 +109,6 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(OrganoMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

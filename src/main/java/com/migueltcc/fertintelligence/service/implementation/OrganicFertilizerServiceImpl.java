@@ -101,7 +101,6 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         findUserByUsernameOrThrow(username);
         return organicFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(OrganicFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

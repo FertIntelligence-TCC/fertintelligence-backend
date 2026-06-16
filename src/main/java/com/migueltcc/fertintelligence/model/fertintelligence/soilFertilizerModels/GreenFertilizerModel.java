@@ -106,9 +106,13 @@ public class GreenFertilizerModel {
                 .mn(this.Mn != null ? this.Mn : 0.0)
                 .mo(this.Mo != null ? this.Mo : 0.0)
                 .zn(this.Zn != null ? this.Zn : 0.0)
+                .userId(this.user != null ? this.user.getId() : null)
+                .userNome(this.user != null ? this.user.getName() : null)
+                .publico(this.publico != null ? this.publico : false)
                 .idsFotos(this.idsFotos)
                 .observation(this.observation)
                 .source(this.source)
+                .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 }

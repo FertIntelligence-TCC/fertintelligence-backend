@@ -129,9 +129,13 @@ public class MineralFertilizerModel {
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
                 .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
+                .userId(this.user != null ? this.user.getId() : null)
+                .userNome(this.user != null ? this.user.getName() : null)
+                .publico(this.publico != null ? this.publico : false)
                 .idsFotos(this.idsFotos)
                 .observation(this.observation)
                 .source(this.source)
+                .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 }

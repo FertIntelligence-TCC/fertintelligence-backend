@@ -114,7 +114,6 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         findUserByUsernameOrThrow(username);
         return formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(FormulatedMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

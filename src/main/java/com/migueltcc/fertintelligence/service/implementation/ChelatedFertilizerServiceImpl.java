@@ -109,7 +109,6 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(ChelatedFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

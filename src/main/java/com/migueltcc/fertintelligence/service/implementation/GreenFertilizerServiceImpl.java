@@ -99,7 +99,6 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(GreenFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }

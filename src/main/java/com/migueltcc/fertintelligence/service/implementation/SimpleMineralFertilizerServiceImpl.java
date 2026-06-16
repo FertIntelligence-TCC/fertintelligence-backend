@@ -91,7 +91,6 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         findUserByUsernameOrThrow(username);
         return simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(fertilizer -> !Boolean.TRUE.equals(fertilizer.getPublico()))
                 .map(SimpleMineralFertilizerModel::toDto)
                 .collect(Collectors.toList());
     }
