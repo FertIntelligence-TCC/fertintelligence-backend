@@ -98,8 +98,8 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     @Override
     @Transactional(readOnly = true)
     public List<BioFertilizerResponseDto> getAllBioFertilizers(String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserOrderByNameAsc(owner)
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByUserUsernameOrderByNameAsc(username)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

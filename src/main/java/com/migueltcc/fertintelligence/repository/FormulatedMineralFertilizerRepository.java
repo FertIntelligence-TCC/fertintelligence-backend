@@ -20,6 +20,9 @@ public interface FormulatedMineralFertilizerRepository extends JpaRepository<For
     List<FormulatedMineralFertilizerModel> findAllByUserOrderByFormulaAsc(@Param("user") UserModel user);
     
 
+    @Query("select f from FormulatedMineralFertilizerModel f where f.user.username = :username order by f.formulate.n asc, f.formulate.p asc, f.formulate.k asc")
+    List<FormulatedMineralFertilizerModel> findAllByUserUsernameOrderByFormulaAsc(@Param("username") String username);
+
     List<FormulatedMineralFertilizerModel> findAllByUser(UserModel user);
 
     List<FormulatedMineralFertilizerModel> findAllByUserAndPublicoFalseOrderByIdAsc(UserModel user);

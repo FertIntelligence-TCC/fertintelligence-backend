@@ -97,8 +97,8 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
     @Override
     @Transactional(readOnly = true)
     public List<OrganoMineralFertilizerResponseDto> getAllOrganoMineralFertilizers(String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserOrderByNameAsc(owner)
+        findUserByUsernameOrThrow(username);
+        return repository.findAllByUserUsernameOrderByNameAsc(username)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

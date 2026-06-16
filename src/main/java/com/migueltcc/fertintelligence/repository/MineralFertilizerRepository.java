@@ -16,6 +16,9 @@ public interface MineralFertilizerRepository extends JpaRepository<MineralFertil
 
     List<MineralFertilizerModel> findAllByUserOrderByNameAsc(UserModel user);
 
+    @Query("select f from MineralFertilizerModel f where f.user.username = :username order by f.name asc")
+    List<MineralFertilizerModel> findAllByUserUsernameOrderByNameAsc(@Param("username") String username);
+
     List<MineralFertilizerModel> findAllByUser(UserModel user);
 
     @Query("select f from MineralFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")

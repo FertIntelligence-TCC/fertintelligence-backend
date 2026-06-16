@@ -88,8 +88,8 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
     @Override
     @Transactional(readOnly = true)
     public List<OrganicFertilizerResponseDto> getAllOrganicFertilizers(String username) {
-        UserModel owner = findUserByUsernameOrThrow(username);
-        return organicFertilizerRepository.findAllByUserOrderByNameAsc(owner)
+        findUserByUsernameOrThrow(username);
+        return organicFertilizerRepository.findAllByUserUsernameOrderByNameAsc(username)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

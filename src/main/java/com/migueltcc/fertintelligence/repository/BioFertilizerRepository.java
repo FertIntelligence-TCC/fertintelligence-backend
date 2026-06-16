@@ -18,6 +18,9 @@ public interface BioFertilizerRepository extends JpaRepository<BioFertilizerMode
 
     List<BioFertilizerModel> findAllByUserOrderByNameAsc(UserModel user);
 
+    @Query("select f from BioFertilizerModel f where f.user.username = :username order by f.name asc")
+    List<BioFertilizerModel> findAllByUserUsernameOrderByNameAsc(@Param("username") String username);
+
     @Query("select f from BioFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<BioFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
