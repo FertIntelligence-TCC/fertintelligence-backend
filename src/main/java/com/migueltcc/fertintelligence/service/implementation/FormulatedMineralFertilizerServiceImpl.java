@@ -98,7 +98,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     @Transactional(readOnly = true)
     public List<FormulatedMineralFertilizerResponseDto> getAllFormulatedMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByFormulaAsc(owner)
+        return formulatedMineralFertilizerRepository.findAllByUserOrderByFormulaAsc(owner)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

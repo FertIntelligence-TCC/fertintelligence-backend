@@ -97,7 +97,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     @Transactional(readOnly = true)
     public List<ChelatedFertilizerResponseDto> getAllChelatedFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
+        return repository.findAllByUserOrderByNameAsc(owner)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

@@ -14,6 +14,8 @@ import java.util.List;
 public interface MineralFertilizerRepository extends JpaRepository<MineralFertilizerModel, Long> {
     List<MineralFertilizerModel> findAllByUserAndPublicoFalseOrderByNameAsc(UserModel user);
 
+    List<MineralFertilizerModel> findAllByUserOrderByNameAsc(UserModel user);
+
     List<MineralFertilizerModel> findAllByUser(UserModel user);
 
     @Query("select f from MineralFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")

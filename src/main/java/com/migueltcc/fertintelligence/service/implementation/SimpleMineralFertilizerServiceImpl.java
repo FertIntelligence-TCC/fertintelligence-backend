@@ -75,7 +75,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     @Transactional(readOnly = true)
     public List<SimpleMineralFertilizerResponseDto> getAllSimpleMineralFertilizers(String username) {
         UserModel owner = findUserByUsernameOrThrow(username);
-        return simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
+        return simpleMineralFertilizerRepository.findAllByUserOrderByNameAsc(owner)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
