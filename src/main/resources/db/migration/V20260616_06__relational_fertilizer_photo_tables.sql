@@ -11,7 +11,64 @@ DECLARE
     pk_column_count INTEGER;
     pk_has_id BOOLEAN;
     id_sequence_name TEXT;
+    legacy_snapshot_name TEXT;
+    has_legacy_columns BOOLEAN;
+    has_legacy_order_column BOOLEAN;
 BEGIN
+    legacy_snapshot_name := 'tmp_' || photo_table_name || '_legacy_snapshot';
+
+    SELECT COUNT(*) = 2
+    INTO has_legacy_columns
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = photo_table_name
+      AND column_name IN ('adubo_id', 'id_foto');
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = photo_table_name
+          AND column_name = 'ordem'
+    )
+    INTO has_legacy_order_column;
+
+    IF to_regclass(photo_table_name) IS NOT NULL AND has_legacy_columns THEN
+        IF has_legacy_order_column THEN
+            EXECUTE format(
+                'CREATE TEMP TABLE %I ON COMMIT DROP AS
+                 SELECT adubo_id, ordem, id_foto
+                 FROM %I
+                 WHERE adubo_id IS NOT NULL
+                   AND ordem IS NOT NULL
+                   AND id_foto IS NOT NULL',
+                legacy_snapshot_name,
+                photo_table_name
+            );
+        ELSE
+            EXECUTE format(
+                'CREATE TEMP TABLE %I ON COMMIT DROP AS
+                 SELECT adubo_id,
+                        (ROW_NUMBER() OVER (PARTITION BY adubo_id ORDER BY id_foto) - 1)::INTEGER AS ordem,
+                        id_foto
+                 FROM %I
+                 WHERE adubo_id IS NOT NULL
+                   AND id_foto IS NOT NULL',
+                legacy_snapshot_name,
+                photo_table_name
+            );
+        END IF;
+    ELSE
+        EXECUTE format(
+            'CREATE TEMP TABLE %I (
+                adubo_id BIGINT,
+                ordem INTEGER,
+                id_foto VARCHAR(255)
+            ) ON COMMIT DROP',
+            legacy_snapshot_name
+        );
+    END IF;
+
     EXECUTE format(
         'CREATE TABLE IF NOT EXISTS %I (
             id BIGINT,
@@ -83,6 +140,16 @@ BEGIN
             unique_constraint_name
         );
     END IF;
+
+    EXECUTE format(
+        'INSERT INTO %I (adubo_id, ordem, id_foto)
+         SELECT adubo_id, ordem, id_foto
+         FROM %I
+         ORDER BY adubo_id, ordem
+         ON CONFLICT (adubo_id, ordem) DO NOTHING',
+        photo_table_name,
+        legacy_snapshot_name
+    );
 
     IF to_regclass(fertilizer_table_name) IS NOT NULL
        AND NOT EXISTS (
