@@ -18,6 +18,9 @@ public interface GreenFertilizerRepository extends JpaRepository<GreenFertilizer
 
     List<GreenFertilizerModel> findAllByUserOrderByNameAsc(UserModel user);
 
+    @Query("select f from GreenFertilizerModel f where f.user.username = :username order by f.name asc")
+    List<GreenFertilizerModel> findAllByUserUsernameOrderByNameAsc(@Param("username") String username);
+
     @Query("select f from GreenFertilizerModel f where f.user = :user or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<GreenFertilizerModel> findAllByUserOrDefaultCreator(@Param("user") UserModel user, @Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 
