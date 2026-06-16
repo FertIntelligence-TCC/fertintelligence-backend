@@ -21,17 +21,16 @@ public class SimpleMineralFertilizerModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UserModel user;
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
 
-    @ElementCollection
-    @CollectionTable(name = "ADUBOS_MINERAIS_SIMPLES_FOTOS", joinColumns = @JoinColumn(name = "ADUBO_ID"))
-    @OrderColumn(name = "ORDEM")
-    @Column(name = "ID_FOTO", nullable = false)
+    @Transient
     @Builder.Default
     private List<String> idsFotos = new ArrayList<>();
 
@@ -90,6 +89,14 @@ public class SimpleMineralFertilizerModel {
     @Column(name = "INDICE_ACIDEZ")
     private double indiceAcidez;
 
+    public List<String> getIdsFotos() {
+        return new ArrayList<>(this.idsFotos);
+    }
+
+    public void setIdsFotos(List<String> idsFotos) {
+        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
+    }
+
     public SimpleMineralFertilizerResponseDto toDto() {
         return SimpleMineralFertilizerResponseDto.builder()
                 .id(this.id)
@@ -111,7 +118,7 @@ public class SimpleMineralFertilizerModel {
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)
-                .idsFotos(this.idsFotos)
+                .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
                 .nomeCriador(this.user != null ? this.user.getName() : null)

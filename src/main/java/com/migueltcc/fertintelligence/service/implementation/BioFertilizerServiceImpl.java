@@ -5,7 +5,9 @@ import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFerti
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.bioFertilizer.BioFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizerPhotos.BioFertilizerPhotoModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.BioFertilizerModel;
+import com.migueltcc.fertintelligence.repository.BioFertilizerPhotoRepository;
 import com.migueltcc.fertintelligence.repository.BioFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.BioFertilizerService;
@@ -22,10 +24,16 @@ import java.util.stream.Collectors;
 public class BioFertilizerServiceImpl implements BioFertilizerService {
 
     private final BioFertilizerRepository repository;
+    private final BioFertilizerPhotoRepository photoRepository;
     private final UserRepository userRepository;
 
-    public BioFertilizerServiceImpl(BioFertilizerRepository repository, UserRepository userRepository) {
+    public BioFertilizerServiceImpl(
+            BioFertilizerRepository repository,
+            BioFertilizerPhotoRepository photoRepository,
+            UserRepository userRepository
+    ) {
         this.repository = repository;
+        this.photoRepository = photoRepository;
         this.userRepository = userRepository;
     }
 
@@ -68,12 +76,14 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
-                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
                 .build();
+        List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
-        return repository.save(fertilizer).toDto();
+        BioFertilizerModel saved = repository.save(fertilizer);
+        savePhotos(saved, idsFotos);
+        return toDtoWithPhotos(saved, idsFotos);
     }
 
     @Override
@@ -82,7 +92,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         BioFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkReadAccess(fertilizer, owner);
-        return fertilizer.toDto();
+        return toDtoWithPhotos(fertilizer);
     }
 
     @Override
@@ -91,7 +101,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
-                .map(BioFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -101,7 +111,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         findUserByUsernameOrThrow(username);
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
-                .map(BioFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -111,7 +121,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(BioFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -122,7 +132,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         return repository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(BioFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -165,11 +175,20 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
-        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        List<String> idsFotos = null;
+        if (dto.getIdsFotos() != null) {
+            idsFotos = copyIdsFotos(dto.getIdsFotos());
+        }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
-        return repository.save(fertilizer).toDto();
+        BioFertilizerModel saved = repository.save(fertilizer);
+        if (idsFotos != null) {
+            photoRepository.deleteAllByFertilizerId(saved.getId());
+            savePhotos(saved, idsFotos);
+            return toDtoWithPhotos(saved, idsFotos);
+        }
+        return toDtoWithPhotos(saved);
     }
 
     @Override
@@ -178,6 +197,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         BioFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkOwnership(fertilizer, owner);
+        photoRepository.deleteAllByFertilizerId(id);
         repository.delete(fertilizer);
     }
 
@@ -211,6 +231,29 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
             throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
         }
         return new ArrayList<>(idsFotos);
+    }
+
+    private void savePhotos(BioFertilizerModel fertilizer, List<String> idsFotos) {
+        List<BioFertilizerPhotoModel> photos = new ArrayList<>();
+        for (int i = 0; i < idsFotos.size(); i++) {
+            photos.add(new BioFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
+        }
+        photoRepository.saveAll(photos);
+    }
+
+    private BioFertilizerResponseDto toDtoWithPhotos(BioFertilizerModel fertilizer) {
+        List<String> idsFotos = fertilizer.getId() == null
+                ? List.of()
+                : photoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId()).stream()
+                        .map(BioFertilizerPhotoModel::getIdFoto)
+                        .toList();
+        return toDtoWithPhotos(fertilizer, idsFotos);
+    }
+
+    private BioFertilizerResponseDto toDtoWithPhotos(BioFertilizerModel fertilizer, List<String> idsFotos) {
+        BioFertilizerResponseDto dto = fertilizer.toDto();
+        dto.setIdsFotos(idsFotos);
+        return dto;
     }
 
     private double getOrDefault(Double value) {

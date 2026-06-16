@@ -5,7 +5,9 @@ import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelated
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelatedFertilizer.ChelatedFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.foliarFertilizers.chelatedFertilizer.ChelatedFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizerPhotos.ChelatedFertilizerPhotoModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.ChelatedFertilizerModel;
+import com.migueltcc.fertintelligence.repository.ChelatedFertilizerPhotoRepository;
 import com.migueltcc.fertintelligence.repository.ChelatedFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.ChelatedFertilizerService;
@@ -24,10 +26,16 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     private static final String NON_NEGATIVE_VALUE_MESSAGE = "O valor não pode ser negativo";
 
     private final ChelatedFertilizerRepository repository;
+    private final ChelatedFertilizerPhotoRepository photoRepository;
     private final UserRepository userRepository;
 
-    public ChelatedFertilizerServiceImpl(ChelatedFertilizerRepository repository, UserRepository userRepository) {
+    public ChelatedFertilizerServiceImpl(
+            ChelatedFertilizerRepository repository,
+            ChelatedFertilizerPhotoRepository photoRepository,
+            UserRepository userRepository
+    ) {
         this.repository = repository;
+        this.photoRepository = photoRepository;
         this.userRepository = userRepository;
     }
 
@@ -66,12 +74,14 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
-                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
                 .build();
+        List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
-        return repository.save(fertilizer).toDto();
+        ChelatedFertilizerModel saved = repository.save(fertilizer);
+        savePhotos(saved, idsFotos);
+        return toDtoWithPhotos(saved, idsFotos);
     }
 
     @Override
@@ -80,7 +90,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         UserModel owner = findUserByUsernameOrThrow(username);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkReadAccess(fertilizer, owner);
-        return fertilizer.toDto();
+        return toDtoWithPhotos(fertilizer);
     }
 
     @Override
@@ -89,7 +99,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         UserModel owner = findUserByUsernameOrThrow(username);
         return repository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
-                .map(ChelatedFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -99,7 +109,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         findUserByUsernameOrThrow(username);
         return repository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
-                .map(ChelatedFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -109,7 +119,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         findUserByUsernameOrThrow(username);
         return repository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(ChelatedFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -120,7 +130,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         UserModel owner = findUserByUsernameOrThrow(username);
         return repository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(ChelatedFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -159,11 +169,20 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
-        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        List<String> idsFotos = null;
+        if (dto.getIdsFotos() != null) {
+            idsFotos = copyIdsFotos(dto.getIdsFotos());
+        }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
-        return repository.save(fertilizer).toDto();
+        ChelatedFertilizerModel saved = repository.save(fertilizer);
+        if (idsFotos != null) {
+            photoRepository.deleteAllByFertilizerId(saved.getId());
+            savePhotos(saved, idsFotos);
+            return toDtoWithPhotos(saved, idsFotos);
+        }
+        return toDtoWithPhotos(saved);
     }
 
     @Override
@@ -172,6 +191,7 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
         UserModel owner = findUserByUsernameOrThrow(username);
         ChelatedFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkOwnership(fertilizer, owner);
+        photoRepository.deleteAllByFertilizerId(id);
         repository.delete(fertilizer);
     }
 
@@ -205,6 +225,29 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
             throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
         }
         return new ArrayList<>(idsFotos);
+    }
+
+    private void savePhotos(ChelatedFertilizerModel fertilizer, List<String> idsFotos) {
+        List<ChelatedFertilizerPhotoModel> photos = new ArrayList<>();
+        for (int i = 0; i < idsFotos.size(); i++) {
+            photos.add(new ChelatedFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
+        }
+        photoRepository.saveAll(photos);
+    }
+
+    private ChelatedFertilizerResponseDto toDtoWithPhotos(ChelatedFertilizerModel fertilizer) {
+        List<String> idsFotos = fertilizer.getId() == null
+                ? List.of()
+                : photoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId()).stream()
+                        .map(ChelatedFertilizerPhotoModel::getIdFoto)
+                        .toList();
+        return toDtoWithPhotos(fertilizer, idsFotos);
+    }
+
+    private ChelatedFertilizerResponseDto toDtoWithPhotos(ChelatedFertilizerModel fertilizer, List<String> idsFotos) {
+        ChelatedFertilizerResponseDto dto = fertilizer.toDto();
+        dto.setIdsFotos(idsFotos);
+        return dto;
     }
 
     private double getOrDefault(Double value) {

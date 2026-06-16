@@ -29,10 +29,7 @@ public class GreenFertilizerModel {
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
 
-    @ElementCollection
-    @CollectionTable(name = "ADUBOS_VERDES_FOTOS", joinColumns = @JoinColumn(name = "ADUBO_ID"))
-    @OrderColumn(name = "ORDEM")
-    @Column(name = "ID_FOTO", nullable = false)
+    @Transient
     @Builder.Default
     private List<String> idsFotos = new ArrayList<>();
 
@@ -88,6 +85,14 @@ public class GreenFertilizerModel {
     @Column(name = "PORCENTAGEM_ZINCO")
     private Double Zn;
 
+    public List<String> getIdsFotos() {
+        return new ArrayList<>(this.idsFotos);
+    }
+
+    public void setIdsFotos(List<String> idsFotos) {
+        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
+    }
+
     public GreenFertilizerResponseDto toDto() {
         return GreenFertilizerResponseDto.builder()
                 .id(this.id)
@@ -109,7 +114,7 @@ public class GreenFertilizerModel {
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)
-                .idsFotos(this.idsFotos)
+                .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
                 .nomeCriador(this.user != null ? this.user.getName() : null)

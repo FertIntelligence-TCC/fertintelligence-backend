@@ -5,7 +5,9 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFerti
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer.GreenFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer.GreenFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizerPhotos.GreenFertilizerPhotoModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.GreenFertilizerModel;
+import com.migueltcc.fertintelligence.repository.GreenFertilizerPhotoRepository;
 import com.migueltcc.fertintelligence.repository.GreenFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GreenFertilizerService;
@@ -22,10 +24,16 @@ import java.util.stream.Collectors;
 public class GreenFertilizerServiceImpl implements GreenFertilizerService {
 
     private final GreenFertilizerRepository greenFertilizerRepository;
+    private final GreenFertilizerPhotoRepository photoRepository;
     private final UserRepository userRepository;
 
-    public GreenFertilizerServiceImpl(GreenFertilizerRepository greenFertilizerRepository, UserRepository userRepository) {
+    public GreenFertilizerServiceImpl(
+            GreenFertilizerRepository greenFertilizerRepository,
+            GreenFertilizerPhotoRepository photoRepository,
+            UserRepository userRepository
+    ) {
         this.greenFertilizerRepository = greenFertilizerRepository;
+        this.photoRepository = photoRepository;
         this.userRepository = userRepository;
     }
 
@@ -56,12 +64,14 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .Mo(getOrDefault(dto.getMo()))
                 .Zn(getOrDefault(dto.getZn()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
-                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
                 .build();
+        List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
-        return greenFertilizerRepository.save(fertilizer).toDto();
+        GreenFertilizerModel saved = greenFertilizerRepository.save(fertilizer);
+        savePhotos(saved, idsFotos);
+        return toDtoWithPhotos(saved, idsFotos);
     }
 
     @Override
@@ -70,7 +80,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         GreenFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkReadAccess(fertilizer, owner);
-        return fertilizer.toDto();
+        return toDtoWithPhotos(fertilizer);
     }
 
     @Override
@@ -79,7 +89,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
-                .map(GreenFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -89,7 +99,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
-                .map(GreenFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -99,7 +109,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(GreenFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -110,7 +120,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         return greenFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(GreenFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -143,11 +153,20 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
 
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
-        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        List<String> idsFotos = null;
+        if (dto.getIdsFotos() != null) {
+            idsFotos = copyIdsFotos(dto.getIdsFotos());
+        }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
-        return greenFertilizerRepository.save(fertilizer).toDto();
+        GreenFertilizerModel saved = greenFertilizerRepository.save(fertilizer);
+        if (idsFotos != null) {
+            photoRepository.deleteAllByFertilizerId(saved.getId());
+            savePhotos(saved, idsFotos);
+            return toDtoWithPhotos(saved, idsFotos);
+        }
+        return toDtoWithPhotos(saved);
     }
 
     @Override
@@ -156,6 +175,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         UserModel owner = findUserByUsernameOrThrow(username);
         GreenFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkOwnership(fertilizer, owner);
+        photoRepository.deleteAllByFertilizerId(id);
         greenFertilizerRepository.delete(fertilizer);
     }
 
@@ -189,6 +209,29 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
             throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
         }
         return new ArrayList<>(idsFotos);
+    }
+
+    private void savePhotos(GreenFertilizerModel fertilizer, List<String> idsFotos) {
+        List<GreenFertilizerPhotoModel> photos = new ArrayList<>();
+        for (int i = 0; i < idsFotos.size(); i++) {
+            photos.add(new GreenFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
+        }
+        photoRepository.saveAll(photos);
+    }
+
+    private GreenFertilizerResponseDto toDtoWithPhotos(GreenFertilizerModel fertilizer) {
+        List<String> idsFotos = fertilizer.getId() == null
+                ? List.of()
+                : photoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId()).stream()
+                        .map(GreenFertilizerPhotoModel::getIdFoto)
+                        .toList();
+        return toDtoWithPhotos(fertilizer, idsFotos);
+    }
+
+    private GreenFertilizerResponseDto toDtoWithPhotos(GreenFertilizerModel fertilizer, List<String> idsFotos) {
+        GreenFertilizerResponseDto dto = fertilizer.toDto();
+        dto.setIdsFotos(idsFotos);
+        return dto;
     }
 
     private double getOrDefault(Double value) {

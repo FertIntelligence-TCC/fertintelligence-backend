@@ -5,7 +5,9 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMine
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.simpleMineralFertilizer.SimpleMineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizerPhotos.SimpleMineralFertilizerPhotoModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
+import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerPhotoRepository;
 import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SimpleMineralFertilizerService;
@@ -24,6 +26,9 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
     @Autowired
     private SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
+
+    @Autowired
+    private SimpleMineralFertilizerPhotoRepository photoRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -55,13 +60,14 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .indiceSalino(getOrDefault(createRequestDto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(createRequestDto.getIndiceAcidez()))
                 .publico(Boolean.TRUE.equals(createRequestDto.getPublico()))
-                .idsFotos(copyIdsFotos(createRequestDto.getIdsFotos()))
                 .observation(createRequestDto.getObservation())
                 .source(createRequestDto.getSource())
                 .build();
+        List<String> idsFotos = copyIdsFotos(createRequestDto.getIdsFotos());
 
         SimpleMineralFertilizerModel saved = simpleMineralFertilizerRepository.save(fertilizer);
-        return saved.toDto();
+        savePhotos(saved, idsFotos);
+        return toDtoWithPhotos(saved, idsFotos);
     }
 
     // CORREÇÃO: Nome do método atualizado para getAllSimpleMineralFertilizers
@@ -71,7 +77,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         UserModel owner = findUserByUsernameOrThrow(username);
         return simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(owner)
                 .stream()
-                .map(SimpleMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -81,7 +87,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         findUserByUsernameOrThrow(username);
         return simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
                 .stream()
-                .map(SimpleMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -91,7 +97,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         findUserByUsernameOrThrow(username);
         return simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(SimpleMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -103,7 +109,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
         return simpleMineralFertilizerRepository.findAllByNameContainingIgnoreCaseAndUserOrDefaultCreator(name, owner, Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(SimpleMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -135,12 +141,20 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
-        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        List<String> idsFotos = null;
+        if (dto.getIdsFotos() != null) {
+            idsFotos = copyIdsFotos(dto.getIdsFotos());
+        }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
         SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
-        return updated.toDto();
+        if (idsFotos != null) {
+            photoRepository.deleteAllByFertilizerId(updated.getId());
+            savePhotos(updated, idsFotos);
+            return toDtoWithPhotos(updated, idsFotos);
+        }
+        return toDtoWithPhotos(updated);
     }
 
     @Override
@@ -151,6 +165,7 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
         checkOwnership(fertilizer, owner);
 
+        photoRepository.deleteAllByFertilizerId(fertilizerId);
         simpleMineralFertilizerRepository.delete(fertilizer);
     }
 
@@ -180,6 +195,29 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
             throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
         }
         return new ArrayList<>(idsFotos);
+    }
+
+    private void savePhotos(SimpleMineralFertilizerModel fertilizer, List<String> idsFotos) {
+        List<SimpleMineralFertilizerPhotoModel> photos = new ArrayList<>();
+        for (int i = 0; i < idsFotos.size(); i++) {
+            photos.add(new SimpleMineralFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
+        }
+        photoRepository.saveAll(photos);
+    }
+
+    private SimpleMineralFertilizerResponseDto toDtoWithPhotos(SimpleMineralFertilizerModel fertilizer) {
+        List<String> idsFotos = fertilizer.getId() == null
+                ? List.of()
+                : photoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId()).stream()
+                        .map(SimpleMineralFertilizerPhotoModel::getIdFoto)
+                        .toList();
+        return toDtoWithPhotos(fertilizer, idsFotos);
+    }
+
+    private SimpleMineralFertilizerResponseDto toDtoWithPhotos(SimpleMineralFertilizerModel fertilizer, List<String> idsFotos) {
+        SimpleMineralFertilizerResponseDto dto = fertilizer.toDto();
+        dto.setIdsFotos(idsFotos);
+        return dto;
     }
 
     private double getOrDefault(Double value) {

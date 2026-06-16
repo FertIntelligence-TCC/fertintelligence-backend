@@ -28,17 +28,16 @@ public class FormulatedMineralFertilizerModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UserModel user;
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
 
-    @ElementCollection
-    @CollectionTable(name = "ADUBOS_MINERAIS_FORMULADOS_FOTOS", joinColumns = @JoinColumn(name = "ADUBO_ID"))
-    @OrderColumn(name = "ORDEM")
-    @Column(name = "ID_FOTO", nullable = false)
+    @Transient
     @Builder.Default
     private List<String> idsFotos = new ArrayList<>();
 
@@ -107,6 +106,14 @@ public class FormulatedMineralFertilizerModel {
     @Column(name = "NUMERO_FORMULA_INDICADA")
     private Integer indicatedFormulaNumber;
 
+    public List<String> getIdsFotos() {
+        return new ArrayList<>(this.idsFotos);
+    }
+
+    public void setIdsFotos(List<String> idsFotos) {
+        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
+    }
+
     public FormulatedMineralFertilizerResponseDto toDto() {
         return FormulatedMineralFertilizerResponseDto.builder()
                 .id(this.id)
@@ -129,7 +136,7 @@ public class FormulatedMineralFertilizerModel {
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)
-                .idsFotos(this.idsFotos)
+                .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
                 .nomeCriador(this.user != null ? this.user.getName() : null)

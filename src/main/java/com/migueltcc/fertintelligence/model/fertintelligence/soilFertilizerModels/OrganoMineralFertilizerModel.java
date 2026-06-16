@@ -29,10 +29,7 @@ public class OrganoMineralFertilizerModel {
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
 
-    @ElementCollection
-    @CollectionTable(name = "ADUBOS_ORGANO_MINERAIS_FOTOS", joinColumns = @JoinColumn(name = "ADUBO_ID"))
-    @OrderColumn(name = "ORDEM")
-    @Column(name = "ID_FOTO", nullable = false)
+    @Transient
     @Builder.Default
     private List<String> idsFotos = new ArrayList<>();
 
@@ -95,6 +92,14 @@ public class OrganoMineralFertilizerModel {
     @Column(name = "INDICE_ACIDEZ")
     private Double indiceAcidez;
 
+    public List<String> getIdsFotos() {
+        return new ArrayList<>(this.idsFotos);
+    }
+
+    public void setIdsFotos(List<String> idsFotos) {
+        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
+    }
+
     public OrganoMineralFertilizerResponseDto toDto() {
         return OrganoMineralFertilizerResponseDto.builder()
                 .id(this.id)
@@ -118,7 +123,7 @@ public class OrganoMineralFertilizerModel {
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)
-                .idsFotos(this.idsFotos)
+                .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
                 .nomeCriador(this.user != null ? this.user.getName() : null)

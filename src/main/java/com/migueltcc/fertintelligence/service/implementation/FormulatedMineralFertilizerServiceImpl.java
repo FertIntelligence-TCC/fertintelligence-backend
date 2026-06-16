@@ -7,7 +7,9 @@ import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulated
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerPostRequestDto;
 import com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.formulatedMineralFertilizer.FormulatedMineralFertilizerResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizerPhotos.FormulatedMineralFertilizerPhotoModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
+import com.migueltcc.fertintelligence.repository.FormulatedMineralFertilizerPhotoRepository;
 import com.migueltcc.fertintelligence.repository.FormulatedMineralFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.FormulatedMineralFertilizerService;
@@ -28,12 +30,15 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             "A soma dos valores de NPK deve ser de pelo menos 24.";
 
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
+    private final FormulatedMineralFertilizerPhotoRepository photoRepository;
     private final UserRepository userRepository;
 
     public FormulatedMineralFertilizerServiceImpl(
             FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
+            FormulatedMineralFertilizerPhotoRepository photoRepository,
             UserRepository userRepository) {
         this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
+        this.photoRepository = photoRepository;
         this.userRepository = userRepository;
     }
 
@@ -70,13 +75,14 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
                 .B(getOrDefault(dto.getB())).Cu(getOrDefault(dto.getCu())).Fe(getOrDefault(dto.getFe()))
                 .Mn(getOrDefault(dto.getMn())).Mo(getOrDefault(dto.getMo())).Zn(getOrDefault(dto.getZn()))
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
-                .idsFotos(copyIdsFotos(dto.getIdsFotos()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
                 .build();
+        List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
         FormulatedMineralFertilizerModel saved = formulatedMineralFertilizerRepository.save(fertilizer);
-        return saved.toDto();
+        savePhotos(saved, idsFotos);
+        return toDtoWithPhotos(saved, idsFotos);
     }
 
     @Override
@@ -85,7 +91,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         UserModel owner = findUserByUsernameOrThrow(username);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkReadAccess(fertilizer, owner);
-        return fertilizer.toDto();
+        return toDtoWithPhotos(fertilizer);
     }
 
     @Override
@@ -94,7 +100,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         UserModel owner = findUserByUsernameOrThrow(username);
         return formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByFormulaAsc(owner)
                 .stream()
-                .map(FormulatedMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -104,7 +110,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         findUserByUsernameOrThrow(username);
         return formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc()
                 .stream()
-                .map(FormulatedMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -114,7 +120,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         findUserByUsernameOrThrow(username);
         return formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(FormulatedMineralFertilizerModel::toDto)
+                .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());
     }
 
@@ -162,7 +168,10 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
-        if (dto.getIdsFotos() != null) fertilizer.setIdsFotos(copyIdsFotos(dto.getIdsFotos()));
+        List<String> idsFotos = null;
+        if (dto.getIdsFotos() != null) {
+            idsFotos = copyIdsFotos(dto.getIdsFotos());
+        }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
 
@@ -170,7 +179,12 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         validatePrimaryNpkSum(fertilizer.getN(), fertilizer.getP2O5(), fertilizer.getK2O());
 
         FormulatedMineralFertilizerModel updated = formulatedMineralFertilizerRepository.save(fertilizer);
-        return updated.toDto();
+        if (idsFotos != null) {
+            photoRepository.deleteAllByFertilizerId(updated.getId());
+            savePhotos(updated, idsFotos);
+            return toDtoWithPhotos(updated, idsFotos);
+        }
+        return toDtoWithPhotos(updated);
     }
 
     @Override
@@ -179,6 +193,7 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
         UserModel owner = findUserByUsernameOrThrow(username);
         FormulatedMineralFertilizerModel fertilizer = findFertilizerByIdOrThrow(id);
         checkOwnership(fertilizer, owner);
+        photoRepository.deleteAllByFertilizerId(id);
         formulatedMineralFertilizerRepository.delete(fertilizer);
     }
 
@@ -190,6 +205,32 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
             throw new IllegalArgumentException("Um adubo pode ter no máximo 5 fotos");
         }
         return new ArrayList<>(idsFotos);
+    }
+
+    private void savePhotos(FormulatedMineralFertilizerModel fertilizer, List<String> idsFotos) {
+        List<FormulatedMineralFertilizerPhotoModel> photos = new ArrayList<>();
+        for (int i = 0; i < idsFotos.size(); i++) {
+            photos.add(new FormulatedMineralFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
+        }
+        photoRepository.saveAll(photos);
+    }
+
+    private FormulatedMineralFertilizerResponseDto toDtoWithPhotos(FormulatedMineralFertilizerModel fertilizer) {
+        List<String> idsFotos = fertilizer.getId() == null
+                ? List.of()
+                : photoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId()).stream()
+                        .map(FormulatedMineralFertilizerPhotoModel::getIdFoto)
+                        .toList();
+        return toDtoWithPhotos(fertilizer, idsFotos);
+    }
+
+    private FormulatedMineralFertilizerResponseDto toDtoWithPhotos(
+            FormulatedMineralFertilizerModel fertilizer,
+            List<String> idsFotos
+    ) {
+        FormulatedMineralFertilizerResponseDto dto = fertilizer.toDto();
+        dto.setIdsFotos(idsFotos);
+        return dto;
     }
 
     private double getOrDefault(Double value) {
