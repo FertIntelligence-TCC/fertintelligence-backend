@@ -35,28 +35,36 @@ public class AvailablePAnionExchangeResinExtractorModel {
     String unit = DEFAULT_UNIT;
 
     @Column(name = "MUITO_BAIXO", nullable = false)
-    Double pContentTooLow;
+    @Builder.Default
+    Double pContentTooLow = 0.0;
 
     @Column(name = "BAIXO_MENOR", nullable = false)
-    Double pContentLowI;
+    @Builder.Default
+    Double pContentLowI = 5.0;
 
     @Column(name = "BAIXO_MAIOR", nullable = false)
-    Double pContentLowF;
+    @Builder.Default
+    Double pContentLowF = 10.0;
 
     @Column(name = "MEDIO_MENOR", nullable = false)
-    Double pContentMediumI;
+    @Builder.Default
+    Double pContentMediumI = 10.0;
 
     @Column(name = "MEDIO_MAIOR", nullable = false)
-    Double pContentMediumF;
+    @Builder.Default
+    Double pContentMediumF = 20.0;
 
     @Column(name = "ALTO_MENOR", nullable = false)
-    Double pContentHighI;
+    @Builder.Default
+    Double pContentHighI = 20.0;
 
     @Column(name = "ALTO_MAIOR", nullable = false)
-    Double pContentHighF;
+    @Builder.Default
+    Double pContentHighF = 999.0;
 
     @Column(name = "MUITO_ALTO", nullable = false)
-    Double pContentTooHigh;
+    @Builder.Default
+    Double pContentTooHigh = 999.0;
 
     @PrePersist
     @PreUpdate

@@ -52,7 +52,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         AvailablePAnionExchangeResinExtractorModel criterion = AvailablePAnionExchangeResinExtractorModel.builder()
                 .table(table)
                 .build();
-        BeanUtils.copyProperties(createRequestDto, criterion);
+        copyNonNullProperties(createRequestDto, criterion);
 
         AvailablePAnionExchangeResinExtractorModel savedCriterion =
                 availablePAnionExchangeResinExtractorRepository.save(criterion);
