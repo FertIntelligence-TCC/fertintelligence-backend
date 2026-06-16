@@ -12,7 +12,10 @@ import java.util.List;
 
 @Repository
 public interface FormulatedMineralFertilizerRepository extends JpaRepository<FormulatedMineralFertilizerModel, Long> {
-    List<FormulatedMineralFertilizerModel> findAllByUserAndPublicoFalseOrderByNameAsc(UserModel user);
+    
+    @Query("select f from FormulatedMineralFertilizerModel f where f.user = :user and f.publico = false order by f.formulate.n asc, f.formulate.p asc, f.formulate.k asc")
+    List<FormulatedMineralFertilizerModel> findAllByUserAndPublicoFalseOrderByFormulaAsc(@Param("user") UserModel user);
+    
 
     List<FormulatedMineralFertilizerModel> findAllByUser(UserModel user);
 
