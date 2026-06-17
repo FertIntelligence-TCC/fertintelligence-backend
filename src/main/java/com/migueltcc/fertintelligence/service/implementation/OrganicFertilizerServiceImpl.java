@@ -166,7 +166,6 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
 
         OrganicFertilizerModel saved = organicFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(saved.getId());
             savePhotos(saved, idsFotos);
             return toDtoWithPhotos(saved, idsFotos);
         }
@@ -216,6 +215,8 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
     }
 
     private void savePhotos(OrganicFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<OrganicFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new OrganicFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

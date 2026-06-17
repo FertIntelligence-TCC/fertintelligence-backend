@@ -162,7 +162,6 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
 
         GreenFertilizerModel saved = greenFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(saved.getId());
             savePhotos(saved, idsFotos);
             return toDtoWithPhotos(saved, idsFotos);
         }
@@ -212,6 +211,8 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     }
 
     private void savePhotos(GreenFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<GreenFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new GreenFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

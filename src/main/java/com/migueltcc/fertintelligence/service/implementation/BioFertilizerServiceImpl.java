@@ -184,7 +184,6 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
 
         BioFertilizerModel saved = repository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(saved.getId());
             savePhotos(saved, idsFotos);
             return toDtoWithPhotos(saved, idsFotos);
         }
@@ -234,6 +233,8 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     }
 
     private void savePhotos(BioFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<BioFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new BioFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

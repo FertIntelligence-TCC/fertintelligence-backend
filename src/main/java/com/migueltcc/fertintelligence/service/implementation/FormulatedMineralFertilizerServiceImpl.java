@@ -180,7 +180,6 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
 
         FormulatedMineralFertilizerModel updated = formulatedMineralFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(updated.getId());
             savePhotos(updated, idsFotos);
             return toDtoWithPhotos(updated, idsFotos);
         }
@@ -208,6 +207,8 @@ public class FormulatedMineralFertilizerServiceImpl implements FormulatedMineral
     }
 
     private void savePhotos(FormulatedMineralFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<FormulatedMineralFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new FormulatedMineralFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

@@ -150,7 +150,6 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
 
         SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(updated.getId());
             savePhotos(updated, idsFotos);
             return toDtoWithPhotos(updated, idsFotos);
         }
@@ -198,6 +197,8 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
     }
 
     private void savePhotos(SimpleMineralFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<SimpleMineralFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new SimpleMineralFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

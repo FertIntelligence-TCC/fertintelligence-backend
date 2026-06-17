@@ -185,7 +185,6 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
 
         MineralFertilizerModel saved = repository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(saved.getId());
             savePhotos(saved, idsFotos);
             return toDtoWithPhotos(saved, idsFotos);
         }
@@ -235,6 +234,8 @@ public class MineralFertilizerServiceImpl implements MineralFertilizerService {
     }
 
     private void savePhotos(MineralFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<MineralFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new MineralFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));

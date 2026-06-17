@@ -178,7 +178,6 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
 
         ChelatedFertilizerModel saved = repository.save(fertilizer);
         if (idsFotos != null) {
-            photoRepository.deleteAllByFertilizerId(saved.getId());
             savePhotos(saved, idsFotos);
             return toDtoWithPhotos(saved, idsFotos);
         }
@@ -228,6 +227,8 @@ public class ChelatedFertilizerServiceImpl implements ChelatedFertilizerService 
     }
 
     private void savePhotos(ChelatedFertilizerModel fertilizer, List<String> idsFotos) {
+        photoRepository.deleteAllByFertilizerId(fertilizer.getId());
+        photoRepository.flush();
         List<ChelatedFertilizerPhotoModel> photos = new ArrayList<>();
         for (int i = 0; i < idsFotos.size(); i++) {
             photos.add(new ChelatedFertilizerPhotoModel(fertilizer, idsFotos.get(i), i));
