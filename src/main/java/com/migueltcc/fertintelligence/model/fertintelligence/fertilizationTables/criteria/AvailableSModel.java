@@ -59,7 +59,7 @@ public class AvailableSModel {
     @Column(name = "MAIOR_TEOR_ENXOFRE_ARGILA_MAIOR_400", nullable = false)
     Double sContentGreater400TooHigh;
 
-    @Column(name = "FONTE_LITERATURA")
+    @Column(name = "FONTE_LITERATURA", length = 1000)
     String literatureSource;
 
     @Column(name = "OBSERVACOES", length = 1000)

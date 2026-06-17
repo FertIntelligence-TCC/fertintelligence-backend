@@ -31,10 +31,10 @@ public class CropFoliarAnalysisInterpretationTableModel {
     @Column(name = "REGIAO_ANALISE_FOLIAR_CULTURAS", nullable = false)
     private Regiao region;
 
-    @Column(name = "OBSERVACOES")
+    @Column(name = "OBSERVACOES", length = 1000)
     private String observations;
 
-    @Column(name = "FONTES")
+    @Column(name = "FONTES", length = 1000)
     private String sources;
 
     @Column(name = "TABELA_PUBLICA", nullable = false)

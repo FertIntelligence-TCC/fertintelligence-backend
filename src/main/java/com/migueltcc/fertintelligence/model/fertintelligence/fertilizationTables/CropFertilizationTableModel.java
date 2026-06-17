@@ -79,10 +79,10 @@ public class CropFertilizationTableModel {
     @Column(name = "SUGESTAO_DE_ADUBACAO_COM_N_P2O5_K2O", nullable = false)
     private Double npk; // kg/ha
 
-    @Column(name = "OBSERVACOES")
+    @Column(name = "OBSERVACOES", length = 1000)
     private String observations;
 
-    @Column(name = "FONTES")
+    @Column(name = "FONTES", length = 1000)
     private String sources;
 
     @Column(name = "TABELA_PUBLICA", nullable = false)
