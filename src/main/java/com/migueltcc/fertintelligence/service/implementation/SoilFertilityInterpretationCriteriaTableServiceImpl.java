@@ -85,12 +85,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         List<SoilFertilityInterpretationCriteriaTableModel> tables = group != null
                 ? findTablesByGroup(creator, group)
                 : isSupremeUser(creator)
-                ? soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                ? soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator)
                 : mergeTables(
                         soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator),
-                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO).stream()
-                                .filter(t -> !t.isPublicTable())
-                                .collect(Collectors.toList()),
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO),
                         soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue()
                 );
 
@@ -101,7 +99,10 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
 
     private List<SoilFertilityInterpretationCriteriaTableModel> findTablesByGroup(UserModel creator, TechnicalTableGroup group) {
         return switch (group) {
-            case MINHAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator);
+            case MINHAS -> mergeTables(
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator),
+                        soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
+                );
             case PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(creator).stream()
                     .filter(t -> !t.isPublicTable())
                     .filter(t -> t.getCreator() != null && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
