@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,27 +13,35 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AvailablePAnionExchangeResinExtractorPostRequestDto {
 
-    @JsonProperty("novo_muito_baixo")
+    @JsonProperty("muito_baixo")
+    @JsonAlias("novo_muito_baixo")
     private Double pContentTooLow;
 
-    @JsonProperty("novo_baixo_menor")
+    @JsonProperty("baixo_menor")
+    @JsonAlias("novo_baixo_menor")
     private Double pContentLowI;
 
-    @JsonProperty("novo_baixo_maior")
+    @JsonProperty("baixo_maior")
+    @JsonAlias("novo_baixo_maior")
     private Double pContentLowF;
 
-    @JsonProperty("novo_medio_menor")
+    @JsonProperty("medio_menor")
+    @JsonAlias("novo_medio_menor")
     private Double pContentMediumI;
 
-    @JsonProperty("novo_medio_maior")
+    @JsonProperty("medio_maior")
+    @JsonAlias("novo_medio_maior")
     private Double pContentMediumF;
 
-    @JsonProperty("novo_alto_menor")
+    @JsonProperty("alto_menor")
+    @JsonAlias("novo_alto_menor")
     private Double pContentHighI;
 
-    @JsonProperty("novo_alto_maior")
+    @JsonProperty("alto_maior")
+    @JsonAlias("novo_alto_maior")
     private Double pContentHighF;
 
-    @JsonProperty("novo_muito_alto")
+    @JsonProperty("muito_alto")
+    @JsonAlias("novo_muito_alto")
     private Double pContentTooHigh;
 }

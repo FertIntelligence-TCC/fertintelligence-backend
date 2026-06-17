@@ -14,428 +14,548 @@ import lombok.NoArgsConstructor;
 public class DiverseContentRangePostRequestDto {
 
     // --- CARBONO ORGÂNICO ---
-    @JsonProperty("novo_menor_teor_carbono_organico")
+    @JsonProperty("menor_teor_carbono_organico")
+    @JsonAlias("novo_menor_teor_carbono_organico")
     private Double organic_carbon_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_carbono_organico")
+    @JsonProperty("teor_inicial_baixo_carbono_organico")
+    @JsonAlias("novo_teor_inicial_baixo_carbono_organico")
     private Double organic_carbon_low_i;
-    @JsonProperty("novo_teor_final_baixo_carbono_organico")
+    @JsonProperty("teor_final_baixo_carbono_organico")
+    @JsonAlias("novo_teor_final_baixo_carbono_organico")
     private Double organic_carbon_low_f;
-    @JsonProperty("novo_teor_inicial_medio_carbono_organico")
+    @JsonProperty("teor_inicial_medio_carbono_organico")
+    @JsonAlias("novo_teor_inicial_medio_carbono_organico")
     private Double organic_carbon_medium_i;
-    @JsonProperty("novo_teor_final_medio_carbono_organico")
+    @JsonProperty("teor_final_medio_carbono_organico")
+    @JsonAlias("novo_teor_final_medio_carbono_organico")
     private Double organic_carbon_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_carbono_organico")
+    @JsonProperty("teor_inicial_alto_carbono_organico")
+    @JsonAlias("novo_teor_inicial_alto_carbono_organico")
     private Double organic_carbon_hight_i;
-    @JsonProperty("novo_teor_final_alto_carbono_organico")
+    @JsonProperty("teor_final_alto_carbono_organico")
+    @JsonAlias("novo_teor_final_alto_carbono_organico")
     private Double organic_carbon_hight_f;
-    @JsonProperty("novo_maior_teor_carbono_organico")
+    @JsonProperty("maior_teor_carbono_organico")
+    @JsonAlias("novo_maior_teor_carbono_organico")
     private Double organic_carbon_too_hight;
 
     // --- MATÉRIA ORGÂNICA ---
-    @JsonProperty("novo_menor_teor_materia_organica")
+    @JsonProperty("menor_teor_materia_organica")
+    @JsonAlias("novo_menor_teor_materia_organica")
     private Double organic_matter_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_materia_organica")
+    @JsonProperty("teor_inicial_baixo_materia_organica")
+    @JsonAlias("novo_teor_inicial_baixo_materia_organica")
     private Double organic_matter_low_i;
-    @JsonProperty("novo_teor_final_baixo_materia_organica")
+    @JsonProperty("teor_final_baixo_materia_organica")
+    @JsonAlias("novo_teor_final_baixo_materia_organica")
     private Double organic_matter_low_f;
-    @JsonProperty("novo_teor_inicial_medio_materia_organica")
+    @JsonProperty("teor_inicial_medio_materia_organica")
+    @JsonAlias("novo_teor_inicial_medio_materia_organica")
     private Double organic_matter_medium_i;
-    @JsonProperty("novo_teor_final_medio_materia_organica")
+    @JsonProperty("teor_final_medio_materia_organica")
+    @JsonAlias("novo_teor_final_medio_materia_organica")
     private Double organic_matter_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_materia_organica")
+    @JsonProperty("teor_inicial_alto_materia_organica")
+    @JsonAlias("novo_teor_inicial_alto_materia_organica")
     private Double organic_matter_hight_i;
-    @JsonProperty("novo_teor_final_alto_materia_organica")
+    @JsonProperty("teor_final_alto_materia_organica")
+    @JsonAlias("novo_teor_final_alto_materia_organica")
     private Double organic_matter_hight_f;
-    @JsonProperty("novo_maior_teor_materia_organica")
+    @JsonProperty("maior_teor_materia_organica")
+    @JsonAlias("novo_maior_teor_materia_organica")
     private Double organic_matter_too_hight;
 
     // --- CÁLCIO ---
-    @JsonProperty("novo_menor_teor_calcio")
+    @JsonProperty("menor_teor_calcio")
+    @JsonAlias("novo_menor_teor_calcio")
     private Double calcium_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_calcio")
+    @JsonProperty("teor_inicial_baixo_calcio")
+    @JsonAlias("novo_teor_inicial_baixo_calcio")
     private Double calcium_low_i;
-    @JsonProperty("novo_teor_final_baixo_calcio")
+    @JsonProperty("teor_final_baixo_calcio")
+    @JsonAlias("novo_teor_final_baixo_calcio")
     private Double calcium_low_f;
-    @JsonProperty("novo_teor_inicial_medio_calcio")
+    @JsonProperty("teor_inicial_medio_calcio")
+    @JsonAlias("novo_teor_inicial_medio_calcio")
     private Double calcium_medium_i;
-    @JsonProperty("novo_teor_final_medio_calcio")
+    @JsonProperty("teor_final_medio_calcio")
+    @JsonAlias("novo_teor_final_medio_calcio")
     private Double calcium_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_calcio")
+    @JsonProperty("teor_inicial_alto_calcio")
+    @JsonAlias("novo_teor_inicial_alto_calcio")
     private Double calcium_hight_i;
-    @JsonProperty("novo_teor_final_alto_calcio")
+    @JsonProperty("teor_final_alto_calcio")
+    @JsonAlias("novo_teor_final_alto_calcio")
     private Double calcium_hight_f;
-    @JsonProperty("novo_maior_teor_calcio")
+    @JsonProperty("maior_teor_calcio")
+    @JsonAlias("novo_maior_teor_calcio")
     private Double calcium_too_hight;
 
     // --- MAGNÉSIO ---
-    @JsonProperty("novo_menor_teor_magnesio")
+    @JsonProperty("menor_teor_magnesio")
+    @JsonAlias("novo_menor_teor_magnesio")
     private Double magnesium_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_magnesio")
+    @JsonProperty("teor_inicial_baixo_magnesio")
+    @JsonAlias("novo_teor_inicial_baixo_magnesio")
     private Double magnesium_low_i;
-    @JsonProperty("novo_teor_final_baixo_magnesio")
+    @JsonProperty("teor_final_baixo_magnesio")
+    @JsonAlias("novo_teor_final_baixo_magnesio")
     private Double magnesium_low_f;
-    @JsonProperty("novo_teor_inicial_medio_magnesio")
+    @JsonProperty("teor_inicial_medio_magnesio")
+    @JsonAlias("novo_teor_inicial_medio_magnesio")
     private Double magnesium_medium_i;
-    @JsonProperty("novo_teor_final_medio_magnesio")
+    @JsonProperty("teor_final_medio_magnesio")
+    @JsonAlias("novo_teor_final_medio_magnesio")
     private Double magnesium_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_magnesio")
+    @JsonProperty("teor_inicial_alto_magnesio")
+    @JsonAlias("novo_teor_inicial_alto_magnesio")
     private Double magnesium_hight_i;
-    @JsonProperty("novo_teor_final_alto_magnesio")
+    @JsonProperty("teor_final_alto_magnesio")
+    @JsonAlias("novo_teor_final_alto_magnesio")
     private Double magnesium_hight_f;
-    @JsonProperty("novo_maior_teor_magnesio")
+    @JsonProperty("maior_teor_magnesio")
+    @JsonAlias("novo_maior_teor_magnesio")
     private Double magnesium_too_hight;
 
     // --- POTÁSSIO ---
-    @JsonProperty("novo_menor_teor_potassio")
+    @JsonProperty("menor_teor_potassio")
+    @JsonAlias("novo_menor_teor_potassio")
     private Double potassium_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_potassio")
+    @JsonProperty("teor_inicial_baixo_potassio")
+    @JsonAlias("novo_teor_inicial_baixo_potassio")
     private Double potassium_low_i;
-    @JsonProperty("novo_teor_final_baixo_potassio")
+    @JsonProperty("teor_final_baixo_potassio")
+    @JsonAlias("novo_teor_final_baixo_potassio")
     private Double potassium_low_f;
-    @JsonProperty("novo_teor_inicial_medio_potassio")
+    @JsonProperty("teor_inicial_medio_potassio")
+    @JsonAlias("novo_teor_inicial_medio_potassio")
     private Double potassium_medium_i;
-    @JsonProperty("novo_teor_final_medio_potassio")
+    @JsonProperty("teor_final_medio_potassio")
+    @JsonAlias("novo_teor_final_medio_potassio")
     private Double potassium_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_potassio")
+    @JsonProperty("teor_inicial_alto_potassio")
+    @JsonAlias("novo_teor_inicial_alto_potassio")
     private Double potassium_hight_i;
-    @JsonProperty("novo_teor_final_alto_potassio")
+    @JsonProperty("teor_final_alto_potassio")
+    @JsonAlias("novo_teor_final_alto_potassio")
     private Double potassium_hight_f;
-    @JsonProperty("novo_maior_teor_potassio")
+    @JsonProperty("maior_teor_potassio")
+    @JsonAlias("novo_maior_teor_potassio")
     private Double potassium_too_hight;
 
     // --- SÓDIO ---
-    @JsonProperty("novo_menor_teor_sodio")
+    @JsonProperty("menor_teor_sodio")
+    @JsonAlias("novo_menor_teor_sodio")
     private Double sodium_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_sodio")
+    @JsonProperty("teor_inicial_baixo_sodio")
+    @JsonAlias("novo_teor_inicial_baixo_sodio")
     private Double sodium_low_i;
-    @JsonProperty("novo_teor_final_baixo_sodio")
+    @JsonProperty("teor_final_baixo_sodio")
+    @JsonAlias("novo_teor_final_baixo_sodio")
     private Double sodium_low_f;
-    @JsonProperty("novo_teor_inicial_medio_sodio")
+    @JsonProperty("teor_inicial_medio_sodio")
+    @JsonAlias("novo_teor_inicial_medio_sodio")
     private Double sodium_medium_i;
-    @JsonProperty("novo_teor_final_medio_sodio")
+    @JsonProperty("teor_final_medio_sodio")
+    @JsonAlias("novo_teor_final_medio_sodio")
     private Double sodium_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_sodio")
+    @JsonProperty("teor_inicial_alto_sodio")
+    @JsonAlias("novo_teor_inicial_alto_sodio")
     private Double sodium_hight_i;
-    @JsonProperty("novo_teor_final_alto_sodio")
+    @JsonProperty("teor_final_alto_sodio")
+    @JsonAlias("novo_teor_final_alto_sodio")
     private Double sodium_hight_f;
-    @JsonProperty("novo_maior_teor_sodio")
+    @JsonProperty("maior_teor_sodio")
+    @JsonAlias("novo_maior_teor_sodio")
     private Double sodium_too_hight;
 
     // --- SOMA DE BASES ---
-    @JsonProperty("novo_menor_teor_soma_bases")
+    @JsonProperty("menor_teor_soma_bases")
+    @JsonAlias("novo_menor_teor_soma_bases")
     private Double sum_of_bases_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_soma_bases")
+    @JsonProperty("teor_inicial_baixo_soma_bases")
+    @JsonAlias("novo_teor_inicial_baixo_soma_bases")
     private Double sum_of_bases_low_i;
-    @JsonProperty("novo_teor_final_baixo_soma_bases")
+    @JsonProperty("teor_final_baixo_soma_bases")
+    @JsonAlias("novo_teor_final_baixo_soma_bases")
     private Double sum_of_bases_low_f;
-    @JsonProperty("novo_teor_inicial_medio_soma_bases")
+    @JsonProperty("teor_inicial_medio_soma_bases")
+    @JsonAlias("novo_teor_inicial_medio_soma_bases")
     private Double sum_of_bases_medium_i;
-    @JsonProperty("novo_teor_final_medio_soma_bases")
+    @JsonProperty("teor_final_medio_soma_bases")
+    @JsonAlias("novo_teor_final_medio_soma_bases")
     private Double sum_of_bases_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_soma_bases")
+    @JsonProperty("teor_inicial_alto_soma_bases")
+    @JsonAlias("novo_teor_inicial_alto_soma_bases")
     private Double sum_of_bases_hight_i;
-    @JsonProperty("novo_teor_final_alto_soma_bases")
+    @JsonProperty("teor_final_alto_soma_bases")
+    @JsonAlias("novo_teor_final_alto_soma_bases")
     private Double sum_of_bases_hight_f;
-    @JsonProperty("novo_maior_teor_soma_bases")
+    @JsonProperty("maior_teor_soma_bases")
+    @JsonAlias("novo_maior_teor_soma_bases")
     private Double sum_of_bases_too_hight;
 
     // --- ALUMÍNIO ---
-    @JsonProperty("novo_menor_teor_aluminio")
-    @JsonAlias("novo_menor_teor_al_trocavel")
+    @JsonProperty("menor_teor_aluminio")
+    @JsonAlias({"novo_menor_teor_aluminio", "novo_menor_teor_al_trocavel"})
     private Double aluminum_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_aluminio")
-    @JsonAlias("novo_teor_inicial_baixo_al_trocavel")
+    @JsonProperty("teor_inicial_baixo_aluminio")
+    @JsonAlias({"novo_teor_inicial_baixo_aluminio", "novo_teor_inicial_baixo_al_trocavel"})
     private Double aluminum_low_i;
-    @JsonProperty("novo_teor_final_baixo_aluminio")
-    @JsonAlias("novo_teor_final_baixo_al_trocavel")
+    @JsonProperty("teor_final_baixo_aluminio")
+    @JsonAlias({"novo_teor_final_baixo_aluminio", "novo_teor_final_baixo_al_trocavel"})
     private Double aluminum_low_f;
-    @JsonProperty("novo_teor_inicial_medio_aluminio")
-    @JsonAlias("novo_teor_inicial_medio_al_trocavel")
+    @JsonProperty("teor_inicial_medio_aluminio")
+    @JsonAlias({"novo_teor_inicial_medio_aluminio", "novo_teor_inicial_medio_al_trocavel"})
     private Double aluminum_medium_i;
-    @JsonProperty("novo_teor_final_medio_aluminio")
-    @JsonAlias("novo_teor_final_medio_al_trocavel")
+    @JsonProperty("teor_final_medio_aluminio")
+    @JsonAlias({"novo_teor_final_medio_aluminio", "novo_teor_final_medio_al_trocavel"})
     private Double aluminum_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_aluminio")
-    @JsonAlias("novo_teor_inicial_alto_al_trocavel")
+    @JsonProperty("teor_inicial_alto_aluminio")
+    @JsonAlias({"novo_teor_inicial_alto_aluminio", "novo_teor_inicial_alto_al_trocavel"})
     private Double aluminum_hight_i;
-    @JsonProperty("novo_teor_final_alto_aluminio")
-    @JsonAlias("novo_teor_final_alto_al_trocavel")
+    @JsonProperty("teor_final_alto_aluminio")
+    @JsonAlias({"novo_teor_final_alto_aluminio", "novo_teor_final_alto_al_trocavel"})
     private Double aluminum_hight_f;
-    @JsonProperty("novo_maior_teor_aluminio")
-    @JsonAlias("novo_maior_teor_al_trocavel")
+    @JsonProperty("maior_teor_aluminio")
+    @JsonAlias({"novo_maior_teor_aluminio", "novo_maior_teor_al_trocavel"})
     private Double aluminum_too_hight;
 
     // --- ACIDEZ POTENCIAL ---
-    @JsonProperty("novo_menor_teor_acidez_potencial")
-    @JsonAlias({"novo_menor_teor_h_al", "novo_menor_teor_h_mais_al"})
+    @JsonProperty("menor_teor_acidez_potencial")
+    @JsonAlias({"novo_menor_teor_acidez_potencial", "novo_menor_teor_h_al", "novo_menor_teor_h_mais_al", "menor_teor_h_al", "menor_teor_h_mais_al", "novo_menor_teor_aluminio_mais_hidrogenio", "menor_teor_aluminio_mais_hidrogenio"})
     private Double potential_acidity_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_acidez_potencial")
-    @JsonAlias({"novo_teor_inicial_baixo_h_al", "novo_teor_inicial_baixo_h_mais_al"})
+    @JsonProperty("teor_inicial_baixo_acidez_potencial")
+    @JsonAlias({"novo_teor_inicial_baixo_acidez_potencial", "novo_teor_inicial_baixo_h_al", "novo_teor_inicial_baixo_h_mais_al", "teor_inicial_baixo_h_al", "teor_inicial_baixo_h_mais_al", "novo_teor_inicial_baixo_aluminio_mais_hidrogenio", "teor_inicial_baixo_aluminio_mais_hidrogenio"})
     private Double potential_acidity_low_i;
-    @JsonProperty("novo_teor_final_baixo_acidez_potencial")
-    @JsonAlias({"novo_teor_final_baixo_h_al", "novo_teor_final_baixo_h_mais_al"})
+    @JsonProperty("teor_final_baixo_acidez_potencial")
+    @JsonAlias({"novo_teor_final_baixo_acidez_potencial", "novo_teor_final_baixo_h_al", "novo_teor_final_baixo_h_mais_al", "teor_final_baixo_h_al", "teor_final_baixo_h_mais_al", "novo_teor_final_baixo_aluminio_mais_hidrogenio", "teor_final_baixo_aluminio_mais_hidrogenio"})
     private Double potential_acidity_low_f;
-    @JsonProperty("novo_teor_inicial_medio_acidez_potencial")
-    @JsonAlias({"novo_teor_inicial_medio_h_al", "novo_teor_inicial_medio_h_mais_al"})
+    @JsonProperty("teor_inicial_medio_acidez_potencial")
+    @JsonAlias({"novo_teor_inicial_medio_acidez_potencial", "novo_teor_inicial_medio_h_al", "novo_teor_inicial_medio_h_mais_al", "teor_inicial_medio_h_al", "teor_inicial_medio_h_mais_al", "novo_teor_inicial_medio_aluminio_mais_hidrogenio", "teor_inicial_medio_aluminio_mais_hidrogenio"})
     private Double potential_acidity_medium_i;
-    @JsonProperty("novo_teor_final_medio_acidez_potencial")
-    @JsonAlias({"novo_teor_final_medio_h_al", "novo_teor_final_medio_h_mais_al"})
+    @JsonProperty("teor_final_medio_acidez_potencial")
+    @JsonAlias({"novo_teor_final_medio_acidez_potencial", "novo_teor_final_medio_h_al", "novo_teor_final_medio_h_mais_al", "teor_final_medio_h_al", "teor_final_medio_h_mais_al", "novo_teor_final_medio_aluminio_mais_hidrogenio", "teor_final_medio_aluminio_mais_hidrogenio"})
     private Double potential_acidity_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_acidez_potencial")
-    @JsonAlias({"novo_teor_inicial_alto_h_al", "novo_teor_inicial_alto_h_mais_al"})
+    @JsonProperty("teor_inicial_alto_acidez_potencial")
+    @JsonAlias({"novo_teor_inicial_alto_acidez_potencial", "novo_teor_inicial_alto_h_al", "novo_teor_inicial_alto_h_mais_al", "teor_inicial_alto_h_al", "teor_inicial_alto_h_mais_al", "novo_teor_inicial_alto_aluminio_mais_hidrogenio", "teor_inicial_alto_aluminio_mais_hidrogenio"})
     private Double potential_acidity_hight_i;
-    @JsonProperty("novo_teor_final_alto_acidez_potencial")
-    @JsonAlias({"novo_teor_final_alto_h_al", "novo_teor_final_alto_h_mais_al"})
+    @JsonProperty("teor_final_alto_acidez_potencial")
+    @JsonAlias({"novo_teor_final_alto_acidez_potencial", "novo_teor_final_alto_h_al", "novo_teor_final_alto_h_mais_al", "teor_final_alto_h_al", "teor_final_alto_h_mais_al", "novo_teor_final_alto_aluminio_mais_hidrogenio", "teor_final_alto_aluminio_mais_hidrogenio"})
     private Double potential_acidity_hight_f;
-    @JsonProperty("novo_maior_teor_acidez_potencial")
-    @JsonAlias({"novo_maior_teor_h_al", "novo_maior_teor_h_mais_al"})
+    @JsonProperty("maior_teor_acidez_potencial")
+    @JsonAlias({"novo_maior_teor_acidez_potencial", "novo_maior_teor_h_al", "novo_maior_teor_h_mais_al", "maior_teor_h_al", "maior_teor_h_mais_al", "novo_maior_teor_aluminio_mais_hidrogenio", "maior_teor_aluminio_mais_hidrogenio"})
     private Double potential_acidity_too_hight;
 
     // --- CTC EFETIVA ---
-    @JsonProperty("novo_menor_teor_ctc_efetiva")
-    @JsonAlias({"novo_menor_teor_ctc_t", "novo_menor_teor_ctc_efetiva_t"})
+    @JsonProperty("menor_teor_ctc_efetiva")
+    @JsonAlias({"novo_menor_teor_ctc_efetiva", "novo_menor_teor_ctc_t", "novo_menor_teor_ctc_efetiva_t"})
     private Double effective_cec_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_ctc_efetiva")
-    @JsonAlias({"novo_teor_inicial_baixo_ctc_t", "novo_teor_inicial_baixo_ctc_efetiva_t"})
+    @JsonProperty("teor_inicial_baixo_ctc_efetiva")
+    @JsonAlias({"novo_teor_inicial_baixo_ctc_efetiva", "novo_teor_inicial_baixo_ctc_t", "novo_teor_inicial_baixo_ctc_efetiva_t"})
     private Double effective_cec_low_i;
-    @JsonProperty("novo_teor_final_baixo_ctc_efetiva")
-    @JsonAlias({"novo_teor_final_baixo_ctc_t", "novo_teor_final_baixo_ctc_efetiva_t"})
+    @JsonProperty("teor_final_baixo_ctc_efetiva")
+    @JsonAlias({"novo_teor_final_baixo_ctc_efetiva", "novo_teor_final_baixo_ctc_t", "novo_teor_final_baixo_ctc_efetiva_t"})
     private Double effective_cec_low_f;
-    @JsonProperty("novo_teor_inicial_medio_ctc_efetiva")
-    @JsonAlias({"novo_teor_inicial_medio_ctc_t", "novo_teor_inicial_medio_ctc_efetiva_t"})
+    @JsonProperty("teor_inicial_medio_ctc_efetiva")
+    @JsonAlias({"novo_teor_inicial_medio_ctc_efetiva", "novo_teor_inicial_medio_ctc_t", "novo_teor_inicial_medio_ctc_efetiva_t"})
     private Double effective_cec_medium_i;
-    @JsonProperty("novo_teor_final_medio_ctc_efetiva")
-    @JsonAlias({"novo_teor_final_medio_ctc_t", "novo_teor_final_medio_ctc_efetiva_t"})
+    @JsonProperty("teor_final_medio_ctc_efetiva")
+    @JsonAlias({"novo_teor_final_medio_ctc_efetiva", "novo_teor_final_medio_ctc_t", "novo_teor_final_medio_ctc_efetiva_t"})
     private Double effective_cec_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_ctc_efetiva")
-    @JsonAlias({"novo_teor_inicial_alto_ctc_t", "novo_teor_inicial_alto_ctc_efetiva_t"})
+    @JsonProperty("teor_inicial_alto_ctc_efetiva")
+    @JsonAlias({"novo_teor_inicial_alto_ctc_efetiva", "novo_teor_inicial_alto_ctc_t", "novo_teor_inicial_alto_ctc_efetiva_t"})
     private Double effective_cec_hight_i;
-    @JsonProperty("novo_teor_final_alto_ctc_efetiva")
-    @JsonAlias({"novo_teor_final_alto_ctc_t", "novo_teor_final_alto_ctc_efetiva_t"})
+    @JsonProperty("teor_final_alto_ctc_efetiva")
+    @JsonAlias({"novo_teor_final_alto_ctc_efetiva", "novo_teor_final_alto_ctc_t", "novo_teor_final_alto_ctc_efetiva_t"})
     private Double effective_cec_hight_f;
-    @JsonProperty("novo_maior_teor_ctc_efetiva")
-    @JsonAlias({"novo_maior_teor_ctc_t", "novo_maior_teor_ctc_efetiva_t"})
+    @JsonProperty("maior_teor_ctc_efetiva")
+    @JsonAlias({"novo_maior_teor_ctc_efetiva", "novo_maior_teor_ctc_t", "novo_maior_teor_ctc_efetiva_t"})
     private Double effective_cec_too_hight;
 
     // --- CTC pH 7,0 ---
-    @JsonProperty("novo_menor_teor_ctc_ph_7")
-    @JsonAlias({"novo_menor_teor_ctc_T", "novo_menor_teor_ctc_total", "novo_menor_teor_ctc_t_ph7"})
+    @JsonProperty("menor_teor_ctc_ph_7")
+    @JsonAlias({"novo_menor_teor_ctc_ph_7", "novo_menor_teor_ctc_T", "novo_menor_teor_ctc_total", "novo_menor_teor_ctc_t_ph7", "menor_teor_ctc_T", "menor_teor_ctc_total", "menor_teor_ctc_t_ph7", "novo_menor_teor_ctc_ph7", "menor_teor_ctc_ph7"})
     private Double ph7_cec_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_ctc_ph_7")
-    @JsonAlias({"novo_teor_inicial_baixo_ctc_T", "novo_teor_inicial_baixo_ctc_total", "novo_teor_inicial_baixo_ctc_t_ph7"})
+    @JsonProperty("teor_inicial_baixo_ctc_ph_7")
+    @JsonAlias({"novo_teor_inicial_baixo_ctc_ph_7", "novo_teor_inicial_baixo_ctc_T", "novo_teor_inicial_baixo_ctc_total", "novo_teor_inicial_baixo_ctc_t_ph7", "teor_inicial_baixo_ctc_T", "teor_inicial_baixo_ctc_total", "teor_inicial_baixo_ctc_t_ph7", "novo_teor_inicial_baixo_ctc_ph7", "teor_inicial_baixo_ctc_ph7"})
     private Double ph7_cec_low_i;
-    @JsonProperty("novo_teor_final_baixo_ctc_ph_7")
-    @JsonAlias({"novo_teor_final_baixo_ctc_T", "novo_teor_final_baixo_ctc_total", "novo_teor_final_baixo_ctc_t_ph7"})
+    @JsonProperty("teor_final_baixo_ctc_ph_7")
+    @JsonAlias({"novo_teor_final_baixo_ctc_ph_7", "novo_teor_final_baixo_ctc_T", "novo_teor_final_baixo_ctc_total", "novo_teor_final_baixo_ctc_t_ph7", "teor_final_baixo_ctc_T", "teor_final_baixo_ctc_total", "teor_final_baixo_ctc_t_ph7", "novo_teor_final_baixo_ctc_ph7", "teor_final_baixo_ctc_ph7"})
     private Double ph7_cec_low_f;
-    @JsonProperty("novo_teor_inicial_medio_ctc_ph_7")
-    @JsonAlias({"novo_teor_inicial_medio_ctc_T", "novo_teor_inicial_medio_ctc_total", "novo_teor_inicial_medio_ctc_t_ph7"})
+    @JsonProperty("teor_inicial_medio_ctc_ph_7")
+    @JsonAlias({"novo_teor_inicial_medio_ctc_ph_7", "novo_teor_inicial_medio_ctc_T", "novo_teor_inicial_medio_ctc_total", "novo_teor_inicial_medio_ctc_t_ph7", "teor_inicial_medio_ctc_T", "teor_inicial_medio_ctc_total", "teor_inicial_medio_ctc_t_ph7", "novo_teor_inicial_medio_ctc_ph7", "teor_inicial_medio_ctc_ph7"})
     private Double ph7_cec_medium_i;
-    @JsonProperty("novo_teor_final_medio_ctc_ph_7")
-    @JsonAlias({"novo_teor_final_medio_ctc_T", "novo_teor_final_medio_ctc_total", "novo_teor_final_medio_ctc_t_ph7"})
+    @JsonProperty("teor_final_medio_ctc_ph_7")
+    @JsonAlias({"novo_teor_final_medio_ctc_ph_7", "novo_teor_final_medio_ctc_T", "novo_teor_final_medio_ctc_total", "novo_teor_final_medio_ctc_t_ph7", "teor_final_medio_ctc_T", "teor_final_medio_ctc_total", "teor_final_medio_ctc_t_ph7", "novo_teor_final_medio_ctc_ph7", "teor_final_medio_ctc_ph7"})
     private Double ph7_cec_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_ctc_ph_7")
-    @JsonAlias({"novo_teor_inicial_alto_ctc_T", "novo_teor_inicial_alto_ctc_total", "novo_teor_inicial_alto_ctc_t_ph7"})
+    @JsonProperty("teor_inicial_alto_ctc_ph_7")
+    @JsonAlias({"novo_teor_inicial_alto_ctc_ph_7", "novo_teor_inicial_alto_ctc_T", "novo_teor_inicial_alto_ctc_total", "novo_teor_inicial_alto_ctc_t_ph7", "teor_inicial_alto_ctc_T", "teor_inicial_alto_ctc_total", "teor_inicial_alto_ctc_t_ph7", "novo_teor_inicial_alto_ctc_ph7", "teor_inicial_alto_ctc_ph7"})
     private Double ph7_cec_hight_i;
-    @JsonProperty("novo_teor_final_alto_ctc_ph_7")
-    @JsonAlias({"novo_teor_final_alto_ctc_T", "novo_teor_final_alto_ctc_total", "novo_teor_final_alto_ctc_t_ph7"})
+    @JsonProperty("teor_final_alto_ctc_ph_7")
+    @JsonAlias({"novo_teor_final_alto_ctc_ph_7", "novo_teor_final_alto_ctc_T", "novo_teor_final_alto_ctc_total", "novo_teor_final_alto_ctc_t_ph7", "teor_final_alto_ctc_T", "teor_final_alto_ctc_total", "teor_final_alto_ctc_t_ph7", "novo_teor_final_alto_ctc_ph7", "teor_final_alto_ctc_ph7"})
     private Double ph7_cec_hight_f;
-    @JsonProperty("novo_maior_teor_ctc_ph_7")
-    @JsonAlias({"novo_maior_teor_ctc_T", "novo_maior_teor_ctc_total", "novo_maior_teor_ctc_t_ph7"})
+    @JsonProperty("maior_teor_ctc_ph_7")
+    @JsonAlias({"novo_maior_teor_ctc_ph_7", "novo_maior_teor_ctc_T", "novo_maior_teor_ctc_total", "novo_maior_teor_ctc_t_ph7", "maior_teor_ctc_T", "maior_teor_ctc_total", "maior_teor_ctc_t_ph7", "novo_maior_teor_ctc_ph7", "maior_teor_ctc_ph7"})
     private Double ph7_cec_too_hight;
 
     // --- SATURAÇÃO POR ALUMÍNIO ---
-    @JsonProperty("novo_menor_teor_saturacao_aluminio")
+    @JsonProperty("menor_teor_saturacao_aluminio")
+    @JsonAlias("novo_menor_teor_saturacao_aluminio")
     private Double aluminum_saturation_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_saturacao_aluminio")
+    @JsonProperty("teor_inicial_baixo_saturacao_aluminio")
+    @JsonAlias("novo_teor_inicial_baixo_saturacao_aluminio")
     private Double aluminum_saturation_low_i;
-    @JsonProperty("novo_teor_final_baixo_saturacao_aluminio")
+    @JsonProperty("teor_final_baixo_saturacao_aluminio")
+    @JsonAlias("novo_teor_final_baixo_saturacao_aluminio")
     private Double aluminum_saturation_low_f;
-    @JsonProperty("novo_teor_inicial_medio_saturacao_aluminio")
+    @JsonProperty("teor_inicial_medio_saturacao_aluminio")
+    @JsonAlias("novo_teor_inicial_medio_saturacao_aluminio")
     private Double aluminum_saturation_medium_i;
-    @JsonProperty("novo_teor_final_medio_saturacao_aluminio")
+    @JsonProperty("teor_final_medio_saturacao_aluminio")
+    @JsonAlias("novo_teor_final_medio_saturacao_aluminio")
     private Double aluminum_saturation_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_saturacao_aluminio")
+    @JsonProperty("teor_inicial_alto_saturacao_aluminio")
+    @JsonAlias("novo_teor_inicial_alto_saturacao_aluminio")
     private Double aluminum_saturation_hight_i;
-    @JsonProperty("novo_teor_final_alto_saturacao_aluminio")
+    @JsonProperty("teor_final_alto_saturacao_aluminio")
+    @JsonAlias("novo_teor_final_alto_saturacao_aluminio")
     private Double aluminum_saturation_hight_f;
-    @JsonProperty("novo_maior_teor_saturacao_aluminio")
+    @JsonProperty("maior_teor_saturacao_aluminio")
+    @JsonAlias("novo_maior_teor_saturacao_aluminio")
     private Double aluminum_saturation_too_hight;
 
     // --- SATURAÇÃO POR BASES ---
-    @JsonProperty("novo_menor_teor_saturacao_bases")
+    @JsonProperty("menor_teor_saturacao_bases")
+    @JsonAlias("novo_menor_teor_saturacao_bases")
     private Double base_saturation_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_saturacao_bases")
+    @JsonProperty("teor_inicial_baixo_saturacao_bases")
+    @JsonAlias("novo_teor_inicial_baixo_saturacao_bases")
     private Double base_saturation_low_i;
-    @JsonProperty("novo_teor_final_baixo_saturacao_bases")
+    @JsonProperty("teor_final_baixo_saturacao_bases")
+    @JsonAlias("novo_teor_final_baixo_saturacao_bases")
     private Double base_saturation_low_f;
-    @JsonProperty("novo_teor_inicial_medio_saturacao_bases")
+    @JsonProperty("teor_inicial_medio_saturacao_bases")
+    @JsonAlias("novo_teor_inicial_medio_saturacao_bases")
     private Double base_saturation_medium_i;
-    @JsonProperty("novo_teor_final_medio_saturacao_bases")
+    @JsonProperty("teor_final_medio_saturacao_bases")
+    @JsonAlias("novo_teor_final_medio_saturacao_bases")
     private Double base_saturation_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_saturacao_bases")
+    @JsonProperty("teor_inicial_alto_saturacao_bases")
+    @JsonAlias("novo_teor_inicial_alto_saturacao_bases")
     private Double base_saturation_hight_i;
-    @JsonProperty("novo_teor_final_alto_saturacao_bases")
+    @JsonProperty("teor_final_alto_saturacao_bases")
+    @JsonAlias("novo_teor_final_alto_saturacao_bases")
     private Double base_saturation_hight_f;
-    @JsonProperty("novo_maior_teor_saturacao_bases")
+    @JsonProperty("maior_teor_saturacao_bases")
+    @JsonAlias("novo_maior_teor_saturacao_bases")
     private Double base_saturation_too_hight;
 
     // --- PST ---
-    @JsonProperty("novo_menor_teor_pst")
+    @JsonProperty("menor_teor_pst")
+    @JsonAlias("novo_menor_teor_pst")
     private Double sodium_saturation_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_pst")
+    @JsonProperty("teor_inicial_baixo_pst")
+    @JsonAlias("novo_teor_inicial_baixo_pst")
     private Double sodium_saturation_low_i;
-    @JsonProperty("novo_teor_final_baixo_pst")
+    @JsonProperty("teor_final_baixo_pst")
+    @JsonAlias("novo_teor_final_baixo_pst")
     private Double sodium_saturation_low_f;
-    @JsonProperty("novo_teor_inicial_medio_pst")
+    @JsonProperty("teor_inicial_medio_pst")
+    @JsonAlias("novo_teor_inicial_medio_pst")
     private Double sodium_saturation_medium_i;
-    @JsonProperty("novo_teor_final_medio_pst")
+    @JsonProperty("teor_final_medio_pst")
+    @JsonAlias("novo_teor_final_medio_pst")
     private Double sodium_saturation_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_pst")
+    @JsonProperty("teor_inicial_alto_pst")
+    @JsonAlias("novo_teor_inicial_alto_pst")
     private Double sodium_saturation_hight_i;
-    @JsonProperty("novo_teor_final_alto_pst")
+    @JsonProperty("teor_final_alto_pst")
+    @JsonAlias("novo_teor_final_alto_pst")
     private Double sodium_saturation_hight_f;
-    @JsonProperty("novo_maior_teor_pst")
+    @JsonProperty("maior_teor_pst")
+    @JsonAlias("novo_maior_teor_pst")
     private Double sodium_saturation_too_hight;
 
     // --- pH EM ÁGUA ---
-    @JsonProperty("novo_menor_valor_ph")
-    @JsonAlias("novo_menor_valor_ph_agua")
+    @JsonProperty("menor_valor_ph")
+    @JsonAlias({"novo_menor_valor_ph", "novo_menor_valor_ph_agua", "menor_valor_ph_agua", "novo_menor_teor_ph_agua", "menor_teor_ph_agua"})
     private Double ph_too_low;
-    @JsonProperty("novo_valor_inicial_baixo_ph")
-    @JsonAlias("novo_valor_inicial_baixo_ph_agua")
+    @JsonProperty("valor_inicial_baixo_ph")
+    @JsonAlias({"novo_valor_inicial_baixo_ph", "novo_valor_inicial_baixo_ph_agua", "valor_inicial_baixo_ph_agua", "novo_teor_inicial_baixo_ph_agua", "teor_inicial_baixo_ph_agua"})
     private Double ph_low_i;
-    @JsonProperty("novo_valor_final_baixo_ph")
-    @JsonAlias("novo_valor_final_baixo_ph_agua")
+    @JsonProperty("valor_final_baixo_ph")
+    @JsonAlias({"novo_valor_final_baixo_ph", "novo_valor_final_baixo_ph_agua", "valor_final_baixo_ph_agua", "novo_teor_final_baixo_ph_agua", "teor_final_baixo_ph_agua"})
     private Double ph_low_f;
-    @JsonProperty("novo_valor_inicial_medio_ph")
-    @JsonAlias("novo_valor_inicial_medio_ph_agua")
+    @JsonProperty("valor_inicial_medio_ph")
+    @JsonAlias({"novo_valor_inicial_medio_ph", "novo_valor_inicial_medio_ph_agua", "valor_inicial_medio_ph_agua", "novo_teor_inicial_medio_ph_agua", "teor_inicial_medio_ph_agua"})
     private Double ph_medium_i;
-    @JsonProperty("novo_valor_final_medio_ph")
-    @JsonAlias("novo_valor_final_medio_ph_agua")
+    @JsonProperty("valor_final_medio_ph")
+    @JsonAlias({"novo_valor_final_medio_ph", "novo_valor_final_medio_ph_agua", "valor_final_medio_ph_agua", "novo_teor_final_medio_ph_agua", "teor_final_medio_ph_agua"})
     private Double ph_medium_f;
-    @JsonProperty("novo_valor_inicial_alto_ph")
-    @JsonAlias("novo_valor_inicial_alto_ph_agua")
+    @JsonProperty("valor_inicial_alto_ph")
+    @JsonAlias({"novo_valor_inicial_alto_ph", "novo_valor_inicial_alto_ph_agua", "valor_inicial_alto_ph_agua", "novo_teor_inicial_alto_ph_agua", "teor_inicial_alto_ph_agua"})
     private Double ph_hight_i;
-    @JsonProperty("novo_valor_final_alto_ph")
-    @JsonAlias("novo_valor_final_alto_ph_agua")
+    @JsonProperty("valor_final_alto_ph")
+    @JsonAlias({"novo_valor_final_alto_ph", "novo_valor_final_alto_ph_agua", "valor_final_alto_ph_agua", "novo_teor_final_alto_ph_agua", "teor_final_alto_ph_agua"})
     private Double ph_hight_f;
-    @JsonProperty("novo_maior_valor_ph")
-    @JsonAlias("novo_maior_valor_ph_agua")
+    @JsonProperty("maior_valor_ph")
+    @JsonAlias({"novo_maior_valor_ph", "novo_maior_valor_ph_agua", "maior_valor_ph_agua", "novo_maior_teor_ph_agua", "maior_teor_ph_agua"})
     private Double ph_too_hight;
 
     // --- pH EM CaCl2 0,01 mol/L ---
-    @JsonProperty("novo_menor_valor_ph_cacl2")
-    @JsonAlias("novo_menor_valor_ph_cacl2_0_01_mol_l")
+    @JsonProperty("menor_valor_ph_cacl2")
+    @JsonAlias({"novo_menor_valor_ph_cacl2", "novo_menor_valor_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_too_low;
-    @JsonProperty("novo_valor_inicial_baixo_ph_cacl2")
-    @JsonAlias("novo_valor_inicial_baixo_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_inicial_baixo_ph_cacl2")
+    @JsonAlias({"novo_valor_inicial_baixo_ph_cacl2", "novo_valor_inicial_baixo_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_low_i;
-    @JsonProperty("novo_valor_final_baixo_ph_cacl2")
-    @JsonAlias("novo_valor_final_baixo_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_final_baixo_ph_cacl2")
+    @JsonAlias({"novo_valor_final_baixo_ph_cacl2", "novo_valor_final_baixo_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_low_f;
-    @JsonProperty("novo_valor_inicial_medio_ph_cacl2")
-    @JsonAlias("novo_valor_inicial_medio_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_inicial_medio_ph_cacl2")
+    @JsonAlias({"novo_valor_inicial_medio_ph_cacl2", "novo_valor_inicial_medio_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_medium_i;
-    @JsonProperty("novo_valor_final_medio_ph_cacl2")
-    @JsonAlias("novo_valor_final_medio_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_final_medio_ph_cacl2")
+    @JsonAlias({"novo_valor_final_medio_ph_cacl2", "novo_valor_final_medio_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_medium_f;
-    @JsonProperty("novo_valor_inicial_alto_ph_cacl2")
-    @JsonAlias("novo_valor_inicial_alto_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_inicial_alto_ph_cacl2")
+    @JsonAlias({"novo_valor_inicial_alto_ph_cacl2", "novo_valor_inicial_alto_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_hight_i;
-    @JsonProperty("novo_valor_final_alto_ph_cacl2")
-    @JsonAlias("novo_valor_final_alto_ph_cacl2_0_01_mol_l")
+    @JsonProperty("valor_final_alto_ph_cacl2")
+    @JsonAlias({"novo_valor_final_alto_ph_cacl2", "novo_valor_final_alto_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_hight_f;
-    @JsonProperty("novo_maior_valor_ph_cacl2")
-    @JsonAlias("novo_maior_valor_ph_cacl2_0_01_mol_l")
+    @JsonProperty("maior_valor_ph_cacl2")
+    @JsonAlias({"novo_maior_valor_ph_cacl2", "novo_maior_valor_ph_cacl2_0_01_mol_l"})
     private Double ph_cacl2_too_hight;
 
     // --- BORO ---
-    @JsonProperty("novo_menor_teor_boro")
+    @JsonProperty("menor_teor_boro")
+    @JsonAlias("novo_menor_teor_boro")
     private Double boron_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_boro")
+    @JsonProperty("teor_inicial_baixo_boro")
+    @JsonAlias("novo_teor_inicial_baixo_boro")
     private Double boron_low_i;
-    @JsonProperty("novo_teor_final_baixo_boro")
+    @JsonProperty("teor_final_baixo_boro")
+    @JsonAlias("novo_teor_final_baixo_boro")
     private Double boron_low_f;
-    @JsonProperty("novo_teor_inicial_medio_boro")
+    @JsonProperty("teor_inicial_medio_boro")
+    @JsonAlias("novo_teor_inicial_medio_boro")
     private Double boron_medium_i;
-    @JsonProperty("novo_teor_final_medio_boro")
+    @JsonProperty("teor_final_medio_boro")
+    @JsonAlias("novo_teor_final_medio_boro")
     private Double boron_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_boro")
+    @JsonProperty("teor_inicial_alto_boro")
+    @JsonAlias("novo_teor_inicial_alto_boro")
     private Double boron_hight_i;
-    @JsonProperty("novo_teor_final_alto_boro")
+    @JsonProperty("teor_final_alto_boro")
+    @JsonAlias("novo_teor_final_alto_boro")
     private Double boron_hight_f;
-    @JsonProperty("novo_maior_teor_boro")
+    @JsonProperty("maior_teor_boro")
+    @JsonAlias("novo_maior_teor_boro")
     private Double boron_too_hight;
 
     // --- COBRE ---
-    @JsonProperty("novo_menor_teor_cobre")
+    @JsonProperty("menor_teor_cobre")
+    @JsonAlias("novo_menor_teor_cobre")
     private Double copper_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_cobre")
+    @JsonProperty("teor_inicial_baixo_cobre")
+    @JsonAlias("novo_teor_inicial_baixo_cobre")
     private Double copper_low_i;
-    @JsonProperty("novo_teor_final_baixo_cobre")
+    @JsonProperty("teor_final_baixo_cobre")
+    @JsonAlias("novo_teor_final_baixo_cobre")
     private Double copper_low_f;
-    @JsonProperty("novo_teor_inicial_medio_cobre")
+    @JsonProperty("teor_inicial_medio_cobre")
+    @JsonAlias("novo_teor_inicial_medio_cobre")
     private Double copper_medium_i;
-    @JsonProperty("novo_teor_final_medio_cobre")
+    @JsonProperty("teor_final_medio_cobre")
+    @JsonAlias("novo_teor_final_medio_cobre")
     private Double copper_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_cobre")
+    @JsonProperty("teor_inicial_alto_cobre")
+    @JsonAlias("novo_teor_inicial_alto_cobre")
     private Double copper_hight_i;
-    @JsonProperty("novo_teor_final_alto_cobre")
+    @JsonProperty("teor_final_alto_cobre")
+    @JsonAlias("novo_teor_final_alto_cobre")
     private Double copper_hight_f;
-    @JsonProperty("novo_maior_teor_cobre")
+    @JsonProperty("maior_teor_cobre")
+    @JsonAlias("novo_maior_teor_cobre")
     private Double copper_too_hight;
 
     // --- FERRO ---
-    @JsonProperty("novo_menor_teor_ferro")
+    @JsonProperty("menor_teor_ferro")
+    @JsonAlias("novo_menor_teor_ferro")
     private Double iron_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_ferro")
+    @JsonProperty("teor_inicial_baixo_ferro")
+    @JsonAlias("novo_teor_inicial_baixo_ferro")
     private Double iron_low_i;
-    @JsonProperty("novo_teor_final_baixo_ferro")
+    @JsonProperty("teor_final_baixo_ferro")
+    @JsonAlias("novo_teor_final_baixo_ferro")
     private Double iron_low_f;
-    @JsonProperty("novo_teor_inicial_medio_ferro")
+    @JsonProperty("teor_inicial_medio_ferro")
+    @JsonAlias("novo_teor_inicial_medio_ferro")
     private Double iron_medium_i;
-    @JsonProperty("novo_teor_final_medio_ferro")
+    @JsonProperty("teor_final_medio_ferro")
+    @JsonAlias("novo_teor_final_medio_ferro")
     private Double iron_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_ferro")
+    @JsonProperty("teor_inicial_alto_ferro")
+    @JsonAlias("novo_teor_inicial_alto_ferro")
     private Double iron_hight_i;
-    @JsonProperty("novo_teor_final_alto_ferro")
+    @JsonProperty("teor_final_alto_ferro")
+    @JsonAlias("novo_teor_final_alto_ferro")
     private Double iron_hight_f;
-    @JsonProperty("novo_maior_teor_ferro")
+    @JsonProperty("maior_teor_ferro")
+    @JsonAlias("novo_maior_teor_ferro")
     private Double iron_too_hight;
 
     // --- MANGANÊS ---
-    @JsonProperty("novo_menor_teor_manganes")
+    @JsonProperty("menor_teor_manganes")
+    @JsonAlias("novo_menor_teor_manganes")
     private Double manganese_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_manganes")
+    @JsonProperty("teor_inicial_baixo_manganes")
+    @JsonAlias("novo_teor_inicial_baixo_manganes")
     private Double manganese_low_i;
-    @JsonProperty("novo_teor_final_baixo_manganes")
+    @JsonProperty("teor_final_baixo_manganes")
+    @JsonAlias("novo_teor_final_baixo_manganes")
     private Double manganese_low_f;
-    @JsonProperty("novo_teor_inicial_medio_manganes")
+    @JsonProperty("teor_inicial_medio_manganes")
+    @JsonAlias("novo_teor_inicial_medio_manganes")
     private Double manganese_medium_i;
-    @JsonProperty("novo_teor_final_medio_manganes")
+    @JsonProperty("teor_final_medio_manganes")
+    @JsonAlias("novo_teor_final_medio_manganes")
     private Double manganese_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_manganes")
+    @JsonProperty("teor_inicial_alto_manganes")
+    @JsonAlias("novo_teor_inicial_alto_manganes")
     private Double manganese_hight_i;
-    @JsonProperty("novo_teor_final_alto_manganes")
+    @JsonProperty("teor_final_alto_manganes")
+    @JsonAlias("novo_teor_final_alto_manganes")
     private Double manganese_hight_f;
-    @JsonProperty("novo_maior_teor_manganes")
+    @JsonProperty("maior_teor_manganes")
+    @JsonAlias("novo_maior_teor_manganes")
     private Double manganese_too_hight;
 
     // --- ZINCO ---
-    @JsonProperty("novo_menor_teor_zinco")
+    @JsonProperty("menor_teor_zinco")
+    @JsonAlias("novo_menor_teor_zinco")
     private Double zinc_too_low;
-    @JsonProperty("novo_teor_inicial_baixo_zinco")
+    @JsonProperty("teor_inicial_baixo_zinco")
+    @JsonAlias("novo_teor_inicial_baixo_zinco")
     private Double zinc_low_i;
-    @JsonProperty("novo_teor_final_baixo_zinco")
+    @JsonProperty("teor_final_baixo_zinco")
+    @JsonAlias("novo_teor_final_baixo_zinco")
     private Double zinc_low_f;
-    @JsonProperty("novo_teor_inicial_medio_zinco")
+    @JsonProperty("teor_inicial_medio_zinco")
+    @JsonAlias("novo_teor_inicial_medio_zinco")
     private Double zinc_medium_i;
-    @JsonProperty("novo_teor_final_medio_zinco")
+    @JsonProperty("teor_final_medio_zinco")
+    @JsonAlias("novo_teor_final_medio_zinco")
     private Double zinc_medium_f;
-    @JsonProperty("novo_teor_inicial_alto_zinco")
+    @JsonProperty("teor_inicial_alto_zinco")
+    @JsonAlias("novo_teor_inicial_alto_zinco")
     private Double zinc_hight_i;
-    @JsonProperty("novo_teor_final_alto_zinco")
+    @JsonProperty("teor_final_alto_zinco")
+    @JsonAlias("novo_teor_final_alto_zinco")
     private Double zinc_hight_f;
-    @JsonProperty("novo_maior_teor_zinco")
+    @JsonProperty("maior_teor_zinco")
+    @JsonAlias("novo_maior_teor_zinco")
     private Double zinc_too_hight;
 }

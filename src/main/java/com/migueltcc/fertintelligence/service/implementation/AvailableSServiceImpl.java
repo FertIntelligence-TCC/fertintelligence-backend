@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS.AvailableSResponseDto;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 @Service
 public class AvailableSServiceImpl implements AvailableSService {
@@ -39,7 +41,7 @@ public class AvailableSServiceImpl implements AvailableSService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkModifyPermission(table, owner);
 
         availableSRepository.findByTable(table).ifPresent(existing -> {
             throw new IllegalStateException("Já existe um critério cadastrado para esta tabela.");
@@ -60,7 +62,7 @@ public class AvailableSServiceImpl implements AvailableSService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkViewPermission(criterion.getTable(), owner);
 
         return criterion.toDto();
     }
@@ -71,7 +73,7 @@ public class AvailableSServiceImpl implements AvailableSService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkViewPermission(table, owner);
 
         AvailableSModel criterion = availableSRepository.findByTable(table)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -86,7 +88,7 @@ public class AvailableSServiceImpl implements AvailableSService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkModifyPermission(criterion.getTable(), owner);
 
         copyNonNullProperties(updateRequestDto, criterion);
 
@@ -100,7 +102,7 @@ public class AvailableSServiceImpl implements AvailableSService {
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailableSModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkModifyPermission(criterion.getTable(), owner);
 
         availableSRepository.delete(criterion);
     }
@@ -122,10 +124,39 @@ public class AvailableSServiceImpl implements AvailableSService {
                         "Critério de enxofre não encontrado com o ID: " + criterionId));
     }
 
-    private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
-        if (!table.getCreator().equals(user)) {
+    private void checkViewPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        if (isCreator(table, user) || table.isPublicTable() || isDefaultTable(table)) {
+            return;
+        }
+        throw new AccessDeniedException("Acesso negado. O usuário não tem permissão para acessar esta tabela.");
+    }
+
+    private void checkModifyPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(user)) {
+                return;
+            }
+            throw new AccessDeniedException("Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+        if (!isCreator(table, user)) {
             throw new AccessDeniedException("Acesso negado. O usuário não é o criador da tabela.");
         }
+    }
+
+    private boolean isCreator(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        return table.getCreator() != null
+                && user != null
+                && Objects.equals(table.getCreator().getId(), user.getId());
+    }
+
+    private boolean isDefaultTable(SoilFertilityInterpretationCriteriaTableModel table) {
+        return table.getCreator() != null
+                && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO
+                && !table.isPublicTable();
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
     private void copyNonNullProperties(Object source, Object target) {

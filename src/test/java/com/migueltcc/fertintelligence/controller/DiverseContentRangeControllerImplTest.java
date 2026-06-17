@@ -236,10 +236,10 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
         String requestJson = """
                 {
                   "menor_teor_al_trocavel": 0.1,
-                  "teor_inicial_baixo_h_al": 1.1,
+                  "teor_inicial_baixo_aluminio_mais_hidrogenio": 1.1,
                   "teor_final_baixo_ctc_t": 2.2,
-                  "teor_inicial_medio_ctc_T": 3.3,
-                  "menor_valor_ph_agua": 4.4,
+                  "teor_inicial_medio_ctc_ph7": 3.3,
+                  "menor_teor_ph_agua": 4.4,
                   "valor_inicial_baixo_ph_cacl2_0_01_mol_l": 5.5
                 }
                 """;
@@ -270,6 +270,7 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.teor_final_baixo_ctc_efetiva").value(2.2))
                 .andExpect(jsonPath("$.teor_inicial_medio_ctc_ph_7").value(3.3))
                 .andExpect(jsonPath("$.menor_valor_ph").value(4.4))
+                .andExpect(jsonPath("$.menor_teor_ph_agua").value(4.4))
                 .andExpect(jsonPath("$.valor_inicial_baixo_ph_cacl2").value(5.5));
     }
 
@@ -316,7 +317,16 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
                 .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm3"))
                 .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm3"))
-                .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.0));
+                .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_potassio").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_sodio").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_soma_bases").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_aluminio").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_aluminio_mais_hidrogenio").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_ctc_ph7").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_pst").value(1.0))
+                .andExpect(jsonPath("$.menor_valor_ph_agua").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_ph_agua").value(1.0));
     }
 
     @Test
@@ -343,6 +353,39 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm3"))
                 .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm3"))
                 .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.5));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateDiverseContentRangeAcceptsRequestedNutrientAliases() throws Exception {
+        String requestJson = """
+                {
+                  "menor_teor_aluminio_mais_hidrogenio": 1.2,
+                  "teor_inicial_baixo_ctc_ph7": 2.3,
+                  "novo_menor_teor_ph_agua": 4.5
+                }
+                """;
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(diverseContentRangeRepository.findById(existingCriterion.getId()))
+                .thenReturn(Optional.of(existingCriterion));
+        when(diverseContentRangeRepository.save(existingCriterion)).thenAnswer(invocation -> {
+            DiverseContentRangeModel criterion = invocation.getArgument(0);
+            assertEquals(1.2, criterion.getPotential_acidity_too_low());
+            assertEquals(2.3, criterion.getPh7_cec_low_i());
+            assertEquals(4.5, criterion.getPh_too_low());
+            return criterion;
+        });
+
+        mockMvc.perform(put("/diverse-content-range/update")
+                        .param("criterionId", existingCriterion.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.menor_teor_aluminio_mais_hidrogenio").value(1.2))
+                .andExpect(jsonPath("$.teor_inicial_baixo_ctc_ph7").value(2.3))
+                .andExpect(jsonPath("$.menor_valor_ph_agua").value(4.5))
+                .andExpect(jsonPath("$.menor_teor_ph_agua").value(4.5));
     }
 
     @Test

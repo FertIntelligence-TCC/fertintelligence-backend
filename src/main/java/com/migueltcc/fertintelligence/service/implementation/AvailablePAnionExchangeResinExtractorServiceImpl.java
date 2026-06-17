@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorPostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availablePAnionExchangeResinExtractor.AvailablePAnionExchangeResinExtractorResponseDto;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 @Service
 public class AvailablePAnionExchangeResinExtractorServiceImpl
@@ -43,7 +45,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkModifyPermission(table, owner);
 
         availablePAnionExchangeResinExtractorRepository.findByTable(table).ifPresent(existing -> {
             throw new IllegalStateException("Já existe um critério cadastrado para esta tabela.");
@@ -67,7 +69,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkViewPermission(criterion.getTable(), owner);
 
         return criterion.toDto();
     }
@@ -80,7 +82,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
-        checkCreatorPermission(table, owner);
+        checkViewPermission(table, owner);
 
         AvailablePAnionExchangeResinExtractorModel criterion =
                 availablePAnionExchangeResinExtractorRepository.findByTable(table)
@@ -99,7 +101,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkModifyPermission(criterion.getTable(), owner);
 
         copyNonNullProperties(updateRequestDto, criterion);
 
@@ -114,7 +116,7 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
         UserModel owner = findUserByUsernameOrThrow(username);
 
         AvailablePAnionExchangeResinExtractorModel criterion = findCriterionByIdOrThrow(criterionId);
-        checkCreatorPermission(criterion.getTable(), owner);
+        checkModifyPermission(criterion.getTable(), owner);
 
         availablePAnionExchangeResinExtractorRepository.delete(criterion);
     }
@@ -136,10 +138,39 @@ public class AvailablePAnionExchangeResinExtractorServiceImpl
                         "Critério de fósforo (resina) não encontrado com o ID: " + criterionId));
     }
 
-    private void checkCreatorPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
-        if (!table.getCreator().equals(user)) {
+    private void checkViewPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        if (isCreator(table, user) || table.isPublicTable() || isDefaultTable(table)) {
+            return;
+        }
+        throw new AccessDeniedException("Acesso negado. O usuário não tem permissão para acessar esta tabela.");
+    }
+
+    private void checkModifyPermission(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        if (isDefaultTable(table)) {
+            if (isSupremeUser(user)) {
+                return;
+            }
+            throw new AccessDeniedException("Apenas o usuário supremo pode modificar tabelas padrão.");
+        }
+        if (!isCreator(table, user)) {
             throw new AccessDeniedException("Acesso negado. O usuário não é o criador da tabela.");
         }
+    }
+
+    private boolean isCreator(SoilFertilityInterpretationCriteriaTableModel table, UserModel user) {
+        return table.getCreator() != null
+                && user != null
+                && Objects.equals(table.getCreator().getId(), user.getId());
+    }
+
+    private boolean isDefaultTable(SoilFertilityInterpretationCriteriaTableModel table) {
+        return table.getCreator() != null
+                && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO
+                && !table.isPublicTable();
+    }
+
+    private boolean isSupremeUser(UserModel user) {
+        return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
     private void copyNonNullProperties(Object source, Object target) {

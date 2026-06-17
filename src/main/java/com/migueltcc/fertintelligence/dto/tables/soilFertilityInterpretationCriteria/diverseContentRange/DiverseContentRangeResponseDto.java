@@ -186,6 +186,46 @@ public class DiverseContentRangeResponseDto {
     @JsonProperty("maior_teor_acidez_potencial")
     private Double potential_acidity_too_hight;
 
+    @JsonProperty("menor_teor_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenTooLow() {
+        return potential_acidity_too_low;
+    }
+
+    @JsonProperty("teor_inicial_baixo_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenLowI() {
+        return potential_acidity_low_i;
+    }
+
+    @JsonProperty("teor_final_baixo_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenLowF() {
+        return potential_acidity_low_f;
+    }
+
+    @JsonProperty("teor_inicial_medio_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenMediumI() {
+        return potential_acidity_medium_i;
+    }
+
+    @JsonProperty("teor_final_medio_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenMediumF() {
+        return potential_acidity_medium_f;
+    }
+
+    @JsonProperty("teor_inicial_alto_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenHightI() {
+        return potential_acidity_hight_i;
+    }
+
+    @JsonProperty("teor_final_alto_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenHightF() {
+        return potential_acidity_hight_f;
+    }
+
+    @JsonProperty("maior_teor_aluminio_mais_hidrogenio")
+    public Double getAluminumPlusHydrogenTooHight() {
+        return potential_acidity_too_hight;
+    }
+
     // --- CTC EFETIVA (t) ---
     @JsonProperty("menor_teor_ctc_efetiva")
     private Double effective_cec_too_low;
@@ -221,6 +261,46 @@ public class DiverseContentRangeResponseDto {
     private Double ph7_cec_hight_f;
     @JsonProperty("maior_teor_ctc_ph_7")
     private Double ph7_cec_too_hight;
+
+    @JsonProperty("menor_teor_ctc_ph7")
+    public Double getPh7CecTooLowAlias() {
+        return ph7_cec_too_low;
+    }
+
+    @JsonProperty("teor_inicial_baixo_ctc_ph7")
+    public Double getPh7CecLowIAlias() {
+        return ph7_cec_low_i;
+    }
+
+    @JsonProperty("teor_final_baixo_ctc_ph7")
+    public Double getPh7CecLowFAlias() {
+        return ph7_cec_low_f;
+    }
+
+    @JsonProperty("teor_inicial_medio_ctc_ph7")
+    public Double getPh7CecMediumIAlias() {
+        return ph7_cec_medium_i;
+    }
+
+    @JsonProperty("teor_final_medio_ctc_ph7")
+    public Double getPh7CecMediumFAlias() {
+        return ph7_cec_medium_f;
+    }
+
+    @JsonProperty("teor_inicial_alto_ctc_ph7")
+    public Double getPh7CecHightIAlias() {
+        return ph7_cec_hight_i;
+    }
+
+    @JsonProperty("teor_final_alto_ctc_ph7")
+    public Double getPh7CecHightFAlias() {
+        return ph7_cec_hight_f;
+    }
+
+    @JsonProperty("maior_teor_ctc_ph7")
+    public Double getPh7CecTooHightAlias() {
+        return ph7_cec_too_hight;
+    }
 
     // --- SATURAÇÃO POR ALUMÍNIO (m) ---
     @JsonProperty("menor_teor_saturacao_aluminio")
@@ -331,6 +411,46 @@ public class DiverseContentRangeResponseDto {
 
     @JsonProperty("maior_valor_ph_agua")
     public Double getPhWaterTooHight() {
+        return ph_too_hight;
+    }
+
+    @JsonProperty("menor_teor_ph_agua")
+    public Double getPhWaterTooLowContentAlias() {
+        return ph_too_low;
+    }
+
+    @JsonProperty("teor_inicial_baixo_ph_agua")
+    public Double getPhWaterLowIContentAlias() {
+        return ph_low_i;
+    }
+
+    @JsonProperty("teor_final_baixo_ph_agua")
+    public Double getPhWaterLowFContentAlias() {
+        return ph_low_f;
+    }
+
+    @JsonProperty("teor_inicial_medio_ph_agua")
+    public Double getPhWaterMediumIContentAlias() {
+        return ph_medium_i;
+    }
+
+    @JsonProperty("teor_final_medio_ph_agua")
+    public Double getPhWaterMediumFContentAlias() {
+        return ph_medium_f;
+    }
+
+    @JsonProperty("teor_inicial_alto_ph_agua")
+    public Double getPhWaterHightIContentAlias() {
+        return ph_hight_i;
+    }
+
+    @JsonProperty("teor_final_alto_ph_agua")
+    public Double getPhWaterHightFContentAlias() {
+        return ph_hight_f;
+    }
+
+    @JsonProperty("maior_teor_ph_agua")
+    public Double getPhWaterTooHightContentAlias() {
         return ph_too_hight;
     }
 
