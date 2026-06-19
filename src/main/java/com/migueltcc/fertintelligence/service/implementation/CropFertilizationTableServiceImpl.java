@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.SpacingType;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -66,17 +67,20 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         validateCropNames(createRequestDto.getCrop_common_name(), createRequestDto.getCrop_scientific_nome());
 
+        validateRegionalSpacing(createRequestDto.getUsed_spacing());
+
         CropFertilizationTableModel table = CropFertilizationTableModel.builder()
                 .creator(owner)
                 .region(createRequestDto.getRegion())
                 .crop_common_name(createRequestDto.getCrop_common_name())
                 .crop_scientific_nome(createRequestDto.getCrop_scientific_nome())
                 .cultivares(createRequestDto.getCultivares())
-                .suggested_spacing(createRequestDto.getSuggested_spacing())
+                .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
                 .initial_value(createRequestDto.getInitial_value())
                 .final_value(createRequestDto.getFinal_value())
                 .used_spacing(createRequestDto.getUsed_spacing())
                 .used_spacing_value(createRequestDto.getUsed_spacing_value())
+                .used_spacing_maximum_value(resolveRegionalSpacingMaximum(createRequestDto.getUsed_spacing_value(), createRequestDto.getUsed_spacing_maximum_value()))
                 .regional_productivity(createRequestDto.getRegional_productivity())
                 .expected_productivity(createRequestDto.getExpected_productivity())
                 .criteria(createRequestDto.getCriteria())
@@ -193,6 +197,8 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             validateCropNames(common, scientific);
         }
 
+        validateRegionalSpacing(updateRequestDto.getUsed_spacing());
+
         updateTableFields(table, updateRequestDto);
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
@@ -237,11 +243,12 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getCrop_common_name() != null) table.setCrop_common_name(dto.getCrop_common_name());
         if (dto.getCrop_scientific_nome() != null) table.setCrop_scientific_nome(dto.getCrop_scientific_nome());
         if (dto.getCultivares() != null) table.setCultivares(dto.getCultivares());
-        if (dto.getSuggested_spacing() != null) table.setSuggested_spacing(dto.getSuggested_spacing());
+        table.setSuggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS);
         if (dto.getInitial_value() != null) table.setInitial_value(dto.getInitial_value());
         if (dto.getFinal_value() != null) table.setFinal_value(dto.getFinal_value());
         if (dto.getUsed_spacing() != null) table.setUsed_spacing(dto.getUsed_spacing());
         if (dto.getUsed_spacing_value() != null) table.setUsed_spacing_value(dto.getUsed_spacing_value());
+        if (dto.getUsed_spacing_maximum_value() != null) table.setUsed_spacing_maximum_value(dto.getUsed_spacing_maximum_value());
         if (dto.getRegional_productivity() != null) table.setRegional_productivity(dto.getRegional_productivity());
         if (dto.getExpected_productivity() != null) table.setExpected_productivity(dto.getExpected_productivity());
         if (dto.getCriteria() != null) table.setCriteria(dto.getCriteria());
@@ -253,6 +260,18 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
     }
 
+    private void validateRegionalSpacing(SpacingType regionalSpacingType) {
+        if (regionalSpacingType == null) {
+            return;
+        }
+        if (regionalSpacingType == SpacingType.BETWEEN_LINES_IN_METERS) {
+            throw new IllegalArgumentException("Espaçamento usado na região não aceita Entre Linhas (m). Use Entre Plantas/Covas (m) ou Plantas por metro linear (m).");
+        }
+    }
+
+    private Double resolveRegionalSpacingMaximum(Double minimumValue, Double maximumValue) {
+        return maximumValue != null ? maximumValue : minimumValue;
+    }
 
     private CropFertilizationTableResponseDto buildResponse(CropFertilizationTableModel table) {
         CropFertilizationTableResponseDto dto = table.toDto();
