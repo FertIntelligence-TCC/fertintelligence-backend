@@ -4,6 +4,8 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Technica
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionResponseDto;
 
 import java.util.List;
 
@@ -23,7 +25,7 @@ public interface CropFertilizationTableService {
 
     List<CropFertilizationTableResponseDto> getAllCropFertilizationTables(String username, TechnicalTableGroup group);
 
-    List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables();
+    List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables(String username);
 
     List<CropFertilizationTableResponseDto> getAllDefaultCropFertilizationTables(String username);
 
@@ -32,6 +34,8 @@ public interface CropFertilizationTableService {
             CropFertilizationTablePostRequestDto updateRequestDto,
             String username
     );
+
+    CropFertilizationTableResolveLimingCriterionResponseDto resolvePublicLimingCriterion(CropFertilizationTableResolveLimingCriterionRequestDto requestDto, String username);
 
     void deleteCropFertilizationTable(Long tableId, String username);
 }

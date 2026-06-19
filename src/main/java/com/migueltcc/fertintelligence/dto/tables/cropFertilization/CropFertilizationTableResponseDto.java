@@ -81,6 +81,9 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("criterio_de_calagem_indicado")
     private String indicatedLimingCriterion;
 
+    @JsonProperty("canViewLinkedAnalyses")
+    private Boolean canViewLinkedAnalyses;
+
     @JsonProperty("id_propriedade")
     private Long propertyId;
 

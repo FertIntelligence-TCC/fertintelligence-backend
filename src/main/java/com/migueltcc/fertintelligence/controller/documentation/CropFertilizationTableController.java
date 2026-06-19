@@ -4,6 +4,8 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Technica
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionResponseDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +52,12 @@ public interface CropFertilizationTableController {
             @RequestParam(name = "tableId") Long tableId,
             @Parameter(description = "Dados para atualização da tabela", required = true)
             @Valid @RequestBody CropFertilizationTablePostRequestDto updateRequestDto,
+            @Parameter(hidden = true) Authentication authentication
+    );
+
+    ResponseEntity<CropFertilizationTableResolveLimingCriterionResponseDto> resolvePublicLimingCriterion(
+            @Parameter(description = "Dados temporários para calcular critério de calagem", required = true)
+            @Valid @RequestBody CropFertilizationTableResolveLimingCriterionRequestDto requestDto,
             @Parameter(hidden = true) Authentication authentication
     );
 
