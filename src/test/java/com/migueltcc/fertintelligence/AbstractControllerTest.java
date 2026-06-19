@@ -82,6 +82,9 @@ public abstract class AbstractControllerTest {
     protected CropFertilizationTableRepository cropFertilizationTableRepository;
 
     @MockitoBean
+    protected CropFertilizationMicronutrientDoseRepository cropFertilizationMicronutrientDoseRepository;
+
+    @MockitoBean
     protected ContentRangeRepository contentRangeRepository;
 
     @MockitoBean

@@ -1,13 +1,16 @@
 package com.migueltcc.fertintelligence.config;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.*;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationMicronutrientDoseModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
+import com.migueltcc.fertintelligence.repository.CropFertilizationMicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -33,6 +36,7 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
     private final UserRepository userRepository;
+    private final CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
 
     @Override
     @Transactional
@@ -64,6 +68,28 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
         log.info("✅ Seeding de Tabelas, Intervalos (4 P, 4 K) e Coberturas concluído.");
     }
 
+    private void seedMicronutrientDoses(CropFertilizationTableModel table) {
+        saveDose(table, AppliedMicronutrient.B, 200.0, 400.0);
+        saveDose(table, AppliedMicronutrient.Cu, 50.0, 150.0);
+        saveDose(table, AppliedMicronutrient.Fe, 1000.0, 2000.0);
+        saveDose(table, AppliedMicronutrient.Ni, 5.0, 20.0);
+        saveDose(table, AppliedMicronutrient.Mn, 300.0, 800.0);
+        saveDose(table, AppliedMicronutrient.Mo, 10.0, 50.0);
+        saveDose(table, AppliedMicronutrient.Zn, 500.0, 1200.0);
+    }
+
+    private void saveDose(CropFertilizationTableModel table, AppliedMicronutrient micronutrient, Double minimumDose, Double maximumDose) {
+        if (micronutrientDoseRepository.findByTableAndMicronutrient(table, micronutrient).isPresent()) {
+            return;
+        }
+        micronutrientDoseRepository.save(CropFertilizationMicronutrientDoseModel.builder()
+                .table(table)
+                .micronutrient(micronutrient)
+                .minimumDose(minimumDose)
+                .maximumDose(maximumDose)
+                .build());
+    }
+
     private void createScenario(UserModel creator, NomeComum nome, Regiao regiao, NomeCientifico cientifico, String cultivar) {
         if (tableRepository.findAllByCreator(creator).stream().anyMatch(t -> t.getCrop_common_name() == nome && t.getRegion() == regiao)) {
             log.info("Tabela de {} ({}) já existe. Pulando.", nome, regiao);
@@ -90,13 +116,12 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
                     .manure(TipoEsterco.BOVINO)
                     .manure_qtd(5.0)
                     .gessing(1.0)
-                    .micronutrients(100.0)
-                    .npk(150.0)
                     .observations("Ajustar doses conforme análise de solo recente e expectativa produtiva local.")
                     .sources("Manual de adubação regional; boletins técnicos de manejo nutricional")
                     .build();
 
             CropFertilizationTableModel savedTable = tableRepository.save(table);
+            seedMicronutrientDoses(savedTable);
 
             // --- CRIAÇÃO DOS INTERVALOS (RANGES) ---
 

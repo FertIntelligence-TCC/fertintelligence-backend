@@ -73,12 +73,6 @@ public class CropFertilizationTableModel {
     @Column(name = "SUGESTAO_GESSAGEM", nullable = false)
     private Double gessing; // t/ha
 
-    @Column(name = "SUGESTAO_DE_ADUBACAO_COM_MICRONUTRIENTES", nullable = false)
-    private Double micronutrients; // g/ha
-
-    @Column(name = "SUGESTAO_DE_ADUBACAO_COM_N_P2O5_K2O", nullable = false)
-    private Double npk; // kg/ha
-
     @Column(name = "OBSERVACOES", length = 1000)
     private String observations;
 
@@ -109,8 +103,6 @@ public class CropFertilizationTableModel {
                 .manure(this.manure)
                 .manure_qtd(this.manure_qtd)
                 .gessing(this.gessing)
-                .micronutrients(this.micronutrients)
-                .npk(this.npk)
                 .observations(this.observations)
                 .sources(this.sources)
                 .public_table(this.publicTable)

@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.*;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
@@ -10,6 +11,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationMicronutrientDoseModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,8 +95,6 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .manure(TipoEsterco.BOVINO)
                 .manure_qtd(3.0)
                 .gessing(1.0)
-                .micronutrients(150.0)
-                .npk(120.0)
                 .observations("Observações iniciais")
                 .sources("Fontes iniciais")
                 .publicTable(false)
@@ -143,8 +143,13 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .manure(TipoEsterco.BOVINO)
                 .manure_qtd(3.0)
                 .gessing(1.0)
-                .micronutrients(150.0)
-                .npk(120.0)
+                .bMinimumDose(10.0).bMaximumDose(20.0)
+                .cuMinimumDose(11.0).cuMaximumDose(21.0)
+                .feMinimumDose(12.0).feMaximumDose(22.0)
+                .niMinimumDose(13.0).niMaximumDose(23.0)
+                .mnMinimumDose(14.0).mnMaximumDose(24.0)
+                .moMinimumDose(15.0).moMaximumDose(25.0)
+                .znMinimumDose(16.0).znMaximumDose(26.0)
                 .observations("Observações iniciais")
                 .sources("Fontes iniciais")
                 .public_table(true)
@@ -157,9 +162,40 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .crop_common_name(NomeComum.MILHO)
                 .crop_scientific_nome(NomeCientifico.Zea_mays)
                 .expected_productivity(9500.0)
+                .bMinimumDose(30.0).bMaximumDose(40.0)
+                .znMinimumDose(36.0).znMaximumDose(46.0)
                 .observations("Observações atualizadas")
                 .sources("Fontes atualizadas")
                 .public_table(true)
+                .build();
+    }
+
+    private List<CropFertilizationMicronutrientDoseModel> savedDoses(CropFertilizationTableModel table) {
+        return List.of(
+                dose(1L, table, AppliedMicronutrient.B, 10.0, 20.0),
+                dose(2L, table, AppliedMicronutrient.Cu, 11.0, 21.0),
+                dose(3L, table, AppliedMicronutrient.Fe, 12.0, 22.0),
+                dose(4L, table, AppliedMicronutrient.Ni, 13.0, 23.0),
+                dose(5L, table, AppliedMicronutrient.Mn, 14.0, 24.0),
+                dose(6L, table, AppliedMicronutrient.Mo, 15.0, 25.0),
+                dose(7L, table, AppliedMicronutrient.Zn, 16.0, 26.0)
+        );
+    }
+
+    private List<CropFertilizationMicronutrientDoseModel> updatedDoses(CropFertilizationTableModel table) {
+        return List.of(
+                dose(1L, table, AppliedMicronutrient.B, 30.0, 40.0),
+                dose(7L, table, AppliedMicronutrient.Zn, 36.0, 46.0)
+        );
+    }
+
+    private CropFertilizationMicronutrientDoseModel dose(Long id, CropFertilizationTableModel table, AppliedMicronutrient micronutrient, Double minimumDose, Double maximumDose) {
+        return CropFertilizationMicronutrientDoseModel.builder()
+                .id(id)
+                .table(table)
+                .micronutrient(micronutrient)
+                .minimumDose(minimumDose)
+                .maximumDose(maximumDose)
                 .build();
     }
 
@@ -177,6 +213,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class))).thenReturn(savedTable);
+        when(cropFertilizationMicronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(savedTable))
+                .thenReturn(savedDoses(savedTable));
 
         mockMvc.perform(post("/crop-fertilization-table/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -188,6 +226,10 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.nome_cientifico_cultura").value("Zea_mays"))
                 .andExpect(jsonPath("$.observacoes").value("Observações iniciais"))
                 .andExpect(jsonPath("$.fontes").value("Fontes iniciais"))
+                .andExpect(jsonPath("$.dose_minima_b").value(10.0))
+                .andExpect(jsonPath("$.dose_maxima_zn").value(26.0))
+                .andExpect(jsonPath("$.sugestao_micronutrientes").doesNotExist())
+                .andExpect(jsonPath("$.sugestao_npk").doesNotExist())
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
@@ -247,6 +289,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
     void getCropFertilizationTableSuccessfully() throws Exception {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropFertilizationTableRepository.findById(complexTable.getId())).thenReturn(Optional.of(complexTable));
+        when(cropFertilizationMicronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(complexTable))
+                .thenReturn(savedDoses(complexTable));
 
         mockMvc.perform(get("/crop-fertilization-table/get")
                         .param("tableId", complexTable.getId().toString()))
@@ -254,7 +298,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.id").value(complexTable.getId()))
                 .andExpect(jsonPath("$.nome_criador").value("Test User Proprietario"))
                 .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
-
+                .andExpect(jsonPath("$.dose_minima_ni").value(13.0))
+                .andExpect(jsonPath("$.dose_maxima_mo").value(25.0))
                 .andExpect(jsonPath("$.valor_inicial").value(0.45));
     }
 
@@ -299,6 +344,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
         when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
         when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(cropFertilizationMicronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(ownerTable))
+                .thenReturn(updatedDoses(ownerTable));
 
         mockMvc.perform(put("/crop-fertilization-table/update")
                         .param("tableId", ownerTable.getId().toString())
@@ -308,6 +355,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.produtividade_esperada").value(9500.0))
                 .andExpect(jsonPath("$.observacoes").value("Observações atualizadas"))
                 .andExpect(jsonPath("$.fontes").value("Fontes atualizadas"))
+                .andExpect(jsonPath("$.dose_minima_b").value(30.0))
+                .andExpect(jsonPath("$.dose_maxima_zn").value(46.0))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
     }
 
