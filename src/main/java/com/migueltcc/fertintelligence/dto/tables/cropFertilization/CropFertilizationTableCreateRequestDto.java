@@ -66,8 +66,23 @@ public class CropFertilizationTableCreateRequestDto {
     private Double expected_productivity;
 
     @JsonProperty("criterio_de_calagem")
-    @NotNull
     private CriterioCalagem criteria;
+
+    @JsonProperty("id_propriedade")
+    @JsonAlias("propertyId")
+    private Long propertyId;
+
+    @JsonProperty("id_talhao")
+    @JsonAlias("plotId")
+    private Long plotId;
+
+    @JsonProperty("id_extrato_analise_fisica")
+    @JsonAlias({"physicalAnalysisId", "id_analise_fisica"})
+    private Long physicalAnalysisId;
+
+    @JsonProperty("id_extrato_analise_fertilidade")
+    @JsonAlias({"fertilityAnalysisId", "id_analise_fertilidade"})
+    private Long fertilityAnalysisId;
 
     @JsonProperty("tipo_de_esterco")
     @NotNull
