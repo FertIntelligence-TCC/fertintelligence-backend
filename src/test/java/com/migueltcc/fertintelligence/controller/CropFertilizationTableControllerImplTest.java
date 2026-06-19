@@ -465,7 +465,8 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .publicTable(true)
                 .build();
 
-        when(cropFertilizationTableRepository.findAllByPublicTableTrue())
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO))
                 .thenReturn(List.of(publicOwner, publicOther));
 
         mockMvc.perform(get("/crop-fertilization-table/get-all-public"))

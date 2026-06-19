@@ -5,6 +5,8 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Technica
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -76,7 +78,7 @@ public class CropFertilizationTableControllerImpl implements CropFertilizationTa
             Authentication authentication
     ) {
         List<CropFertilizationTableResponseDto> tables = cropFertilizationTableService
-                .getAllPublicCropFertilizationTables();
+                .getAllPublicCropFertilizationTables(authentication.getName());
         return ResponseEntity.ok(tables);
     }
 
@@ -101,6 +103,16 @@ public class CropFertilizationTableControllerImpl implements CropFertilizationTa
                 .updateCropFertilizationTable(tableId, updateRequestDto, authentication.getName());
 
         return ResponseEntity.ok(updated);
+    }
+
+    @Override
+    @PostMapping("/public/resolve-liming-criterion")
+    public ResponseEntity<CropFertilizationTableResolveLimingCriterionResponseDto> resolvePublicLimingCriterion(
+            @Valid @RequestBody CropFertilizationTableResolveLimingCriterionRequestDto requestDto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(cropFertilizationTableService
+                .resolvePublicLimingCriterion(requestDto, authentication.getName()));
     }
 
     @Override

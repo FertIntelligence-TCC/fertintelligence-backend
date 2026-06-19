@@ -11,6 +11,8 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResolveLimingCriterionResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
@@ -129,7 +131,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
         saveCreateMicronutrientDoses(saved, createRequestDto);
-        return buildResponse(saved);
+        return buildResponse(saved, owner);
     }
 
     @Override
@@ -138,7 +140,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         assertCanView(table, requester);
-        return buildResponse(table);
+        return buildResponse(table, requester);
     }
 
     @Override
@@ -154,14 +156,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         if (group != null) {
             return findTablesByGroup(owner, group).stream()
-                    .map(this::buildResponse)
+                    .map(t -> buildResponse(t, owner))
                     .toList();
         }
 
         if (isSupremeUser(owner)) {
             return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                     .stream()
-                    .map(this::buildResponse)
+                    .map(t -> buildResponse(t, owner))
                     .toList();
         }
 
@@ -171,7 +173,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 cropFertilizationTableRepository.findAllByPublicTableTrue()
         )
                 .stream()
-                .map(this::buildResponse)
+                .map(t -> buildResponse(t, owner))
                 .toList();
     }
 
@@ -192,20 +194,21 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
     @Override
     @Transactional(readOnly = true)
-    public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables() {
+    public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables(String username) {
+        UserModel requester = findUserByUsernameOrThrow(username);
         return cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(this::buildResponse)
+                .map(t -> buildResponse(t, requester))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CropFertilizationTableResponseDto> getAllDefaultCropFertilizationTables(String username) {
-        findUserByUsernameOrThrow(username);
+        UserModel requester = findUserByUsernameOrThrow(username);
         return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(this::buildResponse)
+                .map(t -> buildResponse(t, requester))
                 .toList();
     }
 
@@ -252,7 +255,30 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
         saveUpdateMicronutrientDoses(saved, updateRequestDto);
-        return buildResponse(saved);
+        return buildResponse(saved, requester);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CropFertilizationTableResolveLimingCriterionResponseDto resolvePublicLimingCriterion(
+            CropFertilizationTableResolveLimingCriterionRequestDto requestDto,
+            String username
+    ) {
+        UserModel requester = findUserByUsernameOrThrow(username);
+        CropFertilizationTableModel table = findTableByIdOrThrow(requestDto.getCropFertilizationTableId());
+        if (!table.isPublicTable() && !isDefaultTable(table)) {
+            throw new AccessDeniedException("Tabela pública/padrão não encontrada ou indisponível para visualização.");
+        }
+        assertCanView(table, requester);
+        Selection selection = resolveSelection(
+                requestDto.getPropertyId(),
+                requestDto.getPlotId(),
+                requestDto.getPhysicalAnalysisId(),
+                requestDto.getFertilityAnalysisId(),
+                requester);
+        return CropFertilizationTableResolveLimingCriterionResponseDto.builder()
+                .indicatedLimingCriterion(resolveIndicatedLimingCriterion(selection.physicalAnalysis(), selection.fertilityAnalysis()))
+                .build();
     }
 
     @Override
@@ -322,13 +348,40 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         return maximumValue != null ? maximumValue : minimumValue;
     }
 
-    private CropFertilizationTableResponseDto buildResponse(CropFertilizationTableModel table) {
+    private CropFertilizationTableResponseDto buildResponse(CropFertilizationTableModel table, UserModel requester) {
         CropFertilizationTableResponseDto dto = table.toDto();
-        dto.setIndicatedLimingCriterion(resolveIndicatedLimingCriterion(table.getPhysicalAnalysis(), table.getFertilityAnalysis()));
+        boolean canViewLinkedAnalyses = canViewOriginalLinkedAnalyses(table, requester);
+        dto.setCanViewLinkedAnalyses(canViewLinkedAnalyses);
+        if (canViewLinkedAnalyses) {
+            dto.setIndicatedLimingCriterion(resolveIndicatedLimingCriterion(table.getPhysicalAnalysis(), table.getFertilityAnalysis()));
+        } else {
+            hideLinkedAnalysisData(dto);
+        }
         for (CropFertilizationMicronutrientDoseModel dose : micronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(table)) {
             applyDose(dto, dose);
         }
         return dto;
+    }
+
+
+    private boolean canViewOriginalLinkedAnalyses(CropFertilizationTableModel table, UserModel requester) {
+        if (isCreator(table, requester)) return true;
+        if (table.getProperty() == null && table.getPlot() == null && table.getPhysicalAnalysis() == null && table.getFertilityAnalysis() == null) return true;
+        if (table.getPlot() == null) return false;
+        if (table.getProperty() != null && !table.getPlot().getProperty().getId().equals(table.getProperty().getId())) return false;
+        return permissionManager.canReadPlot(table.getPlot(), requester);
+    }
+
+    private void hideLinkedAnalysisData(CropFertilizationTableResponseDto dto) {
+        dto.setPropertyId(null);
+        dto.setPropertyName(null);
+        dto.setPlotId(null);
+        dto.setPlotIdentification(null);
+        dto.setPhysicalAnalysisId(null);
+        dto.setPhysicalAnalysisIdentification(null);
+        dto.setFertilityAnalysisId(null);
+        dto.setFertilityAnalysisIdentification(null);
+        dto.setIndicatedLimingCriterion(null);
     }
 
     private void saveCreateMicronutrientDoses(CropFertilizationTableModel table, CropFertilizationTableCreateRequestDto dto) {
