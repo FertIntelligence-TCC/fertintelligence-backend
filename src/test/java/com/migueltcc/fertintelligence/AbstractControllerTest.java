@@ -20,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+@ActiveProfiles(resolver = TestProfileResolver.class)
 // @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class AbstractControllerTest {
 
