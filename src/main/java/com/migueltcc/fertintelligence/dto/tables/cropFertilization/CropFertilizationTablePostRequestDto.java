@@ -64,6 +64,22 @@ public class CropFertilizationTablePostRequestDto {
     @Schema(example = "NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL") // CORRIGIDO
     private CriterioCalagem criteria;
 
+    @JsonProperty("novo_id_propriedade")
+    @JsonAlias({"id_propriedade", "propertyId"})
+    private Long propertyId;
+
+    @JsonProperty("novo_id_talhao")
+    @JsonAlias({"id_talhao", "plotId"})
+    private Long plotId;
+
+    @JsonProperty("novo_id_extrato_analise_fisica")
+    @JsonAlias({"id_extrato_analise_fisica", "physicalAnalysisId", "id_analise_fisica"})
+    private Long physicalAnalysisId;
+
+    @JsonProperty("novo_id_extrato_analise_fertilidade")
+    @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId", "id_analise_fertilidade"})
+    private Long fertilityAnalysisId;
+
     @JsonProperty("novo_tipo_de_esterco")
     @Schema(example = "GALINHA") // CORRIGIDO
     private TipoEsterco manure;

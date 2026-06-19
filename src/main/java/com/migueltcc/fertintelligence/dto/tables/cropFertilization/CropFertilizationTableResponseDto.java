@@ -78,6 +78,33 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("criterio_de_calagem")
     private CriterioCalagem criteria;
 
+    @JsonProperty("criterio_de_calagem_indicado")
+    private String indicatedLimingCriterion;
+
+    @JsonProperty("id_propriedade")
+    private Long propertyId;
+
+    @JsonProperty("nome_propriedade")
+    private String propertyName;
+
+    @JsonProperty("id_talhao")
+    private Long plotId;
+
+    @JsonProperty("identificacao_talhao")
+    private String plotIdentification;
+
+    @JsonProperty("id_extrato_analise_fisica")
+    private Long physicalAnalysisId;
+
+    @JsonProperty("identificacao_analise_fisica")
+    private String physicalAnalysisIdentification;
+
+    @JsonProperty("id_extrato_analise_fertilidade")
+    private Long fertilityAnalysisId;
+
+    @JsonProperty("identificacao_analise_fertilidade")
+    private String fertilityAnalysisIdentification;
+
     @Schema(example = "BOVINO") // OK
     @JsonProperty("tipo_de_esterco")
     private TipoEsterco manure;

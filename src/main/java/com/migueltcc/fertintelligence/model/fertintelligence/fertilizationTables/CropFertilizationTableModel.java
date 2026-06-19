@@ -3,6 +3,10 @@ package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTable
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.*;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,6 +68,22 @@ public class CropFertilizationTableModel {
     @Column(name = "CRITERIO_DE_CALAGEM", nullable = false)
     private CriterioCalagem criteria;
 
+    @ManyToOne
+    @JoinColumn(name = "ID_PROPRIEDADE")
+    private PropertyModel property;
+
+    @ManyToOne
+    @JoinColumn(name = "ID_TALHAO")
+    private PlotModel plot;
+
+    @ManyToOne
+    @JoinColumn(name = "ID_EXTRATO_ANALISE_FISICA")
+    private PhysicalAnalysisExtractModel physicalAnalysis;
+
+    @ManyToOne
+    @JoinColumn(name = "ID_EXTRATO_ANALISE_FERTILIDADE")
+    private FertilityAnalysisExtractModel fertilityAnalysis;
+
     // @Column(name = "NECESSIDADE_CALAGEM", nullable = false)
     // private Double liming_necessity; // t/ha
 
@@ -104,6 +124,14 @@ public class CropFertilizationTableModel {
                 .regional_productivity(this.regional_productivity)
                 .expected_productivity(this.expected_productivity)
                 .criteria(this.criteria)
+                .propertyId(this.property != null ? this.property.getId() : null)
+                .propertyName(this.property != null ? this.property.getNome() : null)
+                .plotId(this.plot != null ? this.plot.getId() : null)
+                .plotIdentification(this.plot != null ? this.plot.getIdentification() : null)
+                .physicalAnalysisId(this.physicalAnalysis != null ? this.physicalAnalysis.getId() : null)
+                .physicalAnalysisIdentification(buildPhysicalAnalysisIdentification(this.physicalAnalysis))
+                .fertilityAnalysisId(this.fertilityAnalysis != null ? this.fertilityAnalysis.getId() : null)
+                .fertilityAnalysisIdentification(buildFertilityAnalysisIdentification(this.fertilityAnalysis))
                 .manure(this.manure)
                 .manure_qtd(this.manure_qtd)
                 .gessing(this.gessing)
@@ -113,4 +141,26 @@ public class CropFertilizationTableModel {
                 .build();
     }
 
+
+    private String buildPhysicalAnalysisIdentification(PhysicalAnalysisExtractModel analysis) {
+        if (analysis == null) return null;
+        if (analysis.getRangeExtract() != null) {
+            return "Extrato físico " + analysis.getRangeExtract().getProfundidade_inicial() + "-" + analysis.getRangeExtract().getProfundidade_final() + " cm";
+        }
+        if (analysis.getLayerExtract() != null) {
+            return "Extrato físico " + analysis.getLayerExtract().getProfundidade_inicial() + "-" + analysis.getLayerExtract().getProfundidade_final() + " cm";
+        }
+        return "Extrato físico #" + analysis.getId();
+    }
+
+    private String buildFertilityAnalysisIdentification(FertilityAnalysisExtractModel analysis) {
+        if (analysis == null) return null;
+        if (analysis.getRangeExtract() != null) {
+            return "Extrato de fertilidade " + analysis.getRangeExtract().getProfundidade_inicial() + "-" + analysis.getRangeExtract().getProfundidade_final() + " cm";
+        }
+        if (analysis.getLayerExtract() != null) {
+            return "Extrato de fertilidade " + analysis.getLayerExtract().getProfundidade_inicial() + "-" + analysis.getLayerExtract().getProfundidade_final() + " cm";
+        }
+        return "Extrato de fertilidade #" + analysis.getId();
+    }
 }

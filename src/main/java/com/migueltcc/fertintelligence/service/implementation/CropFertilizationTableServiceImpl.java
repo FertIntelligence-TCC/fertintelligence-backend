@@ -1,15 +1,21 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.SpacingType;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTablePostRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
@@ -19,6 +25,11 @@ import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationMicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.repository.PropertyRepository;
+import com.migueltcc.fertintelligence.repository.PlotRepository;
+import com.migueltcc.fertintelligence.repository.PhysicalAnalysisExtractRepository;
+import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
+import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
@@ -43,18 +54,36 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
     private final CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
+    private final PropertyRepository propertyRepository;
+    private final PlotRepository plotRepository;
+    private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
+    private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
+    private final PermissionManager permissionManager;
+    private final PropertyAccessRequestRepository propertyAccessRequestRepository;
 
     public CropFertilizationTableServiceImpl(
             CropFertilizationTableRepository cropFertilizationTableRepository,
             UserRepository userRepository,
             ContentRangeRepository contentRangeRepository,
             CoverageRepository coverageRepository,
-            CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository) {
+            CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository,
+            PropertyRepository propertyRepository,
+            PlotRepository plotRepository,
+            PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
+            FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository,
+            PermissionManager permissionManager,
+            PropertyAccessRequestRepository propertyAccessRequestRepository) {
         this.cropFertilizationTableRepository = cropFertilizationTableRepository;
         this.userRepository = userRepository;
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.micronutrientDoseRepository = micronutrientDoseRepository;
+        this.propertyRepository = propertyRepository;
+        this.plotRepository = plotRepository;
+        this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
+        this.fertilityAnalysisExtractRepository = fertilityAnalysisExtractRepository;
+        this.permissionManager = permissionManager;
+        this.propertyAccessRequestRepository = propertyAccessRequestRepository;
     }
 
     @Override
@@ -68,6 +97,8 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         validateCropNames(createRequestDto.getCrop_common_name(), createRequestDto.getCrop_scientific_nome());
 
         validateRegionalSpacing(createRequestDto.getUsed_spacing());
+
+        Selection selection = resolveSelection(createRequestDto.getPropertyId(), createRequestDto.getPlotId(), createRequestDto.getPhysicalAnalysisId(), createRequestDto.getFertilityAnalysisId(), owner);
 
         CropFertilizationTableModel table = CropFertilizationTableModel.builder()
                 .creator(owner)
@@ -83,7 +114,11 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .used_spacing_maximum_value(resolveRegionalSpacingMaximum(createRequestDto.getUsed_spacing_value(), createRequestDto.getUsed_spacing_maximum_value()))
                 .regional_productivity(createRequestDto.getRegional_productivity())
                 .expected_productivity(createRequestDto.getExpected_productivity())
-                .criteria(createRequestDto.getCriteria())
+                .criteria(resolveCriteria(selection.physicalAnalysis(), selection.fertilityAnalysis()))
+                .property(selection.property())
+                .plot(selection.plot())
+                .physicalAnalysis(selection.physicalAnalysis())
+                .fertilityAnalysis(selection.fertilityAnalysis())
                 .manure(createRequestDto.getManure())
                 .manure_qtd(createRequestDto.getManure_qtd())
                 .gessing(createRequestDto.getGessing())
@@ -200,6 +235,20 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         validateRegionalSpacing(updateRequestDto.getUsed_spacing());
 
         updateTableFields(table, updateRequestDto);
+        if (updateRequestDto.getPropertyId() != null || updateRequestDto.getPlotId() != null
+                || updateRequestDto.getPhysicalAnalysisId() != null || updateRequestDto.getFertilityAnalysisId() != null) {
+            Selection selection = resolveSelection(
+                    updateRequestDto.getPropertyId() != null ? updateRequestDto.getPropertyId() : idOf(table.getProperty()),
+                    updateRequestDto.getPlotId() != null ? updateRequestDto.getPlotId() : idOf(table.getPlot()),
+                    updateRequestDto.getPhysicalAnalysisId() != null ? updateRequestDto.getPhysicalAnalysisId() : idOf(table.getPhysicalAnalysis()),
+                    updateRequestDto.getFertilityAnalysisId() != null ? updateRequestDto.getFertilityAnalysisId() : idOf(table.getFertilityAnalysis()),
+                    requester);
+            table.setProperty(selection.property());
+            table.setPlot(selection.plot());
+            table.setPhysicalAnalysis(selection.physicalAnalysis());
+            table.setFertilityAnalysis(selection.fertilityAnalysis());
+        }
+        table.setCriteria(resolveCriteria(table.getPhysicalAnalysis(), table.getFertilityAnalysis()));
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
         saveUpdateMicronutrientDoses(saved, updateRequestDto);
@@ -251,7 +300,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getUsed_spacing_maximum_value() != null) table.setUsed_spacing_maximum_value(dto.getUsed_spacing_maximum_value());
         if (dto.getRegional_productivity() != null) table.setRegional_productivity(dto.getRegional_productivity());
         if (dto.getExpected_productivity() != null) table.setExpected_productivity(dto.getExpected_productivity());
-        if (dto.getCriteria() != null) table.setCriteria(dto.getCriteria());
+        // Critério de calagem é calculado pelo servidor a partir das análises selecionadas.
         if (dto.getManure() != null) table.setManure(dto.getManure());
         if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
         if (dto.getGessing() != null) table.setGessing(dto.getGessing());
@@ -275,6 +324,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
     private CropFertilizationTableResponseDto buildResponse(CropFertilizationTableModel table) {
         CropFertilizationTableResponseDto dto = table.toDto();
+        dto.setIndicatedLimingCriterion(resolveIndicatedLimingCriterion(table.getPhysicalAnalysis(), table.getFertilityAnalysis()));
         for (CropFertilizationMicronutrientDoseModel dose : micronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(table)) {
             applyDose(dto, dose);
         }
@@ -318,6 +368,94 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         }
         micronutrientDoseRepository.save(dose);
     }
+
+    private Selection resolveSelection(Long propertyId, Long plotId, Long physicalAnalysisId, Long fertilityAnalysisId, UserModel user) {
+        if ((physicalAnalysisId != null || fertilityAnalysisId != null) && plotId == null) {
+            throw new IllegalArgumentException("Informe o talhão para vincular análises física ou de fertilidade à tabela de adubação.");
+        }
+
+        PropertyModel property = propertyId == null ? null : propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com ID: " + propertyId));
+        PlotModel plot = plotId == null ? null : plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com ID: " + plotId));
+
+        if (plot != null) {
+            if (property != null && !plot.getProperty().getId().equals(property.getId())) {
+                throw new IllegalArgumentException("Talhão informado não pertence à propriedade selecionada.");
+            }
+            property = plot.getProperty();
+            permissionManager.assertCanReadPlot(plot, user);
+        } else if (property != null) {
+            assertCanReadProperty(property, user);
+        }
+
+        PhysicalAnalysisExtractModel physical = physicalAnalysisId == null ? null : physicalAnalysisExtractRepository.findById(physicalAnalysisId)
+                .orElseThrow(() -> new EntityNotFoundException("Análise física não encontrada com ID: " + physicalAnalysisId));
+        FertilityAnalysisExtractModel fertility = fertilityAnalysisId == null ? null : fertilityAnalysisExtractRepository.findById(fertilityAnalysisId)
+                .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade não encontrada com ID: " + fertilityAnalysisId));
+
+        if (physical != null && !plot.getId().equals(resolvePlot(physical).getId())) {
+            throw new IllegalArgumentException("Análise física informada não pertence ao talhão selecionado.");
+        }
+        if (fertility != null && !plot.getId().equals(resolvePlot(fertility).getId())) {
+            throw new IllegalArgumentException("Análise de fertilidade informada não pertence ao talhão selecionado.");
+        }
+        return new Selection(property, plot, physical, fertility);
+    }
+
+    public String resolveIndicatedLimingCriterion(PhysicalAnalysisExtractModel physical, FertilityAnalysisExtractModel fertility) {
+        if (fertility == null) return "Não é possível definir um critério de calagem";
+        if (physical == null) return "SATURAÇÃO POR BASES TROCÁVEIS";
+        double factor = limingFactor(physical.getTeorArgila());
+        double i = factor * zeroIfNull(fertility.getAluminio());
+        double ii = factor * (2.0 - (zeroIfNull(fertility.getCalcio()) + zeroIfNull(fertility.getMagnesio())));
+        return i >= ii ? "Neutralização do Al trocável" : "Elevação dos teores de Ca + Mg";
+    }
+
+    private CriterioCalagem resolveCriteria(PhysicalAnalysisExtractModel physical, FertilityAnalysisExtractModel fertility) {
+        String text = resolveIndicatedLimingCriterion(physical, fertility);
+        if ("SATURAÇÃO POR BASES TROCÁVEIS".equals(text)) return CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS;
+        if ("Elevação dos teores de Ca + Mg".equals(text)) return CriterioCalagem.ELEVACAO_DO_TEOR_DE_CALCIO_MAIS_MAGNESIO;
+        return CriterioCalagem.NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL;
+    }
+
+    private double limingFactor(Double clayContent) {
+        double clay = zeroIfNull(clayContent);
+        if (clay < 150.0) return 1.5;
+        if (clay <= 350.0) return 2.0;
+        return 2.5;
+    }
+
+    private double zeroIfNull(Double value) { return value != null ? value : 0.0; }
+
+    private void assertCanReadProperty(PropertyModel property, UserModel user) {
+        if (property.getOwner() != null && property.getOwner().getId().equals(user.getId())) return;
+        if (property.getManager() != null && property.getManager().getId().equals(user.getId())) return;
+        if (propertyAccessRequestRepository.findByPropertyAndRequesterAndStatus(property, user, AccessRequestStatus.APPROVED).isPresent()) return;
+        throw new AccessDeniedException("Você não tem permissão para acessar esta propriedade.");
+    }
+
+    private PlotModel resolvePlot(PhysicalAnalysisExtractModel analysis) {
+        if (analysis.getRangeExtract() != null && analysis.getRangeExtract().getAnalysis() != null) return analysis.getRangeExtract().getAnalysis().getPlot();
+        if (analysis.getLayerExtract() != null && analysis.getLayerExtract().getAnalysis() != null) return analysis.getLayerExtract().getAnalysis().getPlot();
+        throw new IllegalArgumentException("Análise física não possui talhão associado.");
+    }
+
+    private PlotModel resolvePlot(FertilityAnalysisExtractModel analysis) {
+        if (analysis.getRangeExtract() != null && analysis.getRangeExtract().getAnalysis() != null) return analysis.getRangeExtract().getAnalysis().getPlot();
+        if (analysis.getLayerExtract() != null && analysis.getLayerExtract().getAnalysis() != null) return analysis.getLayerExtract().getAnalysis().getPlot();
+        throw new IllegalArgumentException("Análise de fertilidade não possui talhão associado.");
+    }
+
+    private Long idOf(Object entity) {
+        if (entity instanceof PropertyModel p) return p.getId();
+        if (entity instanceof PlotModel p) return p.getId();
+        if (entity instanceof PhysicalAnalysisExtractModel p) return p.getId();
+        if (entity instanceof FertilityAnalysisExtractModel f) return f.getId();
+        return null;
+    }
+
+    private record Selection(PropertyModel property, PlotModel plot, PhysicalAnalysisExtractModel physicalAnalysis, FertilityAnalysisExtractModel fertilityAnalysis) {}
 
     private void applyDose(CropFertilizationTableResponseDto dto, CropFertilizationMicronutrientDoseModel dose) {
         switch (dose.getMicronutrient()) {
