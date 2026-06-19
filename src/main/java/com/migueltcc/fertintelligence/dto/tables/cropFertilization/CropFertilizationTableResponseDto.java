@@ -62,6 +62,10 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("valor_espacamento_usado")
     private Double used_spacing_value;
 
+    @Schema(example = "0.55")
+    @JsonProperty("valor_maximo_espacamento_usado")
+    private Double used_spacing_maximum_value;
+
     @Schema(example = "3500.0")
     @JsonProperty("produtividade_regional")
     private Double regional_productivity;

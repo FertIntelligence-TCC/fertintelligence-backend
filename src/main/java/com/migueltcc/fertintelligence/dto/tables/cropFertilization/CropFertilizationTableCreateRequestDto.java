@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.cropFertilization;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.*;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -49,8 +50,12 @@ public class CropFertilizationTableCreateRequestDto {
     private SpacingType used_spacing;
 
     @JsonProperty("valor_espacamento_usado")
+    @JsonAlias("valor_minimo_espacamento_usado")
     @NotNull
     private Double used_spacing_value;
+
+    @JsonProperty("valor_maximo_espacamento_usado")
+    private Double used_spacing_maximum_value;
 
     @JsonProperty("produtividade_regional")
     @NotNull

@@ -85,8 +85,9 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
                 .initial_value(0.45)
                 .final_value(0.55)
-                .used_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .used_spacing(SpacingType.BETWEEN_PLANTS_OR_HOLES_IN_METERS)
                 .used_spacing_value(0.50)
+                .used_spacing_maximum_value(0.60)
                 .regional_productivity(8000.0)
                 .expected_productivity(9000.0)
                 .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
@@ -133,8 +134,9 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
                 .initial_value(0.45)
                 .final_value(0.55)
-                .used_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .used_spacing(SpacingType.BETWEEN_PLANTS_OR_HOLES_IN_METERS)
                 .used_spacing_value(0.50)
+                .used_spacing_maximum_value(0.60)
                 .regional_productivity(8000.0)
                 .expected_productivity(9000.0)
                 .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
@@ -247,6 +249,52 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
     }
 
     @Test
+    @WithMockUser(username = "testuser")
+    void createCropFertilizationTableAcceptsPlantsPerLinearMeterRegionalSpacingLabel() throws Exception {
+        String payload = objectMapper.writeValueAsString(createRequestDto().toBuilder()
+                .used_spacing(SpacingType.PLANTS_PER_LINEAR_METER)
+                .used_spacing_value(4.0)
+                .used_spacing_maximum_value(6.0)
+                .suggested_spacing(SpacingType.PLANTS_PER_LINEAR_METER)
+                .build());
+
+        CropFertilizationTableModel savedTable = ownerTable.toBuilder()
+                .id(26L)
+                .used_spacing(SpacingType.PLANTS_PER_LINEAR_METER)
+                .used_spacing_value(4.0)
+                .used_spacing_maximum_value(6.0)
+                .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class))).thenReturn(savedTable);
+
+        mockMvc.perform(post("/crop-fertilization-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload.replace("Plantas por metro linear (m)", "Plantas por Metro")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.espacamentos_sugeridos").value("Entre Linhas (m)"))
+                .andExpect(jsonPath("$.espacamento_usado").value("Plantas por metro linear (m)"))
+                .andExpect(jsonPath("$.valor_espacamento_usado").value(4.0))
+                .andExpect(jsonPath("$.valor_maximo_espacamento_usado").value(6.0));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createCropFertilizationTableRejectsBetweenLinesAsRegionalSpacing() throws Exception {
+        CropFertilizationTableCreateRequestDto requestDto = createRequestDto().toBuilder()
+                .used_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+
+        mockMvc.perform(post("/crop-fertilization-table/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @WithMockUser(username = "manager")
     void createCropFertilizationTableSuccessfullyForManagerRole() throws Exception {
         CropFertilizationTableCreateRequestDto requestDto = createRequestDto();
@@ -298,7 +346,9 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.regioes_cultura").value("SUL"))
                 .andExpect(jsonPath("$.dose_minima_ni").value(13.0))
                 .andExpect(jsonPath("$.dose_maxima_mo").value(25.0))
-                .andExpect(jsonPath("$.valor_inicial").value(0.45));
+                .andExpect(jsonPath("$.valor_inicial").value(0.45))
+                .andExpect(jsonPath("$.espacamentos_sugeridos").value("Entre Linhas (m)"))
+                .andExpect(jsonPath("$.valor_maximo_espacamento_usado").value(0.60));
     }
 
     @Test
@@ -356,6 +406,31 @@ public class CropFertilizationTableControllerImplTest extends AbstractController
                 .andExpect(jsonPath("$.dose_minima_b").value(30.0))
                 .andExpect(jsonPath("$.dose_maxima_zn").value(46.0))
                 .andExpect(jsonPath("$.tabela_publica").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateCropFertilizationTableChangesRegionalSpacingToPlantsPerLinearMeter() throws Exception {
+        CropFertilizationTablePostRequestDto requestDto = CropFertilizationTablePostRequestDto.builder()
+                .used_spacing(SpacingType.PLANTS_PER_LINEAR_METER)
+                .used_spacing_value(5.0)
+                .used_spacing_maximum_value(7.0)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(cropFertilizationTableRepository.save(any(CropFertilizationTableModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/crop-fertilization-table/update")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.espacamentos_sugeridos").value("Entre Linhas (m)"))
+                .andExpect(jsonPath("$.espacamento_usado").value("Plantas por metro linear (m)"))
+                .andExpect(jsonPath("$.valor_espacamento_usado").value(5.0))
+                .andExpect(jsonPath("$.valor_maximo_espacamento_usado").value(7.0));
     }
 
     @Test
