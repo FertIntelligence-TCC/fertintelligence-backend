@@ -86,13 +86,54 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("sugestao_gessagem")
     private Double gessing;
 
-    @Schema(example = "200.0")
-    @JsonProperty("sugestao_micronutrientes")
-    private Double micronutrients;
+    @JsonProperty("id_dose_b")
+    private Long bDoseId;
+    @JsonProperty("dose_minima_b")
+    private Double bMinimumDose;
+    @JsonProperty("dose_maxima_b")
+    private Double bMaximumDose;
 
-    @Schema(example = "120.0")
-    @JsonProperty("sugestao_npk")
-    private Double npk;
+    @JsonProperty("id_dose_cu")
+    private Long cuDoseId;
+    @JsonProperty("dose_minima_cu")
+    private Double cuMinimumDose;
+    @JsonProperty("dose_maxima_cu")
+    private Double cuMaximumDose;
+
+    @JsonProperty("id_dose_fe")
+    private Long feDoseId;
+    @JsonProperty("dose_minima_fe")
+    private Double feMinimumDose;
+    @JsonProperty("dose_maxima_fe")
+    private Double feMaximumDose;
+
+    @JsonProperty("id_dose_ni")
+    private Long niDoseId;
+    @JsonProperty("dose_minima_ni")
+    private Double niMinimumDose;
+    @JsonProperty("dose_maxima_ni")
+    private Double niMaximumDose;
+
+    @JsonProperty("id_dose_mn")
+    private Long mnDoseId;
+    @JsonProperty("dose_minima_mn")
+    private Double mnMinimumDose;
+    @JsonProperty("dose_maxima_mn")
+    private Double mnMaximumDose;
+
+    @JsonProperty("id_dose_mo")
+    private Long moDoseId;
+    @JsonProperty("dose_minima_mo")
+    private Double moMinimumDose;
+    @JsonProperty("dose_maxima_mo")
+    private Double moMaximumDose;
+
+    @JsonProperty("id_dose_zn")
+    private Long znDoseId;
+    @JsonProperty("dose_minima_zn")
+    private Double znMinimumDose;
+    @JsonProperty("dose_maxima_zn")
+    private Double znMaximumDose;
 
     @Schema(example = "Aplicar NPK em cobertura.")
     @JsonProperty("observacoes")

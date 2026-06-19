@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeCientifico;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertilizationTableCreateRequestDto;
@@ -11,9 +12,11 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationMicronutrientDoseModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
+import com.migueltcc.fertintelligence.repository.CropFertilizationMicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.persistence.EntityNotFoundException;
@@ -38,16 +41,19 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     // Novos repositórios para gerenciar a exclusão dos filhos
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
+    private final CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
 
     public CropFertilizationTableServiceImpl(
             CropFertilizationTableRepository cropFertilizationTableRepository,
             UserRepository userRepository,
             ContentRangeRepository contentRangeRepository,
-            CoverageRepository coverageRepository) {
+            CoverageRepository coverageRepository,
+            CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository) {
         this.cropFertilizationTableRepository = cropFertilizationTableRepository;
         this.userRepository = userRepository;
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
+        this.micronutrientDoseRepository = micronutrientDoseRepository;
     }
 
     @Override
@@ -77,15 +83,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .manure(createRequestDto.getManure())
                 .manure_qtd(createRequestDto.getManure_qtd())
                 .gessing(createRequestDto.getGessing())
-                .micronutrients(createRequestDto.getMicronutrients())
-                .npk(createRequestDto.getNpk())
                 .observations(createRequestDto.getObservations())
                 .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
-        return saved.toDto();
+        saveCreateMicronutrientDoses(saved, createRequestDto);
+        return buildResponse(saved);
     }
 
     @Override
@@ -94,7 +99,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         UserModel requester = findUserByUsernameOrThrow(username);
         CropFertilizationTableModel table = findTableByIdOrThrow(tableId);
         assertCanView(table, requester);
-        return table.toDto();
+        return buildResponse(table);
     }
 
     @Override
@@ -110,14 +115,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
 
         if (group != null) {
             return findTablesByGroup(owner, group).stream()
-                    .map(CropFertilizationTableModel::toDto)
+                    .map(this::buildResponse)
                     .toList();
         }
 
         if (isSupremeUser(owner)) {
             return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                     .stream()
-                    .map(CropFertilizationTableModel::toDto)
+                    .map(this::buildResponse)
                     .toList();
         }
 
@@ -127,7 +132,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 cropFertilizationTableRepository.findAllByPublicTableTrue()
         )
                 .stream()
-                .map(CropFertilizationTableModel::toDto)
+                .map(this::buildResponse)
                 .toList();
     }
 
@@ -151,7 +156,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     public List<CropFertilizationTableResponseDto> getAllPublicCropFertilizationTables() {
         return cropFertilizationTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(CropFertilizationTableModel::toDto)
+                .map(this::buildResponse)
                 .toList();
     }
 
@@ -161,7 +166,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         findUserByUsernameOrThrow(username);
         return cropFertilizationTableRepository.findAllByCreator_CargoAndPublicTableTrue(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .map(CropFertilizationTableModel::toDto)
+                .map(this::buildResponse)
                 .toList();
     }
 
@@ -191,7 +196,8 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         updateTableFields(table, updateRequestDto);
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
-        return saved.toDto();
+        saveUpdateMicronutrientDoses(saved, updateRequestDto);
+        return buildResponse(saved);
     }
 
     @Override
@@ -215,7 +221,10 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         // 3. Deleta os intervalos
         contentRangeRepository.deleteAll(ranges);
 
-        // 4. Finalmente, deleta a tabela pai
+        // 4. Deleta as doses relacionais de micronutrientes
+        micronutrientDoseRepository.deleteAllByTable(table);
+
+        // 5. Finalmente, deleta a tabela pai
         cropFertilizationTableRepository.delete(table);
 
         // --- FIM DA CORREÇÃO ---
@@ -239,11 +248,68 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getManure() != null) table.setManure(dto.getManure());
         if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
         if (dto.getGessing() != null) table.setGessing(dto.getGessing());
-        if (dto.getMicronutrients() != null) table.setMicronutrients(dto.getMicronutrients());
-        if (dto.getNpk() != null) table.setNpk(dto.getNpk());
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
         if (dto.getSources() != null) table.setSources(dto.getSources());
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
+    }
+
+
+    private CropFertilizationTableResponseDto buildResponse(CropFertilizationTableModel table) {
+        CropFertilizationTableResponseDto dto = table.toDto();
+        for (CropFertilizationMicronutrientDoseModel dose : micronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(table)) {
+            applyDose(dto, dose);
+        }
+        return dto;
+    }
+
+    private void saveCreateMicronutrientDoses(CropFertilizationTableModel table, CropFertilizationTableCreateRequestDto dto) {
+        saveDose(table, AppliedMicronutrient.B, dto.getBMinimumDose(), dto.getBMaximumDose());
+        saveDose(table, AppliedMicronutrient.Cu, dto.getCuMinimumDose(), dto.getCuMaximumDose());
+        saveDose(table, AppliedMicronutrient.Fe, dto.getFeMinimumDose(), dto.getFeMaximumDose());
+        saveDose(table, AppliedMicronutrient.Ni, dto.getNiMinimumDose(), dto.getNiMaximumDose());
+        saveDose(table, AppliedMicronutrient.Mn, dto.getMnMinimumDose(), dto.getMnMaximumDose());
+        saveDose(table, AppliedMicronutrient.Mo, dto.getMoMinimumDose(), dto.getMoMaximumDose());
+        saveDose(table, AppliedMicronutrient.Zn, dto.getZnMinimumDose(), dto.getZnMaximumDose());
+    }
+
+    private void saveUpdateMicronutrientDoses(CropFertilizationTableModel table, CropFertilizationTablePostRequestDto dto) {
+        saveDose(table, AppliedMicronutrient.B, dto.getBMinimumDose(), dto.getBMaximumDose());
+        saveDose(table, AppliedMicronutrient.Cu, dto.getCuMinimumDose(), dto.getCuMaximumDose());
+        saveDose(table, AppliedMicronutrient.Fe, dto.getFeMinimumDose(), dto.getFeMaximumDose());
+        saveDose(table, AppliedMicronutrient.Ni, dto.getNiMinimumDose(), dto.getNiMaximumDose());
+        saveDose(table, AppliedMicronutrient.Mn, dto.getMnMinimumDose(), dto.getMnMaximumDose());
+        saveDose(table, AppliedMicronutrient.Mo, dto.getMoMinimumDose(), dto.getMoMaximumDose());
+        saveDose(table, AppliedMicronutrient.Zn, dto.getZnMinimumDose(), dto.getZnMaximumDose());
+    }
+
+    private void saveDose(CropFertilizationTableModel table, AppliedMicronutrient micronutrient, Double minimumDose, Double maximumDose) {
+        if (minimumDose == null && maximumDose == null) {
+            return;
+        }
+        CropFertilizationMicronutrientDoseModel dose = micronutrientDoseRepository
+                .findByTableAndMicronutrient(table, micronutrient)
+                .orElseGet(() -> CropFertilizationMicronutrientDoseModel.builder()
+                        .table(table)
+                        .micronutrient(micronutrient)
+                        .build());
+        if (minimumDose != null) dose.setMinimumDose(minimumDose);
+        if (maximumDose != null) dose.setMaximumDose(maximumDose);
+        if (dose.getMinimumDose() == null || dose.getMaximumDose() == null) {
+            throw new IllegalArgumentException("Dose mínima e dose máxima são obrigatórias para o micronutriente " + micronutrient + ".");
+        }
+        micronutrientDoseRepository.save(dose);
+    }
+
+    private void applyDose(CropFertilizationTableResponseDto dto, CropFertilizationMicronutrientDoseModel dose) {
+        switch (dose.getMicronutrient()) {
+            case B -> { dto.setBDoseId(dose.getId()); dto.setBMinimumDose(dose.getMinimumDose()); dto.setBMaximumDose(dose.getMaximumDose()); }
+            case Cu -> { dto.setCuDoseId(dose.getId()); dto.setCuMinimumDose(dose.getMinimumDose()); dto.setCuMaximumDose(dose.getMaximumDose()); }
+            case Fe -> { dto.setFeDoseId(dose.getId()); dto.setFeMinimumDose(dose.getMinimumDose()); dto.setFeMaximumDose(dose.getMaximumDose()); }
+            case Ni -> { dto.setNiDoseId(dose.getId()); dto.setNiMinimumDose(dose.getMinimumDose()); dto.setNiMaximumDose(dose.getMaximumDose()); }
+            case Mn -> { dto.setMnDoseId(dose.getId()); dto.setMnMinimumDose(dose.getMinimumDose()); dto.setMnMaximumDose(dose.getMaximumDose()); }
+            case Mo -> { dto.setMoDoseId(dose.getId()); dto.setMoMinimumDose(dose.getMinimumDose()); dto.setMoMaximumDose(dose.getMaximumDose()); }
+            case Zn -> { dto.setZnDoseId(dose.getId()); dto.setZnMinimumDose(dose.getMinimumDose()); dto.setZnMaximumDose(dose.getMaximumDose()); }
+        }
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

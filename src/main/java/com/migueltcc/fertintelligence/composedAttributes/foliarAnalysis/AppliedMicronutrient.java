@@ -4,6 +4,7 @@ public enum AppliedMicronutrient {
     B,
     Cu,
     Fe,
+    Ni,
     Mn,
     Mo,
     Zn,
