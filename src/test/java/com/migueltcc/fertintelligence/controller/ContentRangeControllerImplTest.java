@@ -6,6 +6,8 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nut
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangePostRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceByNutrientRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.contentRange.ContentRangeReplaceItemDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
@@ -530,6 +532,47 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void replaceContentRangesByNutrientPreservesCoveragesWhenCoveragesFieldIsOmitted() throws Exception {
+        ContentRangeReplaceByNutrientRequestDto requestDto = ContentRangeReplaceByNutrientRequestDto.builder()
+                .ranges(List.of(
+                        ContentRangeReplaceItemDto.builder()
+                                .id(fosforoRange.getId())
+                                .order(1)
+                                .smallest(null)
+                                .largest(12.0)
+                                .application(82.0)
+                                .build(),
+                        ContentRangeReplaceItemDto.builder()
+                                .id(fosforoFinalRange.getId())
+                                .order(2)
+                                .smallest(12.0)
+                                .largest(null)
+                                .application(62.0)
+                                .build()
+                ))
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropFertilizationTableRepository.findById(ownerTable.getId())).thenReturn(Optional.of(ownerTable));
+        when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
+                .thenReturn(List.of(fosforoRange, fosforoFinalRange));
+        when(contentRangeRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/content-range/replace-by-nutrient")
+                        .param("tableId", ownerTable.getId().toString())
+                        .param("nutrient", Nutriente.FOSFORO.name())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].maior_teor").value(12.0))
+                .andExpect(jsonPath("$[1].menor_teor").value(12.0));
+
+        verify(coverageRepository, never()).deleteAll(any());
+        verify(coverageRepository, never()).saveAll(any());
     }
 
     @Test
