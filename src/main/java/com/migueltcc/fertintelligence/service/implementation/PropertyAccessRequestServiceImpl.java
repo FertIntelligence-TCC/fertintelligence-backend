@@ -4,10 +4,12 @@ import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatu
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.property.PropertyResponseDto;
 import com.migueltcc.fertintelligence.dto.propertyAccessRequest.PropertyAccessRequestResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.PlotAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyAccessRequestModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.PlotAccessRequestRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.PropertyAccessRequestService;
@@ -18,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +33,9 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
 
     @Autowired
     private PropertyRepository propertyRepository;
+
+    @Autowired
+    private PlotAccessRequestRepository plotAccessRequestRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -125,16 +132,32 @@ public class PropertyAccessRequestServiceImpl implements PropertyAccessRequestSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PropertyResponseDto> getApprovedPropertiesForUser(String username) {
         UserModel user = findUserByUsernameOrThrow(username);
 
-        // Busca todas as solicitações deste usuário que foram APROVADAS
-        List<PropertyAccessRequestModel> approvedRequests = propertyAccessRequestRepository
-                .findAllByRequesterAndStatus(user, AccessRequestStatus.APPROVED);
+        Map<Long, PropertyModel> approvedPropertiesById = new LinkedHashMap<>();
 
-        // Mapeia de Solicitação -> Propriedade -> PropertyResponseDto
-        return approvedRequests.stream()
-                .map(request -> request.getProperty().toDto())
+        // Vínculo aprovado em nível de propriedade: residentes e secretários/consultores
+        // podem ter esse vínculo como etapa anterior à aprovação por talhão.
+        propertyAccessRequestRepository
+                .findAllByRequesterAndStatus(user, AccessRequestStatus.APPROVED)
+                .stream()
+                .map(PropertyAccessRequestModel::getProperty)
+                .forEach(property -> approvedPropertiesById.putIfAbsent(property.getId(), property));
+
+        // Vínculo aprovado em nível de talhão: consultores e secretários podem ter
+        // permissões efetivas apenas em talhões específicos. A lista de propriedades
+        // para seleção deve ser derivada dessas aprovações, sem persistir duplicatas.
+        plotAccessRequestRepository
+                .findAllByRequesterAndStatus(user, AccessRequestStatus.APPROVED)
+                .stream()
+                .map(PlotAccessRequestModel::getProperty)
+                .forEach(property -> approvedPropertiesById.putIfAbsent(property.getId(), property));
+
+        return approvedPropertiesById.values()
+                .stream()
+                .map(PropertyModel::toDto)
                 .collect(Collectors.toList());
     }
 
