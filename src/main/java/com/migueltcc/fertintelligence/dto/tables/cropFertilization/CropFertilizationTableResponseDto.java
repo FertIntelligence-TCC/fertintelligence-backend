@@ -169,6 +169,9 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("dose_maxima_zn")
     private Double znMaximumDose;
 
+    @JsonProperty("sugestao_de_adubacao_com_micronutrientes")
+    private String micronutrientFertilizationSuggestion;
+
     @Schema(example = "Aplicar NPK em cobertura.")
     @JsonProperty("observacoes")
     private String observations;

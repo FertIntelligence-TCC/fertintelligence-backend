@@ -124,6 +124,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .manure(createRequestDto.getManure())
                 .manure_qtd(createRequestDto.getManure_qtd())
                 .gessing(createRequestDto.getGessing())
+                .micronutrientFertilizationSuggestion(resolveCreateMicronutrientSuggestion(createRequestDto))
                 .observations(createRequestDto.getObservations())
                 .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
@@ -330,9 +331,70 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getManure() != null) table.setManure(dto.getManure());
         if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
         if (dto.getGessing() != null) table.setGessing(dto.getGessing());
+        if (dto.getMicronutrientFertilizationSuggestion() != null) {
+            table.setMicronutrientFertilizationSuggestion(dto.getMicronutrientFertilizationSuggestion());
+        } else if (hasMicronutrientDoseChange(dto)) {
+            table.setMicronutrientFertilizationSuggestion(resolveUpdateMicronutrientSuggestion(table, dto));
+        }
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
         if (dto.getSources() != null) table.setSources(dto.getSources());
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
+    }
+
+    private String resolveCreateMicronutrientSuggestion(CropFertilizationTableCreateRequestDto dto) {
+        if (dto.getMicronutrientFertilizationSuggestion() != null) {
+            return dto.getMicronutrientFertilizationSuggestion();
+        }
+        return formatMicronutrientSuggestion(
+                dto.getBMinimumDose(), dto.getBMaximumDose(),
+                dto.getCuMinimumDose(), dto.getCuMaximumDose(),
+                dto.getFeMinimumDose(), dto.getFeMaximumDose(),
+                dto.getNiMinimumDose(), dto.getNiMaximumDose(),
+                dto.getMnMinimumDose(), dto.getMnMaximumDose(),
+                dto.getMoMinimumDose(), dto.getMoMaximumDose(),
+                dto.getZnMinimumDose(), dto.getZnMaximumDose());
+    }
+
+    private String resolveUpdateMicronutrientSuggestion(CropFertilizationTableModel table, CropFertilizationTablePostRequestDto dto) {
+        return formatMicronutrientSuggestion(
+                resolveDoseValue(table, AppliedMicronutrient.B, true, dto.getBMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.B, false, dto.getBMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Cu, true, dto.getCuMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Cu, false, dto.getCuMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Fe, true, dto.getFeMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Fe, false, dto.getFeMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Ni, true, dto.getNiMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Ni, false, dto.getNiMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Mn, true, dto.getMnMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Mn, false, dto.getMnMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Mo, true, dto.getMoMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Mo, false, dto.getMoMaximumDose()),
+                resolveDoseValue(table, AppliedMicronutrient.Zn, true, dto.getZnMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Zn, false, dto.getZnMaximumDose()));
+    }
+
+    private Double resolveDoseValue(CropFertilizationTableModel table, AppliedMicronutrient micronutrient, boolean minimum, Double requestedValue) {
+        if (requestedValue != null) return requestedValue;
+        return micronutrientDoseRepository.findByTableAndMicronutrient(table, micronutrient)
+                .map(dose -> minimum ? dose.getMinimumDose() : dose.getMaximumDose())
+                .orElse(null);
+    }
+
+    private boolean hasMicronutrientDoseChange(CropFertilizationTablePostRequestDto dto) {
+        return Stream.of(
+                dto.getBMinimumDose(), dto.getBMaximumDose(), dto.getCuMinimumDose(), dto.getCuMaximumDose(),
+                dto.getFeMinimumDose(), dto.getFeMaximumDose(), dto.getNiMinimumDose(), dto.getNiMaximumDose(),
+                dto.getMnMinimumDose(), dto.getMnMaximumDose(), dto.getMoMinimumDose(), dto.getMoMaximumDose(),
+                dto.getZnMinimumDose(), dto.getZnMaximumDose()).anyMatch(Objects::nonNull);
+    }
+
+    private String formatMicronutrientSuggestion(Double... values) {
+        String[] names = {"B", "Cu", "Fe", "Ni", "Mn", "Mo", "Zn"};
+        StringBuilder suggestion = new StringBuilder();
+        for (int i = 0; i < names.length; i++) {
+            Double minimum = values[i * 2];
+            Double maximum = values[i * 2 + 1];
+            if (minimum == null && maximum == null) continue;
+            if (minimum == null || maximum == null) {
+                throw new IllegalArgumentException("Dose mínima e dose máxima são obrigatórias para o micronutriente " + names[i] + ".");
+            }
+            if (!suggestion.isEmpty()) suggestion.append("; ");
+            suggestion.append(names[i]).append(": ").append(minimum).append(" a ").append(maximum);
+        }
+        return suggestion.toString();
     }
 
     private void validateRegionalSpacing(SpacingType regionalSpacingType) {
