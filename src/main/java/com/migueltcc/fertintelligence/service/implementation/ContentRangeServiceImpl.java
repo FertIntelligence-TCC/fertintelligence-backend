@@ -279,8 +279,11 @@ public class ContentRangeServiceImpl implements ContentRangeService {
                     .map(CoverageModel::getId)
                     .collect(Collectors.toList());
 
-            List<ContentRangeReplaceCoverageDto> requestedCoverages =
-                    item.getCoverages() == null ? List.of() : item.getCoverages();
+            if (item.getCoverages() == null) {
+                continue;
+            }
+
+            List<ContentRangeReplaceCoverageDto> requestedCoverages = item.getCoverages();
 
             List<Long> requestedCoverageIds = requestedCoverages.stream()
                     .map(ContentRangeReplaceCoverageDto::getId)
