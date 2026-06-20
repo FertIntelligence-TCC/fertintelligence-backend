@@ -443,9 +443,9 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         }
 
         PhysicalAnalysisExtractModel physical = physicalAnalysisId == null ? null : physicalAnalysisExtractRepository.findById(physicalAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise física não encontrada com ID: " + physicalAnalysisId));
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com ID: " + physicalAnalysisId));
         FertilityAnalysisExtractModel fertility = fertilityAnalysisId == null ? null : fertilityAnalysisExtractRepository.findById(fertilityAnalysisId)
-                .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade não encontrada com ID: " + fertilityAnalysisId));
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de fertilidade não encontrado com ID: " + fertilityAnalysisId));
 
         if (physical != null && !plot.getId().equals(resolvePlot(physical).getId())) {
             throw new IllegalArgumentException("Análise física informada não pertence ao talhão selecionado.");
