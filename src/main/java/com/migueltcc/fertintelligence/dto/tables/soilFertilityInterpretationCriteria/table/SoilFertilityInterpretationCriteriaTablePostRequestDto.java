@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,10 +28,12 @@ public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
     private Regiao region;
 
     @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao", "observations", "observation", "notes"})
     @Schema(example = "Observações atualizadas para interpretação dos teores.")
     private String observations;
 
     @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "sources", "source", "references"})
     @Schema(example = "Manual atualizado; recomendações oficiais estaduais")
     private String sources;
 
