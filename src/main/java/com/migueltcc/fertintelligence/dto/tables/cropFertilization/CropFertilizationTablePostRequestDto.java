@@ -134,6 +134,10 @@ public class CropFertilizationTablePostRequestDto {
     @JsonProperty("novo_dose_maxima_zn")
     private Double znMaximumDose;
 
+    @JsonProperty("novo_sugestao_de_adubacao_com_micronutrientes")
+    @JsonAlias({"sugestao_de_adubacao_com_micronutrientes", "sugestaoAdubacaoComMicronutrientes", "micronutrientFertilizationSuggestion", "sugestao_micronutrientes"})
+    private String micronutrientFertilizationSuggestion;
+
     @JsonProperty("novo_observacoes")
     @Schema(example = "Observação atualizada.")
     private String observations;
