@@ -7,10 +7,12 @@ import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCrit
 import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table.SoilFertilityInterpretationCriteriaTableResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
 import com.migueltcc.fertintelligence.repository.SoilFertilityInterpretationCriteriaTableRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SoilFertilityInterpretationCriteriaTableService;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,8 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                 .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
+
+        hydrateExchangeableSodium(table, createRequestDto.getExchangeableSodium());
 
         SoilFertilityInterpretationCriteriaTableModel savedTable = soilFertilityInterpretationCriteriaTableRepository.save(table);
         return savedTable.toDto();
@@ -164,6 +168,8 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
             table.setPublicTable(updateRequestDto.getPublic_table());
         }
 
+        hydrateExchangeableSodium(table, updateRequestDto.getExchangeableSodium());
+
         SoilFertilityInterpretationCriteriaTableModel updatedTable = soilFertilityInterpretationCriteriaTableRepository.save(table);
         return updatedTable.toDto();
     }
@@ -177,6 +183,24 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         checkModifyPermission(table, owner);
 
         soilFertilityInterpretationCriteriaTableRepository.delete(table);
+    }
+
+
+    private void hydrateExchangeableSodium(SoilFertilityInterpretationCriteriaTableModel table, Object exchangeableSodiumDto) {
+        if (exchangeableSodiumDto == null) {
+            return;
+        }
+
+        ExchangeableSodiumModel exchangeableSodium = table.getExchangeableSodium();
+        if (exchangeableSodium == null) {
+            exchangeableSodium = ExchangeableSodiumModel.builder()
+                    .table(table)
+                    .build();
+            table.setExchangeableSodium(exchangeableSodium);
+        }
+
+        BeanUtils.copyProperties(exchangeableSodiumDto, exchangeableSodium, "id", "tableId", "table");
+        exchangeableSodium.setTable(table);
     }
 
     private UserModel findUserByUsernameOrThrow(String username) {

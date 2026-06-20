@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.exchangeableSodium.ExchangeableSodiumPostRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,4 +40,6 @@ public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
 
     @JsonProperty("tabela_publica")
     private Boolean public_table;
+    @JsonProperty("exchangeableSodium")
+    private ExchangeableSodiumPostRequestDto exchangeableSodium;
 }

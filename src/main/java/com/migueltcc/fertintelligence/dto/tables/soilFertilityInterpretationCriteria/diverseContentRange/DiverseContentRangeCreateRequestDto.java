@@ -105,21 +105,13 @@ public class DiverseContentRangeCreateRequestDto {
 
     // --- SÓDIO ---
     @JsonProperty("menor_teor_sodio")
-    private Double sodium_too_low;
     @JsonProperty("teor_inicial_baixo_sodio")
-    private Double sodium_low_i;
     @JsonProperty("teor_final_baixo_sodio")
-    private Double sodium_low_f;
     @JsonProperty("teor_inicial_medio_sodio")
-    private Double sodium_medium_i;
     @JsonProperty("teor_final_medio_sodio")
-    private Double sodium_medium_f;
     @JsonProperty("teor_inicial_alto_sodio")
-    private Double sodium_hight_i;
     @JsonProperty("teor_final_alto_sodio")
-    private Double sodium_hight_f;
     @JsonProperty("maior_teor_sodio")
-    private Double sodium_too_hight;
 
     // --- SOMA DE BASES ---
     @JsonProperty("menor_teor_soma_bases")

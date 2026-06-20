@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCri
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.exchangeableSodium.ExchangeableSodiumCreateRequestDto;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,4 +40,6 @@ public class SoilFertilityInterpretationCriteriaTableCreateRequestDto {
 
     @JsonProperty("tabela_publica")
     private Boolean public_table;
+    @JsonProperty("exchangeableSodium")
+    private ExchangeableSodiumCreateRequestDto exchangeableSodium;
 }

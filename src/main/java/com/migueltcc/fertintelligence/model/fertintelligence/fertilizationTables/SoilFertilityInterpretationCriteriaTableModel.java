@@ -76,6 +76,10 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @ToString.Exclude
     private SalinityInterpretationModel salinityInterpretation;
 
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private ExchangeableSodiumModel exchangeableSodium;
+
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()
                 .id(this.id)
@@ -87,6 +91,7 @@ public class SoilFertilityInterpretationCriteriaTableModel {
                 .observations(this.observations)
                 .sources(this.sources)
                 .public_table(this.publicTable)
+                .exchangeableSodium(this.exchangeableSodium != null ? this.exchangeableSodium.toDto() : null)
                 .build();
     }
 }

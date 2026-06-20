@@ -134,26 +134,6 @@ public class DiverseContentRangeModel {
     Double potassium_too_hight;
 
     // =================================================================================
-    // SÓDIO TROCÁVEL (Na+) - mmolc/dm³
-    // =================================================================================
-    @Column(name = "MENOR_TEOR_SODIO", nullable = false)
-    Double sodium_too_low;
-    @Column(name = "TEOR_INICIAL_BAIXO_SODIO", nullable = false)
-    Double sodium_low_i;
-    @Column(name = "TEOR_FINAL_BAIXO_SODIO", nullable = false)
-    Double sodium_low_f;
-    @Column(name = "TEOR_INICIAL_MEDIO_SODIO", nullable = false)
-    Double sodium_medium_i;
-    @Column(name = "TEOR_FINAL_MEDIO_SODIO", nullable = false)
-    Double sodium_medium_f;
-    @Column(name = "TEOR_INICIAL_ALTO_SODIO", nullable = false)
-    Double sodium_hight_i;
-    @Column(name = "TEOR_FINAL_ALTO_SODIO", nullable = false)
-    Double sodium_hight_f;
-    @Column(name = "MAIOR_TEOR_SODIO", nullable = false)
-    Double sodium_too_hight;
-
-    // =================================================================================
     // SOMA DE BASES TROCÁVEIS (SB) - mmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_SOMA_BASES", nullable = false)
@@ -519,16 +499,6 @@ public class DiverseContentRangeModel {
                 .potassium_hight_i(this.potassium_hight_i)
                 .potassium_hight_f(this.potassium_hight_f)
                 .potassium_too_hight(this.potassium_too_hight)
-
-                // Sodium
-                .sodium_too_low(this.sodium_too_low)
-                .sodium_low_i(this.sodium_low_i)
-                .sodium_low_f(this.sodium_low_f)
-                .sodium_medium_i(this.sodium_medium_i)
-                .sodium_medium_f(this.sodium_medium_f)
-                .sodium_hight_i(this.sodium_hight_i)
-                .sodium_hight_f(this.sodium_hight_f)
-                .sodium_too_hight(this.sodium_too_hight)
 
                 // Sum of Bases
                 .sum_of_bases_too_low(this.sum_of_bases_too_low)
