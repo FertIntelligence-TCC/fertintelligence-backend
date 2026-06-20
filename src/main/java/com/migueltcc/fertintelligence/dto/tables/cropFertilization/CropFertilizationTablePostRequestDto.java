@@ -73,11 +73,11 @@ public class CropFertilizationTablePostRequestDto {
     private Long plotId;
 
     @JsonProperty("novo_id_extrato_analise_fisica")
-    @JsonAlias({"id_extrato_analise_fisica", "physicalAnalysisId", "id_analise_fisica"})
+    @JsonAlias({"id_extrato_analise_fisica", "physicalAnalysisId"})
     private Long physicalAnalysisId;
 
     @JsonProperty("novo_id_extrato_analise_fertilidade")
-    @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId", "id_analise_fertilidade"})
+    @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId"})
     private Long fertilityAnalysisId;
 
     @JsonProperty("novo_tipo_de_esterco")
