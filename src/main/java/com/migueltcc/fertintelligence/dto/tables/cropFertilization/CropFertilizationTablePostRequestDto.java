@@ -28,6 +28,7 @@ public class CropFertilizationTablePostRequestDto {
     private String cultivares;
 
     @JsonProperty("novo_espacamentos_sugeridos")
+    @JsonAlias({"espacamentos_sugeridos", "novo_tipo_espacamento_sugerido", "tipo_espacamento_sugerido", "novo_tipo_de_espacamento_sugerido", "tipo_de_espacamento_sugerido", "suggested_spacing", "suggestedSpacing"})
     @Schema(example = "PLANTS_PER_LINEAR_METER")
     private SpacingType suggested_spacing;
 

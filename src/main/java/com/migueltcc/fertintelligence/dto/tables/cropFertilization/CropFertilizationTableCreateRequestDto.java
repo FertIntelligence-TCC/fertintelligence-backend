@@ -34,6 +34,7 @@ public class CropFertilizationTableCreateRequestDto {
     private Regiao region;
 
     @JsonProperty("espacamentos_sugeridos")
+    @JsonAlias({"tipo_espacamento_sugerido", "tipo_de_espacamento_sugerido", "suggested_spacing", "suggestedSpacing"})
     @NotNull
     private SpacingType suggested_spacing;
 

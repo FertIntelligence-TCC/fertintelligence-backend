@@ -36,6 +36,11 @@ public enum SpacingType {
         if (normalized.equals("plantas por metro") || normalized.equals("plantas por metro m")) {
             return PLANTS_PER_LINEAR_METER;
         }
+        if (normalized.equals("entre plantas") || normalized.equals("entre plantas m")
+                || normalized.equals("plantas covas") || normalized.equals("plantas covas m")
+                || normalized.equals("entre plantas covas") || normalized.equals("entre plantas covas m")) {
+            return BETWEEN_PLANTS_OR_HOLES_IN_METERS;
+        }
         throw new IllegalArgumentException("Tipo de espaçamento inválido: " + value);
     }
 

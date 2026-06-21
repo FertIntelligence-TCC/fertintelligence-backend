@@ -108,7 +108,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .crop_common_name(createRequestDto.getCrop_common_name())
                 .crop_scientific_nome(createRequestDto.getCrop_scientific_nome())
                 .cultivares(createRequestDto.getCultivares())
-                .suggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS)
+                .suggested_spacing(createRequestDto.getSuggested_spacing())
                 .initial_value(createRequestDto.getInitial_value())
                 .final_value(createRequestDto.getFinal_value())
                 .used_spacing(createRequestDto.getUsed_spacing())
@@ -319,7 +319,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getCrop_common_name() != null) table.setCrop_common_name(dto.getCrop_common_name());
         if (dto.getCrop_scientific_nome() != null) table.setCrop_scientific_nome(dto.getCrop_scientific_nome());
         if (dto.getCultivares() != null) table.setCultivares(dto.getCultivares());
-        table.setSuggested_spacing(SpacingType.BETWEEN_LINES_IN_METERS);
+        if (dto.getSuggested_spacing() != null) table.setSuggested_spacing(dto.getSuggested_spacing());
         if (dto.getInitial_value() != null) table.setInitial_value(dto.getInitial_value());
         if (dto.getFinal_value() != null) table.setFinal_value(dto.getFinal_value());
         if (dto.getUsed_spacing() != null) table.setUsed_spacing(dto.getUsed_spacing());
