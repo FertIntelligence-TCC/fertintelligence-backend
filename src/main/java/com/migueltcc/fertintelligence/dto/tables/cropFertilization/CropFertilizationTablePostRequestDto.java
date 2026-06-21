@@ -74,11 +74,11 @@ public class CropFertilizationTablePostRequestDto {
     private Long plotId;
 
     @JsonProperty("novo_id_extrato_analise_fisica")
-    @JsonAlias({"id_extrato_analise_fisica", "physicalAnalysisId"})
+    @JsonAlias({"id_extrato_analise_fisica", "physicalAnalysisId", "novo_physicalAnalysisId", "id_analise_fisica", "novo_id_analise_fisica", "id_analise_fisica_solo", "novo_id_analise_fisica_solo", "id_extrato_fisico", "novo_id_extrato_fisico", "id_extrato_analise_fisica_solo", "novo_id_extrato_analise_fisica_solo"})
     private Long physicalAnalysisId;
 
     @JsonProperty("novo_id_extrato_analise_fertilidade")
-    @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId"})
+    @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId", "novo_fertilityAnalysisId", "id_analise_fertilidade_solo", "novo_id_analise_fertilidade_solo", "id_analise_fertilidade", "novo_id_analise_fertilidade", "id_extrato_fertilidade", "novo_id_extrato_fertilidade", "id_extrato_analise_fertilidade_solo", "novo_id_extrato_analise_fertilidade_solo"})
     private Long fertilityAnalysisId;
 
     @JsonProperty("novo_tipo_de_esterco")
