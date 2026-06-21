@@ -41,9 +41,10 @@ public class ExchangeableSodiumServiceImpl implements ExchangeableSodiumService 
         UserModel owner = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkModifyPermission(table, owner);
-        exchangeableSodiumRepository.findByTable(table).ifPresent(existing -> { throw new IllegalStateException("Já existe um critério cadastrado para esta tabela."); });
-        ExchangeableSodiumModel criterion = ExchangeableSodiumModel.builder().table(table).build();
+        ExchangeableSodiumModel criterion = exchangeableSodiumRepository.findFirstByTableOrderByIdAsc(table)
+                .orElseGet(() -> ExchangeableSodiumModel.builder().table(table).build());
         BeanUtils.copyProperties(createRequestDto, criterion);
+        criterion.setTable(table);
         return toResponseDto(exchangeableSodiumRepository.save(criterion));
     }
 
@@ -62,7 +63,7 @@ public class ExchangeableSodiumServiceImpl implements ExchangeableSodiumService 
         UserModel owner = findUserByUsernameOrThrow(username);
         SoilFertilityInterpretationCriteriaTableModel table = findTableByIdOrThrow(tableId);
         checkViewPermission(table, owner);
-        ExchangeableSodiumModel criterion = exchangeableSodiumRepository.findByTable(table)
+        ExchangeableSodiumModel criterion = exchangeableSodiumRepository.findFirstByTableOrderByIdAsc(table)
                 .orElseThrow(() -> new EntityNotFoundException("Critério de sódio trocável não encontrado para a tabela: " + tableId));
         return toResponseDto(criterion);
     }

@@ -18,100 +18,100 @@ public class ExchangeableSodiumResponseDto {
     @JsonProperty("id_tabela")
     private Long tableId;
 
-    @JsonProperty("ctc_menor_4_3_veryLowLessThan")
+    @JsonProperty("menor_teor_sodio_ctc_menor_4_3")
     private Double ctcLessThan43VeryLowLessThan;
 
-    @JsonProperty("ctc_menor_4_3_lowMin")
+    @JsonProperty("teor_inicial_baixo_sodio_ctc_menor_4_3")
     private Double ctcLessThan43LowMin;
 
-    @JsonProperty("ctc_menor_4_3_lowMax")
+    @JsonProperty("teor_final_baixo_sodio_ctc_menor_4_3")
     private Double ctcLessThan43LowMax;
 
-    @JsonProperty("ctc_menor_4_3_mediumMin")
+    @JsonProperty("teor_inicial_medio_sodio_ctc_menor_4_3")
     private Double ctcLessThan43MediumMin;
 
-    @JsonProperty("ctc_menor_4_3_mediumMax")
+    @JsonProperty("teor_final_medio_sodio_ctc_menor_4_3")
     private Double ctcLessThan43MediumMax;
 
-    @JsonProperty("ctc_menor_4_3_highMin")
+    @JsonProperty("teor_inicial_alto_sodio_ctc_menor_4_3")
     private Double ctcLessThan43HighMin;
 
-    @JsonProperty("ctc_menor_4_3_highMax")
+    @JsonProperty("teor_final_alto_sodio_ctc_menor_4_3")
     private Double ctcLessThan43HighMax;
 
-    @JsonProperty("ctc_menor_4_3_veryHighGreaterThan")
+    @JsonProperty("maior_teor_sodio_ctc_menor_4_3")
     private Double ctcLessThan43VeryHighGreaterThan;
 
-    @JsonProperty("ctc_4_3_a_8_6_veryLowLessThan")
+    @JsonProperty("menor_teor_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86VeryLowLessThan;
 
-    @JsonProperty("ctc_4_3_a_8_6_lowMin")
+    @JsonProperty("teor_inicial_baixo_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86LowMin;
 
-    @JsonProperty("ctc_4_3_a_8_6_lowMax")
+    @JsonProperty("teor_final_baixo_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86LowMax;
 
-    @JsonProperty("ctc_4_3_a_8_6_mediumMin")
+    @JsonProperty("teor_inicial_medio_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86MediumMin;
 
-    @JsonProperty("ctc_4_3_a_8_6_mediumMax")
+    @JsonProperty("teor_final_medio_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86MediumMax;
 
-    @JsonProperty("ctc_4_3_a_8_6_highMin")
+    @JsonProperty("teor_inicial_alto_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86HighMin;
 
-    @JsonProperty("ctc_4_3_a_8_6_highMax")
+    @JsonProperty("teor_final_alto_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86HighMax;
 
-    @JsonProperty("ctc_4_3_a_8_6_veryHighGreaterThan")
+    @JsonProperty("maior_teor_sodio_ctc_4_3_a_8_6")
     private Double ctcFrom43To86VeryHighGreaterThan;
 
-    @JsonProperty("ctc_8_7_a_15_0_veryLowLessThan")
+    @JsonProperty("menor_teor_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150VeryLowLessThan;
 
-    @JsonProperty("ctc_8_7_a_15_0_lowMin")
+    @JsonProperty("teor_inicial_baixo_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150LowMin;
 
-    @JsonProperty("ctc_8_7_a_15_0_lowMax")
+    @JsonProperty("teor_final_baixo_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150LowMax;
 
-    @JsonProperty("ctc_8_7_a_15_0_mediumMin")
+    @JsonProperty("teor_inicial_medio_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150MediumMin;
 
-    @JsonProperty("ctc_8_7_a_15_0_mediumMax")
+    @JsonProperty("teor_final_medio_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150MediumMax;
 
-    @JsonProperty("ctc_8_7_a_15_0_highMin")
+    @JsonProperty("teor_inicial_alto_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150HighMin;
 
-    @JsonProperty("ctc_8_7_a_15_0_highMax")
+    @JsonProperty("teor_final_alto_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150HighMax;
 
-    @JsonProperty("ctc_8_7_a_15_0_veryHighGreaterThan")
+    @JsonProperty("maior_teor_sodio_ctc_8_7_a_15_0")
     private Double ctcFrom87To150VeryHighGreaterThan;
 
-    @JsonProperty("ctc_maior_15_veryLowLessThan")
+    @JsonProperty("menor_teor_sodio_ctc_maior_15")
     private Double ctcGreaterThan15VeryLowLessThan;
 
-    @JsonProperty("ctc_maior_15_lowMin")
+    @JsonProperty("teor_inicial_baixo_sodio_ctc_maior_15")
     private Double ctcGreaterThan15LowMin;
 
-    @JsonProperty("ctc_maior_15_lowMax")
+    @JsonProperty("teor_final_baixo_sodio_ctc_maior_15")
     private Double ctcGreaterThan15LowMax;
 
-    @JsonProperty("ctc_maior_15_mediumMin")
+    @JsonProperty("teor_inicial_medio_sodio_ctc_maior_15")
     private Double ctcGreaterThan15MediumMin;
 
-    @JsonProperty("ctc_maior_15_mediumMax")
+    @JsonProperty("teor_final_medio_sodio_ctc_maior_15")
     private Double ctcGreaterThan15MediumMax;
 
-    @JsonProperty("ctc_maior_15_highMin")
+    @JsonProperty("teor_inicial_alto_sodio_ctc_maior_15")
     private Double ctcGreaterThan15HighMin;
 
-    @JsonProperty("ctc_maior_15_highMax")
+    @JsonProperty("teor_final_alto_sodio_ctc_maior_15")
     private Double ctcGreaterThan15HighMax;
 
-    @JsonProperty("ctc_maior_15_veryHighGreaterThan")
+    @JsonProperty("maior_teor_sodio_ctc_maior_15")
     private Double ctcGreaterThan15VeryHighGreaterThan;
 
 }

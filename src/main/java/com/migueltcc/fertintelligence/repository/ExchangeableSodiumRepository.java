@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ExchangeableSodiumRepository extends JpaRepository<ExchangeableSodiumModel, Long> {
 
     Optional<ExchangeableSodiumModel> findByTable(SoilFertilityInterpretationCriteriaTableModel table);
+
+    Optional<ExchangeableSodiumModel> findFirstByTableOrderByIdAsc(SoilFertilityInterpretationCriteriaTableModel table);
 }
