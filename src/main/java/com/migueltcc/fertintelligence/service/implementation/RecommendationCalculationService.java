@@ -18,6 +18,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePAnionExchangeResinExtractorModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePMehlich1ExtractorModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailableSModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
@@ -54,6 +55,7 @@ public class RecommendationCalculationService {
     private final KExchangeableContentRepository kExchangeableContentRepository;
     private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
+    private final AvailableSRepository availableSRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -72,7 +74,8 @@ public class RecommendationCalculationService {
                                             DiverseContentRangeRepository diverseContentRangeRepository,
                                             KExchangeableContentRepository kExchangeableContentRepository,
                                             AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository,
-                                            AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository) {
+                                            AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
+                                            AvailableSRepository availableSRepository) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -91,6 +94,7 @@ public class RecommendationCalculationService {
         this.kExchangeableContentRepository = kExchangeableContentRepository;
         this.availablePMehlich1ExtractorRepository = availablePMehlich1ExtractorRepository;
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
+        this.availableSRepository = availableSRepository;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -264,6 +268,45 @@ public class RecommendationCalculationService {
         diagnosis.add(classifyDiverseRange("Alumínio", fertility.getAluminio(), "mmolc/dm3", diverseRange,
                 r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
                 "Alumínio trocável classificado pelas faixas diversas da tabela selecionada."));
+        if (fertility.getEnxofre() != null) {
+            diagnosis.add(classifySulfur(fertility, physicalAnalysis, table, warnings));
+        }
+        addDiverseDiagnosisIfPresent(diagnosis, "Matéria orgânica", fertility.getMateriaOrganica(), diverseRange.map(DiverseContentRangeModel::getOrganic_matter_unit).orElse("g/dm3"), diverseRange,
+                r -> new RangeCriterion(r.getOrganic_matter_too_low(), r.getOrganic_matter_low_i(), r.getOrganic_matter_low_f(), r.getOrganic_matter_medium_i(), r.getOrganic_matter_medium_f(), r.getOrganic_matter_hight_i(), r.getOrganic_matter_hight_f(), r.getOrganic_matter_too_hight()),
+                "Matéria orgânica classificada pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "H+Al", fertility.getAluminioMaisHidrogenio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getPotential_acidity_too_low(), r.getPotential_acidity_low_i(), r.getPotential_acidity_low_f(), r.getPotential_acidity_medium_i(), r.getPotential_acidity_medium_f(), r.getPotential_acidity_hight_i(), r.getPotential_acidity_hight_f(), r.getPotential_acidity_too_hight()),
+                "Acidez potencial classificada pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Soma de bases", fertility.getSomaBases(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getSum_of_bases_too_low(), r.getSum_of_bases_low_i(), r.getSum_of_bases_low_f(), r.getSum_of_bases_medium_i(), r.getSum_of_bases_medium_f(), r.getSum_of_bases_hight_i(), r.getSum_of_bases_hight_f(), r.getSum_of_bases_too_hight()),
+                "Soma de bases classificada pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "CTC efetiva", fertility.getCtcEfetiva(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getEffective_cec_too_low(), r.getEffective_cec_low_i(), r.getEffective_cec_low_f(), r.getEffective_cec_medium_i(), r.getEffective_cec_medium_f(), r.getEffective_cec_hight_i(), r.getEffective_cec_hight_f(), r.getEffective_cec_too_hight()),
+                "CTC efetiva classificada a partir do valor pronto do extrato de fertilidade.");
+        addDiverseDiagnosisIfPresent(diagnosis, "CTC pH 7,0", fertility.getCtcPh7(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getPh7_cec_too_low(), r.getPh7_cec_low_i(), r.getPh7_cec_low_f(), r.getPh7_cec_medium_i(), r.getPh7_cec_medium_f(), r.getPh7_cec_hight_i(), r.getPh7_cec_hight_f(), r.getPh7_cec_too_hight()),
+                "CTC pH 7,0 classificada a partir do valor pronto do extrato de fertilidade.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Saturação por bases", fertility.getSaturacaoBasesV(), "%", diverseRange,
+                r -> new RangeCriterion(r.getBase_saturation_too_low(), r.getBase_saturation_low_i(), r.getBase_saturation_low_f(), r.getBase_saturation_medium_i(), r.getBase_saturation_medium_f(), r.getBase_saturation_hight_i(), r.getBase_saturation_hight_f(), r.getBase_saturation_too_hight()),
+                "Saturação por bases classificada a partir do valor pronto do extrato de fertilidade.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
+                r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
+                "Saturação por alumínio classificada a partir do valor pronto do extrato de fertilidade.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm3", diverseRange,
+                r -> new RangeCriterion(r.getBoron_too_low(), r.getBoron_low_i(), r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i(), r.getBoron_hight_f(), r.getBoron_too_hight()),
+                "Boro disponível classificado pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm3", diverseRange,
+                r -> new RangeCriterion(r.getCopper_too_low(), r.getCopper_low_i(), r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i(), r.getCopper_hight_f(), r.getCopper_too_hight()),
+                "Cobre disponível classificado pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm3", diverseRange,
+                r -> new RangeCriterion(r.getIron_too_low(), r.getIron_low_i(), r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i(), r.getIron_hight_f(), r.getIron_too_hight()),
+                "Ferro disponível classificado pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm3", diverseRange,
+                r -> new RangeCriterion(r.getManganese_too_low(), r.getManganese_low_i(), r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i(), r.getManganese_hight_f(), r.getManganese_too_hight()),
+                "Manganês disponível classificado pelas faixas diversas da tabela selecionada.");
+        addDiverseDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm3", diverseRange,
+                r -> new RangeCriterion(r.getZinc_too_low(), r.getZinc_low_i(), r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i(), r.getZinc_hight_f(), r.getZinc_too_hight()),
+                "Zinco disponível classificado pelas faixas diversas da tabela selecionada.");
         return diagnosis;
     }
 
@@ -330,6 +373,33 @@ public class RecommendationCalculationService {
                 "Potássio classificado pelas faixas diversas da tabela selecionada.");
     }
 
+    private SoilChemicalDiagnosisItem classifySulfur(FertilityAnalysisExtractModel fertility,
+                                                    PhysicalAnalysisExtractModel physicalAnalysis,
+                                                    SoilFertilityInterpretationCriteriaTableModel table,
+                                                    List<String> warnings) {
+        if (fertility.getEnxofre() == null) {
+            return missingValue("Enxofre", "Não há valor de enxofre no extrato de fertilidade.");
+        }
+        Optional<AvailableSModel> criterion = availableSRepository.findByTable(table);
+        if (criterion.isEmpty()) {
+            String observation = "Não há critério de enxofre na tabela selecionada.";
+            warnings.add(observation);
+            return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm3", observation);
+        }
+        Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
+        if (clay == null) {
+            String observation = "Não há teor de argila na análise física para selecionar a faixa de enxofre.";
+            warnings.add(observation);
+            return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm3", observation);
+        }
+        AvailableSModel s = criterion.get();
+        RangeCriterion range = clay < 400
+                ? new RangeCriterion(s.getSContentLess400TooLow(), s.getSContentLess400LowI(), s.getSContentLess400LowF(), s.getSContentLess400MediumI(), s.getSContentLess400MediumF(), s.getSContentLess400HighI(), s.getSContentLess400HighF(), s.getSContentLess400TooHigh())
+                : new RangeCriterion(s.getSContentGreater400TooLow(), s.getSContentGreater400LowI(), s.getSContentGreater400LowF(), s.getSContentGreater400MediumI(), s.getSContentGreater400MediumF(), s.getSContentGreater400HighI(), s.getSContentGreater400HighF(), s.getSContentGreater400TooHigh());
+        return classifyRange("Enxofre", fertility.getEnxofre(), "mg/dm3", range,
+                "Enxofre classificado pelo critério específico selecionado pelo teor de argila da análise física.");
+    }
+
     private SoilChemicalDiagnosisItem classifyDiverseRange(String attribute,
                                                           Double value,
                                                           String unit,
@@ -339,6 +409,17 @@ public class RecommendationCalculationService {
         if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
         if (range.isEmpty()) return notClassified(attribute, value, unit, "Critério ausente na tabela selecionada.");
         return classifyRange(attribute, value, unit, criterionExtractor.apply(range.get()), observation);
+    }
+
+    private void addDiverseDiagnosisIfPresent(List<SoilChemicalDiagnosisItem> diagnosis,
+                                             String attribute,
+                                             Double value,
+                                             String unit,
+                                             Optional<DiverseContentRangeModel> range,
+                                             Function<DiverseContentRangeModel, RangeCriterion> criterionExtractor,
+                                             String observation) {
+        if (value == null) return;
+        diagnosis.add(classifyDiverseRange(attribute, value, unit, range, criterionExtractor, observation));
     }
 
     private SoilChemicalDiagnosisItem classifyRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {

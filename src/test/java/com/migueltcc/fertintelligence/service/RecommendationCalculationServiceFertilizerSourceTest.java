@@ -41,7 +41,8 @@ class RecommendationCalculationServiceFertilizerSourceTest {
                 mock(DiverseContentRangeRepository.class),
                 mock(KExchangeableContentRepository.class),
                 mock(AvailablePMehlich1ExtractorRepository.class),
-                mock(AvailablePAnionExchangeResinExtractorRepository.class)
+                mock(AvailablePAnionExchangeResinExtractorRepository.class),
+                mock(AvailableSRepository.class)
         );
         user = UserModel.builder().id(1L).build();
     }

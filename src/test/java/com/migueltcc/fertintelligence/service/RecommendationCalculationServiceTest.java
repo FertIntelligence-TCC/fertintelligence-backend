@@ -55,6 +55,7 @@ class RecommendationCalculationServiceTest {
     @Mock private KExchangeableContentRepository kExchangeableContentRepository;
     @Mock private AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     @Mock private AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
+    @Mock private AvailableSRepository availableSRepository;
 
     @InjectMocks private RecommendationCalculationService service;
     private final RecommendationReportService reportService = new RecommendationReportService();
