@@ -16,6 +16,10 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePAnionExchangeResinExtractorModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePMehlich1ExtractorModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.*;
@@ -46,6 +50,10 @@ public class RecommendationCalculationService {
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
     private final SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository;
     private final CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository;
+    private final DiverseContentRangeRepository diverseContentRangeRepository;
+    private final KExchangeableContentRepository kExchangeableContentRepository;
+    private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
+    private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -60,7 +68,11 @@ public class RecommendationCalculationService {
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository,
                                             SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository,
-                                            CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository) {
+                                            CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository,
+                                            DiverseContentRangeRepository diverseContentRangeRepository,
+                                            KExchangeableContentRepository kExchangeableContentRepository,
+                                            AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository,
+                                            AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -75,6 +87,10 @@ public class RecommendationCalculationService {
         this.fertilityAnalysisExtractRepository = fertilityAnalysisExtractRepository;
         this.soilFertilityInterpretationCriteriaTableRepository = soilFertilityInterpretationCriteriaTableRepository;
         this.cropFoliarAnalysisInterpretationTableRepository = cropFoliarAnalysisInterpretationTableRepository;
+        this.diverseContentRangeRepository = diverseContentRangeRepository;
+        this.kExchangeableContentRepository = kExchangeableContentRepository;
+        this.availablePMehlich1ExtractorRepository = availablePMehlich1ExtractorRepository;
+        this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -113,6 +129,8 @@ public class RecommendationCalculationService {
         String foliarSummary = foliarAnalysis.map(m -> "Análise foliar considerada quando aplicável.").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
+        List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
+                fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
         List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
 
@@ -176,6 +194,7 @@ public class RecommendationCalculationService {
                 .limingCriteria(dto.getLimingCriteria() != null ? dto.getLimingCriteria().name() : null)
                 .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
+                .soilChemicalDiagnosis(chemicalDiagnosis)
                 .fertilizationRows(List.of("Recomendação estruturada em linhas de plantio e cobertura."))
                 .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
                 .requiredN(requiredN).requiredP2O5(requiredP2O5).requiredK2O(requiredK2O)
@@ -199,6 +218,191 @@ public class RecommendationCalculationService {
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
+    private List<SoilChemicalDiagnosisItem> buildSoilChemicalDiagnosis(Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                                       PhysicalAnalysisExtractModel physicalAnalysis,
+                                                                       SoilFertilityInterpretationCriteriaTableModel table,
+                                                                       List<String> warnings) {
+        List<SoilChemicalDiagnosisItem> diagnosis = new ArrayList<>();
+        if (fertilityExtract.isEmpty()) {
+            String observation = "Nenhum extrato de fertilidade foi encontrado para a análise de solo selecionada.";
+            warnings.add(observation);
+            diagnosis.add(SoilChemicalDiagnosisItem.builder()
+                    .attribute("Fertilidade do solo")
+                    .technicalObservation(observation)
+                    .build());
+            return diagnosis;
+        }
+
+        FertilityAnalysisExtractModel fertility = fertilityExtract.get();
+        Optional<DiverseContentRangeModel> diverseRange = diverseContentRangeRepository.findByTable(table);
+        Optional<KExchangeableContentModel> kRange = kExchangeableContentRepository.findByTable(table);
+
+        if (diverseRange.isEmpty()) {
+            warnings.add("Não foi encontrada linha de faixas diversas na tabela de interpretação da fertilidade do solo selecionada.");
+        }
+
+        if (fertility.getPhAgua() != null) {
+            diagnosis.add(classifyDiverseRange("pH em água", fertility.getPhAgua(), null, diverseRange,
+                    r -> new RangeCriterion(r.getPh_too_low(), r.getPh_low_i(), r.getPh_low_f(), r.getPh_medium_i(), r.getPh_medium_f(), r.getPh_hight_i(), r.getPh_hight_f(), r.getPh_too_hight()),
+                    "pH em água classificado pelas faixas diversas da tabela selecionada."));
+        } else if (fertility.getPhCacl2() != null) {
+            diagnosis.add(classifyDiverseRange("pH CaCl2", fertility.getPhCacl2(), null, diverseRange,
+                    r -> new RangeCriterion(r.getPh_cacl2_too_low(), r.getPh_cacl2_low_i(), r.getPh_cacl2_low_f(), r.getPh_cacl2_medium_i(), r.getPh_cacl2_medium_f(), r.getPh_cacl2_hight_i(), r.getPh_cacl2_hight_f(), r.getPh_cacl2_too_hight()),
+                    "pH em CaCl2 classificado pelas faixas diversas da tabela selecionada."));
+        } else {
+            diagnosis.add(missingValue("pH", "Não há pH em água nem pH CaCl2 no extrato de fertilidade."));
+        }
+
+        diagnosis.add(classifyPhosphorus(fertility, physicalAnalysis, table, warnings));
+        diagnosis.add(classifyPotassium(fertility, kRange, diverseRange, warnings));
+        diagnosis.add(classifyDiverseRange("Cálcio", fertility.getCalcio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
+                "Cálcio trocável classificado pelas faixas diversas da tabela selecionada."));
+        diagnosis.add(classifyDiverseRange("Magnésio", fertility.getMagnesio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getMagnesium_too_low(), r.getMagnesium_low_i(), r.getMagnesium_low_f(), r.getMagnesium_medium_i(), r.getMagnesium_medium_f(), r.getMagnesium_hight_i(), r.getMagnesium_hight_f(), r.getMagnesium_too_hight()),
+                "Magnésio trocável classificado pelas faixas diversas da tabela selecionada."));
+        diagnosis.add(classifyDiverseRange("Alumínio", fertility.getAluminio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
+                "Alumínio trocável classificado pelas faixas diversas da tabela selecionada."));
+        return diagnosis;
+    }
+
+    private SoilChemicalDiagnosisItem classifyPhosphorus(FertilityAnalysisExtractModel fertility,
+                                                        PhysicalAnalysisExtractModel physicalAnalysis,
+                                                        SoilFertilityInterpretationCriteriaTableModel table,
+                                                        List<String> warnings) {
+        if (fertility.getFosforoMehlich1() != null) {
+            Optional<AvailablePMehlich1ExtractorModel> criterion = availablePMehlich1ExtractorRepository.findByTable(table);
+            if (criterion.isEmpty()) {
+                String observation = "Não há critério de P Mehlich-1 na tabela selecionada.";
+                warnings.add(observation);
+                return notClassified("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", observation);
+            }
+            Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
+            if (clay == null) {
+                String observation = "Não há teor de argila na análise física para selecionar a faixa de P Mehlich-1.";
+                warnings.add(observation);
+                return notClassified("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", observation);
+            }
+            double clayDagKg = clay > 100 ? clay / 10.0 : clay;
+            AvailablePMehlich1ExtractorModel p = criterion.get();
+            RangeCriterion range = clayDagKg < 15
+                    ? new RangeCriterion(p.getP_content_sandy_too_low(), p.getP_content_sandy_low_i(), p.getP_content_sandy_low_f(), p.getP_content_sandy_medium_i(), p.getP_content_sandy_medium_f(), p.getP_content_sandy_hight_i(), p.getP_content_sandy_hight_f(), p.getP_content_sandy_too_hight())
+                    : clayDagKg <= 35
+                    ? new RangeCriterion(p.getP_content_sandy_clayey_too_low(), p.getP_content_sandy_clayey_low_i(), p.getP_content_sandy_clayey_low_f(), p.getP_content_sandy_clayey_medium_i(), p.getP_content_sandy_clayey_medium_f(), p.getP_content_sandy_clayey_hight_i(), p.getP_content_sandy_clayey_hight_f(), p.getP_content_sandy_clayey_too_hight())
+                    : clayDagKg <= 60
+                    ? new RangeCriterion(p.getP_content_clayey_too_low(), p.getP_content_clayey_low_i(), p.getP_content_clayey_low_f(), p.getP_content_clayey_medium_i(), p.getP_content_clayey_medium_f(), p.getP_content_clayey_hight_i(), p.getP_content_clayey_hight_f(), p.getP_content_clayey_too_hight())
+                    : new RangeCriterion(p.getP_content_very_clayey_too_low(), p.getP_content_very_clayey_low_i(), p.getP_content_very_clayey_low_f(), p.getP_content_very_clayey_medium_i(), p.getP_content_very_clayey_medium_f(), p.getP_content_very_clayey_hight_i(), p.getP_content_very_clayey_hight_f(), p.getP_content_very_clayey_too_hight());
+            return classifyRange("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", range,
+                    "Critério de P Mehlich-1 selecionado pelo teor de argila da análise física.");
+        }
+        if (fertility.getFosforoResina() != null) {
+            Optional<AvailablePAnionExchangeResinExtractorModel> criterion = availablePAnionExchangeResinExtractorRepository.findByTable(table);
+            if (criterion.isEmpty()) {
+                String observation = "Não há critério de P por resina na tabela selecionada.";
+                warnings.add(observation);
+                return notClassified("Fósforo resina", fertility.getFosforoResina(), "mg/dm3", observation);
+            }
+            AvailablePAnionExchangeResinExtractorModel p = criterion.get();
+            return classifyRange("Fósforo resina", fertility.getFosforoResina(), p.getUnit(),
+                    new RangeCriterion(p.getPContentTooLow(), p.getPContentLowI(), p.getPContentLowF(), p.getPContentMediumI(), p.getPContentMediumF(), p.getPContentHighI(), p.getPContentHighF(), p.getPContentTooHigh()),
+                    "Fósforo por resina classificado pelo critério específico da tabela selecionada.");
+        }
+        return missingValue("Fósforo", "Não há valor de fósforo Mehlich-1 ou resina no extrato de fertilidade.");
+    }
+
+    private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,
+                                                       Optional<KExchangeableContentModel> kRange,
+                                                       Optional<DiverseContentRangeModel> diverseRange,
+                                                       List<String> warnings) {
+        if (fertility.getPotassio() == null) {
+            return missingValue("Potássio", "Não há valor de potássio no extrato de fertilidade.");
+        }
+        if (kRange.isPresent()) {
+            KExchangeableContentModel k = kRange.get();
+            return classifyRange("Potássio", fertility.getPotassio(), "mmolc/dm3",
+                    new RangeCriterion(k.getKContentTooLow(), k.getKContentLowI(), k.getKContentLowF(), k.getKContentMediumI(), k.getKContentMediumF(), k.getKContentHighI(), k.getKContentHighF(), k.getKContentTooHigh()),
+                    "Potássio classificado pelo critério específico de K da tabela selecionada.");
+        }
+        warnings.add("Não foi encontrada linha específica de potássio; foi tentada a faixa diversa de potássio.");
+        return classifyDiverseRange("Potássio", fertility.getPotassio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getPotassium_too_low(), r.getPotassium_low_i(), r.getPotassium_low_f(), r.getPotassium_medium_i(), r.getPotassium_medium_f(), r.getPotassium_hight_i(), r.getPotassium_hight_f(), r.getPotassium_too_hight()),
+                "Potássio classificado pelas faixas diversas da tabela selecionada.");
+    }
+
+    private SoilChemicalDiagnosisItem classifyDiverseRange(String attribute,
+                                                          Double value,
+                                                          String unit,
+                                                          Optional<DiverseContentRangeModel> range,
+                                                          Function<DiverseContentRangeModel, RangeCriterion> criterionExtractor,
+                                                          String observation) {
+        if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
+        if (range.isEmpty()) return notClassified(attribute, value, unit, "Critério ausente na tabela selecionada.");
+        return classifyRange(attribute, value, unit, criterionExtractor.apply(range.get()), observation);
+    }
+
+    private SoilChemicalDiagnosisItem classifyRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
+        if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
+        if (criterion == null || criterion.lowStart() == null || criterion.mediumStart() == null
+                || criterion.highStart() == null || criterion.tooHighStart() == null) {
+            return notClassified(attribute, value, unit, "Critério incompleto na tabela selecionada.");
+        }
+        String interpretation;
+        String usedRange;
+        if (value < criterion.lowStart()) {
+            interpretation = "Muito baixo";
+            usedRange = "< " + formatNumber(criterion.lowStart());
+        } else if (value < criterion.mediumStart()) {
+            interpretation = "Baixo";
+            usedRange = formatInterval(criterion.lowStart(), criterion.lowEnd(), criterion.mediumStart());
+        } else if (value < criterion.highStart()) {
+            interpretation = "Médio";
+            usedRange = formatInterval(criterion.mediumStart(), criterion.mediumEnd(), criterion.highStart());
+        } else if (value < criterion.tooHighStart()) {
+            interpretation = "Alto";
+            usedRange = formatInterval(criterion.highStart(), criterion.highEnd(), criterion.tooHighStart());
+        } else {
+            interpretation = "Muito alto";
+            usedRange = ">= " + formatNumber(criterion.tooHighStart());
+        }
+        return SoilChemicalDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .interpretation(interpretation)
+                .usedCriterion(usedRange)
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private SoilChemicalDiagnosisItem missingValue(String attribute, String observation) {
+        return SoilChemicalDiagnosisItem.builder()
+                .attribute(attribute)
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private SoilChemicalDiagnosisItem notClassified(String attribute, Double value, String unit, String observation) {
+        return SoilChemicalDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private String formatInterval(Double start, Double end, Double fallbackEndExclusive) {
+        Double effectiveEnd = end != null ? end : fallbackEndExclusive;
+        return formatNumber(start) + " a " + formatNumber(effectiveEnd);
+    }
+
+    private String formatNumber(Double value) {
+        if (value == null) return "não informado";
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
+                                  Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
     private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String warning, Optional<FertilizerSuggestion> suggestion){}
     private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){var f=bestF.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)f.getN()+"-"+(int)f.getP2O5()+"-"+(int)f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
     var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){var f=bestS.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
@@ -231,7 +435,8 @@ return rows;}
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String warning; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
 }

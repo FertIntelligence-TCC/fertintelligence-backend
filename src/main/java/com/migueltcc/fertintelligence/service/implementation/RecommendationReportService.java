@@ -50,6 +50,27 @@ public class RecommendationReportService {
         report.append("- Principais alertas ou limitações identificadas:\n");
         appendBulletList(report, result.getDiagnosticMessages(), "Nenhuma limitação adicional foi registrada.");
         report.append("\n");
+        appendChemicalDiagnosis(report, result);
+    }
+
+    private void appendChemicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Diagnóstico Químico da Fertilidade do Solo\n\n");
+        report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
+        report.append("|---|---|---|---|---|---|\n");
+        if (result.getSoilChemicalDiagnosis() == null || result.getSoilChemicalDiagnosis().isEmpty()) {
+            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Diagnóstico químico não foi calculado nesta etapa. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.SoilChemicalDiagnosisItem item : result.getSoilChemicalDiagnosis()) {
+            report.append("| ").append(safeCell(item.getAttribute()))
+                    .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
+                    .append(" | ").append(safeCell(item.getUnit()))
+                    .append(" | ").append(safeCell(item.getInterpretation()))
+                    .append(" | ").append(safeCell(item.getUsedCriterion()))
+                    .append(" | ").append(safeCell(item.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
     }
 
     private void appendCorrection(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -109,6 +130,10 @@ public class RecommendationReportService {
 
     private String formatQuantity(Double value) {
         return value == null ? "Não calculado" : String.format(Locale.US, "%.2f kg/ha", value);
+    }
+
+    private String formatAnalyzedValue(Double value) {
+        return value == null ? "Não informado" : String.format(Locale.US, "%.2f", value);
     }
 
     private String joinApplicationDetails(RecommendationCalculationService.FertilizationRecommendationRow row) {
