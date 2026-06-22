@@ -23,7 +23,7 @@ import java.util.Map;
 @Order(11)
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!test")
+@Profile("dev")
 @ConditionalOnProperty(
         prefix = "app.seed",
         name = "enabled",

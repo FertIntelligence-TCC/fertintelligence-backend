@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @Component
 @Order(1)
-@Profile("!test")
+@Profile("dev")
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class UserDataSeeder implements CommandLineRunner {
 

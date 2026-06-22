@@ -29,7 +29,7 @@ import java.util.*;
 @Order(16)
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!test")
+@Profile("dev")
 @ConditionalOnProperty(
         prefix = "app.seed",
         name = "enabled",

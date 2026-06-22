@@ -19,7 +19,7 @@ import java.util.List;
 @Order(10)
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!test")
+@Profile("dev")
 @ConditionalOnProperty(
         prefix = "app.seed",
         name = "enabled",

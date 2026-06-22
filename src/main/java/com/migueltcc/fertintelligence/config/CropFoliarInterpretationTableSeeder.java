@@ -26,7 +26,7 @@ import java.util.Optional;
 @Component
 @Order(15)
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile("dev")
 @ConditionalOnProperty(
         prefix = "app.seed",
         name = "enabled",
