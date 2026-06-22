@@ -185,6 +185,10 @@ public class RecommendationCalculationService {
                     .balanceN(planting.balanceN())
                     .balanceP2O5(planting.balanceP2O5())
                     .balanceK2O(planting.balanceK2O())
+                    .limitingNutrient(planting.limitingNutrient())
+                    .targetNeedKgHa(planting.targetNeedKgHa())
+                    .productConcentrationPercent(planting.productConcentrationPercent())
+                    .calculationMemory(planting.calculationMemory())
                     .warning(planting.warning())
                     .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
                     .source("Tabela de adubação de culturas ID " + table.getId())
@@ -849,11 +853,31 @@ public class RecommendationCalculationService {
                     .build();
         }
     }
-    private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String warning, Optional<FertilizerSuggestion> suggestion){}
-    private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){var f=bestF.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)f.getN()+"-"+(int)f.getP2O5()+"-"+(int)f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
-    var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){var f=bestS.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
-    w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada."); return new FertilizerSelection("Não encontrado",null,null,null,null,null,null,null,null,Optional.empty());}
-    private FertilizerSelection buildSelection(String name, Double q, Double rn, Double rp, Double rk, double fn, double fp, double fk, List<String> warnings, Optional<FertilizerSuggestion> suggestion){double pn=q==null?0d:round2(q*fn/100d), pp=q==null?0d:round2(q*fp/100d), pk=q==null?0d:round2(q*fk/100d);double bn=round2(pn-nvl(rn)), bp=round2(pp-nvl(rp)), bk=round2(pk-nvl(rk));String warning=null;if(bn<0||bp<0||bk<0){warning=String.format("Fertilizante selecionado não atende todos os nutrientes no plantio. Déficits: N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha.", Math.max(0d,-bn), Math.max(0d,-bp), Math.max(0d,-bk));warnings.add(warning);}return new FertilizerSelection(name,q,pn,pp,pk,bn,bp,bk,warning,suggestion);}
+    private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String limitingNutrient, Double targetNeedKgHa, Double productConcentrationPercent, String calculationMemory, String warning, Optional<FertilizerSuggestion> suggestion){}
+    private record FertilizerDoseCalculation(String nutrient, double targetNeedKgHa, double concentrationPercent, double quantityKgHa, String method) {}
+
+    private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){var f=bestF.get();Optional<FertilizerDoseCalculation> calc=calculateByGreatestFactor(n,p,k,f.getN(),f.getP2O5(),f.getK2O(),"maior fator necessário entre N, P2O5 e K2O");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)f.getN()+"-"+(int)f.getP2O5()+"-"+(int)f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();if(calc.isEmpty()){String warning="Fertilizante formulado selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";w.add(warning);return buildSelection(s.getFertilizerName(),(Double)null,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),null,w,warning,Optional.of(s));}w.add("Quantidade de adubo formulado estimada a partir do maior fator necessário entre N, P2O5 e K2O; excedentes ficam explícitos no saldo.");return buildSelection(s.getFertilizerName(),calc.get(),n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,null,Optional.of(s));}
+    var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){var f=bestS.get();Optional<FertilizerDoseCalculation> calc=calculateByGreatestFactor(n,p,k,f.getN(),f.getP2O5(),f.getK2O(),"concentração do nutriente alvo em fertilizante simples");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado; dose calculada pelo nutriente alvo identificado.").build();if(calc.isEmpty()){String warning="Fertilizante simples selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";w.add(warning);return buildSelection(s.getFertilizerName(),(Double)null,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),null,w,warning,Optional.of(s));}w.add("Quantidade de adubo simples calculada pela concentração do nutriente alvo identificado.");return buildSelection(s.getFertilizerName(),calc.get(),n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,null,Optional.of(s));}
+    w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada."); return new FertilizerSelection("Não encontrado",null,null,null,null,null,null,null,null,null,null,null,null,Optional.empty());}
+
+    private FertilizerSelection buildSelection(String name, FertilizerDoseCalculation calc, Double rn, Double rp, Double rk, double fn, double fp, double fk, List<String> warnings, String warning, Optional<FertilizerSuggestion> suggestion){Double q=calc!=null?calc.quantityKgHa():null;return buildSelection(name,q,rn,rp,rk,fn,fp,fk,calc,warnings,warning,suggestion);}
+    private FertilizerSelection buildSelection(String name, Double q, Double rn, Double rp, Double rk, double fn, double fp, double fk, FertilizerDoseCalculation calc, List<String> warnings, String warning, Optional<FertilizerSuggestion> suggestion){double pn=q==null?0d:round2(q*fn/100d), pp=q==null?0d:round2(q*fp/100d), pk=q==null?0d:round2(q*fk/100d);double bn=round2(pn-nvl(rn)), bp=round2(pp-nvl(rp)), bk=round2(pk-nvl(rk));String effectiveWarning=warning;if(effectiveWarning==null&&(bn<0||bp<0||bk<0)){effectiveWarning=String.format("Fertilizante selecionado não atende todos os nutrientes no plantio. Déficits: N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha.", Math.max(0d,-bn), Math.max(0d,-bp), Math.max(0d,-bk));warnings.add(effectiveWarning);}String memory=calc==null?null:buildCalculationMemory(calc,pn,pp,pk,bn,bp,bk);return new FertilizerSelection(name,q,pn,pp,pk,bn,bp,bk,calc!=null?calc.nutrient():null,calc!=null?calc.targetNeedKgHa():null,calc!=null?calc.concentrationPercent():null,memory,effectiveWarning,suggestion);}
+    private Optional<FertilizerDoseCalculation> calculateByGreatestFactor(Double rn, Double rp, Double rk, double n, double p, double k, String method) {
+        List<FertilizerDoseCalculation> calculations = new ArrayList<>();
+        addDoseCandidate(calculations, "N", rn, n, method);
+        addDoseCandidate(calculations, "P2O5", rp, p, method);
+        addDoseCandidate(calculations, "K2O", rk, k, method);
+        return calculations.stream().max(Comparator.comparing(FertilizerDoseCalculation::quantityKgHa));
+    }
+    private void addDoseCandidate(List<FertilizerDoseCalculation> calculations, String nutrient, Double required, double concentration, String method) {
+        if (nvl(required) <= 0d || concentration <= 0d) return;
+        calculations.add(new FertilizerDoseCalculation(nutrient, round2(required), round2(concentration), round2(required / concentration * 100d), method));
+    }
+    private String buildCalculationMemory(FertilizerDoseCalculation calc, double providedN, double providedP2O5, double providedK2O, double balanceN, double balanceP2O5, double balanceK2O) {
+        return String.format(Locale.US,
+                "Nutriente limitante/alvo: %s; necessidade alvo: %.2f kg/ha; concentração do produto: %.2f%%; dose calculada: %.2f kg/ha (%s); fornecido: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; déficit/excedente: N %+.2f, P2O5 %+.2f, K2O %+.2f kg/ha.",
+                calc.nutrient(), calc.targetNeedKgHa(), calc.concentrationPercent(), calc.quantityKgHa(), calc.method(), providedN, providedP2O5, providedK2O, balanceN, balanceP2O5, balanceK2O);
+    }
     private List<FertilizationRecommendationRow> buildCoverageRows(ContentRangeModel range, UserModel user, FertilizerSourceOption sourceOption, List<FertilizerSuggestion> suggestions, NutrientBalanceAccumulator balance, List<String> warnings) {
         List<FertilizationRecommendationRow> rows = new ArrayList<>();
         Nutriente nutrient = range.getNutrient();
@@ -878,6 +902,11 @@ public class RecommendationCalculationService {
             SimpleMineralFertilizerModel best = selectCoverageFertilizer(simples, nutrient);
             String fertName = "Não encontrado";
             Double q = null;
+            String limitingNutrient = null;
+            Double targetNeed = null;
+            Double concentration = null;
+            String calculationMemory = null;
+            String warning = null;
             double providedN = 0d;
             double providedP2O5 = 0d;
             double providedK2O = 0d;
@@ -886,10 +915,17 @@ public class RecommendationCalculationService {
                 double pct = coveragePercentage(best, nutrient);
                 if (pct > 0d) {
                     q = round2(targetApplication / pct * 100d);
+                    limitingNutrient = nutrientLabel(nutrient);
+                    targetNeed = targetApplication;
+                    concentration = round2(pct);
                     providedN = round2(q * nvl(best.getN()) / 100d);
                     providedP2O5 = round2(q * nvl(best.getP2O5()) / 100d);
                     providedK2O = round2(q * nvl(best.getK2O()) / 100d);
                     balance.addCoverage(nutrient, targetApplication, providedN, providedP2O5, providedK2O);
+                    calculationMemory = buildCalculationMemory(new FertilizerDoseCalculation(limitingNutrient, targetNeed, concentration, q, "concentração do nutriente alvo em fertilizante simples"), providedN, providedP2O5, providedK2O, balance.balanceN(), balance.balanceP2O5(), balance.balanceK2O());
+                } else {
+                    warning = "Adubo mineral simples encontrado para cobertura de " + nutrient + ", mas sem concentração válida do nutriente alvo; dose não calculada.";
+                    warnings.add(warning);
                 }
                 fertName = best.getName();
                 suggestions.add(FertilizerSuggestion.builder()
@@ -918,6 +954,11 @@ public class RecommendationCalculationService {
                     .balanceN(balance.balanceN())
                     .balanceP2O5(balance.balanceP2O5())
                     .balanceK2O(balance.balanceK2O())
+                    .limitingNutrient(limitingNutrient)
+                    .targetNeedKgHa(targetNeed)
+                    .productConcentrationPercent(concentration)
+                    .calculationMemory(calculationMemory)
+                    .warning(warning)
                     .build());
         }
         return rows;
@@ -935,8 +976,12 @@ public class RecommendationCalculationService {
         if (nutrient == Nutriente.POTASSIO) return nvl(fertilizer.getK2O());
         return nvl(fertilizer.getP2O5());
     }
+    private String nutrientLabel(Nutriente nutrient) {
+        if (nutrient == Nutriente.NITROGENIO) return "N";
+        if (nutrient == Nutriente.POTASSIO) return "K2O";
+        return "P2O5";
+    }
     private int compareScore(double an,double ap,double ak,double bn,double bp,double bk,Double rn,Double rp,Double rk,Long aid,Long bid){int as=(nvl(rn)>0&&an>0?1:0)+(nvl(rp)>0&&ap>0?1:0)+(nvl(rk)>0&&ak>0?1:0);int bs=(nvl(rn)>0&&bn>0?1:0)+(nvl(rp)>0&&bp>0?1:0)+(nvl(rk)>0&&bk>0?1:0); if(as!=bs)return Integer.compare(as,bs); if(nvl(rp)>0&&Double.compare(ap,bp)!=0)return Double.compare(ap,bp); return Long.compare(bid,aid);}
-    private double estimate(Double rn,Double rp,Double rk,double n,double p,double k){double q=0d;if(nvl(rn)>0&&n>0)q=Math.max(q,rn/n*100d);if(nvl(rp)>0&&p>0)q=Math.max(q,rp/p*100d);if(nvl(rk)>0&&k>0)q=Math.max(q,rk/k*100d);return round2(q);}
     private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
     private <T> List<T> dedup(List<T> a,List<T> b, Function<T,Long> id){Map<Long,T> m=new LinkedHashMap<>();a.forEach(x->m.putIfAbsent(id.apply(x),x));b.forEach(x->m.putIfAbsent(id.apply(x),x));return new ArrayList<>(m.values());}
 
@@ -963,7 +1008,7 @@ public class RecommendationCalculationService {
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String warning; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String limitingNutrient; private Double targetNeedKgHa; private Double productConcentrationPercent; private String calculationMemory; private String warning; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class NutrientBalanceRow { private String nutrient; private Double requiredTotalKgHa; private Double providedByPlantingKgHa; private Double recommendedCoverageKgHa; private Double providedByCoverageKgHa; private Double providedTotalKgHa; private Double finalBalanceKgHa; private String status; }
 }
