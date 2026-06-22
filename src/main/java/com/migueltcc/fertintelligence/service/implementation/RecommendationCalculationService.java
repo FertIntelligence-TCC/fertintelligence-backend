@@ -271,7 +271,7 @@ public class RecommendationCalculationService {
         CriterioCalagem selectedCriteria = dto.getLimingCriteria() != null
                 ? dto.getLimingCriteria()
                 : cropFertilizationTable.getCriteria();
-        String formula = "NC (t/ha) = T * (V2 - V1) / 100 * (100 / PRNT)";
+        String formula = "NC teórica (t/ha) = T * (V2 - V1) / 100; NC corrigida (t/ha) = NC teórica * 100 / PRNT";
         Map<String, Double> inputValues = new LinkedHashMap<>();
         List<String> limingWarnings = new ArrayList<>();
 
@@ -319,23 +319,25 @@ public class RecommendationCalculationService {
         if (targetBaseSaturation == null) limingWarnings.add("V desejado não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
         if (prnt == null) limingWarnings.add("PRNT do calcário não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
 
-        if (limingWarnings.isEmpty()) {
-            double calculatedRequirement = Math.max(0d, round2(ctcPh7 * (targetBaseSaturation - currentBaseSaturation) / 100d * (100d / prnt)));
-            return LimingRequirementResult.builder()
-                    .selectedCriteria(selectedCriteria.name())
-                    .formula(formula)
-                    .inputValues(inputValues)
-                    .calculatedRequirement(calculatedRequirement)
-                    .unit("t/ha")
-                    .warnings(limingWarnings)
-                    .build();
+        Double theoreticalRequirement = null;
+        if (currentBaseSaturation != null && ctcPh7 != null && targetBaseSaturation != null) {
+            theoreticalRequirement = Math.max(0d, round2(ctcPh7 * (targetBaseSaturation - currentBaseSaturation) / 100d));
         }
 
+        PrntAdjustment prntAdjustment = applyPrntAdjustment(theoreticalRequirement, prnt, limingWarnings);
+        if (theoreticalRequirement != null && prntAdjustment.correctedRequirement() == null) {
+            limingWarnings.add("Dose teórica calculada, mas dose corrigida por PRNT não foi calculada porque o PRNT não está disponível.");
+        }
         warnings.addAll(limingWarnings);
         return LimingRequirementResult.builder()
                 .selectedCriteria(selectedCriteria.name())
                 .formula(formula)
                 .inputValues(inputValues)
+                .theoreticalRequirement(theoreticalRequirement)
+                .prnt(prnt)
+                .correctedRequirement(prntAdjustment.correctedRequirement())
+                .calculatedRequirement(prntAdjustment.effectiveRequirement(theoreticalRequirement))
+                .limestoneSource("Não informada: fonte de calcário/corretivo não está modelada no backend atual.")
                 .unit("t/ha")
                 .warnings(limingWarnings)
                 .build();
@@ -347,15 +349,17 @@ public class RecommendationCalculationService {
                                                                           List<String> warnings,
                                                                           Map<String, Double> inputValues,
                                                                           List<String> limingWarnings) {
-        String formula = "NC (t/ha) = fator de calagem por argila * Al trocável";
+        String formula = "NC teórica (t/ha) = fator de calagem por argila * Al trocável; NC corrigida (t/ha) = NC teórica * 100 / PRNT";
         FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
         Double exchangeableAluminum = fertility != null ? fertility.getAluminio() : null;
         Double clayContent = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
         Double factor = clayContent != null ? limingFactorByClayContent(clayContent) : null;
+        Double prnt = null;
 
         inputValues.put("Al trocável (mmolc/dm3)", exchangeableAluminum);
         inputValues.put("Argila (g/dm3)", clayContent);
         inputValues.put("Fator de calagem por argila", factor);
+        inputValues.put("PRNT (%)", prnt);
 
         if (exchangeableAluminum == null) {
             limingWarnings.add("Al trocável ausente no extrato de fertilidade (aluminio).");
@@ -364,26 +368,47 @@ public class RecommendationCalculationService {
             limingWarnings.add("Teor de argila ausente no extrato de análise física (teorArgila), necessário para selecionar o fator de calagem.");
         }
 
-        if (limingWarnings.isEmpty()) {
-            double calculatedRequirement = Math.max(0d, round2(factor * exchangeableAluminum));
-            return LimingRequirementResult.builder()
-                    .selectedCriteria(selectedCriteria.name())
-                    .formula(formula)
-                    .inputValues(inputValues)
-                    .calculatedRequirement(calculatedRequirement)
-                    .unit("t/ha")
-                    .warnings(limingWarnings)
-                    .build();
+        Double theoreticalRequirement = null;
+        if (exchangeableAluminum != null && factor != null) {
+            theoreticalRequirement = Math.max(0d, round2(factor * exchangeableAluminum));
         }
 
+        if (prnt == null) {
+            limingWarnings.add("PRNT do calcário não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
+        }
+        PrntAdjustment prntAdjustment = applyPrntAdjustment(theoreticalRequirement, prnt, limingWarnings);
+        if (theoreticalRequirement != null && prntAdjustment.correctedRequirement() == null) {
+            limingWarnings.add("Dose teórica calculada, mas dose corrigida por PRNT não foi calculada porque o PRNT não está disponível.");
+        }
         warnings.addAll(limingWarnings);
         return LimingRequirementResult.builder()
                 .selectedCriteria(selectedCriteria.name())
                 .formula(formula)
                 .inputValues(inputValues)
+                .theoreticalRequirement(theoreticalRequirement)
+                .prnt(prnt)
+                .correctedRequirement(prntAdjustment.correctedRequirement())
+                .calculatedRequirement(prntAdjustment.effectiveRequirement(theoreticalRequirement))
+                .limestoneSource("Não informada: fonte de calcário/corretivo não está modelada no backend atual.")
                 .unit("t/ha")
                 .warnings(limingWarnings)
                 .build();
+    }
+
+    private PrntAdjustment applyPrntAdjustment(Double theoreticalRequirement, Double prnt, List<String> limingWarnings) {
+        if (theoreticalRequirement == null) return new PrntAdjustment(null);
+        if (prnt == null) return new PrntAdjustment(null);
+        if (prnt <= 0d) {
+            limingWarnings.add("PRNT informado inválido; a correção exige PRNT maior que zero.");
+            return new PrntAdjustment(null);
+        }
+        return new PrntAdjustment(Math.max(0d, round2(theoreticalRequirement * 100d / prnt)));
+    }
+
+    private record PrntAdjustment(Double correctedRequirement) {
+        Double effectiveRequirement(Double theoreticalRequirement) {
+            return correctedRequirement != null ? correctedRequirement : theoreticalRequirement;
+        }
     }
 
     private double limingFactorByClayContent(Double clayContent) {
@@ -1138,7 +1163,7 @@ public class RecommendationCalculationService {
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private List<String> warnings; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
