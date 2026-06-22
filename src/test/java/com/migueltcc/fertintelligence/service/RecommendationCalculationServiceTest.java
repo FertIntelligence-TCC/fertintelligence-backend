@@ -54,6 +54,7 @@ class RecommendationCalculationServiceTest {
     @Mock private FertilityAnalysisExtractRepository fertilityExtractRepo;
     @Mock private SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepo;
     @Mock private CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepo;
+    @Mock private CropFoliarAnalysisInterpretationTableLineRepository cropFoliarAnalysisInterpretationTableLineRepo;
     @Mock private DiverseContentRangeRepository diverseContentRangeRepository;
     @Mock private KExchangeableContentRepository kExchangeableContentRepository;
     @Mock private AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;

@@ -54,6 +54,7 @@ public class RecommendationReportService {
         appendPhysicalDiagnosis(report, result);
         appendChemicalDiagnosis(report, result);
         appendSalinityDiagnosis(report, result);
+        appendFoliarDiagnosis(report, result);
     }
 
     private void appendPhysicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -104,6 +105,26 @@ public class RecommendationReportService {
         }
         for (RecommendationCalculationService.SoilSalinityDiagnosisItem item : result.getSoilSalinityDiagnosis()) {
             report.append("| ").append(safeCell(item.getAttribute()))
+                    .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
+                    .append(" | ").append(safeCell(item.getUnit()))
+                    .append(" | ").append(safeCell(item.getInterpretation()))
+                    .append(" | ").append(safeCell(item.getUsedCriterion()))
+                    .append(" | ").append(safeCell(item.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
+    }
+
+    private void appendFoliarDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Diagnóstico Foliar\n\n");
+        report.append("| Nutriente | Valor analisado | Unidade | Interpretação | Faixa adequada usada | Observação técnica |\n");
+        report.append("|---|---|---|---|---|---|\n");
+        if (result.getFoliarDiagnosis() == null || result.getFoliarDiagnosis().isEmpty()) {
+            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Análise foliar não informada ou critérios insuficientes para diagnóstico. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.FoliarDiagnosisItem item : result.getFoliarDiagnosis()) {
+            report.append("| ").append(safeCell(item.getNutrient()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))
                     .append(" | ").append(safeCell(item.getInterpretation()))

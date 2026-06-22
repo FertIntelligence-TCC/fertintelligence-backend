@@ -38,6 +38,7 @@ class RecommendationCalculationServiceFertilizerSourceTest {
                 mock(FertilityAnalysisExtractRepository.class),
                 mock(SoilFertilityInterpretationCriteriaTableRepository.class),
                 mock(CropFoliarAnalysisInterpretationTableRepository.class),
+                mock(CropFoliarAnalysisInterpretationTableLineRepository.class),
                 mock(DiverseContentRangeRepository.class),
                 mock(KExchangeableContentRepository.class),
                 mock(AvailablePMehlich1ExtractorRepository.class),
