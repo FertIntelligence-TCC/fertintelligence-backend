@@ -56,7 +56,9 @@ public class RecommendationReportService {
 
     private void appendCorrection(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("3. Recomendação de Correção\n\n");
-        report.append("- Critério de calagem selecionado: ").append(safe(result.getLimingCriteria())).append("\n");
+        if (result.getLimingCriteria() != null && !result.getLimingCriteria().isBlank()) {
+            report.append("- Critério de calagem selecionado: ").append(result.getLimingCriteria()).append("\n");
+        }
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
         report.append("\n");
     }
