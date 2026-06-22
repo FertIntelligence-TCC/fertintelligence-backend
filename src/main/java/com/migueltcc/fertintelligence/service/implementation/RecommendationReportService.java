@@ -256,6 +256,7 @@ public class RecommendationReportService {
         appendCommercialFertilizerCalculationMemory(report, result);
         appendNutrientBalance(report, result);
         appendCorrectiveFertilization(report, result);
+        appendAlternativeFertilization(report, result);
     }
 
     private void appendCorrectiveFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -323,6 +324,27 @@ public class RecommendationReportService {
                     .append(" | ").append(formatQuantity(row.getProvidedTotalKgHa()))
                     .append(" | ").append(formatSignedQuantity(row.getFinalBalanceKgHa()))
                     .append(" | ").append(safeCell(row.getStatus()))
+                    .append(" |\n");
+        }
+        report.append("\n");
+    }
+
+    private void appendAlternativeFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Adubação Orgânica, Organomineral e Micronutrientes\n\n");
+        report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
+        report.append("|---|---|---|---|---|---|---|\n");
+        if (result.getAlternativeFertilizationRows() == null || result.getAlternativeFertilizationRows().isEmpty()) {
+            report.append("| Não calculado | Orgânicos/organominerais/micronutrientes | Não selecionada | Não calculada | Não modelada | Não há dados suficientes para recomendação suportada. | O backend não gerou recomendações genéricas sem cálculo. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
+            report.append("| ").append(safeCell(row.getSourceType()))
+                    .append(" | ").append(safeCell(row.getNutrientOrObjective()))
+                    .append(" | ").append(safeCell(row.getSourceName()))
+                    .append(" | ").append(safeCell(row.getDose()))
+                    .append(" | ").append(safeCell(row.getUnit()))
+                    .append(" | ").append(safeCell(row.getJustification()))
+                    .append(" | ").append(safeCell(row.getLimitations()))
                     .append(" |\n");
         }
         report.append("\n");

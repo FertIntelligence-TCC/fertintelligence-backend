@@ -62,6 +62,13 @@ class RecommendationCalculationServiceTest {
     @Mock private AvailableSRepository availableSRepository;
     @Mock private ExchangeableSodiumRepository exchangeableSodiumRepository;
     @Mock private SalinityInterpretationRepository salinityInterpretationRepository;
+    @Mock private OrganicFertilizerRepository organicFertilizerRepository;
+    @Mock private OrganoMineralFertilizerRepository organoMineralFertilizerRepository;
+    @Mock private GreenFertilizerRepository greenFertilizerRepository;
+    @Mock private BioFertilizerRepository bioFertilizerRepository;
+    @Mock private MineralFertilizerRepository mineralFertilizerRepository;
+    @Mock private ChelatedFertilizerRepository chelatedFertilizerRepository;
+    @Mock private CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
 
     @InjectMocks private RecommendationCalculationService service;
     private final RecommendationReportService reportService = new RecommendationReportService();

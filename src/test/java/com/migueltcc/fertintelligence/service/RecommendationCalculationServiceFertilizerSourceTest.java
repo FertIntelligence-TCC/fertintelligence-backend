@@ -45,7 +45,14 @@ class RecommendationCalculationServiceFertilizerSourceTest {
                 mock(AvailablePAnionExchangeResinExtractorRepository.class),
                 mock(AvailableSRepository.class),
                 mock(ExchangeableSodiumRepository.class),
-                mock(SalinityInterpretationRepository.class)
+                mock(SalinityInterpretationRepository.class),
+                mock(OrganicFertilizerRepository.class),
+                mock(OrganoMineralFertilizerRepository.class),
+                mock(GreenFertilizerRepository.class),
+                mock(BioFertilizerRepository.class),
+                mock(MineralFertilizerRepository.class),
+                mock(ChelatedFertilizerRepository.class),
+                mock(CropFertilizationMicronutrientDoseRepository.class)
         );
         user = UserModel.builder().id(1L).build();
     }
