@@ -255,6 +255,27 @@ public class RecommendationReportService {
         report.append("\n");
         appendCommercialFertilizerCalculationMemory(report, result);
         appendNutrientBalance(report, result);
+        appendCorrectiveFertilization(report, result);
+    }
+
+    private void appendCorrectiveFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Adubação Corretiva\n\n");
+        report.append("| Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |\n");
+        report.append("|---|---|---|---|---|---|\n");
+        if (result.getCorrectiveFertilizationRows() == null || result.getCorrectiveFertilizationRows().isEmpty()) {
+            report.append("| P/K/S corretivos | Não avaliada | Não sugerida | Não calculada | Não há regra quantitativa corretiva separada nos modelos atuais. | Adubação corretiva não foi calculada para evitar misturar dose de plantio/cobertura com correção. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.CorrectiveFertilizationRow row : result.getCorrectiveFertilizationRows()) {
+            report.append("| ").append(safeCell(row.getCorrectedAttribute()))
+                    .append(" | ").append(safeCell(row.getNeed()))
+                    .append(" | ").append(safeCell(row.getSuggestedSource()))
+                    .append(" | ").append(formatDose(row.getDose(), row.getDoseUnit()))
+                    .append(" | ").append(safeCell(row.getCalculationMemory()))
+                    .append(" | ").append(safeCell(row.getTechnicalWarning()))
+                    .append(" |\n");
+        }
+        report.append("\n");
     }
 
     private void appendCommercialFertilizerCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -334,6 +355,10 @@ public class RecommendationReportService {
 
     private String formatQuantity(Double value) {
         return value == null ? "Não calculado" : String.format(Locale.US, "%.2f kg/ha", value);
+    }
+
+    private String formatDose(Double value, String unit) {
+        return value == null ? "Não calculada" : String.format(Locale.US, "%.2f %s", value, safe(unit));
     }
 
     private void appendLimingDose(StringBuilder report, Double value, String unit) {

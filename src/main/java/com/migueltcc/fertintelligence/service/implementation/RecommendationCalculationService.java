@@ -156,6 +156,8 @@ public class RecommendationCalculationService {
                 fertilityExtract, physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
+        List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
+                chemicalDiagnosis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
                 saturationExtractAnalysis, fertilityExtract, soilInterpretationTable, warnings);
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
@@ -248,6 +250,7 @@ public class RecommendationCalculationService {
                 .limingRequirement(limingRequirement)
                 .gypsumRequirement(gypsumRequirement)
                 .soilChemicalDiagnosis(chemicalDiagnosis)
+                .correctiveFertilizationRows(correctiveFertilizationRows)
                 .soilPhysicalDiagnosis(physicalDiagnosis.items())
                 .soilSalinityDiagnosis(salinityDiagnosis.items())
                 .foliarDiagnosis(foliarDiagnosis)
@@ -629,6 +632,114 @@ public class RecommendationCalculationService {
     private String safeInterpretation(SoilChemicalDiagnosisItem item) {
         return item == null || item.getInterpretation() == null ? "não classificado" : item.getInterpretation();
     }
+
+    private List<CorrectiveFertilizationRow> buildCorrectiveFertilizationRows(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+                                                                              CropFertilizationTableModel cropFertilizationTable,
+                                                                              SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                                                              UserModel user,
+                                                                              FertilizerSourceOption sourceOption,
+                                                                              List<String> warnings) {
+        List<CorrectiveFertilizationRow> rows = new ArrayList<>();
+        Map<String, SoilChemicalDiagnosisItem> byAttribute = new LinkedHashMap<>();
+        if (chemicalDiagnosis != null) {
+            for (SoilChemicalDiagnosisItem item : chemicalDiagnosis) {
+                if (item != null && item.getAttribute() != null) {
+                    byAttribute.put(normalizeText(item.getAttribute()), item);
+                }
+            }
+        }
+
+        addCorrectiveRowIfRelevant(rows, "Fósforo corretivo", findFirstDiagnosis(byAttribute, "fosforo"),
+                "P2O5", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+        addCorrectiveRowIfRelevant(rows, "Potássio corretivo", findFirstDiagnosis(byAttribute, "potassio"),
+                "K2O", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+        addCorrectiveRowIfRelevant(rows, "Enxofre corretivo", findFirstDiagnosis(byAttribute, "enxofre"),
+                "S", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+
+        if (rows.isEmpty()) {
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute("P/K/S corretivos")
+                    .need("Não avaliada")
+                    .suggestedSource("Não sugerida")
+                    .dose(null)
+                    .doseUnit("kg/ha")
+                    .calculationMemory("Não há diagnóstico classificável de fósforo, potássio ou enxofre com os dados e critérios disponíveis.")
+                    .technicalWarning("Adubação corretiva não foi calculada por ausência de diagnóstico classificável e/ou critério quantitativo corretivo separado.")
+                    .build());
+        }
+        return rows;
+    }
+
+    private SoilChemicalDiagnosisItem findFirstDiagnosis(Map<String, SoilChemicalDiagnosisItem> byAttribute, String token) {
+        return byAttribute.entrySet().stream()
+                .filter(entry -> entry.getKey().contains(token))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void addCorrectiveRowIfRelevant(List<CorrectiveFertilizationRow> rows,
+                                            String correctedAttribute,
+                                            SoilChemicalDiagnosisItem diagnosis,
+                                            String nutrientTarget,
+                                            CropFertilizationTableModel cropFertilizationTable,
+                                            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                            UserModel user,
+                                            FertilizerSourceOption sourceOption,
+                                            List<String> warnings) {
+        if (diagnosis == null || diagnosis.getInterpretation() == null) return;
+
+        boolean deficiency = isInterpretation(diagnosis, "Muito baixo", "Baixo");
+        SimpleMineralFertilizerModel source = deficiency ? selectCorrectiveSource(user, sourceOption, nutrientTarget) : null;
+        String need = deficiency
+                ? "Indicada tecnicamente para avaliação: " + diagnosis.getInterpretation()
+                : "Não indicada automaticamente: " + diagnosis.getInterpretation();
+        String warning = "Não há dose corretiva separada modelada para " + correctedAttribute
+                + "; a tabela de adubação possui doses de plantio/cobertura, mas não curva ou coeficiente corretivo independente.";
+        warnings.add(warning);
+
+        String sourceName = source != null && deficiency ? source.getName() : "Não sugerida automaticamente";
+        String sourceDetail = source != null && deficiency
+                ? "Fonte mineral simples compatível encontrada (" + source.getName() + "), sem dose calculada por ausência de critério quantitativo corretivo."
+                : "Fonte não selecionada porque a dose corretiva não foi calculada.";
+
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute(correctedAttribute)
+                .need(need)
+                .suggestedSource(sourceName)
+                .dose(null)
+                .doseUnit("kg/ha")
+                .calculationMemory("Diagnóstico: " + diagnosis.getAttribute()
+                        + " = " + formatNumber(diagnosis.getAnalyzedValue()) + " " + (diagnosis.getUnit() != null ? diagnosis.getUnit() : "")
+                        + "; interpretação: " + diagnosis.getInterpretation()
+                        + "; critério usado: " + (diagnosis.getUsedCriterion() != null ? diagnosis.getUsedCriterion() : "não informado")
+                        + ". Tabela de adubação ID " + (cropFertilizationTable != null ? cropFertilizationTable.getId() : null)
+                        + " e tabela de interpretação ID " + (soilInterpretationTable != null ? soilInterpretationTable.getId() : null)
+                        + " não possuem dose corretiva independente para " + nutrientTarget + ".")
+                .technicalWarning(sourceDetail + " " + warning)
+                .build());
+    }
+
+    private SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {
+        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
+        if (fertilizers == null) return null;
+        return fertilizers.stream()
+                .filter(f -> correctiveSourcePercentage(f, nutrientTarget) > 0d)
+                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> correctiveSourcePercentage(f, nutrientTarget))
+                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
+                .orElse(null);
+    }
+
+    private double correctiveSourcePercentage(SimpleMineralFertilizerModel fertilizer, String nutrientTarget) {
+        if (fertilizer == null || nutrientTarget == null) return 0d;
+        return switch (nutrientTarget) {
+            case "P2O5" -> nvl(fertilizer.getP2O5());
+            case "K2O" -> nvl(fertilizer.getK2O());
+            case "S" -> nvl(fertilizer.getS());
+            default -> 0d;
+        };
+    }
+
     private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
         List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
         if (physicalAnalysis == null) {
@@ -1486,10 +1597,11 @@ public class RecommendationCalculationService {
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private GypsumRequirementResult gypsumRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private List<FoliarDiagnosisItem> foliarDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private GypsumRequirementResult gypsumRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<CorrectiveFertilizationRow> correctiveFertilizationRows; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private List<FoliarDiagnosisItem> foliarDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String sourceName; private String sourceType; private Double commercialDose; private String commercialDoseUnit; private String sourceJustification; private String sourceLimitations; private String justification; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class CorrectiveFertilizationRow { private String correctedAttribute; private String need; private String suggestedSource; private Double dose; private String doseUnit; private String calculationMemory; private String technicalWarning; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FoliarDiagnosisItem { private String nutrient; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
