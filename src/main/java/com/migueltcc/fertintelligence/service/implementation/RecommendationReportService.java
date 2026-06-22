@@ -46,8 +46,6 @@ public class RecommendationReportService {
         report.append("- Análise física: ").append(safe(result.getPhysicalAnalysisSummary())).append("\n");
         report.append("- Análise de fertilidade: ").append(safe(result.getSoilFertilityAnalysisSummary())).append("\n");
         report.append("- Extrato de saturação: ").append(safe(result.getSaturationExtractAnalysisSummary())).append("\n");
-        report.append("- Pasta de cultura anual: ").append(safe(result.getAnnualCropFolderSummary())).append("\n");
-        report.append("- Cultura encontrada: ").append(safe(result.getCropSummary())).append("\n");
         report.append("- Análise foliar: ").append(safe(result.getFoliarAnalysisSummary())).append("\n");
         report.append("- Principais alertas ou limitações identificadas:\n");
         appendBulletList(report, result.getDiagnosticMessages(), "Nenhuma limitação adicional foi registrada.");
