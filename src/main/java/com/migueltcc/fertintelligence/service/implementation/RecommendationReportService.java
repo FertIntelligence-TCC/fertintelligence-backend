@@ -184,7 +184,14 @@ public class RecommendationReportService {
         report.append("- Dose de gesso: ");
         appendLimingDose(report, gypsum.getCalculatedRequirement(), gypsum.getUnit());
         report.append("\n");
+        report.append("- Fonte comercial: ").append(safe(gypsum.getSourceName())).append("\n");
+        report.append("- Tipo da fonte: ").append(safe(gypsum.getSourceType())).append("\n");
+        report.append("- Dose comercial: ");
+        appendLimingDose(report, gypsum.getCommercialDose(), gypsum.getCommercialDoseUnit());
+        report.append("\n");
         report.append("- Justificativa: ").append(safe(gypsum.getJustification())).append("\n");
+        report.append("- Justificativa da fonte: ").append(safe(gypsum.getSourceJustification())).append("\n");
+        report.append("- Limitações da fonte: ").append(safe(gypsum.getSourceLimitations())).append("\n");
 
         report.append("| Valor de entrada | Valor |\n");
         report.append("|---|---|\n");

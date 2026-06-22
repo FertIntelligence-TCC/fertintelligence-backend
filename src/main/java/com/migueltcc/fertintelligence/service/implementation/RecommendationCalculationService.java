@@ -144,7 +144,7 @@ public class RecommendationCalculationService {
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
         LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
         GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
-                fertilityExtract, physicalAnalysis, cropFertilizationTable, soilInterpretationTable, warnings);
+                fertilityExtract, physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
@@ -425,6 +425,8 @@ public class RecommendationCalculationService {
                                                                PhysicalAnalysisExtractModel physicalAnalysis,
                                                                CropFertilizationTableModel cropFertilizationTable,
                                                                SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                                               UserModel user,
+                                                               FertilizerSourceOption sourceOption,
                                                                List<String> warnings) {
         String criterion = "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose parametrizada em SUGESTAO_GESSAGEM da tabela de adubação.";
         Map<String, Double> inputValues = new LinkedHashMap<>();
@@ -521,6 +523,8 @@ public class RecommendationCalculationService {
                 + ", Al=" + safeInterpretation(aluminum)
                 + ", m%=" + safeInterpretation(aluminumSaturation) + ".";
 
+        GypsumSourceSelection sourceSelection = selectGypsumSource(user, sourceOption, dose, gypsumWarnings);
+
         warnings.addAll(gypsumWarnings);
         return GypsumRequirementResult.builder()
                 .needed(needed)
@@ -528,9 +532,65 @@ public class RecommendationCalculationService {
                 .inputValues(inputValues)
                 .calculatedRequirement(dose)
                 .unit("t/ha")
+                .sourceName(sourceSelection.sourceName())
+                .sourceType(sourceSelection.sourceType())
+                .commercialDose(sourceSelection.commercialDose())
+                .commercialDoseUnit(sourceSelection.commercialDoseUnit())
+                .sourceJustification(sourceSelection.justification())
+                .sourceLimitations(sourceSelection.limitations())
                 .justification(justification)
                 .warnings(gypsumWarnings)
                 .build();
+    }
+
+    private GypsumSourceSelection selectGypsumSource(UserModel user,
+                                                     FertilizerSourceOption sourceOption,
+                                                     Double calculatedDose,
+                                                     List<String> gypsumWarnings) {
+        if (calculatedDose == null) {
+            String limitation = "Fonte comercial de gesso agrícola não selecionada porque a dose de gessagem não foi calculada.";
+            gypsumWarnings.add(limitation);
+            return new GypsumSourceSelection(null, null, null, null,
+                    "Seleção de fonte não realizada por ausência de dose calculada.", limitation);
+        }
+        if (calculatedDose <= 0d) {
+            return new GypsumSourceSelection(null, null, 0d, "t/ha",
+                    "Gessagem não indicada; não há fonte comercial a aplicar.", "Sem limitação adicional para fonte comercial.");
+        }
+
+        Optional<SimpleMineralFertilizerModel> gypsumSource = selectSimpleFertilizers(user, sourceOption).stream()
+                .filter(this::isGypsumProduct)
+                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> nvl(f.getCa()) + nvl(f.getS()))
+                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
+
+        if (gypsumSource.isEmpty()) {
+            String limitation = "Não há produto de gesso agrícola cadastrado nos adubos minerais simples acessíveis pela origem selecionada; a dose calculada foi mantida sem fonte comercial.";
+            gypsumWarnings.add(limitation);
+            return new GypsumSourceSelection(null, null, calculatedDose, "t/ha",
+                    "Dose mantida como gesso agrícola calculado pela tabela, sem produto comercial selecionado.", limitation);
+        }
+
+        SimpleMineralFertilizerModel source = gypsumSource.get();
+        String justification = String.format(Locale.US,
+                "Produto cadastrado como adubo mineral simples com nome compatível com gesso agrícola e composição Ca %.2f%% / S %.2f%%.",
+                nvl(source.getCa()), nvl(source.getS()));
+        String limitation = "O modelo do produto não possui teor de pureza de gesso agrícola; portanto a dose comercial foi mantida igual à dose de gesso calculada.";
+        gypsumWarnings.add(limitation);
+        return new GypsumSourceSelection(source.getName(), "SIMPLES", calculatedDose, "t/ha", justification, limitation);
+    }
+
+    private boolean isGypsumProduct(SimpleMineralFertilizerModel fertilizer) {
+        if (fertilizer == null || fertilizer.getName() == null) return false;
+        String name = normalizeText(fertilizer.getName());
+        boolean nameMatches = name.contains("gesso") || name.contains("gypsum") || name.contains("sulfato de calcio");
+        return nameMatches && (nvl(fertilizer.getCa()) > 0d || nvl(fertilizer.getS()) > 0d);
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) return "";
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private Double extractInitialDepth(FertilityAnalysisExtractModel fertility) {
@@ -1080,6 +1140,7 @@ public class RecommendationCalculationService {
 
     private record PhysicalDiagnosis(String summary, List<SoilPhysicalDiagnosisItem> items) {}
     private record SalinityDiagnosis(String summary, List<SoilSalinityDiagnosisItem> items) {}
+    private record GypsumSourceSelection(String sourceName, String sourceType, Double commercialDose, String commercialDoseUnit, String justification, String limitations) {}
     private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                   Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
     private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
@@ -1306,7 +1367,7 @@ public class RecommendationCalculationService {
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private GypsumRequirementResult gypsumRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String justification; private List<String> warnings; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String sourceName; private String sourceType; private Double commercialDose; private String commercialDoseUnit; private String sourceJustification; private String sourceLimitations; private String justification; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
