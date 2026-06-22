@@ -1,26 +1,32 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class RecommendationNarrativeService {
 
-    private static final String CLARITY_NOTICE =
-            "Texto revisado para maior clareza. Os cálculos técnicos permanecem inalterados.";
+    private final FertAiClient fertAiClient;
 
     public String improveNarrative(String technicalReport) {
+        int technicalReportLength = technicalReport != null ? technicalReport.length() : 0;
         if (technicalReport == null || technicalReport.isBlank()) {
-            return CLARITY_NOTICE;
+            log.info("Skipping Fert-AI narrative improvement because technicalReport is blank, falling back to original report");
+            return technicalReport;
         }
 
-        String formattedReport = Arrays.stream(technicalReport.split("\\R", -1))
-                .map(String::stripTrailing)
-                .collect(Collectors.joining("\n"))
-                .trim();
-
-        return formattedReport + "\n\n" + CLARITY_NOTICE;
+        try {
+            String improvedReport = fertAiClient.improveNarrative(technicalReport);
+            log.info("Fert-AI narrative improvement succeeded: technicalReportLength={}, improvedReportLength={}, fallback=false",
+                    technicalReportLength, improvedReport.length());
+            return improvedReport;
+        } catch (Exception ex) {
+            log.warn("Fert-AI narrative improvement failed, using technicalReport fallback: technicalReportLength={}, fallback=true, cause={}",
+                    technicalReportLength, ex.toString(), ex);
+            return technicalReport;
+        }
     }
 }

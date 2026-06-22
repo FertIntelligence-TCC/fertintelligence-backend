@@ -81,6 +81,9 @@ class RecommendationServiceImplTest {
         when(recommendationReportService.buildTechnicalReport(calculationResult))
                 .thenReturn("laudo");
 
+        when(recommendationNarrativeService.improveNarrative("laudo"))
+                .thenReturn("laudo melhorado");
+
         when(recommendationRepository.save(any(RecommendationModel.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
     }
@@ -117,7 +120,8 @@ class RecommendationServiceImplTest {
         assertDoesNotThrow(() -> recommendationService.generate(dto(), "sec"));
 
         verify(permissionManager).assertCanGenerateRecommendation(property, plot, secretario);
-        verify(recommendationRepository).save(any(RecommendationModel.class));
+        verify(recommendationNarrativeService).improveNarrative("laudo");
+        verify(recommendationRepository).save(argThat(model -> "laudo melhorado".equals(model.getTechnicalReport())));
     }
 
     @Test
