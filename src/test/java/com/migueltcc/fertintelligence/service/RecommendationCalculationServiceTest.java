@@ -7,6 +7,7 @@ import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateReq
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.FoliarAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -26,8 +27,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem.NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL;
 import static com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -124,6 +127,48 @@ class RecommendationCalculationServiceTest {
         when(tableRepo.findById(1L)).thenReturn(Optional.empty());
         var result=service.calculate(dto(),user,property,plot);
         assertTrue(result.getWarnings().stream().anyMatch(w->w.contains("Tabela de adubação")));
+    }
+
+    @Test void calculaCalagemPorNeutralizacaoDeAluminioTrocavel() throws Exception {
+        RecommendationCreateRequestDto request = new RecommendationCreateRequestDto();
+        request.setLimingCriteria(NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL);
+        FertilityAnalysisExtractModel fertility = FertilityAnalysisExtractModel.builder()
+                .aluminio(1.2)
+                .build();
+        PhysicalAnalysisExtractModel physical = PhysicalAnalysisExtractModel.builder()
+                .teorArgila(420d)
+                .build();
+        CropFertilizationTableModel table = CropFertilizationTableModel.builder()
+                .criteria(SATURACAO_POR_BASES_TROCAVEIS)
+                .build();
+        List<String> warnings = new java.util.ArrayList<>();
+
+        var method = RecommendationCalculationService.class.getDeclaredMethod(
+                "calculateLimingRequirement",
+                RecommendationCreateRequestDto.class,
+                Optional.class,
+                PhysicalAnalysisExtractModel.class,
+                CropFertilizationTableModel.class,
+                List.class);
+        method.setAccessible(true);
+
+        RecommendationCalculationService.LimingRequirementResult result =
+                (RecommendationCalculationService.LimingRequirementResult) method.invoke(
+                        service,
+                        request,
+                        Optional.of(fertility),
+                        physical,
+                        table,
+                        warnings);
+
+        assertEquals(NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL.name(), result.getSelectedCriteria());
+        assertEquals(3.0, result.getCalculatedRequirement());
+        assertTrue(result.getWarnings().isEmpty());
+        assertTrue(warnings.isEmpty());
+        Map<String, Double> inputs = result.getInputValues();
+        assertEquals(1.2, inputs.get("Al trocável (mmolc/dm3)"));
+        assertEquals(420d, inputs.get("Argila (g/dm3)"));
+        assertEquals(2.5, inputs.get("Fator de calagem por argila"));
     }
 
     @Test void semAnaliseFertilidadeUsaPrimeiroIntervaloDePeKComWarning(){

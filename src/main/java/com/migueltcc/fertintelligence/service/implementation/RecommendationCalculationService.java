@@ -142,7 +142,7 @@ public class RecommendationCalculationService {
         String foliarSummary = foliarAnalysis.map(m -> "Análise foliar considerada quando aplicável.").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
-        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, cropFertilizationTable, warnings);
+        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
@@ -231,7 +231,7 @@ public class RecommendationCalculationService {
                 .cropName(crop.getName() != null ? crop.getName().name() : null)
                 .annualCropFolderYear(annualCropFolder.getCropsYear())
                 .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
-                .limingCriteria(dto.getLimingCriteria() != null ? dto.getLimingCriteria().name() : null)
+                .limingCriteria(limingRequirement != null ? limingRequirement.getSelectedCriteria() : null)
                 .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
                 .limingRequirement(limingRequirement)
@@ -265,6 +265,7 @@ public class RecommendationCalculationService {
 
     private LimingRequirementResult calculateLimingRequirement(RecommendationCreateRequestDto dto,
                                                                Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                               PhysicalAnalysisExtractModel physicalAnalysis,
                                                                CropFertilizationTableModel cropFertilizationTable,
                                                                List<String> warnings) {
         CriterioCalagem selectedCriteria = dto.getLimingCriteria() != null
@@ -286,13 +287,17 @@ public class RecommendationCalculationService {
                     .build();
         }
 
+        if (selectedCriteria == CriterioCalagem.NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL) {
+            return calculateLimingByExchangeableAluminum(selectedCriteria, fertilityExtract, physicalAnalysis, warnings, inputValues, limingWarnings);
+        }
+
         if (selectedCriteria != CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS) {
             limingWarnings.add("Cálculo de calagem pelo critério " + selectedCriteria.name()
-                    + " não implementado neste prompt; somente saturação por bases V% foi avaliada.");
+                    + " não possui fórmula completa suportada pelos modelos atuais; somente V% e neutralização de Al trocável foram avaliados.");
             warnings.addAll(limingWarnings);
             return LimingRequirementResult.builder()
                     .selectedCriteria(selectedCriteria.name())
-                    .formula(formula)
+                    .formula("Não calculada: critério sem parametrização completa no backend.")
                     .inputValues(inputValues)
                     .unit("t/ha")
                     .warnings(limingWarnings)
@@ -334,6 +339,58 @@ public class RecommendationCalculationService {
                 .unit("t/ha")
                 .warnings(limingWarnings)
                 .build();
+    }
+
+    private LimingRequirementResult calculateLimingByExchangeableAluminum(CriterioCalagem selectedCriteria,
+                                                                          Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                                          PhysicalAnalysisExtractModel physicalAnalysis,
+                                                                          List<String> warnings,
+                                                                          Map<String, Double> inputValues,
+                                                                          List<String> limingWarnings) {
+        String formula = "NC (t/ha) = fator de calagem por argila * Al trocável";
+        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+        Double exchangeableAluminum = fertility != null ? fertility.getAluminio() : null;
+        Double clayContent = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
+        Double factor = clayContent != null ? limingFactorByClayContent(clayContent) : null;
+
+        inputValues.put("Al trocável (mmolc/dm3)", exchangeableAluminum);
+        inputValues.put("Argila (g/dm3)", clayContent);
+        inputValues.put("Fator de calagem por argila", factor);
+
+        if (exchangeableAluminum == null) {
+            limingWarnings.add("Al trocável ausente no extrato de fertilidade (aluminio).");
+        }
+        if (clayContent == null) {
+            limingWarnings.add("Teor de argila ausente no extrato de análise física (teorArgila), necessário para selecionar o fator de calagem.");
+        }
+
+        if (limingWarnings.isEmpty()) {
+            double calculatedRequirement = Math.max(0d, round2(factor * exchangeableAluminum));
+            return LimingRequirementResult.builder()
+                    .selectedCriteria(selectedCriteria.name())
+                    .formula(formula)
+                    .inputValues(inputValues)
+                    .calculatedRequirement(calculatedRequirement)
+                    .unit("t/ha")
+                    .warnings(limingWarnings)
+                    .build();
+        }
+
+        warnings.addAll(limingWarnings);
+        return LimingRequirementResult.builder()
+                .selectedCriteria(selectedCriteria.name())
+                .formula(formula)
+                .inputValues(inputValues)
+                .unit("t/ha")
+                .warnings(limingWarnings)
+                .build();
+    }
+
+    private double limingFactorByClayContent(Double clayContent) {
+        double clay = nvl(clayContent);
+        if (clay < 150.0) return 1.5;
+        if (clay <= 350.0) return 2.0;
+        return 2.5;
     }
     private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
         List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
