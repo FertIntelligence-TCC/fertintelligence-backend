@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.recommendation;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
@@ -54,6 +55,7 @@ public class RecommendationCreateRequestDto {
     private Long cropFertilizationTableId;
 
     @JsonProperty("grupo_tabela_adubacao_cultura")
+    @JsonAlias("cropFertilizationTableGroup")
     @NotNull
     private TechnicalTableGroup cropFertilizationTableGroup;
 
@@ -62,6 +64,7 @@ public class RecommendationCreateRequestDto {
     private Long soilFertilityInterpretationCriteriaTableId;
 
     @JsonProperty("grupo_tabela_interpretacao_fertilidade_solo")
+    @JsonAlias("soilFertilityInterpretationCriteriaTableGroup")
     @NotNull
     private TechnicalTableGroup soilFertilityInterpretationCriteriaTableGroup;
 
@@ -70,6 +73,7 @@ public class RecommendationCreateRequestDto {
     private Long cropFoliarAnalysisInterpretationTableId;
 
     @JsonProperty("grupo_tabela_interpretacao_analise_foliar")
+    @JsonAlias("cropFoliarAnalysisInterpretationTableGroup")
     @NotNull
     private TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
 

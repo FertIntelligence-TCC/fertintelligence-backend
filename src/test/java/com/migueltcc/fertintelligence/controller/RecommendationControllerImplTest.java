@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Cri
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
@@ -35,6 +36,36 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class RecommendationControllerImplTest extends AbstractControllerTest {
+
+    @Test
+    void recommendationCreateRequestDto_AcceptsCamelCaseTableGroups() throws Exception {
+        String json = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "cropFertilizationTableGroup": "DEFAULT",
+                  "soilFertilityInterpretationCriteriaTableGroup": "PUBLIC",
+                  "cropFoliarAnalysisInterpretationTableGroup": "DEFAULT",
+                  "criterio_calagem": null,
+                  "origem_adubos": "PUBLIC"
+                }
+                """;
+
+        RecommendationCreateRequestDto dto = objectMapper.readValue(json, RecommendationCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertEquals(TechnicalTableGroup.PADRAO, dto.getCropFertilizationTableGroup());
+        org.junit.jupiter.api.Assertions.assertEquals(TechnicalTableGroup.PUBLICAS, dto.getSoilFertilityInterpretationCriteriaTableGroup());
+        org.junit.jupiter.api.Assertions.assertEquals(TechnicalTableGroup.PADRAO, dto.getCropFoliarAnalysisInterpretationTableGroup());
+    }
 
     @Test
     @WithMockUser(username = "testuser")
