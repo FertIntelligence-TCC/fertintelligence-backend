@@ -1950,7 +1950,69 @@ public class RecommendationCalculationService {
 
     private record FertilityAnalysisSelection(SoilAnalysisModel soilAnalysis, Optional<FertilityAnalysisExtractModel> selectedExtract) {}
 
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private GypsumRequirementResult gypsumRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<CorrectiveFertilizationRow> correctiveFertilizationRows; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private List<FoliarDiagnosisItem> foliarDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; private List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows; }
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RecommendationCalculationResult {
+        private String requesterName;
+        private String requesterUsername;
+        private String propertyName;
+        private Long propertyId;
+        private String plotIdentification;
+        private Long plotId;
+        private String cropName;
+        private Integer annualCropFolderYear;
+        private String recommendationType;
+        private String limingCriteria;
+        private LocalDateTime issuedAt;
+        @Builder.Default
+        private List<String> warnings = new ArrayList<>();
+        @Builder.Default
+        private List<String> diagnosticMessages = new ArrayList<>();
+        @Builder.Default
+        private List<String> fertilizationRows = new ArrayList<>();
+        @Builder.Default
+        private List<String> correctionMessages = new ArrayList<>();
+        private LimingRequirementResult limingRequirement;
+        private GypsumRequirementResult gypsumRequirement;
+        @Builder.Default
+        private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis = new ArrayList<>();
+        @Builder.Default
+        private List<CorrectiveFertilizationRow> correctiveFertilizationRows = new ArrayList<>();
+        @Builder.Default
+        private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis = new ArrayList<>();
+        @Builder.Default
+        private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis = new ArrayList<>();
+        @Builder.Default
+        private List<FoliarDiagnosisItem> foliarDiagnosis = new ArrayList<>();
+        private Long physicalAnalysisId;
+        private Long soilFertilityAnalysisId;
+        private Long saturationExtractAnalysisId;
+        private Long annualCropFolderId;
+        private Long cropId;
+        private Long foliarAnalysisId;
+        private String physicalAnalysisSummary;
+        private String soilFertilityAnalysisSummary;
+        private String saturationExtractAnalysisSummary;
+        private String annualCropFolderSummary;
+        private String cropSummary;
+        private String foliarAnalysisSummary;
+        private Double requiredN;
+        private Double requiredP2O5;
+        private Double requiredK2O;
+        private Long nitrogenRangeId;
+        private Long phosphorusRangeId;
+        private Long potassiumRangeId;
+        @Builder.Default
+        private List<FertilizationRecommendationRow> fertilizationRecommendationRows = new ArrayList<>();
+        @Builder.Default
+        private List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
+        @Builder.Default
+        private List<NutrientBalanceRow> nutrientBalanceRows = new ArrayList<>();
+        @Builder.Default
+        private List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows = new ArrayList<>();
+    }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String sourceName; private String sourceType; private Double commercialDose; private String commercialDoseUnit; private String sourceJustification; private String sourceLimitations; private String justification; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
