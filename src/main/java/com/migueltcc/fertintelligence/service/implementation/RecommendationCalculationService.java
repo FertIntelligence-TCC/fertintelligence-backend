@@ -126,7 +126,8 @@ public class RecommendationCalculationService {
 
         Optional<FertilityAnalysisExtractModel> fertilityExtract = findLatestFertilityExtract(soilFertilityAnalysis);
 
-        String physicalSummary = "Análise física considerada na recomendação.";
+        PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(physicalAnalysis, warnings);
+        String physicalSummary = physicalDiagnosis.summary();
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
         String saturationSummary = "Extrato de saturação considerado na recomendação.";
         String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
@@ -199,6 +200,7 @@ public class RecommendationCalculationService {
                 .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
                 .soilChemicalDiagnosis(chemicalDiagnosis)
+                .soilPhysicalDiagnosis(physicalDiagnosis.items())
                 .fertilizationRows(List.of("Recomendação estruturada em linhas de plantio e cobertura."))
                 .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
                 .requiredN(requiredN).requiredP2O5(requiredP2O5).requiredK2O(requiredK2O)
@@ -222,6 +224,60 @@ public class RecommendationCalculationService {
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
+    private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
+        List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
+        if (physicalAnalysis == null) {
+            String message = "Análise física não disponível para diagnóstico físico do solo.";
+            warnings.add(message);
+            return new PhysicalDiagnosis(message, diagnosis);
+        }
+
+        addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), "g/dm3",
+                "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
+        addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), "g/dm3",
+                "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
+        addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), "g/dm3",
+                "Teor de argila considerado nos critérios químicos que dependem da análise física, quando aplicável.");
+        addPhysicalItem(diagnosis, "Densidade aparente", physicalAnalysis.getDensidadeAparente(), "g/cm3",
+                "Valor físico relacionado à compactação e ao crescimento radicular; sem faixa crítica cadastrada nesta etapa.");
+        addPhysicalItem(diagnosis, "Densidade real", physicalAnalysis.getDensidadeReal(), "g/cm3",
+                "Valor usado no próprio extrato para cálculo de porosidade total, quando informado.");
+        addPhysicalItem(diagnosis, "Porosidade total", physicalAnalysis.getPorosidadeTotal(), "%",
+                "Indicador físico associado à aeração e armazenamento de água; sem classificação automática por ausência de critério modelado.");
+        addPhysicalItem(diagnosis, "Microporosidade", physicalAnalysis.getMicroporosidade(), "%",
+                "Indicador físico associado à retenção de água; sem classificação automática por ausência de critério modelado.");
+        addPhysicalItem(diagnosis, "Água disponível", physicalAnalysis.getAguaDisponivel(), "%",
+                "Diferença entre capacidade de campo e ponto de murcha permanente registrada no extrato.");
+        addPhysicalItem(diagnosis, "Resistência à penetração", physicalAnalysis.getResistenciaPenetracao(), "MPa",
+                "Indicador de impedimento mecânico potencial; interpretar com avaliação de campo e umidade no momento da medição.");
+        addPhysicalItem(diagnosis, "Diâmetro médio dos agregados", physicalAnalysis.getDmAgregados(), "mm",
+                "Indicador de estrutura do solo calculado a partir das classes de agregados informadas.");
+
+        if (diagnosis.isEmpty()) {
+            String message = "Análise física selecionada, mas sem valores físicos preenchidos para diagnosticar.";
+            warnings.add(message);
+            return new PhysicalDiagnosis(message, diagnosis);
+        }
+
+        boolean hasTextureFractions = physicalAnalysis.getTeorAreia() != null
+                || physicalAnalysis.getTeorSilte() != null
+                || physicalAnalysis.getTeorArgila() != null;
+        String summary = hasTextureFractions
+                ? "Análise física considerada com frações granulométricas e atributos físicos disponíveis; classe textural não informada no modelo e não inferida sem critério cadastrado."
+                : "Análise física considerada com atributos físicos disponíveis; frações granulométricas insuficientes para descrever textura.";
+        return new PhysicalDiagnosis(summary, diagnosis);
+    }
+
+    private void addPhysicalItem(List<SoilPhysicalDiagnosisItem> diagnosis, String attribute, Double value, String unit, String observation) {
+        if (value == null) return;
+        diagnosis.add(SoilPhysicalDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .technicalObservation(observation)
+                .build());
+    }
+
     private List<SoilChemicalDiagnosisItem> buildSoilChemicalDiagnosis(Optional<FertilityAnalysisExtractModel> fertilityExtract,
                                                                        PhysicalAnalysisExtractModel physicalAnalysis,
                                                                        SoilFertilityInterpretationCriteriaTableModel table,
@@ -482,6 +538,7 @@ public class RecommendationCalculationService {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
+    private record PhysicalDiagnosis(String summary, List<SoilPhysicalDiagnosisItem> items) {}
     private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                   Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
     private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String warning, Optional<FertilizerSuggestion> suggestion){}
@@ -516,8 +573,9 @@ return rows;}
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String warning; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
 }

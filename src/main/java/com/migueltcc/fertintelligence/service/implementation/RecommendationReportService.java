@@ -50,7 +50,26 @@ public class RecommendationReportService {
         report.append("- Principais alertas ou limitações identificadas:\n");
         appendBulletList(report, result.getDiagnosticMessages(), "Nenhuma limitação adicional foi registrada.");
         report.append("\n");
+        appendPhysicalDiagnosis(report, result);
         appendChemicalDiagnosis(report, result);
+    }
+
+    private void appendPhysicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Diagnóstico Físico do Solo\n\n");
+        report.append("| Atributo | Valor analisado | Unidade | Observação técnica |\n");
+        report.append("|---|---|---|---|\n");
+        if (result.getSoilPhysicalDiagnosis() == null || result.getSoilPhysicalDiagnosis().isEmpty()) {
+            report.append("| Não calculado | Não informado | Não informado | Dados físicos insuficientes ou ausentes no extrato de análise física selecionado. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.SoilPhysicalDiagnosisItem item : result.getSoilPhysicalDiagnosis()) {
+            report.append("| ").append(safeCell(item.getAttribute()))
+                    .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
+                    .append(" | ").append(safeCell(item.getUnit()))
+                    .append(" | ").append(safeCell(item.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
     }
 
     private void appendChemicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
