@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class RecommendationReportService {
@@ -119,6 +120,45 @@ public class RecommendationReportService {
             report.append("- Critério de calagem selecionado: ").append(result.getLimingCriteria()).append("\n");
         }
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
+        report.append("\n");
+        appendLimingRequirement(report, result);
+    }
+
+    private void appendLimingRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Calagem\n\n");
+        RecommendationCalculationService.LimingRequirementResult liming = result.getLimingRequirement();
+        if (liming == null) {
+            report.append("- Necessidade de calagem: Não calculada.\n");
+            report.append("- Aviso técnico: Resultado estruturado de calagem não foi produzido pelo cálculo.\n\n");
+            return;
+        }
+
+        report.append("- Critério selecionado: ").append(safe(liming.getSelectedCriteria())).append("\n");
+        report.append("- Fórmula usada: ").append(safe(liming.getFormula())).append("\n");
+        report.append("- Necessidade de calagem calculada: ");
+        if (liming.getCalculatedRequirement() == null) {
+            report.append("Não calculada");
+        } else {
+            report.append(String.format(Locale.US, "%.2f %s", liming.getCalculatedRequirement(), safe(liming.getUnit())));
+        }
+        report.append("\n");
+
+        report.append("| Valor de entrada | Valor |\n");
+        report.append("|---|---|\n");
+        Map<String, Double> inputValues = liming.getInputValues();
+        if (inputValues == null || inputValues.isEmpty()) {
+            report.append("| Não informado | Não informado |\n");
+        } else {
+            for (Map.Entry<String, Double> entry : inputValues.entrySet()) {
+                report.append("| ").append(safeCell(entry.getKey()))
+                        .append(" | ").append(formatAnalyzedValue(entry.getValue()))
+                        .append(" |\n");
+            }
+        }
+        report.append("\n");
+
+        report.append("- Avisos de calagem:\n");
+        appendBulletList(report, liming.getWarnings(), "Nenhum aviso específico de calagem foi registrado.");
         report.append("\n");
     }
 

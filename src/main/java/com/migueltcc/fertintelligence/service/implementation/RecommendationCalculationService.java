@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
@@ -141,6 +142,7 @@ public class RecommendationCalculationService {
         String foliarSummary = foliarAnalysis.map(m -> "Análise foliar considerada quando aplicável.").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
+        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, cropFertilizationTable, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
@@ -232,6 +234,7 @@ public class RecommendationCalculationService {
                 .limingCriteria(dto.getLimingCriteria() != null ? dto.getLimingCriteria().name() : null)
                 .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
+                .limingRequirement(limingRequirement)
                 .soilChemicalDiagnosis(chemicalDiagnosis)
                 .soilPhysicalDiagnosis(physicalDiagnosis.items())
                 .soilSalinityDiagnosis(salinityDiagnosis.items())
@@ -259,6 +262,79 @@ public class RecommendationCalculationService {
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
+
+    private LimingRequirementResult calculateLimingRequirement(RecommendationCreateRequestDto dto,
+                                                               Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                               CropFertilizationTableModel cropFertilizationTable,
+                                                               List<String> warnings) {
+        CriterioCalagem selectedCriteria = dto.getLimingCriteria() != null
+                ? dto.getLimingCriteria()
+                : cropFertilizationTable.getCriteria();
+        String formula = "NC (t/ha) = T * (V2 - V1) / 100 * (100 / PRNT)";
+        Map<String, Double> inputValues = new LinkedHashMap<>();
+        List<String> limingWarnings = new ArrayList<>();
+
+        if (selectedCriteria == null) {
+            limingWarnings.add("Critério de calagem não informado na recomendação nem na tabela de adubação selecionada.");
+            warnings.addAll(limingWarnings);
+            return LimingRequirementResult.builder()
+                    .selectedCriteria(null)
+                    .formula(formula)
+                    .inputValues(inputValues)
+                    .unit("t/ha")
+                    .warnings(limingWarnings)
+                    .build();
+        }
+
+        if (selectedCriteria != CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS) {
+            limingWarnings.add("Cálculo de calagem pelo critério " + selectedCriteria.name()
+                    + " não implementado neste prompt; somente saturação por bases V% foi avaliada.");
+            warnings.addAll(limingWarnings);
+            return LimingRequirementResult.builder()
+                    .selectedCriteria(selectedCriteria.name())
+                    .formula(formula)
+                    .inputValues(inputValues)
+                    .unit("t/ha")
+                    .warnings(limingWarnings)
+                    .build();
+        }
+
+        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+        Double currentBaseSaturation = fertility != null ? fertility.getSaturacaoBasesV() : null;
+        Double ctcPh7 = fertility != null ? fertility.getCtcPh7() : null;
+        Double targetBaseSaturation = null;
+        Double prnt = null;
+        inputValues.put("V atual (%)", currentBaseSaturation);
+        inputValues.put("V desejado (%)", targetBaseSaturation);
+        inputValues.put("CTC pH 7,0 - T (mmolc/dm3)", ctcPh7);
+        inputValues.put("PRNT (%)", prnt);
+
+        if (currentBaseSaturation == null) limingWarnings.add("V atual ausente no extrato de fertilidade (saturacaoBasesV).");
+        if (ctcPh7 == null) limingWarnings.add("CTC pH 7,0 ausente no extrato de fertilidade (ctcPh7).");
+        if (targetBaseSaturation == null) limingWarnings.add("V desejado não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
+        if (prnt == null) limingWarnings.add("PRNT do calcário não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
+
+        if (limingWarnings.isEmpty()) {
+            double calculatedRequirement = Math.max(0d, round2(ctcPh7 * (targetBaseSaturation - currentBaseSaturation) / 100d * (100d / prnt)));
+            return LimingRequirementResult.builder()
+                    .selectedCriteria(selectedCriteria.name())
+                    .formula(formula)
+                    .inputValues(inputValues)
+                    .calculatedRequirement(calculatedRequirement)
+                    .unit("t/ha")
+                    .warnings(limingWarnings)
+                    .build();
+        }
+
+        warnings.addAll(limingWarnings);
+        return LimingRequirementResult.builder()
+                .selectedCriteria(selectedCriteria.name())
+                .formula(formula)
+                .inputValues(inputValues)
+                .unit("t/ha")
+                .warnings(limingWarnings)
+                .build();
+    }
     private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
         List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
         if (physicalAnalysis == null) {
@@ -1004,7 +1080,8 @@ public class RecommendationCalculationService {
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
