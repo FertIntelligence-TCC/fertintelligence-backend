@@ -108,9 +108,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
                     .filter(t -> t.getCreator() != null && !Cargo.USUARIO_SUPREMO.equals(t.getCreator().getCargo()))
                     .collect(Collectors.toList());
             case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO);
-            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO).stream()
-                    .filter(t -> !t.isPublicTable())
-                    .collect(Collectors.toList());
+            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO);
         };
     }
 
@@ -129,7 +127,6 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
         findUserByUsernameOrThrow(username);
         return soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO)
                 .stream()
-                .filter(t -> !t.isPublicTable())
                 .map(SoilFertilityInterpretationCriteriaTableModel::toDto)
                 .collect(Collectors.toList());
     }
@@ -219,7 +216,7 @@ public class SoilFertilityInterpretationCriteriaTableServiceImpl implements Soil
     }
 
     private boolean isDefaultTable(SoilFertilityInterpretationCriteriaTableModel table) {
-        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO && !table.isPublicTable();
+        return table.getCreator() != null && table.getCreator().getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
     private boolean isSupremeUser(UserModel user) {

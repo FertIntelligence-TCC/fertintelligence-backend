@@ -317,7 +317,7 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .publicTable(true)
                 .build();
 
-        when(soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrue())
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO))
                 .thenReturn(List.of(publicOwner, publicOther));
 
         mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all-public"))
@@ -326,6 +326,72 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .andExpect(jsonPath("$[0].tabela_publica").value(true))
                 .andExpect(jsonPath("$[1].id").value(41L))
                 .andExpect(jsonPath("$[1].id_criador").value(2L))
+                .andExpect(jsonPath("$[1].tabela_publica").value(true));
+    }
+
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getAllDefaultSoilFertilityInterpretationCriteriaTablesReturnsAllSupremeTablesEvenWhenPublic() throws Exception {
+        UserModel supremeUser = UserModel.builder()
+                .id(99L)
+                .username("supreme")
+                .name("Usuário Supremo")
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        SoilFertilityInterpretationCriteriaTableModel privateSupremeTable = ownerTable.toBuilder()
+                .id(50L)
+                .creator(supremeUser)
+                .publicTable(false)
+                .build();
+        SoilFertilityInterpretationCriteriaTableModel publicSupremeTable = ownerTable.toBuilder()
+                .id(51L)
+                .creator(supremeUser)
+                .publicTable(true)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(privateSupremeTable, publicSupremeTable));
+
+        mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all-default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(50L))
+                .andExpect(jsonPath("$[0].tabela_publica").value(false))
+                .andExpect(jsonPath("$[1].id").value(51L))
+                .andExpect(jsonPath("$[1].tabela_publica").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getAllGroupedPadraoSoilFertilityInterpretationCriteriaTablesReturnsAllSupremeTablesEvenWhenPublic() throws Exception {
+        UserModel supremeUser = UserModel.builder()
+                .id(99L)
+                .username("supreme")
+                .name("Usuário Supremo")
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        SoilFertilityInterpretationCriteriaTableModel privateSupremeTable = ownerTable.toBuilder()
+                .id(52L)
+                .creator(supremeUser)
+                .publicTable(false)
+                .build();
+        SoilFertilityInterpretationCriteriaTableModel publicSupremeTable = ownerTable.toBuilder()
+                .id(53L)
+                .creator(supremeUser)
+                .publicTable(true)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(privateSupremeTable, publicSupremeTable));
+
+        mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all")
+                        .param("grupo", "PADRAO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(52L))
+                .andExpect(jsonPath("$[0].tabela_publica").value(false))
+                .andExpect(jsonPath("$[1].id").value(53L))
                 .andExpect(jsonPath("$[1].tabela_publica").value(true));
     }
 
