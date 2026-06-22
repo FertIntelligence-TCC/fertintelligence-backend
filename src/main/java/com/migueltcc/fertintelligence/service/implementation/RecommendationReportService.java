@@ -71,7 +71,7 @@ public class RecommendationReportService {
                         .append(" | ").append(safeCell(row.getNutrients()))
                         .append(" | ").append(safeCell(row.getSuggestedFertilizer()))
                         .append(" | ").append(formatQuantity(row.getFertilizerQuantityKgHa()))
-                        .append(" | ").append(safeCell(row.getApplicationMode()))
+                        .append(" | ").append(safeCell(joinApplicationDetails(row)))
                         .append(" |\n");
             }
         } else if (result.getFertilizationRows() != null && !result.getFertilizationRows().isEmpty()) {
@@ -109,6 +109,25 @@ public class RecommendationReportService {
 
     private String formatQuantity(Double value) {
         return value == null ? "Não calculado" : String.format(Locale.US, "%.2f kg/ha", value);
+    }
+
+    private String joinApplicationDetails(RecommendationCalculationService.FertilizationRecommendationRow row) {
+        List<String> details = new ArrayList<>();
+        details.add(row.getApplicationMode());
+        if (row.getProvidedN() != null || row.getProvidedP2O5() != null || row.getProvidedK2O() != null) {
+            details.add(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f kg/ha",
+                    nvl(row.getProvidedN()), nvl(row.getProvidedP2O5()), nvl(row.getProvidedK2O())));
+        }
+        if (row.getBalanceN() != null || row.getBalanceP2O5() != null || row.getBalanceK2O() != null) {
+            details.add(String.format(Locale.US, "Saldo: N %.2f, P2O5 %.2f, K2O %.2f kg/ha",
+                    nvl(row.getBalanceN()), nvl(row.getBalanceP2O5()), nvl(row.getBalanceK2O())));
+        }
+        if (row.getWarning() != null && !row.getWarning().isBlank()) details.add("Alerta: " + row.getWarning());
+        return String.join("; ", details);
+    }
+
+    private double nvl(Double value) {
+        return value == null ? 0d : value;
     }
 
     private void appendBulletList(StringBuilder report, List<String> items, String emptyMessage) {
