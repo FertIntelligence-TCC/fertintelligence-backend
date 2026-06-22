@@ -52,6 +52,7 @@ public class RecommendationReportService {
         report.append("\n");
         appendPhysicalDiagnosis(report, result);
         appendChemicalDiagnosis(report, result);
+        appendSalinityDiagnosis(report, result);
     }
 
     private void appendPhysicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -81,6 +82,26 @@ public class RecommendationReportService {
             return;
         }
         for (RecommendationCalculationService.SoilChemicalDiagnosisItem item : result.getSoilChemicalDiagnosis()) {
+            report.append("| ").append(safeCell(item.getAttribute()))
+                    .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
+                    .append(" | ").append(safeCell(item.getUnit()))
+                    .append(" | ").append(safeCell(item.getInterpretation()))
+                    .append(" | ").append(safeCell(item.getUsedCriterion()))
+                    .append(" | ").append(safeCell(item.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
+    }
+
+    private void appendSalinityDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Diagnóstico de Salinidade e Sodicidade\n\n");
+        report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
+        report.append("|---|---|---|---|---|---|\n");
+        if (result.getSoilSalinityDiagnosis() == null || result.getSoilSalinityDiagnosis().isEmpty()) {
+            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Dados de extrato de saturação e/ou PST insuficientes para diagnóstico. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.SoilSalinityDiagnosisItem item : result.getSoilSalinityDiagnosis()) {
             report.append("| ").append(safeCell(item.getAttribute()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))

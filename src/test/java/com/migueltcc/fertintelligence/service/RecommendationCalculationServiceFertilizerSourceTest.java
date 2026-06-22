@@ -42,7 +42,9 @@ class RecommendationCalculationServiceFertilizerSourceTest {
                 mock(KExchangeableContentRepository.class),
                 mock(AvailablePMehlich1ExtractorRepository.class),
                 mock(AvailablePAnionExchangeResinExtractorRepository.class),
-                mock(AvailableSRepository.class)
+                mock(AvailableSRepository.class),
+                mock(ExchangeableSodiumRepository.class),
+                mock(SalinityInterpretationRepository.class)
         );
         user = UserModel.builder().id(1L).build();
     }

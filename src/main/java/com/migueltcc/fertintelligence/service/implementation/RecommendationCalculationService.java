@@ -20,7 +20,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePMehlich1ExtractorModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailableSModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.*;
@@ -56,6 +58,8 @@ public class RecommendationCalculationService {
     private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
+    private final ExchangeableSodiumRepository exchangeableSodiumRepository;
+    private final SalinityInterpretationRepository salinityInterpretationRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -75,7 +79,9 @@ public class RecommendationCalculationService {
                                             KExchangeableContentRepository kExchangeableContentRepository,
                                             AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository,
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
-                                            AvailableSRepository availableSRepository) {
+                                            AvailableSRepository availableSRepository,
+                                            ExchangeableSodiumRepository exchangeableSodiumRepository,
+                                            SalinityInterpretationRepository salinityInterpretationRepository) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -95,6 +101,8 @@ public class RecommendationCalculationService {
         this.availablePMehlich1ExtractorRepository = availablePMehlich1ExtractorRepository;
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
+        this.exchangeableSodiumRepository = exchangeableSodiumRepository;
+        this.salinityInterpretationRepository = salinityInterpretationRepository;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -129,13 +137,14 @@ public class RecommendationCalculationService {
         PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(physicalAnalysis, warnings);
         String physicalSummary = physicalDiagnosis.summary();
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
-        String saturationSummary = "Extrato de saturação considerado na recomendação.";
         String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
         String foliarSummary = foliarAnalysis.map(m -> "Análise foliar considerada quando aplicável.").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
+        SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
+                saturationExtractAnalysis, fertilityExtract, soilInterpretationTable, warnings);
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
         List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
 
@@ -201,6 +210,7 @@ public class RecommendationCalculationService {
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
                 .soilChemicalDiagnosis(chemicalDiagnosis)
                 .soilPhysicalDiagnosis(physicalDiagnosis.items())
+                .soilSalinityDiagnosis(salinityDiagnosis.items())
                 .fertilizationRows(List.of("Recomendação estruturada em linhas de plantio e cobertura."))
                 .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
                 .requiredN(requiredN).requiredP2O5(requiredP2O5).requiredK2O(requiredK2O)
@@ -210,7 +220,7 @@ public class RecommendationCalculationService {
                 .saturationExtractAnalysisId(saturationExtractAnalysis.getId())
                 .annualCropFolderId(annualCropFolder.getId())
                 .cropId(crop.getId()).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
-                .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(saturationSummary)
+                .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(salinityDiagnosis.summary())
                 .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
                 .cropSummary(cropSummary).foliarAnalysisSummary(foliarSummary).build();
     }
@@ -276,6 +286,211 @@ public class RecommendationCalculationService {
                 .unit(unit)
                 .technicalObservation(observation)
                 .build());
+    }
+
+    private SalinityDiagnosis buildSalinityAndSodicityDiagnosis(SaturationExtractAnalysisExtractModel saturation,
+                                                                Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                                SoilFertilityInterpretationCriteriaTableModel table,
+                                                                List<String> warnings) {
+        List<SoilSalinityDiagnosisItem> diagnosis = new ArrayList<>();
+        if (saturation == null) {
+            String message = "Extrato de saturação não disponível para diagnóstico de salinidade e sodicidade.";
+            warnings.add(message);
+            return new SalinityDiagnosis(message, diagnosis);
+        }
+
+        addSalinityValue(diagnosis, "Condutividade elétrica do extrato", saturation.getCe(), "dS/m",
+                "Valor do extrato de saturação usado para enquadramento salino quando há critério completo.");
+        addSalinityValue(diagnosis, "pH do extrato de saturação", saturation.getPh(), null,
+                "Valor do extrato de saturação usado no enquadramento de salinidade/sodicidade quando há critério completo.");
+        addSalinityValue(diagnosis, "Sódio no extrato de saturação", saturation.getTeorNa(), "mg/dm3",
+                "Valor apresentado sem classificação isolada; o sistema não possui faixa específica cadastrada para Na do extrato de saturação.");
+        addSalinityValue(diagnosis, "RAS", saturation.getRas(), "mmolc/mmolc^0.5",
+                "Relação de adsorção de sódio usada no enquadramento salino/sódico quando há critério completo.");
+
+        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+        Double pst = fertility != null ? fertility.getPst() : null;
+        Double exchangeableNa = fertility != null ? fertility.getSodio() : null;
+        Double ctcPh7 = fertility != null ? fertility.getCtcPh7() : null;
+        addSalinityValue(diagnosis, "PST", pst, "%",
+                "Percentagem de sódio trocável informada no extrato de fertilidade e usada no enquadramento salino/sódico.");
+
+        classifyGlobalSalinity(diagnosis, saturation, pst, table, warnings);
+        classifyExchangeableSodium(diagnosis, exchangeableNa, ctcPh7, table, warnings);
+
+        if (diagnosis.isEmpty()) {
+            String message = "Extrato de saturação selecionado, mas sem CE, pH, Na ou RAS preenchidos para diagnóstico.";
+            warnings.add(message);
+            return new SalinityDiagnosis(message, diagnosis);
+        }
+
+        String summary = "Extrato de saturação considerado com diagnóstico estruturado de salinidade e sodicidade; correção salina/sódica e cálculo de gesso não foram calculados nesta etapa.";
+        return new SalinityDiagnosis(summary, diagnosis);
+    }
+
+    private void classifyGlobalSalinity(List<SoilSalinityDiagnosisItem> diagnosis,
+                                        SaturationExtractAnalysisExtractModel saturation,
+                                        Double pst,
+                                        SoilFertilityInterpretationCriteriaTableModel table,
+                                        List<String> warnings) {
+        Double ce = saturation.getCe();
+        Double ph = saturation.getPh();
+        Double ras = saturation.getRas();
+        if (ce == null || ph == null || ras == null || pst == null) {
+            Map<String, Double> values = new LinkedHashMap<>();
+            values.put("CE", ce);
+            values.put("pH do extrato", ph);
+            values.put("RAS", ras);
+            values.put("PST", pst);
+            String missing = missingParameters(values);
+            String observation = "Classificação global não calculada por dados insuficientes: " + missing + ".";
+            diagnosis.add(notClassifiedSalinity("Classificação salina/sódica", null, null, observation));
+            warnings.add(observation);
+            return;
+        }
+        Optional<SalinityInterpretationModel> criterion = salinityInterpretationRepository.findByTable(table);
+        if (criterion.isEmpty()) {
+            String observation = "Não há critério de interpretação de salinidade cadastrado para a tabela selecionada.";
+            diagnosis.add(notClassifiedSalinity("Classificação salina/sódica", null, null, observation));
+            warnings.add(observation);
+            return;
+        }
+
+        SalinityInterpretationModel c = criterion.get();
+        String interpretation = "Não enquadrado";
+        String usedCriterion = "Tabela de salinidade ID " + c.getId();
+        if (le(ce, c.getNormal_soil_highest_ce()) && le(pst, c.getNormal_soil_highest_pst())
+                && le(ph, c.getNormal_soil_highest_ph()) && le(ras, c.getNormal_soil_highest_ras())) {
+            interpretation = "Solo normal";
+            usedCriterion = "CE <= " + formatNumber(c.getNormal_soil_highest_ce())
+                    + "; PST <= " + formatNumber(c.getNormal_soil_highest_pst())
+                    + "; pH <= " + formatNumber(c.getNormal_soil_highest_ph())
+                    + "; RAS <= " + formatNumber(c.getNormal_soil_highest_ras());
+        } else if (ge(ce, c.getSodic_saline_soil_highest_ce()) && ge(pst, c.getSodic_saline_soil_lowest_pst())
+                && ge(ph, c.getSodic_saline_soil_lowest_ph()) && ge(ras, c.getSodic_saline_soil_lowest_ras())) {
+            interpretation = "Solo salino-sódico";
+            usedCriterion = "CE >= " + formatNumber(c.getSodic_saline_soil_highest_ce())
+                    + "; PST >= " + formatNumber(c.getSodic_saline_soil_lowest_pst())
+                    + "; pH >= " + formatNumber(c.getSodic_saline_soil_lowest_ph())
+                    + "; RAS >= " + formatNumber(c.getSodic_saline_soil_lowest_ras());
+        } else if (le(ce, c.getSodic_soil_highest_ce()) && ge(pst, c.getSodic_soil_lowest_pst())
+                && ge(ph, c.getSodic_soil_lowest_ph()) && ge(ras, c.getSodic_soil_lowest_ras())) {
+            interpretation = "Solo sódico";
+            usedCriterion = "CE <= " + formatNumber(c.getSodic_soil_highest_ce())
+                    + "; PST >= " + formatNumber(c.getSodic_soil_lowest_pst())
+                    + "; pH >= " + formatNumber(c.getSodic_soil_lowest_ph())
+                    + "; RAS >= " + formatNumber(c.getSodic_soil_lowest_ras());
+        } else if (ge(ce, c.getSaline_soil_lowest_ce()) && le(pst, c.getSaline_soil_highest_pst())
+                && le(ph, c.getSaline_soil_highest_ph()) && le(ras, c.getSaline_soil_highest_ras())) {
+            interpretation = "Solo salino";
+            usedCriterion = "CE >= " + formatNumber(c.getSaline_soil_lowest_ce())
+                    + "; PST <= " + formatNumber(c.getSaline_soil_highest_pst())
+                    + "; pH <= " + formatNumber(c.getSaline_soil_highest_ph())
+                    + "; RAS <= " + formatNumber(c.getSaline_soil_highest_ras());
+        }
+
+        diagnosis.add(SoilSalinityDiagnosisItem.builder()
+                .attribute("Classificação salina/sódica")
+                .interpretation(interpretation)
+                .usedCriterion(usedCriterion)
+                .technicalObservation("Enquadramento calculado somente com critérios cadastrados; não gera recomendação de correção nesta etapa.")
+                .build());
+    }
+
+    private void classifyExchangeableSodium(List<SoilSalinityDiagnosisItem> diagnosis,
+                                            Double exchangeableNa,
+                                            Double ctcPh7,
+                                            SoilFertilityInterpretationCriteriaTableModel table,
+                                            List<String> warnings) {
+        if (exchangeableNa == null) {
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", null, "mmolc/dm3",
+                    "Não há sódio trocável no extrato de fertilidade para classificar pela tabela de sódio trocável."));
+            return;
+        }
+        if (ctcPh7 == null) {
+            String observation = "Não há CTC pH 7,0 no extrato de fertilidade para selecionar a faixa de sódio trocável.";
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, "mmolc/dm3", observation));
+            warnings.add(observation);
+            return;
+        }
+        Optional<ExchangeableSodiumModel> criterion = exchangeableSodiumRepository.findFirstByTableOrderByIdAsc(table);
+        if (criterion.isEmpty()) {
+            String observation = "Não há critério de sódio trocável cadastrado para a tabela selecionada.";
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, "mmolc/dm3", observation));
+            warnings.add(observation);
+            return;
+        }
+
+        SodiumRangeCriterion range = selectSodiumRange(criterion.get(), ctcPh7);
+        SoilSalinityDiagnosisItem item = classifySalinityRange("Sódio trocável", exchangeableNa, "mmolc/dm3",
+                new RangeCriterion(range.veryLowEnd(), range.lowStart(), range.lowEnd(), range.mediumStart(),
+                        range.mediumEnd(), range.highStart(), range.highEnd(), range.veryHighStart()),
+                "Sódio trocável classificado por faixa de CTC pH 7,0 informada no extrato de fertilidade (" + formatNumber(ctcPh7) + ").");
+        diagnosis.add(item);
+    }
+
+    private SodiumRangeCriterion selectSodiumRange(ExchangeableSodiumModel c, Double ctcPh7) {
+        if (ctcPh7 < 4.3) {
+            return new SodiumRangeCriterion(c.getCtcLessThan43VeryLowLessThan(), c.getCtcLessThan43LowMin(), c.getCtcLessThan43LowMax(),
+                    c.getCtcLessThan43MediumMin(), c.getCtcLessThan43MediumMax(), c.getCtcLessThan43HighMin(), c.getCtcLessThan43HighMax(), c.getCtcLessThan43VeryHighGreaterThan());
+        }
+        if (ctcPh7 <= 8.6) {
+            return new SodiumRangeCriterion(c.getCtcFrom43To86VeryLowLessThan(), c.getCtcFrom43To86LowMin(), c.getCtcFrom43To86LowMax(),
+                    c.getCtcFrom43To86MediumMin(), c.getCtcFrom43To86MediumMax(), c.getCtcFrom43To86HighMin(), c.getCtcFrom43To86HighMax(), c.getCtcFrom43To86VeryHighGreaterThan());
+        }
+        if (ctcPh7 <= 15.0) {
+            return new SodiumRangeCriterion(c.getCtcFrom87To150VeryLowLessThan(), c.getCtcFrom87To150LowMin(), c.getCtcFrom87To150LowMax(),
+                    c.getCtcFrom87To150MediumMin(), c.getCtcFrom87To150MediumMax(), c.getCtcFrom87To150HighMin(), c.getCtcFrom87To150HighMax(), c.getCtcFrom87To150VeryHighGreaterThan());
+        }
+        return new SodiumRangeCriterion(c.getCtcGreaterThan15VeryLowLessThan(), c.getCtcGreaterThan15LowMin(), c.getCtcGreaterThan15LowMax(),
+                c.getCtcGreaterThan15MediumMin(), c.getCtcGreaterThan15MediumMax(), c.getCtcGreaterThan15HighMin(), c.getCtcGreaterThan15HighMax(), c.getCtcGreaterThan15VeryHighGreaterThan());
+    }
+
+    private void addSalinityValue(List<SoilSalinityDiagnosisItem> diagnosis, String attribute, Double value, String unit, String observation) {
+        if (value == null) return;
+        diagnosis.add(SoilSalinityDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .technicalObservation(observation)
+                .build());
+    }
+
+    private SoilSalinityDiagnosisItem classifySalinityRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
+        SoilChemicalDiagnosisItem classified = classifyRange(attribute, value, unit, criterion, observation);
+        return SoilSalinityDiagnosisItem.builder()
+                .attribute(classified.getAttribute())
+                .analyzedValue(classified.getAnalyzedValue())
+                .unit(classified.getUnit())
+                .interpretation(classified.getInterpretation())
+                .usedCriterion(classified.getUsedCriterion())
+                .technicalObservation(classified.getTechnicalObservation())
+                .build();
+    }
+
+    private SoilSalinityDiagnosisItem notClassifiedSalinity(String attribute, Double value, String unit, String observation) {
+        return SoilSalinityDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private String missingParameters(Map<String, Double> values) {
+        return values.entrySet().stream()
+                .filter(entry -> entry.getValue() == null)
+                .map(Map.Entry::getKey)
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("nenhum");
+    }
+
+    private boolean le(Double value, Double limit) {
+        return value != null && limit != null && value <= limit;
+    }
+
+    private boolean ge(Double value, Double limit) {
+        return value != null && limit != null && value >= limit;
     }
 
     private List<SoilChemicalDiagnosisItem> buildSoilChemicalDiagnosis(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -539,8 +754,11 @@ public class RecommendationCalculationService {
     }
 
     private record PhysicalDiagnosis(String summary, List<SoilPhysicalDiagnosisItem> items) {}
+    private record SalinityDiagnosis(String summary, List<SoilSalinityDiagnosisItem> items) {}
     private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                   Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
+    private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
+                                        Double mediumEnd, Double highStart, Double highEnd, Double veryHighStart) {}
     private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String warning, Optional<FertilizerSuggestion> suggestion){}
     private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){var f=bestF.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)f.getN()+"-"+(int)f.getP2O5()+"-"+(int)f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
     var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){var f=bestS.get();double q=estimate(n,p,k,f.getN(),f.getP2O5(),f.getK2O());w.add("Quantidade de adubo estimada a partir do maior fator necessário entre N, P2O5 e K2O para o fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado.").build();return buildSelection(s.getFertilizerName(),q,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,Optional.of(s));}
@@ -573,9 +791,10 @@ return rows;}
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String warning; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
 }
