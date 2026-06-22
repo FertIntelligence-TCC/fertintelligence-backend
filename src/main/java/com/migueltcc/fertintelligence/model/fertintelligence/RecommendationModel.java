@@ -51,7 +51,6 @@ public class RecommendationModel {
     CriterioCalagem limingCriteria;
 
     @Column(name = "FERTILIZER_SOURCE_OPTION")
-    @Enumerated(EnumType.STRING)
     FertilizerSourceOption origemAdubos;
 
     @Column(name = "CROP_FERTILIZATION_TABLE_ID")
