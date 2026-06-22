@@ -55,6 +55,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         RecommendationCalculationService.RecommendationCalculationResult calculationResult =
                 recommendationCalculationService.calculate(dto, user, property, plot);
         String technicalReport = recommendationReportService.buildTechnicalReport(calculationResult);
+        String improvedReport = recommendationNarrativeService.improveNarrative(technicalReport);
 
         RecommendationModel recommendation = RecommendationModel.builder()
                 .creator(user)
@@ -71,7 +72,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .soilFertilityInterpretationCriteriaTableGroup(dto.getSoilFertilityInterpretationCriteriaTableGroup())
                 .cropFoliarAnalysisInterpretationTableId(dto.getCropFoliarAnalysisInterpretationTableId())
                 .cropFoliarAnalysisInterpretationTableGroup(dto.getCropFoliarAnalysisInterpretationTableGroup())
-                .technicalReport(technicalReport)
+                .technicalReport(improvedReport)
                 .build();
 
         return toDto(recommendationRepository.save(recommendation));
