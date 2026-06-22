@@ -38,7 +38,7 @@ public class RecommendationReportService {
         report.append("- Tipo de recomendação: ").append(safe(result.getRecommendationType())).append("\n");
         report.append("- Critério de calagem: ").append(safe(result.getLimingCriteria())).append("\n");
         report.append("- Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n");
-        report.append("- Profissional responsável: Não informado\n\n");
+        report.append("\n");
     }
 
     private void appendDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -58,7 +58,7 @@ public class RecommendationReportService {
         report.append("3. Recomendação de Correção\n\n");
         report.append("- Critério de calagem selecionado: ").append(safe(result.getLimingCriteria())).append("\n");
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
-        report.append("- Recomendação preliminar: o cálculo definitivo de correção será implementado em incremento posterior.\n\n");
+        report.append("\n");
     }
 
     private void appendFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -85,18 +85,12 @@ public class RecommendationReportService {
     private void appendTechnicalNotes(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("5. Observações Técnicas e Cuidados\n\n");
         appendBulletList(report, result.getWarnings(), "Nenhum alerta adicional foi registrado.");
-        report.append("- Esta versão do laudo ainda é simplificada e pode estar incompleta.\n");
-        report.append("- Validar o laudo com responsável técnico antes do uso operacional.\n");
-        report.append("- Adotar procedimentos de segurança na aplicação e evitar condições de estresse hídrico.\n\n");
+        report.append("\n");
     }
 
     private void appendClosing(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("6. Encerramento\n\n");
         report.append("Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n\n");
-        report.append("Responsável técnico: _______________________________\n\n");
-        report.append("CREA: _______________________________\n\n");
-        report.append("Assinatura: _______________________________\n\n");
-        report.append("Indicação do laudo: Simulação preliminar.\n");
     }
 
     private String safe(Object value) {
