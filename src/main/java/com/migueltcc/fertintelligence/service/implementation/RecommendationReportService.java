@@ -128,6 +128,7 @@ public class RecommendationReportService {
         report.append("|---|---|---|---|---|\n");
         if (result.getFertilizationRecommendationRows() != null && !result.getFertilizationRecommendationRows().isEmpty()) {
             for (RecommendationCalculationService.FertilizationRecommendationRow row : result.getFertilizationRecommendationRows()) {
+                if ("Balanço global NPK".equals(row.getPhase())) continue;
                 report.append("| ").append(safeCell(row.getPhase()))
                         .append(" | ").append(safeCell(row.getNutrients()))
                         .append(" | ").append(safeCell(row.getSuggestedFertilizer()))
@@ -139,6 +140,29 @@ public class RecommendationReportService {
             report.append("| Não calculado | ").append(safeCell(result.getFertilizationRows().get(0))).append(" | Não calculado | Não calculado | Não calculado |\n");
         } else {
             report.append("| Não calculado | Não calculado | Não calculado | Não calculado | Não calculado |\n");
+        }
+        report.append("\n");
+        appendNutrientBalance(report, result);
+    }
+
+    private void appendNutrientBalance(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Balanço Global NPK\n\n");
+        report.append("| Nutriente | Necessidade total | Fornecido no plantio | Recomendado em cobertura | Fornecido em cobertura | Fornecido total | Saldo final | Situação |\n");
+        report.append("|---|---|---|---|---|---|---|---|\n");
+        if (result.getNutrientBalanceRows() == null || result.getNutrientBalanceRows().isEmpty()) {
+            report.append("| Não calculado | Não calculado | Não calculado | Não calculado | Não calculado | Não calculado | Não calculado | Dados insuficientes |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.NutrientBalanceRow row : result.getNutrientBalanceRows()) {
+            report.append("| ").append(safeCell(row.getNutrient()))
+                    .append(" | ").append(formatQuantity(row.getRequiredTotalKgHa()))
+                    .append(" | ").append(formatQuantity(row.getProvidedByPlantingKgHa()))
+                    .append(" | ").append(formatQuantity(row.getRecommendedCoverageKgHa()))
+                    .append(" | ").append(formatQuantity(row.getProvidedByCoverageKgHa()))
+                    .append(" | ").append(formatQuantity(row.getProvidedTotalKgHa()))
+                    .append(" | ").append(formatSignedQuantity(row.getFinalBalanceKgHa()))
+                    .append(" | ").append(safeCell(row.getStatus()))
+                    .append(" |\n");
         }
         report.append("\n");
     }
@@ -170,6 +194,10 @@ public class RecommendationReportService {
 
     private String formatQuantity(Double value) {
         return value == null ? "Não calculado" : String.format(Locale.US, "%.2f kg/ha", value);
+    }
+
+    private String formatSignedQuantity(Double value) {
+        return value == null ? "Não calculado" : String.format(Locale.US, "%+.2f kg/ha", value);
     }
 
     private String formatAnalyzedValue(Double value) {
