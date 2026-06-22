@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.composedAttributes.property;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Localizacao {
 
     @Column(name = "LATITUDE", nullable = false)
