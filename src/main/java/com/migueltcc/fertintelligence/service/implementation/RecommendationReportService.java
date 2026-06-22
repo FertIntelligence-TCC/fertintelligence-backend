@@ -122,6 +122,7 @@ public class RecommendationReportService {
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
         report.append("\n");
         appendLimingRequirement(report, result);
+        appendGypsumRequirement(report, result);
     }
 
     private void appendLimingRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -166,6 +167,41 @@ public class RecommendationReportService {
 
         report.append("- Avisos de calagem:\n");
         appendBulletList(report, liming.getWarnings(), "Nenhum aviso específico de calagem foi registrado.");
+        report.append("\n");
+    }
+
+    private void appendGypsumRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("Gessagem\n\n");
+        RecommendationCalculationService.GypsumRequirementResult gypsum = result.getGypsumRequirement();
+        if (gypsum == null) {
+            report.append("- Necessidade de gessagem: Não calculada.\n");
+            report.append("- Aviso técnico: Resultado estruturado de gessagem não foi produzido pelo cálculo.\n\n");
+            return;
+        }
+
+        report.append("- Necessidade de gessagem: ").append(formatGypsumNeed(gypsum.getNeeded())).append("\n");
+        report.append("- Critério usado: ").append(safe(gypsum.getCriterion())).append("\n");
+        report.append("- Dose de gesso: ");
+        appendLimingDose(report, gypsum.getCalculatedRequirement(), gypsum.getUnit());
+        report.append("\n");
+        report.append("- Justificativa: ").append(safe(gypsum.getJustification())).append("\n");
+
+        report.append("| Valor de entrada | Valor |\n");
+        report.append("|---|---|\n");
+        Map<String, Double> inputValues = gypsum.getInputValues();
+        if (inputValues == null || inputValues.isEmpty()) {
+            report.append("| Não informado | Não informado |\n");
+        } else {
+            for (Map.Entry<String, Double> entry : inputValues.entrySet()) {
+                report.append("| ").append(safeCell(entry.getKey()))
+                        .append(" | ").append(formatAnalyzedValue(entry.getValue()))
+                        .append(" |\n");
+            }
+        }
+        report.append("\n");
+
+        report.append("- Avisos de gessagem:\n");
+        appendBulletList(report, gypsum.getWarnings(), "Nenhum aviso específico de gessagem foi registrado.");
         report.append("\n");
     }
 
@@ -308,6 +344,11 @@ public class RecommendationReportService {
 
     private String formatPercent(Double value) {
         return value == null ? "Não calculado" : String.format(Locale.US, "%.2f%%", value);
+    }
+
+    private String formatGypsumNeed(Boolean needed) {
+        if (needed == null) return "Não avaliada";
+        return needed ? "Sim" : "Não";
     }
 
     private String formatNpk(Double n, Double p2o5, Double k2o) {

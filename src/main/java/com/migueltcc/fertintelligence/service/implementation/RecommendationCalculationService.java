@@ -143,6 +143,8 @@ public class RecommendationCalculationService {
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
         LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
+        GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
+                fertilityExtract, physicalAnalysis, cropFertilizationTable, soilInterpretationTable, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
@@ -235,6 +237,7 @@ public class RecommendationCalculationService {
                 .issuedAt(LocalDateTime.now())
                 .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
                 .limingRequirement(limingRequirement)
+                .gypsumRequirement(gypsumRequirement)
                 .soilChemicalDiagnosis(chemicalDiagnosis)
                 .soilPhysicalDiagnosis(physicalDiagnosis.items())
                 .soilSalinityDiagnosis(salinityDiagnosis.items())
@@ -416,6 +419,145 @@ public class RecommendationCalculationService {
         if (clay < 150.0) return 1.5;
         if (clay <= 350.0) return 2.0;
         return 2.5;
+    }
+
+    private GypsumRequirementResult calculateGypsumRequirement(Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                               PhysicalAnalysisExtractModel physicalAnalysis,
+                                                               CropFertilizationTableModel cropFertilizationTable,
+                                                               SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                                               List<String> warnings) {
+        String criterion = "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose parametrizada em SUGESTAO_GESSAGEM da tabela de adubação.";
+        Map<String, Double> inputValues = new LinkedHashMap<>();
+        List<String> gypsumWarnings = new ArrayList<>();
+        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+
+        if (fertility == null) {
+            gypsumWarnings.add("Nenhum extrato de fertilidade foi encontrado para avaliar necessidade de gessagem.");
+            warnings.addAll(gypsumWarnings);
+            return GypsumRequirementResult.builder()
+                    .needed(null)
+                    .criterion(criterion)
+                    .inputValues(inputValues)
+                    .unit("t/ha")
+                    .justification("Gessagem não avaliada por ausência de extrato de fertilidade.")
+                    .warnings(gypsumWarnings)
+                    .build();
+        }
+
+        inputValues.put("Cálcio (mmolc/dm3)", fertility.getCalcio());
+        inputValues.put("Alumínio (mmolc/dm3)", fertility.getAluminio());
+        inputValues.put("Saturação por alumínio (%)", fertility.getSaturacaoAluminioM());
+        inputValues.put("CTC efetiva (mmolc/dm3)", fertility.getCtcEfetiva());
+        inputValues.put("CTC pH 7,0 (mmolc/dm3)", fertility.getCtcPh7());
+        inputValues.put("Argila (g/dm3)", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
+        inputValues.put("Enxofre (mg/dm3)", fertility.getEnxofre());
+        inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
+        inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
+        inputValues.put("Sugestão de gessagem da tabela (t/ha)", cropFertilizationTable != null ? cropFertilizationTable.getGessing() : null);
+
+        if (extractInitialDepth(fertility) == null || extractFinalDepth(fertility) == null) {
+            gypsumWarnings.add("Profundidade do extrato de fertilidade não disponível; o backend não inferiu camada para gessagem.");
+        }
+
+        Optional<DiverseContentRangeModel> diverseRange = diverseContentRangeRepository.findByTable(soilInterpretationTable);
+        if (diverseRange.isEmpty()) {
+            gypsumWarnings.add("Não há faixas diversas cadastradas para avaliar cálcio, alumínio e saturação por alumínio na gessagem.");
+            warnings.addAll(gypsumWarnings);
+            return GypsumRequirementResult.builder()
+                    .needed(null)
+                    .criterion(criterion)
+                    .inputValues(inputValues)
+                    .unit("t/ha")
+                    .justification("Gessagem não calculada por ausência de critério técnico cadastrado para os indicadores disponíveis.")
+                    .warnings(gypsumWarnings)
+                    .build();
+        }
+
+        SoilChemicalDiagnosisItem calcium = classifyDiverseRange("Cálcio", fertility.getCalcio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
+                "Cálcio usado como indicador para necessidade de gessagem.");
+        SoilChemicalDiagnosisItem aluminum = classifyDiverseRange("Alumínio", fertility.getAluminio(), "mmolc/dm3", diverseRange,
+                r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
+                "Alumínio usado como indicador para necessidade de gessagem.");
+        SoilChemicalDiagnosisItem aluminumSaturation = classifyDiverseRange("Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
+                r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
+                "Saturação por alumínio usada como indicador para necessidade de gessagem.");
+
+        boolean calciumIndicatesNeed = isInterpretation(calcium, "Muito baixo", "Baixo");
+        boolean aluminumIndicatesNeed = isInterpretation(aluminum, "Alto", "Muito alto");
+        boolean aluminumSaturationIndicatesNeed = isInterpretation(aluminumSaturation, "Alto", "Muito alto");
+        boolean hasClassifiedIndicator = calcium.getInterpretation() != null
+                || aluminum.getInterpretation() != null
+                || aluminumSaturation.getInterpretation() != null;
+
+        if (!hasClassifiedIndicator) {
+            gypsumWarnings.add("Dados ou critérios insuficientes para classificar cálcio, alumínio ou saturação por alumínio.");
+            warnings.addAll(gypsumWarnings);
+            return GypsumRequirementResult.builder()
+                    .needed(null)
+                    .criterion(criterion)
+                    .inputValues(inputValues)
+                    .unit("t/ha")
+                    .justification("Gessagem não calculada porque nenhum indicador pôde ser classificado com os dados e critérios cadastrados.")
+                    .warnings(gypsumWarnings)
+                    .build();
+        }
+
+        boolean needed = calciumIndicatesNeed || aluminumIndicatesNeed || aluminumSaturationIndicatesNeed;
+        Double tableDose = cropFertilizationTable != null ? cropFertilizationTable.getGessing() : null;
+        Double dose = needed && tableDose != null ? Math.max(0d, round2(tableDose)) : needed ? null : 0d;
+        if (needed && tableDose == null) {
+            gypsumWarnings.add("A necessidade foi indicada pelos critérios disponíveis, mas a tabela de adubação não possui sugestão de gessagem preenchida.");
+        }
+        if (needed) {
+            gypsumWarnings.add("A dose usa o campo SUGESTAO_GESSAGEM da tabela de adubação; não há fórmula quantitativa de gessagem por argila/profundidade modelada no backend atual.");
+        }
+
+        String justification = needed
+                ? "Gessagem indicada por pelo menos um indicador crítico: Ca=" + safeInterpretation(calcium)
+                + ", Al=" + safeInterpretation(aluminum)
+                + ", m%=" + safeInterpretation(aluminumSaturation) + "."
+                : "Gessagem não indicada pelos indicadores classificados: Ca=" + safeInterpretation(calcium)
+                + ", Al=" + safeInterpretation(aluminum)
+                + ", m%=" + safeInterpretation(aluminumSaturation) + ".";
+
+        warnings.addAll(gypsumWarnings);
+        return GypsumRequirementResult.builder()
+                .needed(needed)
+                .criterion(criterion)
+                .inputValues(inputValues)
+                .calculatedRequirement(dose)
+                .unit("t/ha")
+                .justification(justification)
+                .warnings(gypsumWarnings)
+                .build();
+    }
+
+    private Double extractInitialDepth(FertilityAnalysisExtractModel fertility) {
+        if (fertility == null) return null;
+        if (fertility.getRangeExtract() != null) return doubleFromInteger(fertility.getRangeExtract().getProfundidade_inicial());
+        if (fertility.getLayerExtract() != null) return doubleFromInteger(fertility.getLayerExtract().getProfundidade_inicial());
+        return null;
+    }
+
+    private Double extractFinalDepth(FertilityAnalysisExtractModel fertility) {
+        if (fertility == null) return null;
+        if (fertility.getRangeExtract() != null) return doubleFromInteger(fertility.getRangeExtract().getProfundidade_final());
+        if (fertility.getLayerExtract() != null) return doubleFromInteger(fertility.getLayerExtract().getProfundidade_final());
+        return null;
+    }
+
+    private Double doubleFromInteger(Integer value) {
+        return value == null ? null : value.doubleValue();
+    }
+
+    private boolean isInterpretation(SoilChemicalDiagnosisItem item, String... expected) {
+        if (item == null || item.getInterpretation() == null) return false;
+        return Arrays.asList(expected).contains(item.getInterpretation());
+    }
+
+    private String safeInterpretation(SoilChemicalDiagnosisItem item) {
+        return item == null || item.getInterpretation() == null ? "não classificado" : item.getInterpretation();
     }
     private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
         List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
@@ -1162,8 +1304,9 @@ public class RecommendationCalculationService {
     private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueOrderByIdAsc(), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueOrderByNameAsc(), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
+    public static class RecommendationCalculationResult { private String requesterName; private String requesterUsername; private String propertyName; private Long propertyId; private String plotIdentification; private Long plotId; private String cropName; private Integer annualCropFolderYear; private String recommendationType; private String limingCriteria; private LocalDateTime issuedAt; private List<String> warnings; private List<String> diagnosticMessages; private List<String> fertilizationRows; private List<String> correctionMessages; private LimingRequirementResult limingRequirement; private GypsumRequirementResult gypsumRequirement; private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis; private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis; private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis; private Long physicalAnalysisId; private Long soilFertilityAnalysisId; private Long saturationExtractAnalysisId; private Long annualCropFolderId; private Long cropId; private Long foliarAnalysisId; private String physicalAnalysisSummary; private String soilFertilityAnalysisSummary; private String saturationExtractAnalysisSummary; private String annualCropFolderSummary; private String cropSummary; private String foliarAnalysisSummary; private Double requiredN; private Double requiredP2O5; private Double requiredK2O; private Long nitrogenRangeId; private Long phosphorusRangeId; private Long potassiumRangeId; private List<FertilizationRecommendationRow> fertilizationRecommendationRows; private List<FertilizerSuggestion> fertilizerSuggestions; private List<NutrientBalanceRow> nutrientBalanceRows; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String justification; private List<String> warnings; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
     @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
