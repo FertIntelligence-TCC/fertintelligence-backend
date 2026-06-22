@@ -79,19 +79,7 @@ public class RecommendationCalculationService {
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
         List<String> diagnostics = new ArrayList<>();
-        diagnostics.add("Usuário solicitante: " + user.getName() + " (" + user.getUsername() + ")");
-        diagnostics.add("Propriedade selecionada: " + property.getNome() + " (ID " + property.getId() + ")");
-        diagnostics.add("Talhão selecionado: " + plot.getIdentification() + " (ID " + plot.getId() + ")");
-        diagnostics.add("Extrato de análise física selecionado: ID " + dto.getPhysicalAnalysisExtractId());
-        diagnostics.add("Análise de fertilidade selecionada: ID " + dto.getSoilFertilityAnalysisId());
-        diagnostics.add("Extrato de saturação selecionado: ID " + dto.getSaturationExtractAnalysisExtractId());
-        diagnostics.add("Pasta de cultura anual selecionada: ID " + dto.getAnnualCropFolderId());
-        diagnostics.add("Cultura selecionada: ID " + dto.getCropId());
-        diagnostics.add("Tabela de adubação de culturas selecionada: grupo " + dto.getCropFertilizationTableGroup() + ", ID " + dto.getCropFertilizationTableId());
-        diagnostics.add("Tabela de interpretação da fertilidade do solo selecionada: grupo " + dto.getSoilFertilityInterpretationCriteriaTableGroup() + ", ID " + dto.getSoilFertilityInterpretationCriteriaTableId());
-        diagnostics.add("Tabela de interpretação de análise foliar selecionada: grupo " + dto.getCropFoliarAnalysisInterpretationTableGroup() + ", ID " + dto.getCropFoliarAnalysisInterpretationTableId());
         FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
-        diagnostics.add("Origem de adubos selecionada: " + sourceOption);
         List<String> warnings = new ArrayList<>();
 
         PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrThrow(dto.getPhysicalAnalysisExtractId());
@@ -113,18 +101,16 @@ public class RecommendationCalculationService {
         if (crop.getFolder() == null || !Objects.equals(crop.getFolder().getId(), annualCropFolder.getId())) {
             throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
         }
-        diagnostics.add("Tabela de fertilidade validada: ID " + soilInterpretationTable.getId());
-        diagnostics.add("Tabela foliar validada: ID " + foliarInterpretationTable.getId());
 
         Optional<FoliarAnalysisModel> foliarAnalysis = findLatestFoliarAnalysis(crop);
 
         Optional<FertilityAnalysisExtractModel> fertilityExtract = findLatestFertilityExtract(soilFertilityAnalysis);
 
-        String physicalSummary = "Análise física selecionada para a recomendação.";
-        String soilFertilitySummary = "Análise de fertilidade selecionada com ID " + soilFertilityAnalysis.getId() + ".";
-        String saturationSummary = "Extrato de saturação selecionado com ID " + saturationExtractAnalysis.getId() + ".";
-        String cropSummary = "Cultura selecionada: " + crop.getName() + " (ID " + crop.getId() + ").";
-        String foliarSummary = foliarAnalysis.map(m -> "Análise foliar encontrada com ID " + m.getId() + ".").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
+        String physicalSummary = "Análise física considerada na recomendação.";
+        String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
+        String saturationSummary = "Extrato de saturação considerado na recomendação.";
+        String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
+        String foliarSummary = foliarAnalysis.map(m -> "Análise foliar considerada quando aplicável.").orElseGet(() -> addMissing(warnings, "Nenhuma análise foliar foi encontrada para a cultura selecionada."));
 
         List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
@@ -169,7 +155,6 @@ public class RecommendationCalculationService {
 
         
         warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
-        warnings.add("Sugestões foliares (mineral/quelatado/biofertilizante) ainda não estão implementadas no cálculo desta recomendação.");
 
         return RecommendationCalculationResult.builder()
                 .requesterName(user != null ? user.getName() : null)
@@ -194,7 +179,7 @@ public class RecommendationCalculationService {
                 .annualCropFolderId(annualCropFolder.getId())
                 .cropId(crop.getId()).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
                 .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(saturationSummary)
-                .annualCropFolderSummary("Pasta de cultura anual ID " + annualCropFolder.getId() + " selecionada.")
+                .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
                 .cropSummary(cropSummary).foliarAnalysisSummary(foliarSummary).build();
     }
     private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
@@ -206,12 +191,12 @@ public class RecommendationCalculationService {
     private Optional<Double> extractPotassiumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getPotassio);}
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
-    private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();if (dto.getLimingCriteria() != null) m.add("Critério de calagem selecionado: " + dto.getLimingCriteria());Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
+    private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
     private record FertilizerSelection(String name, Double quantityKgHa, Optional<FertilizerSuggestion> suggestion){}
     private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){double q=estimate(n,p,k,bestF.get().getN(),bestF.get().getP2O5(),bestF.get().getK2O());w.add("Quantidade de adubo estimada a partir das necessidades nutricionais calculadas e da composição do fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(bestF.get().getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)bestF.get().getN()+"-"+(int)bestF.get().getP2O5()+"-"+(int)bestF.get().getK2O()).n(bestF.get().getN()).p2o5(bestF.get().getP2O5()).k2o(bestF.get().getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();return new FertilizerSelection(s.getFertilizerName(),q,Optional.of(s));}
     var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){double q=estimate(n,p,k,bestS.get().getN(),bestS.get().getP2O5(),bestS.get().getK2O());w.add("Quantidade de adubo estimada a partir das necessidades nutricionais calculadas e da composição do fertilizante selecionado.");var s=FertilizerSuggestion.builder().fertilizerId(bestS.get().getId()).fertilizerType("SIMPLES").fertilizerName(bestS.get().getName()).n(bestS.get().getN()).p2o5(bestS.get().getP2O5()).k2o(bestS.get().getK2O()).reason("Fallback por ausência de formulado adequado.").build();return new FertilizerSelection(s.getFertilizerName(),q,Optional.of(s));}
     w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada."); return new FertilizerSelection("Não encontrado",null,Optional.empty());}
-    private List<FertilizationRecommendationRow> buildCoverageRows(ContentRangeModel range, UserModel user, FertilizerSourceOption sourceOption, List<FertilizerSuggestion> suggestions){List<FertilizationRecommendationRow> rows=new ArrayList<>();for(CoverageModel c:coverageRepository.findAllByRangeOrderByOrderAsc(range)){var simples=selectSimpleFertilizers(user, sourceOption);SimpleMineralFertilizerModel best=null; if(range.getNutrient()==Nutriente.NITROGENIO) best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getN)).orElse(null); else if(range.getNutrient()==Nutriente.POTASSIO) best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getK2O)).orElse(null); else best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getP2O5)).orElse(null); String fertName="Não encontrado"; Double q=null; if(best!=null){double pct=range.getNutrient()==Nutriente.NITROGENIO?best.getN():range.getNutrient()==Nutriente.POTASSIO?best.getK2O():best.getP2O5(); if(pct>0){q=round2(c.getApplication()/pct*100d);} fertName=best.getName(); suggestions.add(FertilizerSuggestion.builder().fertilizerId(best.getId()).fertilizerType("SIMPLES").fertilizerName(best.getName()).n(best.getN()).p2o5(best.getP2O5()).k2o(best.getK2O()).reason("Cobertura por " + range.getNutrient()).build()); }
+    private List<FertilizationRecommendationRow> buildCoverageRows(ContentRangeModel range, UserModel user, FertilizerSourceOption sourceOption, List<FertilizerSuggestion> suggestions){List<FertilizationRecommendationRow> rows=new ArrayList<>();for(CoverageModel c:coverageRepository.findAllByRangeOrderByOrderAsc(range)){if(nvl(c.getApplication())<=0d) continue;var simples=selectSimpleFertilizers(user, sourceOption);SimpleMineralFertilizerModel best=null; if(range.getNutrient()==Nutriente.NITROGENIO) best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getN)).orElse(null); else if(range.getNutrient()==Nutriente.POTASSIO) best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getK2O)).orElse(null); else best=simples.stream().max(Comparator.comparing(SimpleMineralFertilizerModel::getP2O5)).orElse(null); String fertName="Não encontrado"; Double q=null; if(best!=null){double pct=range.getNutrient()==Nutriente.NITROGENIO?best.getN():range.getNutrient()==Nutriente.POTASSIO?best.getK2O():best.getP2O5(); if(pct>0){q=round2(c.getApplication()/pct*100d);} fertName=best.getName(); suggestions.add(FertilizerSuggestion.builder().fertilizerId(best.getId()).fertilizerType("SIMPLES").fertilizerName(best.getName()).n(best.getN()).p2o5(best.getP2O5()).k2o(best.getK2O()).reason("Cobertura por " + range.getNutrient()).build()); }
 rows.add(FertilizationRecommendationRow.builder().phase("Cobertura "+c.getOrder()+" - "+range.getNutrient()).nutrients(range.getNutrient()+": "+String.format("%.2f",nvl(c.getApplication()))+" kg/ha").suggestedFertilizer(fertName).fertilizerQuantityKgHa(q).applicationMode("Aplicação em cobertura, conforme fase da cultura e recomendação técnica.").source("Tabela de adubação da cultura").build());}
 return rows;}
     private int compareScore(double an,double ap,double ak,double bn,double bp,double bk,Double rn,Double rp,Double rk,Long aid,Long bid){int as=(nvl(rn)>0&&an>0?1:0)+(nvl(rp)>0&&ap>0?1:0)+(nvl(rk)>0&&ak>0?1:0);int bs=(nvl(rn)>0&&bn>0?1:0)+(nvl(rp)>0&&bp>0?1:0)+(nvl(rk)>0&&bk>0?1:0); if(as!=bs)return Integer.compare(as,bs); if(nvl(rp)>0&&Double.compare(ap,bp)!=0)return Double.compare(ap,bp); return Long.compare(bid,aid);}
