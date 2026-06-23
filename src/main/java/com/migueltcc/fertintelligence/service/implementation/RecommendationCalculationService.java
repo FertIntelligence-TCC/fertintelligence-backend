@@ -2013,15 +2013,171 @@ public class RecommendationCalculationService {
         @Builder.Default
         private List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows = new ArrayList<>();
     }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class LimingRequirementResult { private String selectedCriteria; private String formula; private Map<String, Double> inputValues; private Double theoreticalRequirement; private Double prnt; private Double correctedRequirement; private String limestoneSource; private Double calculatedRequirement; private String unit; private List<String> warnings; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class GypsumRequirementResult { private Boolean needed; private String criterion; private Map<String, Double> inputValues; private Double calculatedRequirement; private String unit; private String sourceName; private String sourceType; private Double commercialDose; private String commercialDoseUnit; private String sourceJustification; private String sourceLimitations; private String justification; private List<String> warnings; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilChemicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class CorrectiveFertilizationRow { private String correctedAttribute; private String need; private String suggestedSource; private Double dose; private String doseUnit; private String calculationMemory; private String technicalWarning; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilPhysicalDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String technicalObservation; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class SoilSalinityDiagnosisItem { private String attribute; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FoliarDiagnosisItem { private String nutrient; private Double analyzedValue; private String unit; private String interpretation; private String usedCriterion; private String technicalObservation; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizationRecommendationRow { private String phase; private String nutrients; private String suggestedFertilizer; private Double fertilizerQuantityKgHa; private String applicationMode; private String source; private Double providedN; private Double providedP2O5; private Double providedK2O; private Double balanceN; private Double balanceP2O5; private Double balanceK2O; private String limitingNutrient; private Double targetNeedKgHa; private Double productConcentrationPercent; private String calculationMemory; private String warning; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class FertilizerSuggestion { private Long fertilizerId; private String fertilizerType; private String fertilizerName; private Double n; private Double p2o5; private Double k2o; private String reason; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class NutrientBalanceRow { private String nutrient; private Double requiredTotalKgHa; private Double providedByPlantingKgHa; private Double recommendedCoverageKgHa; private Double providedByCoverageKgHa; private Double providedTotalKgHa; private Double finalBalanceKgHa; private String status; }
-    @Data @Builder @NoArgsConstructor @AllArgsConstructor public static class AlternativeFertilizationRecommendationRow { private String sourceType; private String nutrientOrObjective; private String sourceName; private String dose; private String unit; private String justification; private String limitations; }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LimingRequirementResult {
+        private String selectedCriteria;
+        private String formula;
+        private Map<String, Double> inputValues;
+        private Double theoreticalRequirement;
+        private Double prnt;
+        private Double correctedRequirement;
+        private String limestoneSource;
+        private Double calculatedRequirement;
+        private String unit;
+        private List<String> warnings;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GypsumRequirementResult {
+        private Boolean needed;
+        private String criterion;
+        private Map<String, Double> inputValues;
+        private Double calculatedRequirement;
+        private String unit;
+        private String sourceName;
+        private String sourceType;
+        private Double commercialDose;
+        private String commercialDoseUnit;
+        private String sourceJustification;
+        private String sourceLimitations;
+        private String justification;
+        private List<String> warnings;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SoilChemicalDiagnosisItem {
+        private String attribute;
+        private Double analyzedValue;
+        private String unit;
+        private String interpretation;
+        private String usedCriterion;
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CorrectiveFertilizationRow {
+        private String correctedAttribute;
+        private String need;
+        private String suggestedSource;
+        private Double dose;
+        private String doseUnit;
+        private String calculationMemory;
+        private String technicalWarning;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SoilPhysicalDiagnosisItem {
+        private String attribute;
+        private Double analyzedValue;
+        private String unit;
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SoilSalinityDiagnosisItem {
+        private String attribute;
+        private Double analyzedValue;
+        private String unit;
+        private String interpretation;
+        private String usedCriterion;
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FoliarDiagnosisItem {
+        private String nutrient;
+        private Double analyzedValue;
+        private String unit;
+        private String interpretation;
+        private String usedCriterion;
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FertilizationRecommendationRow {
+        private String phase;
+        private String nutrients;
+        private String suggestedFertilizer;
+        private Double fertilizerQuantityKgHa;
+        private String applicationMode;
+        private String source;
+        private Double providedN;
+        private Double providedP2O5;
+        private Double providedK2O;
+        private Double balanceN;
+        private Double balanceP2O5;
+        private Double balanceK2O;
+        private String limitingNutrient;
+        private Double targetNeedKgHa;
+        private Double productConcentrationPercent;
+        private String calculationMemory;
+        private String warning;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FertilizerSuggestion {
+        private Long fertilizerId;
+        private String fertilizerType;
+        private String fertilizerName;
+        private Double n;
+        private Double p2o5;
+        private Double k2o;
+        private String reason;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NutrientBalanceRow {
+        private String nutrient;
+        private Double requiredTotalKgHa;
+        private Double providedByPlantingKgHa;
+        private Double recommendedCoverageKgHa;
+        private Double providedByCoverageKgHa;
+        private Double providedTotalKgHa;
+        private Double finalBalanceKgHa;
+        private String status;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AlternativeFertilizationRecommendationRow {
+        private String sourceType;
+        private String nutrientOrObjective;
+        private String sourceName;
+        private String dose;
+        private String unit;
+        private String justification;
+        private String limitations;
+    }
 }
