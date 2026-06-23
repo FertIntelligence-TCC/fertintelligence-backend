@@ -14,12 +14,14 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
@@ -30,24 +32,6 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final RecommendationReportService recommendationReportService;
     private final RecommendationNarrativeService recommendationNarrativeService;
     private final PermissionManager permissionManager;
-
-    public RecommendationServiceImpl(RecommendationRepository recommendationRepository,
-                                     UserRepository userRepository,
-                                     PropertyRepository propertyRepository,
-                                     PlotRepository plotRepository,
-                                     RecommendationCalculationService recommendationCalculationService,
-                                     RecommendationReportService recommendationReportService,
-                                     RecommendationNarrativeService recommendationNarrativeService,
-                                     PermissionManager permissionManager) {
-        this.recommendationRepository = recommendationRepository;
-        this.userRepository = userRepository;
-        this.propertyRepository = propertyRepository;
-        this.plotRepository = plotRepository;
-        this.recommendationCalculationService = recommendationCalculationService;
-        this.recommendationReportService = recommendationReportService;
-        this.recommendationNarrativeService = recommendationNarrativeService;
-        this.permissionManager = permissionManager;
-    }
 
     @Override
     @Transactional

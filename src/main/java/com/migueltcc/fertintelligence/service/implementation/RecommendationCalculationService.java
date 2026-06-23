@@ -1945,16 +1945,32 @@ public class RecommendationCalculationService {
         };
     }
 
-    private record NpkAlternativeSource(String name, double n, double p2o5, double k2o) {}
-    private record MicronutrientSourceSelection(String sourceName, String sourceType) {}
+    private record NpkAlternativeSource(
+            String name,
+            double n,
+            double p2o5,
+            double k2o
+    ) {
+    }
 
-    private record FertilityAnalysisSelection(SoilAnalysisModel soilAnalysis, Optional<FertilityAnalysisExtractModel> selectedExtract) {}
+    private record MicronutrientSourceSelection(
+            String sourceName,
+            String sourceType
+    ) {
+    }
+
+    private record FertilityAnalysisSelection(
+            SoilAnalysisModel soilAnalysis,
+            Optional<FertilityAnalysisExtractModel> selectedExtract
+    ) {
+    }
 
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RecommendationCalculationResult {
+        // Identification
         private String requesterName;
         private String requesterUsername;
         private String propertyName;
@@ -1966,6 +1982,8 @@ public class RecommendationCalculationService {
         private String recommendationType;
         private String limingCriteria;
         private LocalDateTime issuedAt;
+
+        // General messages
         @Builder.Default
         private List<String> warnings = new ArrayList<>();
         @Builder.Default
@@ -1974,36 +1992,48 @@ public class RecommendationCalculationService {
         private List<String> fertilizationRows = new ArrayList<>();
         @Builder.Default
         private List<String> correctionMessages = new ArrayList<>();
+
+        // Correctives
         private LimingRequirementResult limingRequirement;
         private GypsumRequirementResult gypsumRequirement;
+
+        // Diagnosis
         @Builder.Default
         private List<SoilChemicalDiagnosisItem> soilChemicalDiagnosis = new ArrayList<>();
-        @Builder.Default
-        private List<CorrectiveFertilizationRow> correctiveFertilizationRows = new ArrayList<>();
         @Builder.Default
         private List<SoilPhysicalDiagnosisItem> soilPhysicalDiagnosis = new ArrayList<>();
         @Builder.Default
         private List<SoilSalinityDiagnosisItem> soilSalinityDiagnosis = new ArrayList<>();
         @Builder.Default
         private List<FoliarDiagnosisItem> foliarDiagnosis = new ArrayList<>();
+
+        // Source analysis references
         private Long physicalAnalysisId;
         private Long soilFertilityAnalysisId;
         private Long saturationExtractAnalysisId;
         private Long annualCropFolderId;
         private Long cropId;
         private Long foliarAnalysisId;
+
+        // Source analysis summaries
         private String physicalAnalysisSummary;
         private String soilFertilityAnalysisSummary;
         private String saturationExtractAnalysisSummary;
         private String annualCropFolderSummary;
         private String cropSummary;
         private String foliarAnalysisSummary;
+
+        // NPK requirements
         private Double requiredN;
         private Double requiredP2O5;
         private Double requiredK2O;
         private Long nitrogenRangeId;
         private Long phosphorusRangeId;
         private Long potassiumRangeId;
+
+        // Fertilization results
+        @Builder.Default
+        private List<CorrectiveFertilizationRow> correctiveFertilizationRows = new ArrayList<>();
         @Builder.Default
         private List<FertilizationRecommendationRow> fertilizationRecommendationRows = new ArrayList<>();
         @Builder.Default
