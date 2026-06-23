@@ -14,7 +14,6 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,22 +22,32 @@ import java.util.List;
 @Service
 public class RecommendationServiceImpl implements RecommendationService {
 
-    @Autowired
-    private RecommendationRepository recommendationRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private PropertyRepository propertyRepository;
-    @Autowired
-    private PlotRepository plotRepository;
-    @Autowired
-    private RecommendationCalculationService recommendationCalculationService;
-    @Autowired
-    private RecommendationReportService recommendationReportService;
-    @Autowired
-    private RecommendationNarrativeService recommendationNarrativeService;
-    @Autowired
-    private PermissionManager permissionManager;
+    private final RecommendationRepository recommendationRepository;
+    private final UserRepository userRepository;
+    private final PropertyRepository propertyRepository;
+    private final PlotRepository plotRepository;
+    private final RecommendationCalculationService recommendationCalculationService;
+    private final RecommendationReportService recommendationReportService;
+    private final RecommendationNarrativeService recommendationNarrativeService;
+    private final PermissionManager permissionManager;
+
+    public RecommendationServiceImpl(RecommendationRepository recommendationRepository,
+                                     UserRepository userRepository,
+                                     PropertyRepository propertyRepository,
+                                     PlotRepository plotRepository,
+                                     RecommendationCalculationService recommendationCalculationService,
+                                     RecommendationReportService recommendationReportService,
+                                     RecommendationNarrativeService recommendationNarrativeService,
+                                     PermissionManager permissionManager) {
+        this.recommendationRepository = recommendationRepository;
+        this.userRepository = userRepository;
+        this.propertyRepository = propertyRepository;
+        this.plotRepository = plotRepository;
+        this.recommendationCalculationService = recommendationCalculationService;
+        this.recommendationReportService = recommendationReportService;
+        this.recommendationNarrativeService = recommendationNarrativeService;
+        this.permissionManager = permissionManager;
+    }
 
     @Override
     @Transactional
