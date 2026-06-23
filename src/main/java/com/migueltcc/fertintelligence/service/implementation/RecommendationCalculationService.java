@@ -148,6 +148,19 @@ public class RecommendationCalculationService {
         FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
         List<String> warnings = new ArrayList<>();
 
+        RecommendationInputs inputs = loadRecommendationInputs(dto, user, plot);
+        validateRecommendationInputs(inputs, plot);
+
+        DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
+        FertilizationRecommendationContext recommendations = buildFertilizationRecommendations(
+                inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis());
+
+        warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
+
+        return buildCalculationResult(dto, user, property, plot, diagnostics, warnings, inputs, diagnoses, recommendations);
+    }
+
+    private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot) {
         PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrThrow(dto.getPhysicalAnalysisExtractId());
         FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot);
         SoilAnalysisModel soilFertilityAnalysis = soilFertilitySelection.soilAnalysis();
@@ -160,115 +173,144 @@ public class RecommendationCalculationService {
                 dto.getSoilFertilityInterpretationCriteriaTableId(), dto.getSoilFertilityInterpretationCriteriaTableGroup(), user);
         CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
                 dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user);
-
-        validateSamePlot(resolvePlot(physicalAnalysis), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
-        validateSamePlot(soilFertilityAnalysis.getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
-        validateSamePlot(resolvePlot(saturationExtractAnalysis), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
-        validateSamePlot(annualCropFolder.getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
-        if (crop.getFolder() == null || !Objects.equals(crop.getFolder().getId(), annualCropFolder.getId())) {
-            throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
-        }
-
         Optional<FoliarAnalysisModel> foliarAnalysis = findLatestFoliarAnalysis(crop);
-
         Optional<FertilityAnalysisExtractModel> fertilityExtract = soilFertilitySelection.selectedExtract()
                 .or(() -> findLatestFertilityExtract(soilFertilityAnalysis));
 
-        PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(physicalAnalysis, warnings);
+        return new RecommendationInputs(
+                physicalAnalysis, soilFertilityAnalysis, saturationExtractAnalysis, annualCropFolder, crop,
+                cropFertilizationTable, soilInterpretationTable, foliarInterpretationTable, foliarAnalysis, fertilityExtract);
+    }
+
+    private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot) {
+        validateSamePlot(resolvePlot(inputs.physicalAnalysis()), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
+        validateSamePlot(inputs.soilFertilityAnalysis().getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
+        validateSamePlot(resolvePlot(inputs.saturationExtractAnalysis()), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
+        validateSamePlot(inputs.annualCropFolder().getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
+        if (inputs.crop().getFolder() == null || !Objects.equals(inputs.crop().getFolder().getId(), inputs.annualCropFolder().getId())) {
+            throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
+        }
+    }
+
+    private DiagnosesContext buildRecommendationDiagnoses(RecommendationCreateRequestDto dto,
+                                                          RecommendationInputs inputs,
+                                                          UserModel user,
+                                                          FertilizerSourceOption sourceOption,
+                                                          List<String> warnings) {
+        PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(inputs.physicalAnalysis(), warnings);
         String physicalSummary = physicalDiagnosis.summary();
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
         String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
-        List<FoliarDiagnosisItem> foliarDiagnosis = buildFoliarDiagnosis(foliarAnalysis, crop, foliarInterpretationTable, warnings);
-        String foliarSummary = buildFoliarSummary(foliarAnalysis, foliarDiagnosis, warnings);
+        List<FoliarDiagnosisItem> foliarDiagnosis = buildFoliarDiagnosis(inputs.foliarAnalysis(), inputs.crop(), inputs.foliarInterpretationTable(), warnings);
+        String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis, warnings);
 
-        List<String> correctionMessages = buildCorrectionMessages(dto, fertilityExtract, Optional.of(saturationExtractAnalysis), warnings);
-        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
+        List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.of(inputs.saturationExtractAnalysis()), warnings);
+        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
         GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
-                fertilityExtract, physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+                inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
-                fertilityExtract, physicalAnalysis, soilInterpretationTable, warnings);
+                inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
         List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
-                chemicalDiagnosis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+                chemicalDiagnosis, inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
-                saturationExtractAnalysis, fertilityExtract, soilInterpretationTable, warnings);
+                inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
+
+        return new DiagnosesContext(
+                physicalDiagnosis, physicalSummary, soilFertilitySummary, cropSummary, foliarDiagnosis, foliarSummary,
+                correctionMessages, limingRequirement, gypsumRequirement, chemicalDiagnosis, correctiveFertilizationRows, salinityDiagnosis);
+    }
+
+    private FertilizationRecommendationContext buildFertilizationRecommendations(RecommendationInputs inputs,
+                                                                                 UserModel user,
+                                                                                 FertilizerSourceOption sourceOption,
+                                                                                 List<String> warnings,
+                                                                                 List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+                                                                                 List<FoliarDiagnosisItem> foliarDiagnosis) {
         List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
         List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
         List<NutrientBalanceRow> nutrientBalanceRows = List.of();
 
-        Double requiredN = null, requiredP2O5 = null, requiredK2O = null;
-        Long nRangeId = null, pRangeId = null, kRangeId = null;
+        CropFertilizationTableModel table = inputs.cropFertilizationTable();
+        Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
+        Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(inputs.fertilityExtract()), warnings, "fósforo");
+        Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(inputs.fertilityExtract()), warnings, "potássio");
 
-        {
-            CropFertilizationTableModel table = cropFertilizationTable;
-            Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
-            Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(fertilityExtract), warnings, "fósforo");
-            Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(fertilityExtract), warnings, "potássio");
+        Double requiredN = nRange.map(ContentRangeModel::getApplication).orElse(null);
+        Double requiredP2O5 = pRange.map(ContentRangeModel::getApplication).orElse(null);
+        Double requiredK2O = kRange.map(ContentRangeModel::getApplication).orElse(null);
+        Long nRangeId = nRange.map(ContentRangeModel::getId).orElse(null);
+        Long pRangeId = pRange.map(ContentRangeModel::getId).orElse(null);
+        Long kRangeId = kRange.map(ContentRangeModel::getId).orElse(null);
 
-            requiredN = nRange.map(ContentRangeModel::getApplication).orElse(null);
-            requiredP2O5 = pRange.map(ContentRangeModel::getApplication).orElse(null);
-            requiredK2O = kRange.map(ContentRangeModel::getApplication).orElse(null);
-            nRangeId = nRange.map(ContentRangeModel::getId).orElse(null);
-            pRangeId = pRange.map(ContentRangeModel::getId).orElse(null);
-            kRangeId = kRange.map(ContentRangeModel::getId).orElse(null);
+        if (nRange.isEmpty()) warnings.add("Não foi encontrado intervalo para NITROGENIO na tabela selecionada.");
+        if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
+        if (kRange.isEmpty()) warnings.add("Não foi encontrado intervalo para POTASSIO na tabela selecionada.");
 
-            if (nRange.isEmpty()) warnings.add("Não foi encontrado intervalo para NITROGENIO na tabela selecionada.");
-            if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
-            if (kRange.isEmpty()) warnings.add("Não foi encontrado intervalo para POTASSIO na tabela selecionada.");
+        FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, requiredN, requiredP2O5, requiredK2O, warnings);
+        planting.suggestion().ifPresent(fertilizerSuggestions::add);
+        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(requiredN, requiredP2O5, requiredK2O);
+        nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
 
-            FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, requiredN, requiredP2O5, requiredK2O, warnings);
-            planting.suggestion().ifPresent(fertilizerSuggestions::add);
-            NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(requiredN, requiredP2O5, requiredK2O);
-            nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
+        recommendationRows.add(FertilizationRecommendationRow.builder()
+                .phase("Plantio")
+                .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O)))
+                .suggestedFertilizer(planting.name())
+                .fertilizerQuantityKgHa(planting.quantityKgHa())
+                .providedN(planting.providedN())
+                .providedP2O5(planting.providedP2O5())
+                .providedK2O(planting.providedK2O())
+                .balanceN(planting.balanceN())
+                .balanceP2O5(planting.balanceP2O5())
+                .balanceK2O(planting.balanceK2O())
+                .limitingNutrient(planting.limitingNutrient())
+                .targetNeedKgHa(planting.targetNeedKgHa())
+                .productConcentrationPercent(planting.productConcentrationPercent())
+                .calculationMemory(planting.calculationMemory())
+                .warning(planting.warning())
+                .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
+                .source("Tabela de adubação de culturas ID " + table.getId())
+                .build());
 
-            recommendationRows.add(FertilizationRecommendationRow.builder()
-                    .phase("Plantio")
-                    .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O)))
-                    .suggestedFertilizer(planting.name())
-                    .fertilizerQuantityKgHa(planting.quantityKgHa())
-                    .providedN(planting.providedN())
-                    .providedP2O5(planting.providedP2O5())
-                    .providedK2O(planting.providedK2O())
-                    .balanceN(planting.balanceN())
-                    .balanceP2O5(planting.balanceP2O5())
-                    .balanceK2O(planting.balanceK2O())
-                    .limitingNutrient(planting.limitingNutrient())
-                    .targetNeedKgHa(planting.targetNeedKgHa())
-                    .productConcentrationPercent(planting.productConcentrationPercent())
-                    .calculationMemory(planting.calculationMemory())
-                    .warning(planting.warning())
-                    .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
-                    .source("Tabela de adubação de culturas ID " + table.getId())
-                    .build());
-
-            for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
-                if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, sourceOption, fertilizerSuggestions, nutrientBalance, warnings));
-            }
-            recommendationRows.add(FertilizationRecommendationRow.builder()
-                    .phase("Balanço global NPK")
-                    .nutrients("Consolidado após plantio e coberturas recomendadas")
-                    .suggestedFertilizer("Não se aplica")
-                    .applicationMode("Memória de cálculo consolidada em kg/ha.")
-                    .providedN(nutrientBalance.providedTotalN())
-                    .providedP2O5(nutrientBalance.providedTotalP2O5())
-                    .providedK2O(nutrientBalance.providedTotalK2O())
-                    .balanceN(nutrientBalance.balanceN())
-                    .balanceP2O5(nutrientBalance.balanceP2O5())
-                    .balanceK2O(nutrientBalance.balanceK2O())
-                    .source("Balanço global calculado pelo backend")
-                    .build());
-            nutrientBalanceRows = nutrientBalance.toRows();
-            if (nutrientBalanceRows.stream().anyMatch(balance -> balance.getRecommendedCoverageKgHa() > 0d)) {
-                warnings.add("Como CoverageModel não possui marcação de parcelamento técnico, coberturas NPK foram calculadas apenas para déficit remanescente após o plantio.");
-            }
+        for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
+            if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, user, sourceOption, fertilizerSuggestions, nutrientBalance, warnings));
+        }
+        recommendationRows.add(FertilizationRecommendationRow.builder()
+                .phase("Balanço global NPK")
+                .nutrients("Consolidado após plantio e coberturas recomendadas")
+                .suggestedFertilizer("Não se aplica")
+                .applicationMode("Memória de cálculo consolidada em kg/ha.")
+                .providedN(nutrientBalance.providedTotalN())
+                .providedP2O5(nutrientBalance.providedTotalP2O5())
+                .providedK2O(nutrientBalance.providedTotalK2O())
+                .balanceN(nutrientBalance.balanceN())
+                .balanceP2O5(nutrientBalance.balanceP2O5())
+                .balanceK2O(nutrientBalance.balanceK2O())
+                .source("Balanço global calculado pelo backend")
+                .build());
+        nutrientBalanceRows = nutrientBalance.toRows();
+        if (nutrientBalanceRows.stream().anyMatch(balance -> balance.getRecommendedCoverageKgHa() > 0d)) {
+            warnings.add("Como CoverageModel não possui marcação de parcelamento técnico, coberturas NPK foram calculadas apenas para déficit remanescente após o plantio.");
         }
 
         List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows =
                 buildOrganicOrganoMineralAndMicronutrientRows(
                         requiredN, requiredP2O5, requiredK2O, chemicalDiagnosis, foliarDiagnosis,
-                        cropFertilizationTable, user, sourceOption, warnings);
-        
-        warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
+                        table, user, sourceOption, warnings);
 
+        return new FertilizationRecommendationContext(
+                recommendationRows, fertilizerSuggestions, nutrientBalanceRows, alternativeFertilizationRows,
+                requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
+    }
+
+    private RecommendationCalculationResult buildCalculationResult(RecommendationCreateRequestDto dto,
+                                                                   UserModel user,
+                                                                   PropertyModel property,
+                                                                   PlotModel plot,
+                                                                   List<String> diagnostics,
+                                                                   List<String> warnings,
+                                                                   RecommendationInputs inputs,
+                                                                   DiagnosesContext diagnoses,
+                                                                   FertilizationRecommendationContext recommendations) {
         return RecommendationCalculationResult.builder()
                 .requesterName(user != null ? user.getName() : null)
                 .requesterUsername(user != null ? user.getUsername() : null)
@@ -276,33 +318,74 @@ public class RecommendationCalculationService {
                 .propertyId(property != null ? property.getId() : null)
                 .plotIdentification(plot != null ? plot.getIdentification() : null)
                 .plotId(plot != null ? plot.getId() : null)
-                .cropName(crop.getName() != null ? crop.getName().name() : null)
-                .annualCropFolderYear(annualCropFolder.getCropsYear())
+                .cropName(inputs.crop().getName() != null ? inputs.crop().getName().name() : null)
+                .annualCropFolderYear(inputs.annualCropFolder().getCropsYear())
                 .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
-                .limingCriteria(limingRequirement != null ? limingRequirement.getSelectedCriteria() : null)
+                .limingCriteria(diagnoses.limingRequirement() != null ? diagnoses.limingRequirement().getSelectedCriteria() : null)
                 .issuedAt(LocalDateTime.now())
-                .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(correctionMessages)
-                .limingRequirement(limingRequirement)
-                .gypsumRequirement(gypsumRequirement)
-                .soilChemicalDiagnosis(chemicalDiagnosis)
-                .correctiveFertilizationRows(correctiveFertilizationRows)
-                .soilPhysicalDiagnosis(physicalDiagnosis.items())
-                .soilSalinityDiagnosis(salinityDiagnosis.items())
-                .foliarDiagnosis(foliarDiagnosis)
+                .warnings(warnings).diagnosticMessages(diagnostics).correctionMessages(diagnoses.correctionMessages())
+                .limingRequirement(diagnoses.limingRequirement())
+                .gypsumRequirement(diagnoses.gypsumRequirement())
+                .soilChemicalDiagnosis(diagnoses.chemicalDiagnosis())
+                .correctiveFertilizationRows(diagnoses.correctiveFertilizationRows())
+                .soilPhysicalDiagnosis(diagnoses.physicalDiagnosis().items())
+                .soilSalinityDiagnosis(diagnoses.salinityDiagnosis().items())
+                .foliarDiagnosis(diagnoses.foliarDiagnosis())
                 .fertilizationRows(List.of("Recomendação estruturada em linhas de plantio e cobertura."))
-                .fertilizationRecommendationRows(recommendationRows).fertilizerSuggestions(fertilizerSuggestions)
-                .nutrientBalanceRows(nutrientBalanceRows)
-                .alternativeFertilizationRows(alternativeFertilizationRows)
-                .requiredN(requiredN).requiredP2O5(requiredP2O5).requiredK2O(requiredK2O)
-                .nitrogenRangeId(nRangeId).phosphorusRangeId(pRangeId).potassiumRangeId(kRangeId)
-                .physicalAnalysisId(physicalAnalysis.getId())
-                .soilFertilityAnalysisId(soilFertilityAnalysis.getId())
-                .saturationExtractAnalysisId(saturationExtractAnalysis.getId())
-                .annualCropFolderId(annualCropFolder.getId())
-                .cropId(crop.getId()).foliarAnalysisId(foliarAnalysis.map(FoliarAnalysisModel::getId).orElse(null))
-                .physicalAnalysisSummary(physicalSummary).soilFertilityAnalysisSummary(soilFertilitySummary).saturationExtractAnalysisSummary(salinityDiagnosis.summary())
+                .fertilizationRecommendationRows(recommendations.recommendationRows()).fertilizerSuggestions(recommendations.fertilizerSuggestions())
+                .nutrientBalanceRows(recommendations.nutrientBalanceRows())
+                .alternativeFertilizationRows(recommendations.alternativeFertilizationRows())
+                .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
+                .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
+                .physicalAnalysisId(inputs.physicalAnalysis().getId())
+                .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
+                .saturationExtractAnalysisId(inputs.saturationExtractAnalysis().getId())
+                .annualCropFolderId(inputs.annualCropFolder().getId())
+                .cropId(inputs.crop().getId()).foliarAnalysisId(inputs.foliarAnalysis().map(FoliarAnalysisModel::getId).orElse(null))
+                .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.salinityDiagnosis().summary())
                 .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
-                .cropSummary(cropSummary).foliarAnalysisSummary(foliarSummary).build();
+                .cropSummary(diagnoses.cropSummary()).foliarAnalysisSummary(diagnoses.foliarSummary()).build();
+    }
+
+    private record RecommendationInputs(
+            PhysicalAnalysisExtractModel physicalAnalysis,
+            SoilAnalysisModel soilFertilityAnalysis,
+            SaturationExtractAnalysisExtractModel saturationExtractAnalysis,
+            AnnualCropFolderModel annualCropFolder,
+            CropModel crop,
+            CropFertilizationTableModel cropFertilizationTable,
+            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+            CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable,
+            Optional<FoliarAnalysisModel> foliarAnalysis,
+            Optional<FertilityAnalysisExtractModel> fertilityExtract) {
+    }
+
+    private record DiagnosesContext(
+            PhysicalDiagnosis physicalDiagnosis,
+            String physicalSummary,
+            String soilFertilitySummary,
+            String cropSummary,
+            List<FoliarDiagnosisItem> foliarDiagnosis,
+            String foliarSummary,
+            List<String> correctionMessages,
+            LimingRequirementResult limingRequirement,
+            GypsumRequirementResult gypsumRequirement,
+            List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+            List<CorrectiveFertilizationRow> correctiveFertilizationRows,
+            SalinityDiagnosis salinityDiagnosis) {
+    }
+
+    private record FertilizationRecommendationContext(
+            List<FertilizationRecommendationRow> recommendationRows,
+            List<FertilizerSuggestion> fertilizerSuggestions,
+            List<NutrientBalanceRow> nutrientBalanceRows,
+            List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            Long nRangeId,
+            Long pRangeId,
+            Long kRangeId) {
     }
     private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
     private double nvl(Double v){return v==null?0d:v;}
