@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.FertilizationTableUnit;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.FertilizationTableUnitConverter;
 import com.migueltcc.fertintelligence.dto.topDressingFertilization.TopDressingFertilizationResponseDto; // Import adicionado
 import jakarta.persistence.*;
 import lombok.*;
@@ -54,14 +56,27 @@ public class TopdressingFertilizationModel {
     @Column(name = "MONOAMONIO_FOSFATO", nullable = true)
     Double monoammonium_phosphate;
 
+    @Convert(converter = FertilizationTableUnitConverter.class)
+    @Column(name = "UNIDADE_DOSE", nullable = false)
+    @Builder.Default
+    FertilizationTableUnit doseUnit = FertilizationTableUnit.KG_PER_HA;
+
+    @PrePersist
+    @PreUpdate
+    public void normalizeUnits() {
+        this.doseUnit = FertilizationTableUnit.KG_PER_HA;
+    }
+
     // --- CÓDIGO ADICIONADO ABAIXO ---
 
     public TopDressingFertilizationResponseDto toDto() {
+        normalizeUnits();
         return TopDressingFertilizationResponseDto.builder()
                 .id(this.id)
                 .crop_id(this.crop.getId())
                 .date(copyDate(this.date))
                 .order(this.order)
+                .doseUnit(this.doseUnit.getSymbol())
                 .formulated(this.formulated)
                 .ammonium_sulfate(this.ammonium_sulfate)
                 .urea(this.urea)

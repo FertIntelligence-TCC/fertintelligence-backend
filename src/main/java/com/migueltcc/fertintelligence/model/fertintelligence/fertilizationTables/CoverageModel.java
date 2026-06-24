@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables;
 
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.FertilizationTableUnit;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.FertilizationTableUnitConverter;
 import com.migueltcc.fertintelligence.dto.tables.coverage.CoverageResponseDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,12 +31,25 @@ public class CoverageModel {
     @Column(name = "APLICACAO_RECOMENDADA_COBERTURA", nullable = true)
     Double application;
 
+    @Convert(converter = FertilizationTableUnitConverter.class)
+    @Column(name = "UNIDADE_APLICACAO_COBERTURA", nullable = false)
+    @Builder.Default
+    FertilizationTableUnit applicationUnit = FertilizationTableUnit.KG_PER_HA;
+
+    @PrePersist
+    @PreUpdate
+    public void normalizeUnits() {
+        this.applicationUnit = FertilizationTableUnit.KG_PER_HA;
+    }
+
     public CoverageResponseDto toDto() {
+        normalizeUnits();
         return CoverageResponseDto.builder()
                 .id(this.id)
                 .contentRangeId(this.range.getId())
                 .order(this.order)
                 .application(this.application)
+                .applicationUnit(this.applicationUnit.getSymbol())
                 .build();
     }
 

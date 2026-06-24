@@ -26,6 +26,10 @@ public class ContentRangeResponseDto {
     @JsonProperty("nutriente")
     private Nutriente nutrient;
 
+    @Schema(example = "Fósforo (P) disponível")
+    @JsonProperty("descricao_teor")
+    private String contentDescription;
+
     @Schema(example = "1")
     @JsonProperty("ordem_teor")
     private Integer order;
@@ -38,7 +42,15 @@ public class ContentRangeResponseDto {
     @JsonProperty("maior_teor")
     private Double largest;
 
+    @Schema(example = "mg/dm³")
+    @JsonProperty("unidade_teor")
+    private String contentUnit;
+
     @Schema(example = "80.0")
     @JsonProperty("aplicacao_recomendada_plantio")
     private Double application;
+
+    @Schema(example = "kg/ha")
+    @JsonProperty("unidade_aplicacao_recomendada_plantio")
+    private String applicationUnit;
 }

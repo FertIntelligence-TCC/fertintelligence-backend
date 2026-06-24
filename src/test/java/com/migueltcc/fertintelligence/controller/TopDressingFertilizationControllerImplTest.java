@@ -348,6 +348,7 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_cultura").value(ownerCrop.getId()))
                 .andExpect(jsonPath("$.ordem").value(1))
+                .andExpect(jsonPath("$.unidade_dose").value("kg/ha"))
                 .andExpect(jsonPath("$.ureia").value(80.0))
                 .andExpect(jsonPath("$.data.day").value(15))
                 .andExpect(jsonPath("$.data.month").value(5))
@@ -440,7 +441,8 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_cultura").value(ownerCrop.getId()))
-                .andExpect(jsonPath("$.ordem").value(1));
+                .andExpect(jsonPath("$.ordem").value(1))
+                .andExpect(jsonPath("$.unidade_dose").value("kg/ha"));
     }
 
     @Test
@@ -481,6 +483,7 @@ public class TopDressingFertilizationControllerImplTest extends AbstractControll
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.ordem").value(2))
+                .andExpect(jsonPath("$.unidade_dose").value("kg/ha"))
                 .andExpect(jsonPath("$.ureia").value(85.0))
                 .andExpect(jsonPath("$.data.day").value(20));
     }

@@ -170,7 +170,10 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .andExpect(header().string("Location", "http://localhost/content-range/get?contentRangeId=120"))
                 .andExpect(jsonPath("$.id").value(120L))
                 .andExpect(jsonPath("$.nutriente").value("FOSFORO"))
-                .andExpect(jsonPath("$.ordem_teor").value(1));
+                .andExpect(jsonPath("$.descricao_teor").value("Fósforo (P) disponível"))
+                .andExpect(jsonPath("$.ordem_teor").value(1))
+                .andExpect(jsonPath("$.unidade_teor").value("mg/dm³"))
+                .andExpect(jsonPath("$.unidade_aplicacao_recomendada_plantio").value("kg/ha"));
     }
 
     @Test
@@ -219,6 +222,8 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(130L))
                 .andExpect(jsonPath("$.ordem_teor").value(2))
+                .andExpect(jsonPath("$.unidade_teor").value("mg/dm³"))
+                .andExpect(jsonPath("$.unidade_aplicacao_recomendada_plantio").value("kg/ha"))
                 .andExpect(jsonPath("$.maior_teor").doesNotExist());
     }
 

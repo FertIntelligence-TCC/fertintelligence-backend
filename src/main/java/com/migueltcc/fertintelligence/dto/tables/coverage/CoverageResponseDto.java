@@ -28,4 +28,8 @@ public class CoverageResponseDto {
     @Schema(example = "30.0")
     @JsonProperty("aplicacao_recomendada_cobertura")
     private Double application;
+
+    @Schema(example = "kg/ha")
+    @JsonProperty("unidade_aplicacao_recomendada_cobertura")
+    private String applicationUnit;
 }

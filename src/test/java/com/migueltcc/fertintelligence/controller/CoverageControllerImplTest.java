@@ -154,7 +154,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/coverage/get?coverageId=300"))
                 .andExpect(jsonPath("$.ordem_cobertura").value(1))
-                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(30.0));
+                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(30.0))
+                .andExpect(jsonPath("$.unidade_aplicacao_recomendada_cobertura").value("kg/ha"));
     }
 
     @Test
@@ -244,7 +245,8 @@ public class CoverageControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(coverageOne.getId()))
                 .andExpect(jsonPath("$.ordem_cobertura").value(1))
-                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(35.0));
+                .andExpect(jsonPath("$.aplicacao_recomendada_cobertura").value(35.0))
+                .andExpect(jsonPath("$.unidade_aplicacao_recomendada_cobertura").value("kg/ha"));
     }
 
     @Test

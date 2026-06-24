@@ -228,8 +228,8 @@ public class RecommendationCalculationService {
 
         CropFertilizationTableModel table = inputs.cropFertilizationTable();
         Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
-        Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(inputs.fertilityExtract()), warnings, "fósforo");
-        Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(inputs.fertilityExtract()), warnings, "potássio");
+        Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(inputs.fertilityExtract()), warnings, "fósforo (P) disponível em mg/dm³");
+        Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(inputs.fertilityExtract()), warnings, "potássio (K) trocável em mmolc/dm³");
 
         Double requiredN = nRange.map(ContentRangeModel::getApplication).orElse(null);
         Double requiredP2O5 = pRange.map(ContentRangeModel::getApplication).orElse(null);
@@ -1434,13 +1434,13 @@ public class RecommendationCalculationService {
             if (criterion.isEmpty()) {
                 String observation = "Não há critério de P Mehlich-1 na tabela selecionada.";
                 warnings.add(observation);
-                return notClassified("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", observation);
+                return notClassified("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", observation);
             }
             Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
             if (clay == null) {
                 String observation = "Não há teor de argila na análise física para selecionar a faixa de P Mehlich-1.";
                 warnings.add(observation);
-                return notClassified("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", observation);
+                return notClassified("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", observation);
             }
             double clayDagKg = clay > 100 ? clay / 10.0 : clay;
             AvailablePMehlich1ExtractorModel p = criterion.get();
@@ -1451,22 +1451,22 @@ public class RecommendationCalculationService {
                     : clayDagKg <= 60
                     ? new RangeCriterion(p.getP_content_clayey_too_low(), p.getP_content_clayey_low_i(), p.getP_content_clayey_low_f(), p.getP_content_clayey_medium_i(), p.getP_content_clayey_medium_f(), p.getP_content_clayey_hight_i(), p.getP_content_clayey_hight_f(), p.getP_content_clayey_too_hight())
                     : new RangeCriterion(p.getP_content_very_clayey_too_low(), p.getP_content_very_clayey_low_i(), p.getP_content_very_clayey_low_f(), p.getP_content_very_clayey_medium_i(), p.getP_content_very_clayey_medium_f(), p.getP_content_very_clayey_hight_i(), p.getP_content_very_clayey_hight_f(), p.getP_content_very_clayey_too_hight());
-            return classifyRange("Fósforo Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm3", range,
-                    "Critério de P Mehlich-1 selecionado pelo teor de argila da análise física.");
+            return classifyRange("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", range,
+                    "Critério de fósforo (P) disponível por Mehlich-1 selecionado pelo teor de argila da análise física.");
         }
         if (fertility.getFosforoResina() != null) {
             Optional<AvailablePAnionExchangeResinExtractorModel> criterion = availablePAnionExchangeResinExtractorRepository.findByTable(table);
             if (criterion.isEmpty()) {
                 String observation = "Não há critério de P por resina na tabela selecionada.";
                 warnings.add(observation);
-                return notClassified("Fósforo resina", fertility.getFosforoResina(), "mg/dm3", observation);
+                return notClassified("Fósforo (P) resina", fertility.getFosforoResina(), "mg/dm³", observation);
             }
             AvailablePAnionExchangeResinExtractorModel p = criterion.get();
-            return classifyRange("Fósforo resina", fertility.getFosforoResina(), p.getUnit(),
+            return classifyRange("Fósforo (P) resina", fertility.getFosforoResina(), p.getUnit(),
                     new RangeCriterion(p.getPContentTooLow(), p.getPContentLowI(), p.getPContentLowF(), p.getPContentMediumI(), p.getPContentMediumF(), p.getPContentHighI(), p.getPContentHighF(), p.getPContentTooHigh()),
-                    "Fósforo por resina classificado pelo critério específico da tabela selecionada.");
+                    "Fósforo (P) disponível por resina classificado pelo critério específico da tabela selecionada.");
         }
-        return missingValue("Fósforo", "Não há valor de fósforo Mehlich-1 ou resina no extrato de fertilidade.");
+        return missingValue("Fósforo (P)", "Não há valor de fósforo disponível por Mehlich-1 ou resina no extrato de fertilidade.");
     }
 
     private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,
@@ -1474,18 +1474,18 @@ public class RecommendationCalculationService {
                                                        Optional<DiverseContentRangeModel> diverseRange,
                                                        List<String> warnings) {
         if (fertility.getPotassio() == null) {
-            return missingValue("Potássio", "Não há valor de potássio no extrato de fertilidade.");
+            return missingValue("Potássio (K) trocável", "Não há valor de potássio trocável no extrato de fertilidade.");
         }
         if (kRange.isPresent()) {
             KExchangeableContentModel k = kRange.get();
-            return classifyRange("Potássio", fertility.getPotassio(), "mmolc/dm³",
+            return classifyRange("Potássio (K) trocável", fertility.getPotassio(), "mmolc/dm³",
                     new RangeCriterion(k.getKContentTooLow(), k.getKContentLowI(), k.getKContentLowF(), k.getKContentMediumI(), k.getKContentMediumF(), k.getKContentHighI(), k.getKContentHighF(), k.getKContentTooHigh()),
-                    "Potássio classificado pelo critério específico de K da tabela selecionada.");
+                    "Potássio (K) trocável classificado em mmolc/dm³ pelo critério específico de K da tabela selecionada.");
         }
         warnings.add("Não foi encontrada linha específica de potássio; foi tentada a faixa diversa de potássio.");
-        return classifyDiverseRange("Potássio", fertility.getPotassio(), "mmolc/dm³", diverseRange,
+        return classifyDiverseRange("Potássio (K) trocável", fertility.getPotassio(), "mmolc/dm³", diverseRange,
                 r -> new RangeCriterion(r.getPotassium_too_low(), r.getPotassium_low_i(), r.getPotassium_low_f(), r.getPotassium_medium_i(), r.getPotassium_medium_f(), r.getPotassium_hight_i(), r.getPotassium_hight_f(), r.getPotassium_too_hight()),
-                "Potássio classificado pelas faixas diversas da tabela selecionada.");
+                "Potássio (K) trocável classificado em mmolc/dm³ pelas faixas diversas da tabela selecionada.");
     }
 
     private SoilChemicalDiagnosisItem classifySulfur(FertilityAnalysisExtractModel fertility,

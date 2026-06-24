@@ -30,6 +30,10 @@ public class TopDressingFertilizationResponseDto {
     @JsonProperty("ordem")
     Integer order;
 
+    @Schema(example = "kg/ha")
+    @JsonProperty("unidade_dose")
+    String doseUnit;
+
     @Schema(example = "150.0")
     @JsonProperty("formulado")
     Double formulated;
