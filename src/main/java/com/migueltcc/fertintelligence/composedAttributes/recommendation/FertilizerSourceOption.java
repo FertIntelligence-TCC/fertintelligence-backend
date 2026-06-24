@@ -6,7 +6,8 @@ public enum FertilizerSourceOption {
     PRIVATE,
     PUBLIC,
     DEFAULT,
-    BOTH;
+    BOTH,
+    ALL;
 
     @JsonCreator
     public static FertilizerSourceOption fromJson(String value) {
@@ -27,6 +28,7 @@ public enum FertilizerSourceOption {
             case "PUBLICAS", "PUBLIC" -> PUBLIC;
             case "PADRAO", "DEFAULT" -> DEFAULT;
             case "AMBAS", "BOTH" -> BOTH;
+            case "TODOS", "ALL" -> ALL;
             default -> FertilizerSourceOption.valueOf(value.trim().toUpperCase());
         };
     }
@@ -37,6 +39,7 @@ public enum FertilizerSourceOption {
             case PUBLIC -> "PUBLICAS";
             case DEFAULT -> "PADRAO";
             case BOTH -> "AMBAS";
+            case ALL -> "TODOS";
         };
     }
 }

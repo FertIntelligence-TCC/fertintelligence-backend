@@ -103,6 +103,41 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    void recommendationCreateRequestDto_AcceptsAllFertilizerSourceOption() throws Exception {
+        String json = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL"
+                }
+                """;
+
+        RecommendationCreateRequestDto dto = objectMapper.readValue(json, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto legacyDto = objectMapper.readValue(
+                json.replace("\"origem_adubos\": \"ALL\"", "\"origem_adubos\": \"TODOS\""),
+                RecommendationCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertEquals(FertilizerSourceOption.ALL, dto.getOrigemAdubos());
+        org.junit.jupiter.api.Assertions.assertEquals(FertilizerSourceOption.ALL, legacyDto.getOrigemAdubos());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "TODOS",
+                new FertilizerSourceOptionConverter().convertToDatabaseColumn(dto.getOrigemAdubos()));
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void generateRecommendation_ReturnsOk() throws Exception {
         UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
