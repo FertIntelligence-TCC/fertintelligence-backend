@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -29,6 +30,8 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtractService {
 
+    private static final PhysicalAnalysisUnit DEFAULT_PHYSICAL_UNIT = PhysicalAnalysisUnit.G_PER_DM3;
+
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final RangeExtractRepository rangeExtractRepository;
     private final LayerExtractRepository layerExtractRepository;
@@ -54,10 +57,15 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                 .rangeExtract(ctx.rangeExtract())
                 .layerExtract(ctx.layerExtract())
                 .teorAreia(zeroIfNull(dto.getTeorAreia()))
+                .unidadeTeorAreia(normalizePhysicalUnit(dto.getUnidadeTeorAreia()))
                 .teorSilte(zeroIfNull(dto.getTeorSilte()))
+                .unidadeTeorSilte(normalizePhysicalUnit(dto.getUnidadeTeorSilte()))
                 .teorArgila(zeroIfNull(dto.getTeorArgila()))
+                .unidadeTeorArgila(normalizePhysicalUnit(dto.getUnidadeTeorArgila()))
                 .densidadeAparente(zeroIfNull(dto.getDensidadeAparente()))
+                .unidadeDensidadeAparente(normalizePhysicalUnit(dto.getUnidadeDensidadeAparente()))
                 .densidadeReal(zeroIfNull(dto.getDensidadeReal()))
+                .unidadeDensidadeReal(normalizePhysicalUnit(dto.getUnidadeDensidadeReal()))
                 .microporosidade(zeroIfNull(dto.getMicroporosidade()))
                 .umidadeCapacidadeCampo(zeroIfNull(dto.getUmidadeCapacidadeCampo()))
                 .umidadePontoMurchaPermanente(zeroIfNull(dto.getUmidadePontoMurchaPermanente()))
@@ -152,10 +160,15 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         assertCanEdit(plot, requester);
 
         applyIfNonNull(dto.getTeorAreia(), model::setTeorAreia);
+        applyIfNonNull(dto.getUnidadeTeorAreia(), value -> model.setUnidadeTeorAreia(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getTeorSilte(), model::setTeorSilte);
+        applyIfNonNull(dto.getUnidadeTeorSilte(), value -> model.setUnidadeTeorSilte(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getTeorArgila(), model::setTeorArgila);
+        applyIfNonNull(dto.getUnidadeTeorArgila(), value -> model.setUnidadeTeorArgila(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getDensidadeAparente(), model::setDensidadeAparente);
+        applyIfNonNull(dto.getUnidadeDensidadeAparente(), value -> model.setUnidadeDensidadeAparente(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getDensidadeReal(), model::setDensidadeReal);
+        applyIfNonNull(dto.getUnidadeDensidadeReal(), value -> model.setUnidadeDensidadeReal(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getMicroporosidade(), model::setMicroporosidade);
         applyIfNonNull(dto.getUmidadeCapacidadeCampo(), model::setUmidadeCapacidadeCampo);
         applyIfNonNull(dto.getUmidadePontoMurchaPermanente(), model::setUmidadePontoMurchaPermanente);
@@ -204,6 +217,14 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
 
     private void applyIfNonNull(Double value, DoubleConsumer setter) {
         if (value != null) setter.accept(value);
+    }
+
+    private void applyIfNonNull(PhysicalAnalysisUnit value, java.util.function.Consumer<PhysicalAnalysisUnit> setter) {
+        if (value != null) setter.accept(value);
+    }
+
+    private PhysicalAnalysisUnit normalizePhysicalUnit(PhysicalAnalysisUnit unit) {
+        return unit != null ? unit.canonicalForPhysicalExtract() : DEFAULT_PHYSICAL_UNIT;
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {

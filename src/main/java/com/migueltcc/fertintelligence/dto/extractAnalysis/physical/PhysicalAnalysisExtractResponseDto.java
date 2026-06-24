@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.physical;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -46,21 +47,41 @@ public class PhysicalAnalysisExtractResponseDto {
     @JsonProperty("teor_areia")
     Double teorAreia;
 
+    @Schema(example = "g/dm3")
+    @JsonProperty("unidade_teor_areia")
+    PhysicalAnalysisUnit unidadeTeorAreia;
+
     @Schema(example = "200.0")
     @JsonProperty("teor_silte")
     Double teorSilte;
+
+    @Schema(example = "g/dm3")
+    @JsonProperty("unidade_teor_silte")
+    PhysicalAnalysisUnit unidadeTeorSilte;
 
     @Schema(example = "350.0")
     @JsonProperty("teor_argila")
     Double teorArgila;
 
+    @Schema(example = "g/dm3")
+    @JsonProperty("unidade_teor_argila")
+    PhysicalAnalysisUnit unidadeTeorArgila;
+
     @Schema(example = "1.2")
     @JsonProperty("densidade_aparente")
     Double densidadeAparente;
 
+    @Schema(example = "g/dm3")
+    @JsonProperty("unidade_densidade_aparente")
+    PhysicalAnalysisUnit unidadeDensidadeAparente;
+
     @Schema(example = "2.6")
     @JsonProperty("densidade_real")
     Double densidadeReal;
+
+    @Schema(example = "g/dm3")
+    @JsonProperty("unidade_densidade_real")
+    PhysicalAnalysisUnit unidadeDensidadeReal;
 
     @Schema(example = "45.0")
     @JsonProperty("porosidade_total")
@@ -117,4 +138,8 @@ public class PhysicalAnalysisExtractResponseDto {
     @Schema(example = "2.34")
     @JsonProperty("dm_agregados")
     Double dmAgregados;
+
+    @Schema(example = "2.34")
+    @JsonProperty("dmp_agregados")
+    Double dmpAgregados;
 }

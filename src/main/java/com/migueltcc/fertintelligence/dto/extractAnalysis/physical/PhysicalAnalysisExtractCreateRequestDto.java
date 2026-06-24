@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.physical;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,17 +16,32 @@ public class PhysicalAnalysisExtractCreateRequestDto {
     @JsonProperty("teor_areia")
     Double teorAreia;
 
+    @JsonProperty("unidade_teor_areia")
+    PhysicalAnalysisUnit unidadeTeorAreia;
+
     @JsonProperty("teor_silte")
     Double teorSilte;
+
+    @JsonProperty("unidade_teor_silte")
+    PhysicalAnalysisUnit unidadeTeorSilte;
 
     @JsonProperty("teor_argila")
     Double teorArgila;
 
+    @JsonProperty("unidade_teor_argila")
+    PhysicalAnalysisUnit unidadeTeorArgila;
+
     @JsonProperty("densidade_aparente")
     Double densidadeAparente;
 
+    @JsonProperty("unidade_densidade_aparente")
+    PhysicalAnalysisUnit unidadeDensidadeAparente;
+
     @JsonProperty("densidade_real")
     Double densidadeReal;
+
+    @JsonProperty("unidade_densidade_real")
+    PhysicalAnalysisUnit unidadeDensidadeReal;
 
     @JsonProperty("porosidade_total")
     Double porosidadeTotal;

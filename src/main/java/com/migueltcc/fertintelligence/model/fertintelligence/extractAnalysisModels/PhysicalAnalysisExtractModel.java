@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels;
 
 import com.migueltcc.fertintelligence.dto.extractAnalysis.physical.PhysicalAnalysisExtractResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnitConverter;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import jakarta.persistence.*;
@@ -14,6 +16,8 @@ import lombok.*;
 @Table(name = "EXTRATOS_ANALISES_FISICAS")
 @EqualsAndHashCode
 public class PhysicalAnalysisExtractModel {
+
+    private static final PhysicalAnalysisUnit DEFAULT_PHYSICAL_UNIT = PhysicalAnalysisUnit.G_PER_DM3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,21 +35,46 @@ public class PhysicalAnalysisExtractModel {
     @Column(name = "TEOR_DE_AREIA", nullable = true)
     Double teorAreia;
 
+    @Convert(converter = PhysicalAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_TEOR_DE_AREIA", nullable = false)
+    @Builder.Default
+    PhysicalAnalysisUnit unidadeTeorAreia = DEFAULT_PHYSICAL_UNIT;
+
     // Teor de Silte (g/dm3)
     @Column(name = "TEOR_DE_SILTE", nullable = true)
     Double teorSilte;
+
+    @Convert(converter = PhysicalAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_TEOR_DE_SILTE", nullable = false)
+    @Builder.Default
+    PhysicalAnalysisUnit unidadeTeorSilte = DEFAULT_PHYSICAL_UNIT;
 
     // Teor de Argila (g/dm3)
     @Column(name = "TEOR_DE_ARGILA", nullable = true)
     Double teorArgila;
 
+    @Convert(converter = PhysicalAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_TEOR_DE_ARGILA", nullable = false)
+    @Builder.Default
+    PhysicalAnalysisUnit unidadeTeorArgila = DEFAULT_PHYSICAL_UNIT;
+
     // Densidade Aparente (g/cm3)
     @Column(name = "DENSIDADE_APARENTE", nullable = true)
     Double densidadeAparente;
 
+    @Convert(converter = PhysicalAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_DENSIDADE_APARENTE", nullable = false)
+    @Builder.Default
+    PhysicalAnalysisUnit unidadeDensidadeAparente = DEFAULT_PHYSICAL_UNIT;
+
     // Densidade Real (g/cm3)
     @Column(name = "DENSIDADE_REAL", nullable = true)
     Double densidadeReal;
+
+    @Convert(converter = PhysicalAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_DENSIDADE_REAL", nullable = false)
+    @Builder.Default
+    PhysicalAnalysisUnit unidadeDensidadeReal = DEFAULT_PHYSICAL_UNIT;
 
     // Porosidade Total (%)
     @Column(name = "POROSIDADE_TOTAL", nullable = true)
@@ -106,6 +135,8 @@ public class PhysicalAnalysisExtractModel {
     @PrePersist
     @PreUpdate
     public void recalculateComputedFields() {
+        normalizePhysicalUnits();
+
         double densidadeRealValue = zeroIfNull(this.densidadeReal);
         double densidadeAparenteValue = zeroIfNull(this.densidadeAparente);
 
@@ -130,6 +161,18 @@ public class PhysicalAnalysisExtractModel {
 
     private double zeroIfNull(Double value) {
         return value != null ? value : 0.0;
+    }
+
+    private void normalizePhysicalUnits() {
+        this.unidadeTeorAreia = normalizePhysicalUnit(this.unidadeTeorAreia);
+        this.unidadeTeorSilte = normalizePhysicalUnit(this.unidadeTeorSilte);
+        this.unidadeTeorArgila = normalizePhysicalUnit(this.unidadeTeorArgila);
+        this.unidadeDensidadeAparente = normalizePhysicalUnit(this.unidadeDensidadeAparente);
+        this.unidadeDensidadeReal = normalizePhysicalUnit(this.unidadeDensidadeReal);
+    }
+
+    private PhysicalAnalysisUnit normalizePhysicalUnit(PhysicalAnalysisUnit unit) {
+        return unit != null ? unit.canonicalForPhysicalExtract() : DEFAULT_PHYSICAL_UNIT;
     }
 
     public PhysicalAnalysisExtractResponseDto toDto() {
@@ -164,10 +207,15 @@ public class PhysicalAnalysisExtractModel {
                 .layer(camada)
                 .subLayer(subLayer)
                 .teorAreia(this.teorAreia)
+                .unidadeTeorAreia(normalizePhysicalUnit(this.unidadeTeorAreia))
                 .teorSilte(this.teorSilte)
+                .unidadeTeorSilte(normalizePhysicalUnit(this.unidadeTeorSilte))
                 .teorArgila(this.teorArgila)
+                .unidadeTeorArgila(normalizePhysicalUnit(this.unidadeTeorArgila))
                 .densidadeAparente(this.densidadeAparente)
+                .unidadeDensidadeAparente(normalizePhysicalUnit(this.unidadeDensidadeAparente))
                 .densidadeReal(this.densidadeReal)
+                .unidadeDensidadeReal(normalizePhysicalUnit(this.unidadeDensidadeReal))
                 .porosidadeTotal(this.porosidadeTotal)
                 .microporosidade(this.microporosidade)
                 .umidadeCapacidadeCampo(this.umidadeCapacidadeCampo)
@@ -182,6 +230,7 @@ public class PhysicalAnalysisExtractModel {
                 .percAgregados0_25a0_5mm(this.percAgregados0_25a0_5mm)
                 .percAgregadosMenor0_25mm(this.percAgregadosMenor0_25mm)
                 .dmAgregados(this.dmAgregados)
+                .dmpAgregados(this.dmAgregados)
                 .build();
     }
 
