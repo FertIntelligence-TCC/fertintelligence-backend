@@ -489,7 +489,7 @@ public class RecommendationCalculationService {
         Double prnt = null;
 
         inputValues.put("Al trocável (mmolc/dm³)", exchangeableAluminum);
-        inputValues.put("Argila (g/dm3)", clayContent);
+        inputValues.put("Argila (g/dm³)", clayContent);
         inputValues.put("Fator de calagem por argila", factor);
         inputValues.put("PRNT (%)", prnt);
 
@@ -580,8 +580,8 @@ public class RecommendationCalculationService {
         inputValues.put("Saturação por alumínio (%)", fertility.getSaturacaoAluminioM());
         inputValues.put("CTC efetiva (mmolc/dm³)", fertility.getCtcEfetiva());
         inputValues.put("CTC pH 7,0 (mmolc/dm³)", fertility.getCtcPh7());
-        inputValues.put("Argila (g/dm3)", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
-        inputValues.put("Enxofre (mg/dm3)", fertility.getEnxofre());
+        inputValues.put("Argila (g/dm³)", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
+        inputValues.put("Enxofre (mg/dm³)", fertility.getEnxofre());
         inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
         inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
 
@@ -1079,11 +1079,11 @@ public class RecommendationCalculationService {
             return new PhysicalDiagnosis(message, diagnosis);
         }
 
-        addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), "g/dm3",
+        addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), "g/dm³",
                 "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
-        addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), "g/dm3",
+        addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), "g/dm³",
                 "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
-        addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), "g/dm3",
+        addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), "g/dm³",
                 "Teor de argila considerado nos critérios químicos que dependem da análise física, quando aplicável.");
         addPhysicalItem(diagnosis, "Densidade aparente", physicalAnalysis.getDensidadeAparente(), "g/cm3",
                 "Valor físico relacionado à compactação e ao crescimento radicular; sem faixa crítica cadastrada nesta etapa.");
@@ -1140,7 +1140,7 @@ public class RecommendationCalculationService {
                 "Valor do extrato de saturação usado para enquadramento salino quando há critério completo.");
         addSalinityValue(diagnosis, "pH do extrato de saturação", saturation.getPh(), null,
                 "Valor do extrato de saturação usado no enquadramento de salinidade/sodicidade quando há critério completo.");
-        addSalinityValue(diagnosis, "Sódio no extrato de saturação", saturation.getTeorNa(), "mg/dm3",
+        addSalinityValue(diagnosis, "Sódio no extrato de saturação", saturation.getTeorNa(), "mg/dm³",
                 "Valor apresentado sem classificação isolada; o sistema não possui faixa específica cadastrada para Na do extrato de saturação.");
         addSalinityValue(diagnosis, "RAS", saturation.getRas(), rasUnit(saturation),
                 "Relação de adsorção de sódio usada no enquadramento salino/sódico quando há critério completo.");
@@ -1196,34 +1196,35 @@ public class RecommendationCalculationService {
         SalinityInterpretationModel c = criterion.get();
         String interpretation = "Não enquadrado";
         String usedCriterion = "Tabela de salinidade ID " + c.getId();
+        String rasUnit = c.getRasUnit() != null ? c.getRasUnit() : SalinityInterpretationModel.DEFAULT_RAS_UNIT;
         if (le(ce, c.getNormal_soil_highest_ce()) && le(pst, c.getNormal_soil_highest_pst())
                 && le(ph, c.getNormal_soil_highest_ph()) && le(ras, c.getNormal_soil_highest_ras())) {
             interpretation = "Solo normal";
             usedCriterion = "CE <= " + formatNumber(c.getNormal_soil_highest_ce())
                     + "; PST <= " + formatNumber(c.getNormal_soil_highest_pst())
                     + "; pH <= " + formatNumber(c.getNormal_soil_highest_ph())
-                    + "; RAS <= " + formatNumber(c.getNormal_soil_highest_ras());
+                    + "; RAS <= " + formatNumber(c.getNormal_soil_highest_ras()) + " " + rasUnit;
         } else if (ge(ce, c.getSodic_saline_soil_highest_ce()) && ge(pst, c.getSodic_saline_soil_lowest_pst())
                 && ge(ph, c.getSodic_saline_soil_lowest_ph()) && ge(ras, c.getSodic_saline_soil_lowest_ras())) {
             interpretation = "Solo salino-sódico";
             usedCriterion = "CE >= " + formatNumber(c.getSodic_saline_soil_highest_ce())
                     + "; PST >= " + formatNumber(c.getSodic_saline_soil_lowest_pst())
                     + "; pH >= " + formatNumber(c.getSodic_saline_soil_lowest_ph())
-                    + "; RAS >= " + formatNumber(c.getSodic_saline_soil_lowest_ras());
+                    + "; RAS >= " + formatNumber(c.getSodic_saline_soil_lowest_ras()) + " " + rasUnit;
         } else if (le(ce, c.getSodic_soil_highest_ce()) && ge(pst, c.getSodic_soil_lowest_pst())
                 && ge(ph, c.getSodic_soil_lowest_ph()) && ge(ras, c.getSodic_soil_lowest_ras())) {
             interpretation = "Solo sódico";
             usedCriterion = "CE <= " + formatNumber(c.getSodic_soil_highest_ce())
                     + "; PST >= " + formatNumber(c.getSodic_soil_lowest_pst())
                     + "; pH >= " + formatNumber(c.getSodic_soil_lowest_ph())
-                    + "; RAS >= " + formatNumber(c.getSodic_soil_lowest_ras());
+                    + "; RAS >= " + formatNumber(c.getSodic_soil_lowest_ras()) + " " + rasUnit;
         } else if (ge(ce, c.getSaline_soil_lowest_ce()) && le(pst, c.getSaline_soil_highest_pst())
                 && le(ph, c.getSaline_soil_highest_ph()) && le(ras, c.getSaline_soil_highest_ras())) {
             interpretation = "Solo salino";
             usedCriterion = "CE >= " + formatNumber(c.getSaline_soil_lowest_ce())
                     + "; PST <= " + formatNumber(c.getSaline_soil_highest_pst())
                     + "; pH <= " + formatNumber(c.getSaline_soil_highest_ph())
-                    + "; RAS <= " + formatNumber(c.getSaline_soil_highest_ras());
+                    + "; RAS <= " + formatNumber(c.getSaline_soil_highest_ras()) + " " + rasUnit;
         }
 
         diagnosis.add(SoilSalinityDiagnosisItem.builder()
@@ -1267,15 +1268,15 @@ public class RecommendationCalculationService {
     }
 
     private SodiumRangeCriterion selectSodiumRange(ExchangeableSodiumModel c, Double ctcPh7) {
-        if (ctcPh7 < 4.3) {
+        if (ctcPh7 < 43.0) {
             return new SodiumRangeCriterion(c.getCtcLessThan43VeryLowLessThan(), c.getCtcLessThan43LowMin(), c.getCtcLessThan43LowMax(),
                     c.getCtcLessThan43MediumMin(), c.getCtcLessThan43MediumMax(), c.getCtcLessThan43HighMin(), c.getCtcLessThan43HighMax(), c.getCtcLessThan43VeryHighGreaterThan());
         }
-        if (ctcPh7 <= 8.6) {
+        if (ctcPh7 <= 86.0) {
             return new SodiumRangeCriterion(c.getCtcFrom43To86VeryLowLessThan(), c.getCtcFrom43To86LowMin(), c.getCtcFrom43To86LowMax(),
                     c.getCtcFrom43To86MediumMin(), c.getCtcFrom43To86MediumMax(), c.getCtcFrom43To86HighMin(), c.getCtcFrom43To86HighMax(), c.getCtcFrom43To86VeryHighGreaterThan());
         }
-        if (ctcPh7 <= 15.0) {
+        if (ctcPh7 <= 150.0) {
             return new SodiumRangeCriterion(c.getCtcFrom87To150VeryLowLessThan(), c.getCtcFrom87To150LowMin(), c.getCtcFrom87To150LowMax(),
                     c.getCtcFrom87To150MediumMin(), c.getCtcFrom87To150MediumMax(), c.getCtcFrom87To150HighMin(), c.getCtcFrom87To150HighMax(), c.getCtcFrom87To150VeryHighGreaterThan());
         }
@@ -1386,7 +1387,7 @@ public class RecommendationCalculationService {
         if (fertility.getEnxofre() != null) {
             diagnosis.add(classifySulfur(fertility, physicalAnalysis, table, warnings));
         }
-        addDiverseDiagnosisIfPresent(diagnosis, "Matéria orgânica", fertility.getMateriaOrganica(), diverseRange.map(DiverseContentRangeModel::getOrganic_matter_unit).orElse("g/dm3"), diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Matéria orgânica", fertility.getMateriaOrganica(), diverseRange.map(DiverseContentRangeModel::getOrganic_matter_unit).orElse("g/dm³"), diverseRange,
                 r -> new RangeCriterion(r.getOrganic_matter_too_low(), r.getOrganic_matter_low_i(), r.getOrganic_matter_low_f(), r.getOrganic_matter_medium_i(), r.getOrganic_matter_medium_f(), r.getOrganic_matter_hight_i(), r.getOrganic_matter_hight_f(), r.getOrganic_matter_too_hight()),
                 "Matéria orgânica classificada pelas faixas diversas da tabela selecionada.");
         addDiverseDiagnosisIfPresent(diagnosis, "H+Al", fertility.getAluminioMaisHidrogenio(), "mmolc/dm³", diverseRange,
@@ -1407,19 +1408,19 @@ public class RecommendationCalculationService {
         addDiverseDiagnosisIfPresent(diagnosis, "Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
                 r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
                 "Saturação por alumínio classificada a partir do valor pronto do extrato de fertilidade.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm3", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getBoron_too_low(), r.getBoron_low_i(), r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i(), r.getBoron_hight_f(), r.getBoron_too_hight()),
                 "Boro disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm3", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getCopper_too_low(), r.getCopper_low_i(), r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i(), r.getCopper_hight_f(), r.getCopper_too_hight()),
                 "Cobre disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm3", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getIron_too_low(), r.getIron_low_i(), r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i(), r.getIron_hight_f(), r.getIron_too_hight()),
                 "Ferro disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm3", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getManganese_too_low(), r.getManganese_low_i(), r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i(), r.getManganese_hight_f(), r.getManganese_too_hight()),
                 "Manganês disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm3", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getZinc_too_low(), r.getZinc_low_i(), r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i(), r.getZinc_hight_f(), r.getZinc_too_hight()),
                 "Zinco disponível classificado pelas faixas diversas da tabela selecionada.");
         return diagnosis;
@@ -1442,13 +1443,13 @@ public class RecommendationCalculationService {
                 warnings.add(observation);
                 return notClassified("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", observation);
             }
-            double clayDagKg = clay > 100 ? clay / 10.0 : clay;
+            double clayGdm3 = clay;
             AvailablePMehlich1ExtractorModel p = criterion.get();
-            RangeCriterion range = clayDagKg < 15
+            RangeCriterion range = clayGdm3 < 150
                     ? new RangeCriterion(p.getP_content_sandy_too_low(), p.getP_content_sandy_low_i(), p.getP_content_sandy_low_f(), p.getP_content_sandy_medium_i(), p.getP_content_sandy_medium_f(), p.getP_content_sandy_hight_i(), p.getP_content_sandy_hight_f(), p.getP_content_sandy_too_hight())
-                    : clayDagKg <= 35
+                    : clayGdm3 <= 350
                     ? new RangeCriterion(p.getP_content_sandy_clayey_too_low(), p.getP_content_sandy_clayey_low_i(), p.getP_content_sandy_clayey_low_f(), p.getP_content_sandy_clayey_medium_i(), p.getP_content_sandy_clayey_medium_f(), p.getP_content_sandy_clayey_hight_i(), p.getP_content_sandy_clayey_hight_f(), p.getP_content_sandy_clayey_too_hight())
-                    : clayDagKg <= 60
+                    : clayGdm3 <= 600
                     ? new RangeCriterion(p.getP_content_clayey_too_low(), p.getP_content_clayey_low_i(), p.getP_content_clayey_low_f(), p.getP_content_clayey_medium_i(), p.getP_content_clayey_medium_f(), p.getP_content_clayey_hight_i(), p.getP_content_clayey_hight_f(), p.getP_content_clayey_too_hight())
                     : new RangeCriterion(p.getP_content_very_clayey_too_low(), p.getP_content_very_clayey_low_i(), p.getP_content_very_clayey_low_f(), p.getP_content_very_clayey_medium_i(), p.getP_content_very_clayey_medium_f(), p.getP_content_very_clayey_hight_i(), p.getP_content_very_clayey_hight_f(), p.getP_content_very_clayey_too_hight());
             return classifyRange("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", range,
@@ -1499,19 +1500,19 @@ public class RecommendationCalculationService {
         if (criterion.isEmpty()) {
             String observation = "Não há critério de enxofre na tabela selecionada.";
             warnings.add(observation);
-            return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm3", observation);
+                return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm³", observation);
         }
         Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
         if (clay == null) {
             String observation = "Não há teor de argila na análise física para selecionar a faixa de enxofre.";
             warnings.add(observation);
-            return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm3", observation);
+            return notClassified("Enxofre", fertility.getEnxofre(), "mg/dm³", observation);
         }
         AvailableSModel s = criterion.get();
         RangeCriterion range = clay < 400
                 ? new RangeCriterion(s.getSContentLess400TooLow(), s.getSContentLess400LowI(), s.getSContentLess400LowF(), s.getSContentLess400MediumI(), s.getSContentLess400MediumF(), s.getSContentLess400HighI(), s.getSContentLess400HighF(), s.getSContentLess400TooHigh())
                 : new RangeCriterion(s.getSContentGreater400TooLow(), s.getSContentGreater400LowI(), s.getSContentGreater400LowF(), s.getSContentGreater400MediumI(), s.getSContentGreater400MediumF(), s.getSContentGreater400HighI(), s.getSContentGreater400HighF(), s.getSContentGreater400TooHigh());
-        return classifyRange("Enxofre", fertility.getEnxofre(), "mg/dm3", range,
+        return classifyRange("Enxofre", fertility.getEnxofre(), "mg/dm³", range,
                 "Enxofre classificado pelo critério específico selecionado pelo teor de argila da análise física.");
     }
 
@@ -1690,9 +1691,9 @@ public class RecommendationCalculationService {
             case g_per_kg -> "g/kg";
             case mg_per_kg -> "mg/kg";
             case dag_per_kg -> "dag/kg";
-            case g_per_dm3 -> "g/dm3";
-            case mg_per_dm3 -> "mg/dm3";
-            case cmolc_per_dm3 -> "cmolc/dm3";
+            case g_per_dm3 -> "g/dm³";
+            case mg_per_dm3 -> "mg/dm³";
+            case cmolc_per_dm3 -> "mmolc/dm³";
             case mmolc_per_dm3 -> "mmolc/dm³";
             case percentage -> "%";
         };

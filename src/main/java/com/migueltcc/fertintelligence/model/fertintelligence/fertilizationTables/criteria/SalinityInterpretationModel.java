@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "CRITERIOS_DE_INTERPRETACAO_DA_SALINIDADE_DO_SOLO")
 public class SalinityInterpretationModel {
 
+    public static final String DEFAULT_RAS_UNIT = "(mmolc)**0.5";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -23,6 +25,10 @@ public class SalinityInterpretationModel {
     @OneToOne
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
+
+    @Column(name = "UNIDADE_RAS", nullable = false)
+    @Builder.Default
+    String rasUnit = DEFAULT_RAS_UNIT;
 
     // --- SOLO NORMAL ---
     @Column(name = "MAIOR_CE_SOLO_NORMAL", nullable = false)
@@ -76,6 +82,12 @@ public class SalinityInterpretationModel {
     @Column(name = "MENOR_RAS_SOLO_SODICO", nullable = false)
     Double sodic_soil_lowest_ras; // mmolc per mmol**0.5
 
+    @PrePersist
+    @PreUpdate
+    private void normalizeUnits() {
+        this.rasUnit = DEFAULT_RAS_UNIT;
+    }
+
     /**
      * Converte a entidade para DTO.
      * Assume a existência de SalinityInterpretationDto com Builder pattern.
@@ -84,6 +96,7 @@ public class SalinityInterpretationModel {
         return SalinityInterpretationResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .rasUnit(DEFAULT_RAS_UNIT)
 
                 // Normal Soil
                 .normal_soil_highest_ce(this.normal_soil_highest_ce)

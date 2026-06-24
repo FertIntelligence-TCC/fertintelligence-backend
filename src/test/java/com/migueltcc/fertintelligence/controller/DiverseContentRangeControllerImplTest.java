@@ -224,8 +224,8 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/diverse-content-range/get?criterionId=321"))
                 .andExpect(jsonPath("$.id").value(321L))
-                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm3"))
-                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm3"));
+                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm³"))
+                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm³"));
     }
 
     @Test
@@ -313,8 +313,8 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm3"))
-                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm³"))
+                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm³"))
                 .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.0))
                 .andExpect(jsonPath("$.menor_teor_potassio").value(1.0))
                 .andExpect(jsonPath("$.menor_teor_sodio").value(1.0))
@@ -348,8 +348,8 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm3"))
-                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm³"))
+                .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm³"))
                 .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.5));
     }
 

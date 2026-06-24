@@ -110,7 +110,8 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/k-exchangeable-content/get?criterionId=421"))
-                .andExpect(jsonPath("$.id").value(421L));
+                .andExpect(jsonPath("$.id").value(421L))
+                .andExpect(jsonPath("$.unidade").value("mmolc/dm³"));
     }
 
     @Test
@@ -153,6 +154,7 @@ public class KExchangeableContentControllerImplTest extends AbstractControllerTe
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
+                .andExpect(jsonPath("$.unidade").value("mmolc/dm³"))
                 .andExpect(jsonPath("$.menor_teor_k").value(1.0));
     }
 

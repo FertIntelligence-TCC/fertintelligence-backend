@@ -20,6 +20,9 @@ public class KExchangeableContentResponseDto {
     @JsonProperty("id_tabela")
     private Long tableId;
 
+    @JsonProperty("unidade")
+    private String unit;
+
     @JsonProperty("menor_teor_k")
     private Double kContentTooLow;
 

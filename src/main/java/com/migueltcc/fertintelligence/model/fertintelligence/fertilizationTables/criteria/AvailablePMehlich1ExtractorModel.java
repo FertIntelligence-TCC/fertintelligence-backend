@@ -25,14 +25,14 @@ public class AvailablePMehlich1ExtractorModel {
     SoilFertilityInterpretationCriteriaTableModel table;
 
     /**
-     * Regras de negócio, para cada intervalo de teor de argila, os teores de fosforo (mg/dm3) tem relação:
+     * Regras de negócio, para cada intervalo de teor de argila, os teores de fosforo (mg/dm³) tem relação:
      * - too_low = low_i - 0.1
      * - low_f = medium_i - 0.1;
      * - medium_f = hight_i - 0.1;
      * - hight_f = too_hight - 0.1;
      */
 
-    // Teor de Argila (dag/kg) < 15, Textura Arenoso:
+    // Teor de Argila (g/dm³) < 150, Textura Arenoso:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO", nullable = false)
     Double p_content_sandy_too_low;
 
@@ -57,7 +57,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO", nullable = false)
     Double p_content_sandy_too_hight;
 
-    // Teor de Argila (dag/kg) entre 15 e 35, Textura Média (Arenosa/Argilosa):
+    // Teor de Argila (g/dm³) entre 150 e 350, Textura Média (Arenosa/Argilosa):
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO_ARGILOSO", nullable = false)
     Double p_content_sandy_clayey_too_low;
 
@@ -82,7 +82,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO_ARGILOSO", nullable = false)
     Double p_content_sandy_clayey_too_hight;
 
-    // Teor de Argila (dag/kg) entre 35.1 e 60, Textura Argilosa:
+    // Teor de Argila (g/dm³) entre 351 e 600, Textura Argilosa:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARGILOSO", nullable = false)
     Double p_content_clayey_too_low;
 
@@ -107,7 +107,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARGILOSO", nullable = false)
     Double p_content_clayey_too_hight;
 
-    // Teor de Argila (dag/kg) > 60, Textura Muito Argilosa:
+    // Teor de Argila (g/dm³) > 600, Textura Muito Argilosa:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_MUITO_ARGILOSO", nullable = false)
     Double p_content_very_clayey_too_low;
 

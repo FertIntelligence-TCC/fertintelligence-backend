@@ -109,7 +109,7 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                 .andExpect(header().string("Location",
                         "http://localhost/available-p-anion-exchange-resin-extractor/get?criterionId=120"))
                 .andExpect(jsonPath("$.id").value(120L))
-                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade").value("mg/dm³"))
                 .andExpect(jsonPath("$.muito_baixo").value(1.0));
     }
 
@@ -155,7 +155,7 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade").value("mg/dm³"))
                 .andExpect(jsonPath("$.baixo_menor").value(2.0));
     }
 
@@ -182,7 +182,7 @@ public class AvailablePAnionExchangeResinExtractorControllerImplTest extends Abs
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
-                .andExpect(jsonPath("$.unidade").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade").value("mg/dm³"))
                 .andExpect(jsonPath("$.muito_baixo").value(1.5));
     }
 

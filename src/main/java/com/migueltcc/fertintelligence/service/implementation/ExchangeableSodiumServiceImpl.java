@@ -91,6 +91,12 @@ public class ExchangeableSodiumServiceImpl implements ExchangeableSodiumService 
         ExchangeableSodiumResponseDto dto = new ExchangeableSodiumResponseDto();
         dto.setId(model.getId());
         dto.setTableId(model.getTable() != null ? model.getTable().getId() : null);
+        dto.setSodiumUnit(model.getSodiumUnit() != null ? model.getSodiumUnit() : ExchangeableSodiumModel.DEFAULT_UNIT);
+        dto.setCtcUnit(model.getCtcUnit() != null ? model.getCtcUnit() : ExchangeableSodiumModel.DEFAULT_UNIT);
+        dto.setCtcLessThan43RangeLabel("< 43 mmolc/dm³");
+        dto.setCtcFrom43To86RangeLabel("43 a 86 mmolc/dm³");
+        dto.setCtcFrom87To150RangeLabel("87 a 150 mmolc/dm³");
+        dto.setCtcGreaterThan150RangeLabel("> 150 mmolc/dm³");
         dto.setCtcLessThan43VeryLowLessThan(model.getCtcLessThan43VeryLowLessThan());
         dto.setCtcLessThan43LowMin(model.getCtcLessThan43LowMin());
         dto.setCtcLessThan43LowMax(model.getCtcLessThan43LowMax());

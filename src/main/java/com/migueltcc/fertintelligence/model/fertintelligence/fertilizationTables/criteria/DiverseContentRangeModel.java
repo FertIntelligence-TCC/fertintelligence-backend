@@ -16,8 +16,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "FAIXAS_DE_TEORES_DIVERSOS")
 public class DiverseContentRangeModel {
 
-    private static final String ORGANIC_CARBON_UNIT = "g/dm3";
-    private static final String ORGANIC_MATTER_UNIT = "g/dm3";
+    private static final String ORGANIC_CARBON_UNIT = "g/dm³";
+    private static final String ORGANIC_MATTER_UNIT = "g/dm³";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,7 +28,7 @@ public class DiverseContentRangeModel {
     SoilFertilityInterpretationCriteriaTableModel table;
 
     // =================================================================================
-    // CARBONO ORGÂNICO (C.O.) - g/dm3
+    // CARBONO ORGÂNICO (C.O.) - g/dm³
     // =================================================================================
     @Column(name = "UNIDADE_CARBONO_ORGANICO", nullable = false)
     @Builder.Default
@@ -51,7 +51,7 @@ public class DiverseContentRangeModel {
     Double organic_carbon_too_hight;
 
     // =================================================================================
-    // MATÉRIA ORGÂNICA (M.O.) - g/dm3
+    // MATÉRIA ORGÂNICA (M.O.) - g/dm³
     // =================================================================================
     @Column(name = "UNIDADE_MATERIA_ORGANICA", nullable = false)
     @Builder.Default

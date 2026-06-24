@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "FOSFORO_DISPONIVEL_COM_EXTRATOR_RESINA_TROCA_ANIONICA")
 public class AvailablePAnionExchangeResinExtractorModel {
 
-    private static final String DEFAULT_UNIT = "g/dm3";
+    public static final String DEFAULT_UNIT = "mg/dm³";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

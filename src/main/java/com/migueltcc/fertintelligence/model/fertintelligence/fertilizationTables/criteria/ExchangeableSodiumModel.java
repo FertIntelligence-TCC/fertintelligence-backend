@@ -15,6 +15,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "SODIO_TROCAVEL")
 public class ExchangeableSodiumModel {
 
+    public static final String DEFAULT_UNIT = "mmolc/dm³";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,6 +24,14 @@ public class ExchangeableSodiumModel {
     @OneToOne
     @JoinColumn(name = "ID_TABELA", nullable = false)
     private SoilFertilityInterpretationCriteriaTableModel table;
+
+    @Column(name = "UNIDADE_SODIO", nullable = false)
+    @Builder.Default
+    private String sodiumUnit = DEFAULT_UNIT;
+
+    @Column(name = "UNIDADE_CTC", nullable = false)
+    @Builder.Default
+    private String ctcUnit = DEFAULT_UNIT;
 
     @Column(name = "CTC_MENOR_4_3_VERYLOWLESSTHAN", nullable = false)
     private Double ctcLessThan43VeryLowLessThan;
@@ -118,5 +128,12 @@ public class ExchangeableSodiumModel {
 
     @Column(name = "CTC_MAIOR_15_VERYHIGHGREATERTHAN", nullable = false)
     private Double ctcGreaterThan15VeryHighGreaterThan;
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeUnits() {
+        this.sodiumUnit = DEFAULT_UNIT;
+        this.ctcUnit = DEFAULT_UNIT;
+    }
 
 }

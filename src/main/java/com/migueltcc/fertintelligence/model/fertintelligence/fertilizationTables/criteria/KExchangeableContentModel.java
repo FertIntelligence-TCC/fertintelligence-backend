@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "TEORES_TROCAVEIS_DE_POTASSIO")
 public class KExchangeableContentModel {
 
+    public static final String DEFAULT_UNIT = "mmolc/dm³";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -23,6 +25,10 @@ public class KExchangeableContentModel {
     @OneToOne
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
+
+    @Column(name = "UNIDADE", nullable = false)
+    @Builder.Default
+    String unit = DEFAULT_UNIT;
 
     /**
      * Interpretação dos teores de Potássio (K).
@@ -52,10 +58,17 @@ public class KExchangeableContentModel {
     @Column(name = "MAIOR_TEOR_K", nullable = false)
     Double kContentTooHigh;
 
+    @PrePersist
+    @PreUpdate
+    private void normalizeUnit() {
+        this.unit = DEFAULT_UNIT;
+    }
+
     public KExchangeableContentResponseDto toDto() {
         return KExchangeableContentResponseDto.builder()
                 .id(this.id)
                 .tableId(this.table != null ? this.table.getId() : null)
+                .unit(DEFAULT_UNIT)
                 .kContentTooLow(this.kContentTooLow)
                 .kContentLowI(this.kContentLowI)
                 .kContentLowF(this.kContentLowF)

@@ -109,7 +109,8 @@ public class SalinityInterpretationControllerImplTest extends AbstractController
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/salinity-interpretation/get?criterionId=521"))
-                .andExpect(jsonPath("$.id").value(521L));
+                .andExpect(jsonPath("$.id").value(521L))
+                .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"));
     }
 
     @Test
@@ -155,6 +156,7 @@ public class SalinityInterpretationControllerImplTest extends AbstractController
                         .param("tableId", ownerTable.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingCriterion.getId()))
+                .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"))
                 .andExpect(jsonPath("$.normal_soil_highest_ce").value(2.0));
     }
 

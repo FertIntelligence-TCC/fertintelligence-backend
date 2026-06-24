@@ -20,6 +20,10 @@ public class SalinityInterpretationResponseDto {
     @JsonProperty("table_id")
     private Long tableId;
 
+    @Schema(description = "Unidade dos limites de RAS")
+    @JsonProperty("unidade_ras")
+    private String rasUnit;
+
     // --- SOLO NORMAL ---
     @Schema(description = "Maior CE para solo normal (dS/m)")
     @JsonProperty("normal_soil_highest_ce")

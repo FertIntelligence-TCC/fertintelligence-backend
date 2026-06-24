@@ -18,6 +18,24 @@ public class ExchangeableSodiumResponseDto {
     @JsonProperty("id_tabela")
     private Long tableId;
 
+    @JsonProperty("unidade_sodio")
+    private String sodiumUnit;
+
+    @JsonProperty("unidade_ctc")
+    private String ctcUnit;
+
+    @JsonProperty("faixa_ctc_menor_43")
+    private String ctcLessThan43RangeLabel;
+
+    @JsonProperty("faixa_ctc_43_a_86")
+    private String ctcFrom43To86RangeLabel;
+
+    @JsonProperty("faixa_ctc_87_a_150")
+    private String ctcFrom87To150RangeLabel;
+
+    @JsonProperty("faixa_ctc_maior_150")
+    private String ctcGreaterThan150RangeLabel;
+
     @JsonProperty("menor_teor_sodio_ctc_menor_4_3")
     private Double ctcLessThan43VeryLowLessThan;
 
