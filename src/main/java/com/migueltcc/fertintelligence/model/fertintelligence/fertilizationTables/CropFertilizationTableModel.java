@@ -93,13 +93,6 @@ public class CropFertilizationTableModel {
     @Column(name = "QUANTIDADE_DE_ESTERCO", nullable = false)
     private Double manure_qtd; // t/ha
 
-    @Column(name = "SUGESTAO_GESSAGEM", nullable = false)
-    private Double gessing; // t/ha
-
-    @Column(name = "SUGESTAO_DE_ADUBACAO_COM_MICRONUTRIENTES", nullable = false, length = 1000)
-    @Builder.Default
-    private String micronutrientFertilizationSuggestion = "";
-
     @Column(name = "OBSERVACOES", length = 1000)
     private String observations;
 
@@ -138,8 +131,6 @@ public class CropFertilizationTableModel {
                 .fertilityAnalysisIdentification(buildFertilityAnalysisIdentification(this.fertilityAnalysis))
                 .manure(this.manure)
                 .manure_qtd(this.manure_qtd)
-                .gessing(this.gessing)
-                .micronutrientFertilizationSuggestion(this.micronutrientFertilizationSuggestion)
                 .observations(this.observations)
                 .sources(this.sources)
                 .public_table(this.publicTable)

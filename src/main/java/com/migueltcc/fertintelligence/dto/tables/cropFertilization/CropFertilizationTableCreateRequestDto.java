@@ -93,56 +93,6 @@ public class CropFertilizationTableCreateRequestDto {
     @NotNull
     private Double manure_qtd;
 
-    @JsonProperty("sugestao_gessagem")
-    @NotNull
-    private Double gessing;
-
-    @JsonProperty("dose_minima_b")
-    private Double bMinimumDose;
-
-    @JsonProperty("dose_maxima_b")
-    private Double bMaximumDose;
-
-    @JsonProperty("dose_minima_cu")
-    private Double cuMinimumDose;
-
-    @JsonProperty("dose_maxima_cu")
-    private Double cuMaximumDose;
-
-    @JsonProperty("dose_minima_fe")
-    private Double feMinimumDose;
-
-    @JsonProperty("dose_maxima_fe")
-    private Double feMaximumDose;
-
-    @JsonProperty("dose_minima_ni")
-    private Double niMinimumDose;
-
-    @JsonProperty("dose_maxima_ni")
-    private Double niMaximumDose;
-
-    @JsonProperty("dose_minima_mn")
-    private Double mnMinimumDose;
-
-    @JsonProperty("dose_maxima_mn")
-    private Double mnMaximumDose;
-
-    @JsonProperty("dose_minima_mo")
-    private Double moMinimumDose;
-
-    @JsonProperty("dose_maxima_mo")
-    private Double moMaximumDose;
-
-    @JsonProperty("dose_minima_zn")
-    private Double znMinimumDose;
-
-    @JsonProperty("dose_maxima_zn")
-    private Double znMaximumDose;
-
-    @JsonProperty("sugestao_de_adubacao_com_micronutrientes")
-    @JsonAlias({"sugestaoAdubacaoComMicronutrientes", "micronutrientFertilizationSuggestion", "sugestao_micronutrientes"})
-    private String micronutrientFertilizationSuggestion;
-
     @JsonProperty("observacoes")
     private String observations;
 

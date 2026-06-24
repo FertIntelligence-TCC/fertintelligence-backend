@@ -4,7 +4,6 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.SpacingType;
-import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
@@ -21,11 +20,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationMicronutrientDoseModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
-import com.migueltcc.fertintelligence.repository.CropFertilizationMicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
@@ -55,7 +52,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     // Novos repositórios para gerenciar a exclusão dos filhos
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
-    private final CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
     private final PropertyRepository propertyRepository;
     private final PlotRepository plotRepository;
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
@@ -68,7 +64,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             UserRepository userRepository,
             ContentRangeRepository contentRangeRepository,
             CoverageRepository coverageRepository,
-            CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository,
             PropertyRepository propertyRepository,
             PlotRepository plotRepository,
             PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
@@ -79,7 +74,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         this.userRepository = userRepository;
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
-        this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.propertyRepository = propertyRepository;
         this.plotRepository = plotRepository;
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
@@ -123,15 +117,12 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .fertilityAnalysis(selection.fertilityAnalysis())
                 .manure(createRequestDto.getManure())
                 .manure_qtd(createRequestDto.getManure_qtd())
-                .gessing(createRequestDto.getGessing())
-                .micronutrientFertilizationSuggestion(resolveCreateMicronutrientSuggestion(createRequestDto))
                 .observations(createRequestDto.getObservations())
                 .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
                 .build();
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
-        saveCreateMicronutrientDoses(saved, createRequestDto);
         return buildResponse(saved, owner);
     }
 
@@ -255,7 +246,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         table.setCriteria(resolveCriteria(table.getPhysicalAnalysis(), table.getFertilityAnalysis()));
 
         CropFertilizationTableModel saved = cropFertilizationTableRepository.save(table);
-        saveUpdateMicronutrientDoses(saved, updateRequestDto);
         return buildResponse(saved, requester);
     }
 
@@ -303,10 +293,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         // 3. Deleta os intervalos
         contentRangeRepository.deleteAll(ranges);
 
-        // 4. Deleta as doses relacionais de micronutrientes
-        micronutrientDoseRepository.deleteAllByTable(table);
-
-        // 5. Finalmente, deleta a tabela pai
+        // 4. Finalmente, deleta a tabela pai
         cropFertilizationTableRepository.delete(table);
 
         // --- FIM DA CORREÇÃO ---
@@ -330,71 +317,9 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         // Critério de calagem é calculado pelo servidor a partir das análises selecionadas.
         if (dto.getManure() != null) table.setManure(dto.getManure());
         if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
-        if (dto.getGessing() != null) table.setGessing(dto.getGessing());
-        if (dto.getMicronutrientFertilizationSuggestion() != null) {
-            table.setMicronutrientFertilizationSuggestion(dto.getMicronutrientFertilizationSuggestion());
-        } else if (hasMicronutrientDoseChange(dto)) {
-            table.setMicronutrientFertilizationSuggestion(resolveUpdateMicronutrientSuggestion(table, dto));
-        }
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
         if (dto.getSources() != null) table.setSources(dto.getSources());
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
-    }
-
-    private String resolveCreateMicronutrientSuggestion(CropFertilizationTableCreateRequestDto dto) {
-        if (dto.getMicronutrientFertilizationSuggestion() != null) {
-            return dto.getMicronutrientFertilizationSuggestion();
-        }
-        return formatMicronutrientSuggestion(
-                dto.getBMinimumDose(), dto.getBMaximumDose(),
-                dto.getCuMinimumDose(), dto.getCuMaximumDose(),
-                dto.getFeMinimumDose(), dto.getFeMaximumDose(),
-                dto.getNiMinimumDose(), dto.getNiMaximumDose(),
-                dto.getMnMinimumDose(), dto.getMnMaximumDose(),
-                dto.getMoMinimumDose(), dto.getMoMaximumDose(),
-                dto.getZnMinimumDose(), dto.getZnMaximumDose());
-    }
-
-    private String resolveUpdateMicronutrientSuggestion(CropFertilizationTableModel table, CropFertilizationTablePostRequestDto dto) {
-        return formatMicronutrientSuggestion(
-                resolveDoseValue(table, AppliedMicronutrient.B, true, dto.getBMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.B, false, dto.getBMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Cu, true, dto.getCuMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Cu, false, dto.getCuMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Fe, true, dto.getFeMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Fe, false, dto.getFeMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Ni, true, dto.getNiMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Ni, false, dto.getNiMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Mn, true, dto.getMnMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Mn, false, dto.getMnMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Mo, true, dto.getMoMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Mo, false, dto.getMoMaximumDose()),
-                resolveDoseValue(table, AppliedMicronutrient.Zn, true, dto.getZnMinimumDose()), resolveDoseValue(table, AppliedMicronutrient.Zn, false, dto.getZnMaximumDose()));
-    }
-
-    private Double resolveDoseValue(CropFertilizationTableModel table, AppliedMicronutrient micronutrient, boolean minimum, Double requestedValue) {
-        if (requestedValue != null) return requestedValue;
-        return micronutrientDoseRepository.findByTableAndMicronutrient(table, micronutrient)
-                .map(dose -> minimum ? dose.getMinimumDose() : dose.getMaximumDose())
-                .orElse(null);
-    }
-
-    private boolean hasMicronutrientDoseChange(CropFertilizationTablePostRequestDto dto) {
-        return Stream.of(
-                dto.getBMinimumDose(), dto.getBMaximumDose(), dto.getCuMinimumDose(), dto.getCuMaximumDose(),
-                dto.getFeMinimumDose(), dto.getFeMaximumDose(), dto.getNiMinimumDose(), dto.getNiMaximumDose(),
-                dto.getMnMinimumDose(), dto.getMnMaximumDose(), dto.getMoMinimumDose(), dto.getMoMaximumDose(),
-                dto.getZnMinimumDose(), dto.getZnMaximumDose()).anyMatch(Objects::nonNull);
-    }
-
-    private String formatMicronutrientSuggestion(Double... values) {
-        String[] names = {"B", "Cu", "Fe", "Ni", "Mn", "Mo", "Zn"};
-        StringBuilder suggestion = new StringBuilder();
-        for (int i = 0; i < names.length; i++) {
-            Double minimum = values[i * 2];
-            Double maximum = values[i * 2 + 1];
-            if (minimum == null && maximum == null) continue;
-            if (minimum == null || maximum == null) {
-                throw new IllegalArgumentException("Dose mínima e dose máxima são obrigatórias para o micronutriente " + names[i] + ".");
-            }
-            if (!suggestion.isEmpty()) suggestion.append("; ");
-            suggestion.append(names[i]).append(": ").append(minimum).append(" a ").append(maximum);
-        }
-        return suggestion.toString();
     }
 
     private void validateRegionalSpacing(SpacingType regionalSpacingType) {
@@ -419,9 +344,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         } else {
             hideLinkedAnalysisData(dto);
         }
-        for (CropFertilizationMicronutrientDoseModel dose : micronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(table)) {
-            applyDose(dto, dose);
-        }
         return dto;
     }
 
@@ -444,44 +366,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         dto.setFertilityAnalysisId(null);
         dto.setFertilityAnalysisIdentification(null);
         dto.setIndicatedLimingCriterion(null);
-    }
-
-    private void saveCreateMicronutrientDoses(CropFertilizationTableModel table, CropFertilizationTableCreateRequestDto dto) {
-        saveDose(table, AppliedMicronutrient.B, dto.getBMinimumDose(), dto.getBMaximumDose());
-        saveDose(table, AppliedMicronutrient.Cu, dto.getCuMinimumDose(), dto.getCuMaximumDose());
-        saveDose(table, AppliedMicronutrient.Fe, dto.getFeMinimumDose(), dto.getFeMaximumDose());
-        saveDose(table, AppliedMicronutrient.Ni, dto.getNiMinimumDose(), dto.getNiMaximumDose());
-        saveDose(table, AppliedMicronutrient.Mn, dto.getMnMinimumDose(), dto.getMnMaximumDose());
-        saveDose(table, AppliedMicronutrient.Mo, dto.getMoMinimumDose(), dto.getMoMaximumDose());
-        saveDose(table, AppliedMicronutrient.Zn, dto.getZnMinimumDose(), dto.getZnMaximumDose());
-    }
-
-    private void saveUpdateMicronutrientDoses(CropFertilizationTableModel table, CropFertilizationTablePostRequestDto dto) {
-        saveDose(table, AppliedMicronutrient.B, dto.getBMinimumDose(), dto.getBMaximumDose());
-        saveDose(table, AppliedMicronutrient.Cu, dto.getCuMinimumDose(), dto.getCuMaximumDose());
-        saveDose(table, AppliedMicronutrient.Fe, dto.getFeMinimumDose(), dto.getFeMaximumDose());
-        saveDose(table, AppliedMicronutrient.Ni, dto.getNiMinimumDose(), dto.getNiMaximumDose());
-        saveDose(table, AppliedMicronutrient.Mn, dto.getMnMinimumDose(), dto.getMnMaximumDose());
-        saveDose(table, AppliedMicronutrient.Mo, dto.getMoMinimumDose(), dto.getMoMaximumDose());
-        saveDose(table, AppliedMicronutrient.Zn, dto.getZnMinimumDose(), dto.getZnMaximumDose());
-    }
-
-    private void saveDose(CropFertilizationTableModel table, AppliedMicronutrient micronutrient, Double minimumDose, Double maximumDose) {
-        if (minimumDose == null && maximumDose == null) {
-            return;
-        }
-        CropFertilizationMicronutrientDoseModel dose = micronutrientDoseRepository
-                .findByTableAndMicronutrient(table, micronutrient)
-                .orElseGet(() -> CropFertilizationMicronutrientDoseModel.builder()
-                        .table(table)
-                        .micronutrient(micronutrient)
-                        .build());
-        if (minimumDose != null) dose.setMinimumDose(minimumDose);
-        if (maximumDose != null) dose.setMaximumDose(maximumDose);
-        if (dose.getMinimumDose() == null || dose.getMaximumDose() == null) {
-            throw new IllegalArgumentException("Dose mínima e dose máxima são obrigatórias para o micronutriente " + micronutrient + ".");
-        }
-        micronutrientDoseRepository.save(dose);
     }
 
     private Selection resolveSelection(Long propertyId, Long plotId, Long physicalAnalysisId, Long fertilityAnalysisId, UserModel user) {
@@ -571,18 +455,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     }
 
     private record Selection(PropertyModel property, PlotModel plot, PhysicalAnalysisExtractModel physicalAnalysis, FertilityAnalysisExtractModel fertilityAnalysis) {}
-
-    private void applyDose(CropFertilizationTableResponseDto dto, CropFertilizationMicronutrientDoseModel dose) {
-        switch (dose.getMicronutrient()) {
-            case B -> { dto.setBDoseId(dose.getId()); dto.setBMinimumDose(dose.getMinimumDose()); dto.setBMaximumDose(dose.getMaximumDose()); }
-            case Cu -> { dto.setCuDoseId(dose.getId()); dto.setCuMinimumDose(dose.getMinimumDose()); dto.setCuMaximumDose(dose.getMaximumDose()); }
-            case Fe -> { dto.setFeDoseId(dose.getId()); dto.setFeMinimumDose(dose.getMinimumDose()); dto.setFeMaximumDose(dose.getMaximumDose()); }
-            case Ni -> { dto.setNiDoseId(dose.getId()); dto.setNiMinimumDose(dose.getMinimumDose()); dto.setNiMaximumDose(dose.getMaximumDose()); }
-            case Mn -> { dto.setMnDoseId(dose.getId()); dto.setMnMinimumDose(dose.getMinimumDose()); dto.setMnMaximumDose(dose.getMaximumDose()); }
-            case Mo -> { dto.setMoDoseId(dose.getId()); dto.setMoMinimumDose(dose.getMinimumDose()); dto.setMoMaximumDose(dose.getMaximumDose()); }
-            case Zn -> { dto.setZnDoseId(dose.getId()); dto.setZnMinimumDose(dose.getMinimumDose()); dto.setZnMaximumDose(dose.getMaximumDose()); }
-        }
-    }
 
     private UserModel findUserByUsernameOrThrow(String username) {
         return userRepository.findByUsername(username)

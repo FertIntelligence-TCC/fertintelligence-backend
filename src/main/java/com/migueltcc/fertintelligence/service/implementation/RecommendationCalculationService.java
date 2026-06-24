@@ -21,7 +21,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationMicronutrientDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.BioFertilizerModel;
@@ -81,7 +80,6 @@ public class RecommendationCalculationService {
     private final BioFertilizerRepository bioFertilizerRepository;
     private final MineralFertilizerRepository mineralFertilizerRepository;
     private final ChelatedFertilizerRepository chelatedFertilizerRepository;
-    private final CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -110,8 +108,7 @@ public class RecommendationCalculationService {
                                             GreenFertilizerRepository greenFertilizerRepository,
                                             BioFertilizerRepository bioFertilizerRepository,
                                             MineralFertilizerRepository mineralFertilizerRepository,
-                                            ChelatedFertilizerRepository chelatedFertilizerRepository,
-                                            CropFertilizationMicronutrientDoseRepository micronutrientDoseRepository) {
+                                            ChelatedFertilizerRepository chelatedFertilizerRepository) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -140,7 +137,6 @@ public class RecommendationCalculationService {
         this.bioFertilizerRepository = bioFertilizerRepository;
         this.mineralFertilizerRepository = mineralFertilizerRepository;
         this.chelatedFertilizerRepository = chelatedFertilizerRepository;
-        this.micronutrientDoseRepository = micronutrientDoseRepository;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -561,7 +557,7 @@ public class RecommendationCalculationService {
                                                                UserModel user,
                                                                FertilizerSourceOption sourceOption,
                                                                List<String> warnings) {
-        String criterion = "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose parametrizada em SUGESTAO_GESSAGEM da tabela de adubação.";
+        String criterion = "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose quantitativa de gessagem não modelada no backend atual.";
         Map<String, Double> inputValues = new LinkedHashMap<>();
         List<String> gypsumWarnings = new ArrayList<>();
         FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
@@ -588,7 +584,6 @@ public class RecommendationCalculationService {
         inputValues.put("Enxofre (mg/dm3)", fertility.getEnxofre());
         inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
         inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
-        inputValues.put("Sugestão de gessagem da tabela (t/ha)", cropFertilizationTable != null ? cropFertilizationTable.getGessing() : null);
 
         if (extractInitialDepth(fertility) == null || extractFinalDepth(fertility) == null) {
             gypsumWarnings.add("Profundidade do extrato de fertilidade não disponível; o backend não inferiu camada para gessagem.");
@@ -639,13 +634,9 @@ public class RecommendationCalculationService {
         }
 
         boolean needed = calciumIndicatesNeed || aluminumIndicatesNeed || aluminumSaturationIndicatesNeed;
-        Double tableDose = cropFertilizationTable != null ? cropFertilizationTable.getGessing() : null;
-        Double dose = needed && tableDose != null ? Math.max(0d, round2(tableDose)) : needed ? null : 0d;
-        if (needed && tableDose == null) {
-            gypsumWarnings.add("A necessidade foi indicada pelos critérios disponíveis, mas a tabela de adubação não possui sugestão de gessagem preenchida.");
-        }
+        Double dose = needed ? null : 0d;
         if (needed) {
-            gypsumWarnings.add("A dose usa o campo SUGESTAO_GESSAGEM da tabela de adubação; não há fórmula quantitativa de gessagem por argila/profundidade modelada no backend atual.");
+            gypsumWarnings.add("Gessagem foi indicada pelos critérios disponíveis, mas a dose quantitativa não está modelada no backend atual.");
         }
 
         String justification = needed
@@ -1017,52 +1008,25 @@ public class RecommendationCalculationService {
             UserModel user,
             FertilizerSourceOption sourceOption,
             List<String> warnings) {
-        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
-        List<CropFertilizationMicronutrientDoseModel> doses = cropFertilizationTable == null
-                ? List.of()
-                : micronutrientDoseRepository.findAllByTableOrderByMicronutrientAsc(cropFertilizationTable);
-        if (doses.isEmpty()) {
-            String limitation = "Tabela de adubação da cultura não possui doses relacionais de micronutrientes cadastradas.";
-            warnings.add(limitation);
-            rows.add(limitationRow("MICRONUTRIENTE", "Correção de deficiência", limitation));
-            return rows;
-        }
-
         Map<AppliedMicronutrient, String> deficiencyEvidence = micronutrientDeficiencyEvidence(chemicalDiagnosis, foliarDiagnosis);
-        boolean recommendedAny = false;
-        for (CropFertilizationMicronutrientDoseModel dose : doses) {
-            AppliedMicronutrient micronutrient = dose.getMicronutrient();
-            String evidence = deficiencyEvidence.get(micronutrient);
-            if (evidence == null) continue;
-            recommendedAny = true;
-            MicronutrientSourceSelection source = selectMicronutrientSource(user, sourceOption, micronutrient);
-            String limitation = "A unidade da dose de micronutriente não está modelada na tabela; o laudo preserva a faixa cadastrada e não converte para dose comercial do produto.";
-            if (source.sourceName() == null) {
-                limitation += " Não foi encontrada fonte mineral/quelatada acessível com teor cadastrado para " + micronutrient + ".";
-            }
-            warnings.add(limitation);
-            rows.add(AlternativeFertilizationRecommendationRow.builder()
-                    .sourceType(source.sourceType() != null ? source.sourceType() : "MICRONUTRIENTE")
-                    .nutrientOrObjective(micronutrient.name())
-                    .sourceName(source.sourceName() != null ? source.sourceName() : "Não selecionada")
-                    .dose(formatDoseRange(dose.getMinimumDose(), dose.getMaximumDose()))
-                    .unit("unidade cadastrada na tabela")
-                    .justification("Recomendação acionada por " + evidence + "; faixa vinda da tabela de adubação da cultura.")
-                    .limitations(limitation)
-                    .build());
-        }
-
-        if (!recommendedAny) {
-            rows.add(AlternativeFertilizationRecommendationRow.builder()
-                    .sourceType("MICRONUTRIENTE")
-                    .nutrientOrObjective("B/Cu/Fe/Mn/Mo/Zn")
-                    .sourceName("Não selecionada")
-                    .dose("Não calculada")
-                    .unit("unidade cadastrada na tabela")
-                    .justification("Não houve deficiência de micronutriente classificada pelos diagnósticos químico ou foliar disponíveis.")
-                    .limitations("Doses cadastradas só são usadas quando há deficiência diagnosticada; não foi gerada recomendação preventiva genérica.")
-                    .build());
-        }
+        String limitation = "Doses de micronutrientes por tabela de adubação de cultura foram descontinuadas; recomendação quantitativa de micronutrientes não está modelada no backend atual.";
+        warnings.add(limitation);
+        String objective = deficiencyEvidence.isEmpty()
+                ? "B/Cu/Fe/Mn/Mo/Zn"
+                : deficiencyEvidence.keySet().stream().map(Enum::name).collect(java.util.stream.Collectors.joining("/"));
+        String justification = deficiencyEvidence.isEmpty()
+                ? "Não houve deficiência de micronutriente classificada pelos diagnósticos químico ou foliar disponíveis."
+                : "Há evidência diagnóstica para micronutrientes, mas não há fonte/dose própria modelada para recomendação quantitativa.";
+        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        rows.add(AlternativeFertilizationRecommendationRow.builder()
+                .sourceType("MICRONUTRIENTE")
+                .nutrientOrObjective(objective)
+                .sourceName("Não selecionada")
+                .dose("Não calculada")
+                .unit("Não modelada")
+                .justification(justification)
+                .limitations(limitation)
+                .build());
         return rows;
     }
 
