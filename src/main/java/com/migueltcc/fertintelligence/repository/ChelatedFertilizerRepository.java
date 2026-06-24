@@ -31,6 +31,8 @@ public interface ChelatedFertilizerRepository extends JpaRepository<ChelatedFert
 
     List<ChelatedFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
 
+    List<ChelatedFertilizerModel> findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo cargo);
+
     @Query("select f from ChelatedFertilizerModel f where f.publico = true or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<ChelatedFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 

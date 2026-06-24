@@ -99,7 +99,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
     @Transactional(readOnly = true)
     public List<OrganicFertilizerResponseDto> getAllPublicOrganicFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return organicFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+        return organicFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

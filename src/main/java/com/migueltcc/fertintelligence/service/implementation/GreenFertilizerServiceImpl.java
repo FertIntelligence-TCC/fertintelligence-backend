@@ -97,7 +97,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
     @Transactional(readOnly = true)
     public List<GreenFertilizerResponseDto> getAllPublicGreenFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return greenFertilizerRepository.findAllByPublicoTrueOrderByNameAsc()
+        return greenFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

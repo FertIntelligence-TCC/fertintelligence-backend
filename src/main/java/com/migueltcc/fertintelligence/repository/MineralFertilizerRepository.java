@@ -31,6 +31,8 @@ public interface MineralFertilizerRepository extends JpaRepository<MineralFertil
 
     List<MineralFertilizerModel> findAllByPublicoTrueOrderByNameAsc();
 
+    List<MineralFertilizerModel> findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo cargo);
+
     @Query("select f from MineralFertilizerModel f where f.publico = true or (f.user.cargo = :defaultCreatorCargo and f.publico = true) order by f.name asc")
     List<MineralFertilizerModel> findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(@Param("defaultCreatorCargo") Cargo defaultCreatorCargo);
 

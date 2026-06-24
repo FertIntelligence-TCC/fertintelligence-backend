@@ -109,7 +109,7 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
     @Transactional(readOnly = true)
     public List<BioFertilizerResponseDto> getAllPublicBioFertilizers(String username) {
         findUserByUsernameOrThrow(username);
-        return repository.findAllByPublicoTrueOrderByNameAsc()
+        return repository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO)
                 .stream()
                 .map(this::toDtoWithPhotos)
                 .collect(Collectors.toList());

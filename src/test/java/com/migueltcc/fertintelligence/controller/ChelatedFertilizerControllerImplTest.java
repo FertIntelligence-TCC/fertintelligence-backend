@@ -172,7 +172,7 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         ChelatedFertilizerModel model = createModel(7L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(chelatedFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+        when(chelatedFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/chelated-fertilizer/get-all-public"))

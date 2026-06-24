@@ -176,7 +176,7 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         BioFertilizerModel model = createModel(7L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(bioFertilizerRepository.findAllByPublicoTrueOrDefaultCreatorOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+        when(bioFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO))
                 .thenReturn(List.of(model));
 
         mockMvc.perform(get("/bio-fertilizer/get-all-public"))
