@@ -124,6 +124,9 @@ public abstract class AbstractControllerTest {
     protected SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
 
     @MockitoBean
+    protected SimpleMineralFertilizerPhotoRepository simpleMineralFertilizerPhotoRepository;
+
+    @MockitoBean
     protected FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
 
     @MockitoBean

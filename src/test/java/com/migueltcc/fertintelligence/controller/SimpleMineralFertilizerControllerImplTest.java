@@ -79,6 +79,13 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
                 .build();
     }
 
+    private SimpleMineralFertilizerModel createModel(Long id, String name, UserModel user, boolean publico) {
+        SimpleMineralFertilizerModel model = createModel(id, name, 45.0, 0.0, 0.0);
+        model.setUser(user);
+        model.setPublico(publico);
+        return model;
+    }
+
     @Test
     @WithMockUser(username = "owner")
     void createSimpleMineralFertilizerSuccessfully() throws Exception {
@@ -111,7 +118,8 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersSuccessfully() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(fertilizer));
+        when(simpleMineralFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(List.of(fertilizer));
+        when(simpleMineralFertilizerPhotoRepository.findAllByFertilizerIdOrderByOrdemAsc(fertilizer.getId())).thenReturn(List.of());
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -136,11 +144,59 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
     @WithMockUser(username = "owner")
     void getSimpleMineralFertilizersEmpty() throws Exception {
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(simpleMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(Collections.emptyList());
+        when(simpleMineralFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/simple-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllPublicSimpleMineralFertilizersExcludesSupremoDefaults() throws Exception {
+        UserModel publicOwner = UserModel.builder()
+                .id(2L)
+                .username("public-owner")
+                .name("Public Owner")
+                .cargo(Cargo.PROPRIETARIO)
+                .build();
+        SimpleMineralFertilizerModel publicFertilizer = createModel(2L, "Calcario Publico", publicOwner, true);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(publicFertilizer));
+        when(simpleMineralFertilizerPhotoRepository.findAllByFertilizerIdOrderByOrdemAsc(publicFertilizer.getId())).thenReturn(List.of());
+
+        mockMvc.perform(get("/simple-mineral-fertilizer/get-all-public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(2L))
+                .andExpect(jsonPath("$[0].nome_adubo").value("Calcario Publico"))
+                .andExpect(jsonPath("$[0].nome_criador").value("Public Owner"));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void getAllDefaultSimpleMineralFertilizersIncludesOnlySupremoDefaults() throws Exception {
+        UserModel supremeUser = UserModel.builder()
+                .id(9L)
+                .username("supremo")
+                .name("Usuario Supremo")
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        SimpleMineralFertilizerModel defaultFertilizer = createModel(9L, "Ureia Padrao", supremeUser, true);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(defaultFertilizer));
+        when(simpleMineralFertilizerPhotoRepository.findAllByFertilizerIdOrderByOrdemAsc(defaultFertilizer.getId())).thenReturn(List.of());
+
+        mockMvc.perform(get("/simple-mineral-fertilizer/get-all-default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(9L))
+                .andExpect(jsonPath("$[0].nome_adubo").value("Ureia Padrao"))
+                .andExpect(jsonPath("$[0].nome_criador").value("Usuario Supremo"));
     }
 
     @Test

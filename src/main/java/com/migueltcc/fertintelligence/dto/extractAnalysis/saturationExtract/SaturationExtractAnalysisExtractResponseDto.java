@@ -95,10 +95,6 @@ public class SaturationExtractAnalysisExtractResponseDto {
     @JsonProperty("residuos_suspensao")
     Double residuosSuspensao;
 
-    @Schema(example = "80.0")
-    @JsonProperty("dureza_total_caco3")
-    Double durezaTotalCaCO3;
-
     @Schema(example = "12.5")
     @JsonProperty("ras")
     Double ras;

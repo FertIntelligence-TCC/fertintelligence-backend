@@ -330,7 +330,10 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.ph").value(7.2))
-                .andExpect(jsonPath("$.teor_cl").value(16.0));
+                .andExpect(jsonPath("$.teor_cl").value(16.0))
+                .andExpect(jsonPath("$.dureza_caco3").doesNotExist())
+                .andExpect(jsonPath("$.dureza_total_caco3").doesNotExist())
+                .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"));
     }
 
     @Test
@@ -443,6 +446,7 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(jsonPath("$.ph").value(7.2))
                 .andExpect(jsonPath("$.teor_cl").value(16.0))
                 .andExpect(jsonPath("$.dureza_caco3").doesNotExist())
+                .andExpect(jsonPath("$.dureza_total_caco3").doesNotExist())
                 .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"));
     }
 
@@ -504,7 +508,10 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ph").value(7.5))
                 .andExpect(jsonPath("$.ce").value(0.6))
-                .andExpect(jsonPath("$.teor_cl").value(17.0));
+                .andExpect(jsonPath("$.teor_cl").value(17.0))
+                .andExpect(jsonPath("$.dureza_caco3").doesNotExist())
+                .andExpect(jsonPath("$.dureza_total_caco3").doesNotExist())
+                .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"));
     }
 
     @Test

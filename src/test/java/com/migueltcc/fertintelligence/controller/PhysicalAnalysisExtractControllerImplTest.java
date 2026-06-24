@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.property.LatitudeDirection;
 import com.migueltcc.fertintelligence.composedAttributes.property.Localizacao;
 import com.migueltcc.fertintelligence.composedAttributes.property.LongitudeDirection;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.TipoExtrato;
 import com.migueltcc.fertintelligence.composedAttributes.user.AccessRequestStatus;
@@ -139,10 +140,15 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
     private PhysicalAnalysisExtractCreateRequestDto createCreateRequestDto() {
         return PhysicalAnalysisExtractCreateRequestDto.builder()
                 .teorAreia(450.0)
+                .unidadeTeorAreia(PhysicalAnalysisUnit.G_PER_KG)
                 .teorSilte(200.0)
+                .unidadeTeorSilte(PhysicalAnalysisUnit.G_PER_KG)
                 .teorArgila(350.0)
+                .unidadeTeorArgila(PhysicalAnalysisUnit.G_PER_KG)
                 .densidadeAparente(1.2)
+                .unidadeDensidadeAparente(PhysicalAnalysisUnit.G_PER_KG)
                 .densidadeReal(2.6)
+                .unidadeDensidadeReal(PhysicalAnalysisUnit.G_PER_KG)
                 .porosidadeTotal(45.0)
                 .microporosidade(30.0)
                 .umidadeCapacidadeCampo(28.0)
@@ -162,8 +168,11 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
     private PhysicalAnalysisExtractPostRequestDto createUpdateRequestDto() {
         return PhysicalAnalysisExtractPostRequestDto.builder()
                 .teorAreia(500.0)
+                .unidadeTeorAreia(PhysicalAnalysisUnit.G_PER_KG)
                 .densidadeAparente(1.3)
+                .unidadeDensidadeAparente(PhysicalAnalysisUnit.G_PER_KG)
                 .densidadeReal(2.5)
+                .unidadeDensidadeReal(PhysicalAnalysisUnit.G_PER_KG)
                 .porosidadeTotal(999.0)
                 .umidadeCapacidadeCampo(30.0)
                 .umidadePontoMurchaPermanente(16.0)
@@ -179,10 +188,15 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .rangeExtract(rangeExtract)
                 .layerExtract(layerExtract)
                 .teorAreia(450.0)
+                .unidadeTeorAreia(PhysicalAnalysisUnit.G_PER_DM3)
                 .teorSilte(200.0)
+                .unidadeTeorSilte(PhysicalAnalysisUnit.G_PER_DM3)
                 .teorArgila(350.0)
+                .unidadeTeorArgila(PhysicalAnalysisUnit.G_PER_DM3)
                 .densidadeAparente(1.2)
+                .unidadeDensidadeAparente(PhysicalAnalysisUnit.G_PER_DM3)
                 .densidadeReal(2.6)
+                .unidadeDensidadeReal(PhysicalAnalysisUnit.G_PER_DM3)
                 .porosidadeTotal(45.0)
                 .microporosidade(30.0)
                 .umidadeCapacidadeCampo(28.0)
@@ -223,6 +237,11 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.id_extrato_intervalo").value(ownerRangeExtract.getId()))
                 .andExpect(jsonPath("$.teor_areia").value(450.0))
+                .andExpect(jsonPath("$.unidade_teor_areia").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_teor_silte").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_teor_argila").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_real").value("g/dm3"))
                 .andExpect(jsonPath("$.porosidade_total", closeTo(53.84615384615385, 0.000001)))
                 .andExpect(jsonPath("$.agua_disponivel").value(13.0));
     }
@@ -257,7 +276,8 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                         .param("physicalAnalysisExtractId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.teor_areia").value(450.0));
+                .andExpect(jsonPath("$.teor_areia").value(450.0))
+                .andExpect(jsonPath("$.unidade_teor_areia").value("g/dm3"));
     }
 
     @Test
@@ -309,6 +329,9 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                         .content(objectMapper.writeValueAsString(updateRequestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teor_areia").value(500.0))
+                .andExpect(jsonPath("$.unidade_teor_areia").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_real").value("g/dm3"))
                 .andExpect(jsonPath("$.porosidade_total").value(48.0))
                 .andExpect(jsonPath("$.agua_disponivel").value(14.0));
     }

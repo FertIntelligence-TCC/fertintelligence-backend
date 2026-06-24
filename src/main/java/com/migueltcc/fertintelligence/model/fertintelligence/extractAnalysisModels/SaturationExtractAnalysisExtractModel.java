@@ -159,7 +159,6 @@ public class SaturationExtractAnalysisExtractModel {
                 .teorCa(round2(this.teorCa))
                 .teorMg(round2(this.teorMg))
                 .residuosSuspensao(round2(this.residuosSuspensao))
-                .durezaTotalCaCO3(round2(this.durezaTotalCaCO3))
                 .ras(round2(this.ras))
                 .unidadeRas(normalizeSaturationUnit(this.unidadeRas))
                 .build();
