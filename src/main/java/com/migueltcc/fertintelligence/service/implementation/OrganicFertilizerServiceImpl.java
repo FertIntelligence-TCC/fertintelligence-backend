@@ -64,7 +64,10 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
                 .Mo(getOrDefault(dto.getMo()))
                 .Zn(getOrDefault(dto.getZn()))
                 .teorUmidade(getOrDefault(dto.getTeorUmidade()))
-                .teorCinzas(getOrDefault(dto.getTeorCinzas()))
+                .teorMateriaOrganicaPercentual(getOrDefault(dto.getTeorMateriaOrganicaPercentual()))
+                .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
+                .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
+                .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
@@ -155,7 +158,18 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
 
         if (dto.getTeorUmidade() != null) fertilizer.setTeorUmidade(dto.getTeorUmidade());
-        if (dto.getTeorCinzas() != null) fertilizer.setTeorCinzas(dto.getTeorCinzas());
+        if (dto.getTeorMateriaOrganicaPercentual() != null) {
+            fertilizer.setTeorMateriaOrganicaPercentual(dto.getTeorMateriaOrganicaPercentual());
+        }
+        if (dto.getTaxaMineralizacaoPrimeiroAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual());
+        }
+        if (dto.getTaxaMineralizacaoSegundoAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual());
+        }
+        if (dto.getTaxaMineralizacaoTerceiroAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual());
+        }
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
         List<String> idsFotos = null;
         if (dto.getIdsFotos() != null) {

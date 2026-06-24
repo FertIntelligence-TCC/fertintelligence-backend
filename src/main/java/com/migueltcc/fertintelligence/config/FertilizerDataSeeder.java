@@ -183,7 +183,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
     }
 
     private void createOrganicIfMissing(UserModel user, String name, double carbono, double nitrogenio, double p2o5,
-                                        double k2o, double teorUmidade, double teorCinzas) {
+                                        double k2o, double teorUmidade, double teorMateriaOrganicaPercentual) {
         if (organicRepository.findAll().stream().anyMatch(f -> isEquivalentName(f.getName(), name))) return;
 
         OrganicFertilizerModel model = OrganicFertilizerModel.builder()
@@ -196,7 +196,7 @@ public class FertilizerDataSeeder implements CommandLineRunner {
                 .Ca(0.0).Mg(0.0).S(0.0)
                 .B(0.0).Cu(0.0).Fe(0.0).Mn(0.0).Mo(0.0).Zn(0.0)
                 .teorUmidade(teorUmidade)
-                .teorCinzas(teorCinzas)
+                .teorMateriaOrganicaPercentual(teorMateriaOrganicaPercentual)
                 .build();
         organicRepository.save(model);
         log.info("➕ Adubo orgânico carregado: {}", name);

@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organicFertilizer;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
@@ -81,9 +82,22 @@ public class OrganicFertilizerCreateRequestDto {
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double teorUmidade;
 
-    @JsonProperty("teor_cinzas")
+    @JsonProperty("teor_materia_organica_percentual")
+    @JsonAlias("teor_cinzas")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
-    private Double teorCinzas;
+    private Double teorMateriaOrganicaPercentual;
+
+    @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
 
     @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
     @JsonProperty("ids_fotos")

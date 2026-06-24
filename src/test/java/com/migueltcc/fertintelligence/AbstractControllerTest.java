@@ -130,6 +130,12 @@ public abstract class AbstractControllerTest {
     protected OrganoMineralFertilizerRepository organoMineralFertilizerRepository;
 
     @MockitoBean
+    protected OrganicFertilizerRepository organicFertilizerRepository;
+
+    @MockitoBean
+    protected OrganicFertilizerPhotoRepository organicFertilizerPhotoRepository;
+
+    @MockitoBean
     protected GreenFertilizerRepository greenFertilizerRepository;
 
     @MockitoBean

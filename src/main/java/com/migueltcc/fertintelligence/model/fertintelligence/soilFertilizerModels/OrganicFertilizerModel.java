@@ -89,8 +89,17 @@ public class OrganicFertilizerModel {
     @Column(name = "PORCENTAGEM_UMIDADE")
     private Double teorUmidade;
 
-    @Column(name = "PORCENTAGEM_CINZAS")
-    private Double teorCinzas;
+    @Column(name = "PORCENTAGEM_MATERIA_ORGANICA")
+    private Double teorMateriaOrganicaPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_PRIMEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_SEGUNDO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
 
     public List<String> getIdsFotos() {
         return new ArrayList<>(this.idsFotos);
@@ -118,7 +127,11 @@ public class OrganicFertilizerModel {
                 .mo(this.Mo != null ? this.Mo : 0.0)
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .teorUmidade(this.teorUmidade != null ? this.teorUmidade : 0.0)
-                .teorCinzas(this.teorCinzas != null ? this.teorCinzas : 0.0)
+                .teorMateriaOrganicaPercentual(this.teorMateriaOrganicaPercentual != null ? this.teorMateriaOrganicaPercentual : 0.0)
+                .teorCarbonoOrganicoPercentual(calcularTeorCarbonoOrganicoPercentual())
+                .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
+                .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
+                .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)
@@ -127,5 +140,12 @@ public class OrganicFertilizerModel {
                 .source(this.source)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
+    }
+
+    private Double calcularTeorCarbonoOrganicoPercentual() {
+        if (this.teorMateriaOrganicaPercentual == null) {
+            return 0.0;
+        }
+        return Math.round((this.teorMateriaOrganicaPercentual / 1.724) * 10.0) / 10.0;
     }
 }

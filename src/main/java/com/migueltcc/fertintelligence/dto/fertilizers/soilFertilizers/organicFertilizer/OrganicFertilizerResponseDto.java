@@ -70,9 +70,13 @@ public class OrganicFertilizerResponseDto {
     @JsonProperty("teor_umidade")
     private Double teorUmidade;
 
-    @Schema(example = "18.0", description = "Teor de cinzas em porcentagem")
-    @JsonProperty("teor_cinzas")
-    private Double teorCinzas;
+    @Schema(example = "18.0", description = "Teor de matéria orgânica em porcentagem")
+    @JsonProperty("teor_materia_organica_percentual")
+    private Double teorMateriaOrganicaPercentual;
+
+    @Schema(example = "10.4", description = "Teor de carbono orgânico calculado a partir da matéria orgânica")
+    @JsonProperty("teor_carbono_organico_percentual")
+    private Double teorCarbonoOrganicoPercentual;
 
     @Schema(example = "42")
     @JsonProperty("user_id")
@@ -95,6 +99,18 @@ public class OrganicFertilizerResponseDto {
 
     @JsonProperty("fonte")
     private String source;
+
+    @Schema(example = "50.0", description = "Taxa de mineralização no primeiro ano em %")
+    @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Schema(example = "30.0", description = "Taxa de mineralização no segundo ano em %")
+    @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Schema(example = "20.0", description = "Taxa de mineralização no terceiro ano em %")
+    @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
 
     @JsonProperty("nome_criador")
     private String nomeCriador;
