@@ -201,7 +201,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     private FoliarAnalysisCreateRequestDto createCreateRequestDto() {
         return FoliarAnalysisCreateRequestDto.builder()
-                .collectDate(new Date(15, 1, 2025))
+                .collectDate(new Date(15, 1, 2024))
                 .laboratory("Laboratório Foliar Nordeste")
                 .micronutrients(createMicronutrientsContentDto())
                 .macronutrients(createMacronutrientsContentDto())
@@ -211,7 +211,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     private FoliarAnalysisPostRequestDto createPostRequestDto() {
         return FoliarAnalysisPostRequestDto.builder()
-                .collectDate(new Date(20, 2, 2025))
+                .collectDate(new Date(20, 2, 2024))
                 .laboratory("Laboratório Agro Atualizado")
                 .micronutrients(new MicronutrientsContentDto(45.0, 12.0, 160.0, 0.2, 80.0, 0.6, 35.0))
                 .macronutrients(new MacronutrientsContentDto(4.0, 0.25, 2.0, 1.2, 0.4, 0.18))
@@ -263,8 +263,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
-                .thenReturn(Optional.empty());
+        when(foliarAnalysisRepository.existsByCrop(ownerCrop)).thenReturn(false);
         when(foliarAnalysisRepository.save(any(FoliarAnalysisModel.class))).thenReturn(savedAnalysis);
 
         mockMvc.perform(post("/foliar-analysis/register")
@@ -281,7 +280,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.elementos_beneficos.na_content").value(5.0))
                 .andExpect(jsonPath("$.data_coleta.day").value(15))
                 .andExpect(jsonPath("$.data_coleta.month").value(1))
-                .andExpect(jsonPath("$.data_coleta.year").value(2025));
+                .andExpect(jsonPath("$.data_coleta.year").value(2024));
     }
 
     @Test
@@ -292,9 +291,6 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("secretary")).thenReturn(Optional.of(funcionarioUser));
 
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-
-        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
-                .thenReturn(Optional.empty());
 
         mockMvc.perform(post("/foliar-analysis/register")
                         .param("cropId", ownerCrop.getId().toString())
@@ -312,8 +308,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
         when(userRepository.findByUsername("manager")).thenReturn(Optional.of(managerUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
-                .thenReturn(Optional.empty());
+        when(foliarAnalysisRepository.existsByCrop(ownerCrop)).thenReturn(false);
         when(foliarAnalysisRepository.save(any(FoliarAnalysisModel.class))).thenReturn(savedAnalysis);
 
         mockMvc.perform(post("/foliar-analysis/register")
@@ -341,26 +336,63 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void createFoliarAnalysisFails_WhenDuplicateCollectDate() throws Exception {
+    void createFoliarAnalysisFails_WhenCropAlreadyHasFoliarAnalysis() throws Exception {
         FoliarAnalysisCreateRequestDto requestDto = createCreateRequestDto();
-        FoliarAnalysisModel existing = createFoliarAnalysisModel(2L, requestDto.getCollectDate(), ownerCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
-        when(foliarAnalysisRepository.findByCropAndCollectDate(ownerCrop, requestDto.getCollectDate()))
-                .thenReturn(Optional.of(existing));
+        when(foliarAnalysisRepository.existsByCrop(ownerCrop)).thenReturn(true);
 
         mockMvc.perform(post("/foliar-analysis/register")
                         .param("cropId", ownerCrop.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Esta cultura já possui uma análise foliar cadastrada. Cada cultura pode ter no máximo uma análise foliar."));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createFoliarAnalysisFails_WhenCollectDateYearIsFutureToPlantingYear() throws Exception {
+        FoliarAnalysisCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setCollectDate(new Date(15, 1, 2025));
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(foliarAnalysisRepository.existsByCrop(ownerCrop)).thenReturn(false);
+
+        mockMvc.perform(post("/foliar-analysis/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Data de coleta da análise foliar inválida: o ano da coleta (2025) não pode ser futuro em relação ao ano de referência da cultura (2024)."));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createFoliarAnalysisUsesFolderYear_WhenPlantingDateIsMissing() throws Exception {
+        FoliarAnalysisCreateRequestDto requestDto = createCreateRequestDto();
+        ownerCrop.setPlantingDate(null);
+        FoliarAnalysisModel savedAnalysis = createFoliarAnalysisModel(3L, requestDto.getCollectDate(), ownerCrop);
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
+        when(foliarAnalysisRepository.existsByCrop(ownerCrop)).thenReturn(false);
+        when(foliarAnalysisRepository.save(any(FoliarAnalysisModel.class))).thenReturn(savedAnalysis);
+
+        mockMvc.perform(post("/foliar-analysis/register")
+                        .param("cropId", ownerCrop.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L));
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void getFoliarAnalysisSuccessfully() throws Exception {
-        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(10, 3, 2025), ownerCrop);
+        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(10, 3, 2024), ownerCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
@@ -377,7 +409,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getFoliarAnalysisFails_WhenNotOwner() throws Exception {
-        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(10, 3, 2025), otherCrop);
+        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(10, 3, 2024), otherCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
@@ -401,8 +433,8 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void getFoliarAnalysesByCropSuccessfully() throws Exception {
-        FoliarAnalysisModel analysis1 = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), ownerCrop);
-        FoliarAnalysisModel analysis2 = createFoliarAnalysisModel(2L, new Date(15, 3, 2025), ownerCrop);
+        FoliarAnalysisModel analysis1 = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
+        FoliarAnalysisModel analysis2 = createFoliarAnalysisModel(2L, new Date(15, 3, 2024), ownerCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(cropRepository.findById(ownerCrop.getId())).thenReturn(Optional.of(ownerCrop));
@@ -419,7 +451,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void updateFoliarAnalysisSuccessfully() throws Exception {
-        FoliarAnalysisModel existing = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), ownerCrop);
+        FoliarAnalysisModel existing = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
         FoliarAnalysisPostRequestDto updateRequestDto = createPostRequestDto();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -444,16 +476,16 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.elementos_beneficos.na_content").value(6.0))
                 .andExpect(jsonPath("$.data_coleta.day").value(20))
                 .andExpect(jsonPath("$.data_coleta.month").value(2))
-                .andExpect(jsonPath("$.data_coleta.year").value(2025));
+                .andExpect(jsonPath("$.data_coleta.year").value(2024));
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void updateFoliarAnalysisFails_WhenDuplicateCollectDate() throws Exception {
-        FoliarAnalysisModel existing = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), ownerCrop);
-        FoliarAnalysisModel conflicting = createFoliarAnalysisModel(2L, new Date(20, 2, 2025), ownerCrop);
+        FoliarAnalysisModel existing = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
+        FoliarAnalysisModel conflicting = createFoliarAnalysisModel(2L, new Date(20, 2, 2024), ownerCrop);
         FoliarAnalysisPostRequestDto updateRequestDto = FoliarAnalysisPostRequestDto.builder()
-                .collectDate(new Date(20, 2, 2025))
+                .collectDate(new Date(20, 2, 2024))
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -470,8 +502,27 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void updateFoliarAnalysisFails_WhenCollectDateYearIsFutureToPlantingYear() throws Exception {
+        FoliarAnalysisModel existing = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
+        FoliarAnalysisPostRequestDto updateRequestDto = FoliarAnalysisPostRequestDto.builder()
+                .collectDate(new Date(20, 2, 2025))
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        mockMvc.perform(put("/foliar-analysis/update")
+                        .param("analysisId", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Data de coleta da análise foliar inválida: o ano da coleta (2025) não pode ser futuro em relação ao ano de referência da cultura (2024)."));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void deleteFoliarAnalysisSuccessfully() throws Exception {
-        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), ownerCrop);
+        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
@@ -485,7 +536,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void deleteFoliarAnalysisFails_WhenNotOwner() throws Exception {
-        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), otherCrop);
+        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), otherCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
         when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));
@@ -498,7 +549,7 @@ public class FoliarAnalysisControllerImplTest extends AbstractControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void deleteFoliarAnalysisFails_WhenUserIsNotProprietario() throws Exception {
-        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2025), ownerCrop);
+        FoliarAnalysisModel analysis = createFoliarAnalysisModel(1L, new Date(5, 2, 2024), ownerCrop);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(funcionarioUser));
         when(foliarAnalysisRepository.findById(1L)).thenReturn(Optional.of(analysis));

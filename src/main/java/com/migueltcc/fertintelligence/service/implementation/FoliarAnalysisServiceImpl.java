@@ -51,13 +51,8 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
         PermissionContext ctx = resolvePermissionContext(crop);
         permissionManager.assertCanEditAnalyses(ctx.property(), ctx.plot(), requester);
 
-        foliarAnalysisRepository.findByCropAndCollectDate(crop, createRequestDto.getCollectDate())
-                .ifPresent(existing -> {
-                    throw new EntityExistsException(
-                            "Já existe uma análise foliar para a data informada nesta cultura: "
-                                    + formatDate(createRequestDto.getCollectDate())
-                    );
-                });
+        validateCropDoesNotHaveFoliarAnalysis(crop);
+        validateCollectDateYear(crop, createRequestDto.getCollectDate());
 
         FoliarAnalysisModel foliarAnalysis = FoliarAnalysisModel.builder()
                 .crop(crop)
@@ -115,6 +110,8 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
         if (updateRequestDto.getCollectDate() != null
                 && !Objects.equals(updateRequestDto.getCollectDate(), foliarAnalysis.getCollectDate())) {
 
+            validateCollectDateYear(crop, updateRequestDto.getCollectDate());
+
             foliarAnalysisRepository.findByCropAndCollectDate(crop, updateRequestDto.getCollectDate())
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(foliarAnalysisId)) {
@@ -171,6 +168,49 @@ public class FoliarAnalysisServiceImpl implements FoliarAnalysisService {
     }
 
     private record PermissionContext(PropertyModel property, PlotModel plot) {}
+
+    /* ======================================================
+       BUSINESS VALIDATIONS
+    ====================================================== */
+
+    private void validateCropDoesNotHaveFoliarAnalysis(CropModel crop) {
+        if (foliarAnalysisRepository.existsByCrop(crop)) {
+            throw new EntityExistsException(
+                    "Esta cultura já possui uma análise foliar cadastrada. Cada cultura pode ter no máximo uma análise foliar."
+            );
+        }
+    }
+
+    private void validateCollectDateYear(CropModel crop, Date collectDate) {
+        Integer collectYear = collectDate != null ? collectDate.getYear() : null;
+        if (collectYear == null || collectYear <= 0) {
+            throw new IllegalArgumentException("Ano da data de coleta da análise foliar não informado.");
+        }
+
+        Integer referenceYear = resolveCropReferenceYear(crop);
+        if (referenceYear == null) {
+            throw new IllegalArgumentException(
+                    "Não foi possível validar o ano da data de coleta da análise foliar: cultura sem data de plantio e sem ano agrícola da pasta."
+            );
+        }
+
+        if (collectYear > referenceYear) {
+            throw new IllegalArgumentException(
+                    "Data de coleta da análise foliar inválida: o ano da coleta (" + collectYear
+                            + ") não pode ser futuro em relação ao ano de referência da cultura (" + referenceYear + ")."
+            );
+        }
+    }
+
+    private Integer resolveCropReferenceYear(CropModel crop) {
+        if (crop.getPlantingDate() != null && crop.getPlantingDate().getYear() > 0) {
+            return crop.getPlantingDate().getYear();
+        }
+        if (crop.getFolder() != null) {
+            return crop.getFolder().getCropsYear();
+        }
+        return null;
+    }
 
     /* ======================================================
        FINDERS
