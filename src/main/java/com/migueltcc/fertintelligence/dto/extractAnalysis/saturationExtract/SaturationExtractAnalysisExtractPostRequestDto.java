@@ -51,9 +51,6 @@ public class SaturationExtractAnalysisExtractPostRequestDto {
     @JsonProperty("novos_residuos_suspensao")
     Double residuosSuspensao;
 
-    @JsonProperty("nova_dureza_caco3")
-    Double durezaCaCO3;
-
     @JsonProperty("nova_dureza_total_caco3")
     Double durezaTotalCaCO3;
 

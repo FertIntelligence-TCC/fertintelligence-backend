@@ -1178,7 +1178,7 @@ public class RecommendationCalculationService {
                 "Valor do extrato de saturação usado no enquadramento de salinidade/sodicidade quando há critério completo.");
         addSalinityValue(diagnosis, "Sódio no extrato de saturação", saturation.getTeorNa(), "mg/dm3",
                 "Valor apresentado sem classificação isolada; o sistema não possui faixa específica cadastrada para Na do extrato de saturação.");
-        addSalinityValue(diagnosis, "RAS", saturation.getRas(), "mmolc/mmolc^0.5",
+        addSalinityValue(diagnosis, "RAS", saturation.getRas(), rasUnit(saturation),
                 "Relação de adsorção de sódio usada no enquadramento salino/sódico quando há critério completo.");
 
         FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
@@ -1327,6 +1327,13 @@ public class RecommendationCalculationService {
                 .unit(unit)
                 .technicalObservation(observation)
                 .build());
+    }
+
+    private String rasUnit(SaturationExtractAnalysisExtractModel saturation) {
+        if (saturation == null || saturation.getUnidadeRas() == null) {
+            return "(mmolc)**0.5";
+        }
+        return saturation.getUnidadeRas().getSymbol();
     }
 
     private SoilSalinityDiagnosisItem classifySalinityRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {

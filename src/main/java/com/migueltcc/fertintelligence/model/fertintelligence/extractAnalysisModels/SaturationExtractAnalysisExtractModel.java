@@ -1,10 +1,15 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels;
 
+import com.migueltcc.fertintelligence.composedAttributes.saturationExtract.SaturationExtractUnit;
+import com.migueltcc.fertintelligence.composedAttributes.saturationExtract.SaturationExtractUnitConverter;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,6 +19,8 @@ import lombok.*;
 @Table(name = "EXTRATOS_ANALISES_EXTRATO_SATURACAO")
 @EqualsAndHashCode
 public class SaturationExtractAnalysisExtractModel {
+
+    private static final SaturationExtractUnit DEFAULT_RAS_UNIT = SaturationExtractUnit.MMOLC_POWER_HALF;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -79,7 +86,7 @@ public class SaturationExtractAnalysisExtractModel {
     @Column(name = "RESIDUOS_SUSPENSAO", nullable = true)
     Double residuosSuspensao;
 
-    // Dureza em CaCO3, mg/dm³
+    // Campo legado mantido para compatibilidade com bancos existentes; não faz parte do contrato novo.
     @Column(name = "DUREZA_CACO3", nullable = true)
     Double durezaCaCO3;
 
@@ -87,11 +94,28 @@ public class SaturationExtractAnalysisExtractModel {
     @Column(name = "DUREZA_TOTAL_CACO3", nullable = true)
     Double durezaTotalCaCO3;
 
-    // RAS, em mmolc/mmolc**(1/2)
+    // RAS
     @Column(name = "RAS", nullable = true)
     Double ras;
 
+    @Convert(converter = SaturationExtractUnitConverter.class)
+    @Column(name = "UNIDADE_RAS", nullable = false)
+    @Builder.Default
+    SaturationExtractUnit unidadeRas = DEFAULT_RAS_UNIT;
+
+    @PrePersist
+    @PreUpdate
+    public void normalizeSaturationUnits() {
+        this.unidadeRas = normalizeSaturationUnit(this.unidadeRas);
+    }
+
+    public SaturationExtractUnit normalizeSaturationUnit(SaturationExtractUnit unit) {
+        return unit != null ? unit.canonicalForSaturationExtract() : DEFAULT_RAS_UNIT;
+    }
+
     public SaturationExtractAnalysisExtractResponseDto toDto() {
+        normalizeSaturationUnits();
+
         RangeExtractModel range = this.rangeExtract;
         LayerExtractModel layer = this.layerExtract;
 
@@ -122,23 +146,32 @@ public class SaturationExtractAnalysisExtractModel {
                 .finalDepth(finalDepth)
                 .layer(camada)
                 .subLayer(subLayer)
-                .ph(this.ph)
-                .ce(this.ce)
-                .teorCO3(this.teorCO3)
-                .teorHCO3(this.teorHCO3)
-                .teorNO3(this.teorNO3)
-                .teorH2PO4(this.teorH2PO4)
-                .teorSO4(this.teorSO4)
-                .teorCl(this.teorCl)
-                .teorNa(this.teorNa)
-                .teorK(this.teorK)
-                .teorCa(this.teorCa)
-                .teorMg(this.teorMg)
-                .residuosSuspensao(this.residuosSuspensao)
-                .durezaCaCO3(this.durezaCaCO3)
-                .durezaTotalCaCO3(this.durezaTotalCaCO3)
-                .ras(this.ras)
+                .ph(round2(this.ph))
+                .ce(round2(this.ce))
+                .teorCO3(round2(this.teorCO3))
+                .teorHCO3(round2(this.teorHCO3))
+                .teorNO3(round2(this.teorNO3))
+                .teorH2PO4(round2(this.teorH2PO4))
+                .teorSO4(round2(this.teorSO4))
+                .teorCl(round2(this.teorCl))
+                .teorNa(round2(this.teorNa))
+                .teorK(round2(this.teorK))
+                .teorCa(round2(this.teorCa))
+                .teorMg(round2(this.teorMg))
+                .residuosSuspensao(round2(this.residuosSuspensao))
+                .durezaTotalCaCO3(round2(this.durezaTotalCaCO3))
+                .ras(round2(this.ras))
+                .unidadeRas(normalizeSaturationUnit(this.unidadeRas))
                 .build();
+    }
+
+    private Double round2(Double value) {
+        if (value == null) {
+            return null;
+        }
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
 }

@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.saturationExtract.SaturationExtractUnit;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract.SaturationExtractAnalysisExtractResponseDto;
@@ -72,9 +73,9 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
                 .teorCa(dto.getTeorCa())
                 .teorMg(dto.getTeorMg())
                 .residuosSuspensao(dto.getResiduosSuspensao())
-                .durezaCaCO3(dto.getDurezaCaCO3())
                 .durezaTotalCaCO3(dto.getDurezaTotalCaCO3())
                 .ras(dto.getRas())
+                .unidadeRas(SaturationExtractUnit.MMOLC_POWER_HALF)
                 .build();
 
         recalculateSaturationIndicators(model);
@@ -193,9 +194,9 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
         applyIfNotNull(dto.getTeorCa(), model::setTeorCa);
         applyIfNotNull(dto.getTeorMg(), model::setTeorMg);
         applyIfNotNull(dto.getResiduosSuspensao(), model::setResiduosSuspensao);
-        applyIfNotNull(dto.getDurezaCaCO3(), model::setDurezaCaCO3);
         applyIfNotNull(dto.getDurezaTotalCaCO3(), model::setDurezaTotalCaCO3);
         applyIfNotNull(dto.getRas(), model::setRas);
+        model.setUnidadeRas(SaturationExtractUnit.MMOLC_POWER_HALF);
 
         recalculateSaturationIndicators(model);
 
@@ -230,9 +231,9 @@ public class SaturationExtractAnalysisExtractServiceImpl implements SaturationEx
 
     private void recalculateSaturationIndicators(SaturationExtractAnalysisExtractModel model) {
         Double dureza = calculateHardness(model.getTeorCa(), model.getTeorMg());
-        model.setDurezaCaCO3(dureza);
         model.setDurezaTotalCaCO3(dureza);
         model.setRas(calculateRas(model.getTeorNa(), model.getTeorCa(), model.getTeorMg()));
+        model.setUnidadeRas(SaturationExtractUnit.MMOLC_POWER_HALF);
     }
 
     private Double calculateHardness(Double calciumMgL, Double magnesiumMgL) {

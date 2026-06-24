@@ -179,7 +179,6 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .teorCa(20.0)
                 .teorMg(12.0)
                 .residuosSuspensao(30.0)
-                .durezaCaCO3(50.0)
                 .durezaTotalCaCO3(80.0)
                 .ras(12.5)
                 .build();
@@ -213,7 +212,6 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .teorCa(20.0)
                 .teorMg(12.0)
                 .residuosSuspensao(30.0)
-                .durezaCaCO3(50.0)
                 .durezaTotalCaCO3(80.0)
                 .ras(12.5)
                 .build();
@@ -443,7 +441,9 @@ public class SaturationExtractAnalysisExtractControllerImplTest extends Abstract
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.ph").value(7.2))
-                .andExpect(jsonPath("$.teor_cl").value(16.0));
+                .andExpect(jsonPath("$.teor_cl").value(16.0))
+                .andExpect(jsonPath("$.dureza_caco3").doesNotExist())
+                .andExpect(jsonPath("$.unidade_ras").value("(mmolc)**0.5"));
     }
 
     @Test

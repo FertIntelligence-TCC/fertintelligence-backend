@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.saturationExtract;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.saturationExtract.SaturationExtractUnit;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -94,10 +95,6 @@ public class SaturationExtractAnalysisExtractResponseDto {
     @JsonProperty("residuos_suspensao")
     Double residuosSuspensao;
 
-    @Schema(example = "50.0")
-    @JsonProperty("dureza_caco3")
-    Double durezaCaCO3;
-
     @Schema(example = "80.0")
     @JsonProperty("dureza_total_caco3")
     Double durezaTotalCaCO3;
@@ -105,5 +102,9 @@ public class SaturationExtractAnalysisExtractResponseDto {
     @Schema(example = "12.5")
     @JsonProperty("ras")
     Double ras;
+
+    @Schema(example = "(mmolc)**0.5")
+    @JsonProperty("unidade_ras")
+    SaturationExtractUnit unidadeRas;
 
 }
