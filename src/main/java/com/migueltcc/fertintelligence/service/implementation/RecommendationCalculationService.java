@@ -7,9 +7,11 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Uni
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MacronutrientsContent;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.MicronutrientsContent;
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.*;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -443,7 +445,7 @@ public class RecommendationCalculationService {
         Double prnt = null;
         inputValues.put("V atual (%)", currentBaseSaturation);
         inputValues.put("V desejado (%)", targetBaseSaturation);
-        inputValues.put("CTC pH 7,0 - T (mmolc/dm³)", ctcPh7);
+        inputValues.put("CTC pH 7,0 - T (" + fertilityUnit(fertility != null ? fertility.getUnidadeCtcPh7() : null) + ")", ctcPh7);
         inputValues.put("PRNT (%)", prnt);
 
         if (currentBaseSaturation == null) limingWarnings.add("V atual ausente no extrato de fertilidade (saturacaoBasesV).");
@@ -488,8 +490,8 @@ public class RecommendationCalculationService {
         Double factor = clayContent != null ? limingFactorByClayContent(clayContent) : null;
         Double prnt = null;
 
-        inputValues.put("Al trocável (mmolc/dm³)", exchangeableAluminum);
-        inputValues.put("Argila (g/dm³)", clayContent);
+        inputValues.put("Al trocável (" + fertilityUnit(fertility != null ? fertility.getUnidadeAluminio() : null) + ")", exchangeableAluminum);
+        inputValues.put("Argila (" + physicalUnit(physicalAnalysis != null ? physicalAnalysis.getUnidadeTeorArgila() : null) + ")", clayContent);
         inputValues.put("Fator de calagem por argila", factor);
         inputValues.put("PRNT (%)", prnt);
 
@@ -575,12 +577,12 @@ public class RecommendationCalculationService {
                     .build();
         }
 
-        inputValues.put("Cálcio (mmolc/dm³)", fertility.getCalcio());
-        inputValues.put("Alumínio (mmolc/dm³)", fertility.getAluminio());
+        inputValues.put("Cálcio (" + fertilityUnit(fertility.getUnidadeCalcio()) + ")", fertility.getCalcio());
+        inputValues.put("Alumínio (" + fertilityUnit(fertility.getUnidadeAluminio()) + ")", fertility.getAluminio());
         inputValues.put("Saturação por alumínio (%)", fertility.getSaturacaoAluminioM());
-        inputValues.put("CTC efetiva (mmolc/dm³)", fertility.getCtcEfetiva());
-        inputValues.put("CTC pH 7,0 (mmolc/dm³)", fertility.getCtcPh7());
-        inputValues.put("Argila (g/dm³)", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
+        inputValues.put("CTC efetiva (" + fertilityUnit(fertility.getUnidadeCtcEfetiva()) + ")", fertility.getCtcEfetiva());
+        inputValues.put("CTC pH 7,0 (" + fertilityUnit(fertility.getUnidadeCtcPh7()) + ")", fertility.getCtcPh7());
+        inputValues.put("Argila (" + physicalUnit(physicalAnalysis != null ? physicalAnalysis.getUnidadeTeorArgila() : null) + ")", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
         inputValues.put("Enxofre (mg/dm³)", fertility.getEnxofre());
         inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
         inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
@@ -603,10 +605,10 @@ public class RecommendationCalculationService {
                     .build();
         }
 
-        SoilChemicalDiagnosisItem calcium = classifyDiverseRange("Cálcio", fertility.getCalcio(), "mmolc/dm³", diverseRange,
+        SoilChemicalDiagnosisItem calcium = classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
                 r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
                 "Cálcio usado como indicador para necessidade de gessagem.");
-        SoilChemicalDiagnosisItem aluminum = classifyDiverseRange("Alumínio", fertility.getAluminio(), "mmolc/dm³", diverseRange,
+        SoilChemicalDiagnosisItem aluminum = classifyDiverseRange("Alumínio", fertility.getAluminio(), fertilityUnit(fertility.getUnidadeAluminio()), diverseRange,
                 r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
                 "Alumínio usado como indicador para necessidade de gessagem.");
         SoilChemicalDiagnosisItem aluminumSaturation = classifyDiverseRange("Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
@@ -1079,11 +1081,11 @@ public class RecommendationCalculationService {
             return new PhysicalDiagnosis(message, diagnosis);
         }
 
-        addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), "g/dm³",
+        addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), physicalUnit(physicalAnalysis.getUnidadeTeorAreia()),
                 "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
-        addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), "g/dm³",
+        addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), physicalUnit(physicalAnalysis.getUnidadeTeorSilte()),
                 "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
-        addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), "g/dm³",
+        addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), physicalUnit(physicalAnalysis.getUnidadeTeorArgila()),
                 "Teor de argila considerado nos critérios químicos que dependem da análise física, quando aplicável.");
         addPhysicalItem(diagnosis, "Densidade aparente", physicalAnalysis.getDensidadeAparente(), "g/cm3",
                 "Valor físico relacionado à compactação e ao crescimento radicular; sem faixa crítica cadastrada nesta etapa.");
@@ -1153,7 +1155,8 @@ public class RecommendationCalculationService {
                 "Percentagem de sódio trocável informada no extrato de fertilidade e usada no enquadramento salino/sódico.");
 
         classifyGlobalSalinity(diagnosis, saturation, pst, table, warnings);
-        classifyExchangeableSodium(diagnosis, exchangeableNa, ctcPh7, table, warnings);
+        classifyExchangeableSodium(diagnosis, exchangeableNa, ctcPh7,
+                fertilityUnit(fertility != null ? fertility.getUnidadeSodio() : null), table, warnings);
 
         if (diagnosis.isEmpty()) {
             String message = "Extrato de saturação selecionado, mas sem CE, pH, Na ou RAS preenchidos para diagnóstico.";
@@ -1238,29 +1241,32 @@ public class RecommendationCalculationService {
     private void classifyExchangeableSodium(List<SoilSalinityDiagnosisItem> diagnosis,
                                             Double exchangeableNa,
                                             Double ctcPh7,
+                                            String savedSodiumUnit,
                                             SoilFertilityInterpretationCriteriaTableModel table,
                                             List<String> warnings) {
         if (exchangeableNa == null) {
-            diagnosis.add(notClassifiedSalinity("Sódio trocável", null, "mmolc/dm³",
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", null, savedSodiumUnit,
                     "Não há sódio trocável no extrato de fertilidade para classificar pela tabela de sódio trocável."));
             return;
         }
+        String sodiumUnit = savedSodiumUnit;
         if (ctcPh7 == null) {
             String observation = "Não há CTC pH 7,0 no extrato de fertilidade para selecionar a faixa de sódio trocável.";
-            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, "mmolc/dm³", observation));
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, sodiumUnit, observation));
             warnings.add(observation);
             return;
         }
         Optional<ExchangeableSodiumModel> criterion = exchangeableSodiumRepository.findFirstByTableOrderByIdAsc(table);
         if (criterion.isEmpty()) {
             String observation = "Não há critério de sódio trocável cadastrado para a tabela selecionada.";
-            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, "mmolc/dm³", observation));
+            diagnosis.add(notClassifiedSalinity("Sódio trocável", exchangeableNa, sodiumUnit, observation));
             warnings.add(observation);
             return;
         }
 
         SodiumRangeCriterion range = selectSodiumRange(criterion.get(), ctcPh7);
-        SoilSalinityDiagnosisItem item = classifySalinityRange("Sódio trocável", exchangeableNa, "mmolc/dm³",
+        String criterionSodiumUnit = normalizeUnit(criterion.get().getSodiumUnit(), sodiumUnit);
+        SoilSalinityDiagnosisItem item = classifySalinityRange("Sódio trocável", exchangeableNa, criterionSodiumUnit,
                 new RangeCriterion(range.veryLowEnd(), range.lowStart(), range.lowEnd(), range.mediumStart(),
                         range.mediumEnd(), range.highStart(), range.highEnd(), range.veryHighStart()),
                 "Sódio trocável classificado por faixa de CTC pH 7,0 informada no extrato de fertilidade (" + formatNumber(ctcPh7) + ").");
@@ -1375,13 +1381,13 @@ public class RecommendationCalculationService {
 
         diagnosis.add(classifyPhosphorus(fertility, physicalAnalysis, table, warnings));
         diagnosis.add(classifyPotassium(fertility, kRange, diverseRange, warnings));
-        diagnosis.add(classifyDiverseRange("Cálcio", fertility.getCalcio(), "mmolc/dm³", diverseRange,
+        diagnosis.add(classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
                 r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
                 "Cálcio trocável classificado pelas faixas diversas da tabela selecionada."));
-        diagnosis.add(classifyDiverseRange("Magnésio", fertility.getMagnesio(), "mmolc/dm³", diverseRange,
+        diagnosis.add(classifyDiverseRange("Magnésio", fertility.getMagnesio(), fertilityUnit(fertility.getUnidadeMagnesio()), diverseRange,
                 r -> new RangeCriterion(r.getMagnesium_too_low(), r.getMagnesium_low_i(), r.getMagnesium_low_f(), r.getMagnesium_medium_i(), r.getMagnesium_medium_f(), r.getMagnesium_hight_i(), r.getMagnesium_hight_f(), r.getMagnesium_too_hight()),
                 "Magnésio trocável classificado pelas faixas diversas da tabela selecionada."));
-        diagnosis.add(classifyDiverseRange("Alumínio", fertility.getAluminio(), "mmolc/dm³", diverseRange,
+        diagnosis.add(classifyDiverseRange("Alumínio", fertility.getAluminio(), fertilityUnit(fertility.getUnidadeAluminio()), diverseRange,
                 r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
                 "Alumínio trocável classificado pelas faixas diversas da tabela selecionada."));
         if (fertility.getEnxofre() != null) {
@@ -1390,16 +1396,16 @@ public class RecommendationCalculationService {
         addDiverseDiagnosisIfPresent(diagnosis, "Matéria orgânica", fertility.getMateriaOrganica(), diverseRange.map(DiverseContentRangeModel::getOrganic_matter_unit).orElse("g/dm³"), diverseRange,
                 r -> new RangeCriterion(r.getOrganic_matter_too_low(), r.getOrganic_matter_low_i(), r.getOrganic_matter_low_f(), r.getOrganic_matter_medium_i(), r.getOrganic_matter_medium_f(), r.getOrganic_matter_hight_i(), r.getOrganic_matter_hight_f(), r.getOrganic_matter_too_hight()),
                 "Matéria orgânica classificada pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "H+Al", fertility.getAluminioMaisHidrogenio(), "mmolc/dm³", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "H+Al", fertility.getAluminioMaisHidrogenio(), fertilityUnit(fertility.getUnidadeAluminioMaisHidrogenio()), diverseRange,
                 r -> new RangeCriterion(r.getPotential_acidity_too_low(), r.getPotential_acidity_low_i(), r.getPotential_acidity_low_f(), r.getPotential_acidity_medium_i(), r.getPotential_acidity_medium_f(), r.getPotential_acidity_hight_i(), r.getPotential_acidity_hight_f(), r.getPotential_acidity_too_hight()),
                 "Acidez potencial classificada pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Soma de bases", fertility.getSomaBases(), "mmolc/dm³", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "Soma de bases", fertility.getSomaBases(), fertilityUnit(fertility.getUnidadeSomaBases()), diverseRange,
                 r -> new RangeCriterion(r.getSum_of_bases_too_low(), r.getSum_of_bases_low_i(), r.getSum_of_bases_low_f(), r.getSum_of_bases_medium_i(), r.getSum_of_bases_medium_f(), r.getSum_of_bases_hight_i(), r.getSum_of_bases_hight_f(), r.getSum_of_bases_too_hight()),
                 "Soma de bases classificada pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "CTC efetiva", fertility.getCtcEfetiva(), "mmolc/dm³", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "CTC efetiva", fertility.getCtcEfetiva(), fertilityUnit(fertility.getUnidadeCtcEfetiva()), diverseRange,
                 r -> new RangeCriterion(r.getEffective_cec_too_low(), r.getEffective_cec_low_i(), r.getEffective_cec_low_f(), r.getEffective_cec_medium_i(), r.getEffective_cec_medium_f(), r.getEffective_cec_hight_i(), r.getEffective_cec_hight_f(), r.getEffective_cec_too_hight()),
                 "CTC efetiva classificada a partir do valor pronto do extrato de fertilidade.");
-        addDiverseDiagnosisIfPresent(diagnosis, "CTC pH 7,0", fertility.getCtcPh7(), "mmolc/dm³", diverseRange,
+        addDiverseDiagnosisIfPresent(diagnosis, "CTC pH 7,0", fertility.getCtcPh7(), fertilityUnit(fertility.getUnidadeCtcPh7()), diverseRange,
                 r -> new RangeCriterion(r.getPh7_cec_too_low(), r.getPh7_cec_low_i(), r.getPh7_cec_low_f(), r.getPh7_cec_medium_i(), r.getPh7_cec_medium_f(), r.getPh7_cec_hight_i(), r.getPh7_cec_hight_f(), r.getPh7_cec_too_hight()),
                 "CTC pH 7,0 classificada a partir do valor pronto do extrato de fertilidade.");
         addDiverseDiagnosisIfPresent(diagnosis, "Saturação por bases", fertility.getSaturacaoBasesV(), "%", diverseRange,
@@ -1479,12 +1485,12 @@ public class RecommendationCalculationService {
         }
         if (kRange.isPresent()) {
             KExchangeableContentModel k = kRange.get();
-            return classifyRange("Potássio (K) trocável", fertility.getPotassio(), "mmolc/dm³",
+            return classifyRange("Potássio (K) trocável", fertility.getPotassio(), normalizeUnit(k.getUnit(), fertilityUnit(fertility.getUnidadePotassio())),
                     new RangeCriterion(k.getKContentTooLow(), k.getKContentLowI(), k.getKContentLowF(), k.getKContentMediumI(), k.getKContentMediumF(), k.getKContentHighI(), k.getKContentHighF(), k.getKContentTooHigh()),
                     "Potássio (K) trocável classificado em mmolc/dm³ pelo critério específico de K da tabela selecionada.");
         }
         warnings.add("Não foi encontrada linha específica de potássio; foi tentada a faixa diversa de potássio.");
-        return classifyDiverseRange("Potássio (K) trocável", fertility.getPotassio(), "mmolc/dm³", diverseRange,
+        return classifyDiverseRange("Potássio (K) trocável", fertility.getPotassio(), fertilityUnit(fertility.getUnidadePotassio()), diverseRange,
                 r -> new RangeCriterion(r.getPotassium_too_low(), r.getPotassium_low_i(), r.getPotassium_low_f(), r.getPotassium_medium_i(), r.getPotassium_medium_f(), r.getPotassium_hight_i(), r.getPotassium_hight_f(), r.getPotassium_too_hight()),
                 "Potássio (K) trocável classificado em mmolc/dm³ pelas faixas diversas da tabela selecionada.");
     }
@@ -1697,6 +1703,24 @@ public class RecommendationCalculationService {
             case mmolc_per_dm3 -> "mmolc/dm³";
             case percentage -> "%";
         };
+    }
+
+    private String physicalUnit(PhysicalAnalysisUnit unit) {
+        PhysicalAnalysisUnit normalized = unit != null ? unit.canonicalForPhysicalExtract() : PhysicalAnalysisUnit.G_PER_DM3;
+        return normalizeUnit(normalized.getSymbol(), "g/dm³");
+    }
+
+    private String fertilityUnit(FertilityAnalysisUnit unit) {
+        FertilityAnalysisUnit normalized = unit != null ? unit.canonicalForFertilityExtract() : FertilityAnalysisUnit.MMOLC_PER_DM3;
+        return normalizeUnit(normalized.getSymbol(), "mmolc/dm³");
+    }
+
+    private String normalizeUnit(String unit, String fallback) {
+        if (unit == null || unit.isBlank()) return fallback;
+        return unit.trim()
+                .replace("dm3", "dm³")
+                .replace("cmolc/dm³", "mmolc/dm³")
+                .replace("cmolc/dm3", "mmolc/dm³");
     }
 
     private String formatInterval(Double start, Double end, Double fallbackEndExclusive) {
