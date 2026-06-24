@@ -356,7 +356,7 @@ public class DiverseContentRangeModel {
     // =================================================================================
     // BORO DISPONÍVEL (B) - mg/dm³
     // =================================================================================
-    @Column(name = "MENOR_TEOR_BORO", nullable = false)
+    @Column(name = "MENOR_TEOR_BORO")
     Double boron_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_BORO", nullable = false)
     Double boron_low_i;
@@ -370,13 +370,13 @@ public class DiverseContentRangeModel {
     Double boron_hight_i;
     @Column(name = "TEOR_FINAL_ALTO_BORO", nullable = false)
     Double boron_hight_f;
-    @Column(name = "MAIOR_TEOR_BORO", nullable = false)
+    @Column(name = "MAIOR_TEOR_BORO")
     Double boron_too_hight;
 
     // =================================================================================
     // COBRE DISPONÍVEL (Cu) - mg/dm³
     // =================================================================================
-    @Column(name = "MENOR_TEOR_COBRE", nullable = false)
+    @Column(name = "MENOR_TEOR_COBRE")
     Double copper_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_COBRE", nullable = false)
     Double copper_low_i;
@@ -390,13 +390,13 @@ public class DiverseContentRangeModel {
     Double copper_hight_i;
     @Column(name = "TEOR_FINAL_ALTO_COBRE", nullable = false)
     Double copper_hight_f;
-    @Column(name = "MAIOR_TEOR_COBRE", nullable = false)
+    @Column(name = "MAIOR_TEOR_COBRE")
     Double copper_too_hight;
 
     // =================================================================================
     // FERRO DISPONÍVEL (Fe) - mg/dm³
     // =================================================================================
-    @Column(name = "MENOR_TEOR_FERRO", nullable = false)
+    @Column(name = "MENOR_TEOR_FERRO")
     Double iron_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_FERRO", nullable = false)
     Double iron_low_i;
@@ -410,13 +410,13 @@ public class DiverseContentRangeModel {
     Double iron_hight_i;
     @Column(name = "TEOR_FINAL_ALTO_FERRO", nullable = false)
     Double iron_hight_f;
-    @Column(name = "MAIOR_TEOR_FERRO", nullable = false)
+    @Column(name = "MAIOR_TEOR_FERRO")
     Double iron_too_hight;
 
     // =================================================================================
     // MANGANÊS DISPONÍVEL (Mn) - mg/dm³
     // =================================================================================
-    @Column(name = "MENOR_TEOR_MANGANES", nullable = false)
+    @Column(name = "MENOR_TEOR_MANGANES")
     Double manganese_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_MANGANES", nullable = false)
     Double manganese_low_i;
@@ -430,13 +430,13 @@ public class DiverseContentRangeModel {
     Double manganese_hight_i;
     @Column(name = "TEOR_FINAL_ALTO_MANGANES", nullable = false)
     Double manganese_hight_f;
-    @Column(name = "MAIOR_TEOR_MANGANES", nullable = false)
+    @Column(name = "MAIOR_TEOR_MANGANES")
     Double manganese_too_hight;
 
     // =================================================================================
     // ZINCO DISPONÍVEL (Zn) - mg/dm³
     // =================================================================================
-    @Column(name = "MENOR_TEOR_ZINCO", nullable = false)
+    @Column(name = "MENOR_TEOR_ZINCO")
     Double zinc_too_low;
     @Column(name = "TEOR_INICIAL_BAIXO_ZINCO", nullable = false)
     Double zinc_low_i;
@@ -450,7 +450,7 @@ public class DiverseContentRangeModel {
     Double zinc_hight_i;
     @Column(name = "TEOR_FINAL_ALTO_ZINCO", nullable = false)
     Double zinc_hight_f;
-    @Column(name = "MAIOR_TEOR_ZINCO", nullable = false)
+    @Column(name = "MAIOR_TEOR_ZINCO")
     Double zinc_too_hight;
 
     @PrePersist

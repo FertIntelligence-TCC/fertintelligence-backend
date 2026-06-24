@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -273,6 +274,72 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
     }
 
     @Test
+    @WithMockUser(username = "testuser")
+    void createDiverseContentRangeAcceptsMicronutrientsWithoutExtremeFields() throws Exception {
+        DiverseContentRangeCreateRequestDto requestDto = DiverseContentRangeCreateRequestDto.builder()
+                .boron_low_i(0.1)
+                .boron_low_f(0.2)
+                .boron_medium_i(0.3)
+                .boron_medium_f(0.4)
+                .boron_hight_i(0.5)
+                .boron_hight_f(0.6)
+                .copper_low_i(1.1)
+                .copper_low_f(1.2)
+                .copper_medium_i(1.3)
+                .copper_medium_f(1.4)
+                .copper_hight_i(1.5)
+                .copper_hight_f(1.6)
+                .iron_low_i(2.1)
+                .iron_low_f(2.2)
+                .iron_medium_i(2.3)
+                .iron_medium_f(2.4)
+                .iron_hight_i(2.5)
+                .iron_hight_f(2.6)
+                .manganese_low_i(3.1)
+                .manganese_low_f(3.2)
+                .manganese_medium_i(3.3)
+                .manganese_medium_f(3.4)
+                .manganese_hight_i(3.5)
+                .manganese_hight_f(3.6)
+                .zinc_low_i(4.1)
+                .zinc_low_f(4.2)
+                .zinc_medium_i(4.3)
+                .zinc_medium_f(4.4)
+                .zinc_hight_i(4.5)
+                .zinc_hight_f(4.6)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+        when(diverseContentRangeRepository.findByTable(ownerTable)).thenReturn(Optional.empty());
+        when(diverseContentRangeRepository.save(any(DiverseContentRangeModel.class))).thenAnswer(invocation -> {
+            DiverseContentRangeModel criterion = invocation.getArgument(0);
+            criterion.setId(324L);
+            assertNull(criterion.getBoron_too_low());
+            assertNull(criterion.getBoron_too_hight());
+            assertNull(criterion.getCopper_too_low());
+            assertNull(criterion.getCopper_too_hight());
+            assertNull(criterion.getIron_too_low());
+            assertNull(criterion.getIron_too_hight());
+            assertNull(criterion.getManganese_too_low());
+            assertNull(criterion.getManganese_too_hight());
+            assertNull(criterion.getZinc_too_low());
+            assertNull(criterion.getZinc_too_hight());
+            return criterion;
+        });
+
+        mockMvc.perform(post("/diverse-content-range/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(324L))
+                .andExpect(jsonPath("$.teor_inicial_baixo_boro").value(0.1))
+                .andExpect(jsonPath("$.teor_final_alto_zinco").value(4.6));
+    }
+
+    @Test
     @WithMockUser(username = "manager")
     void createDiverseContentRangeForManagerOwnedTable() throws Exception {
         DiverseContentRangeCreateRequestDto requestDto = DiverseContentRangeCreateRequestDto.builder()
@@ -384,6 +451,69 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.teor_inicial_baixo_ctc_ph7").value(2.3))
                 .andExpect(jsonPath("$.menor_valor_ph_agua").value(4.5))
                 .andExpect(jsonPath("$.menor_teor_ph_agua").value(4.5));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void updateDiverseContentRangeAcceptsMicronutrientsWithoutExtremeFields() throws Exception {
+        DiverseContentRangePostRequestDto requestDto = DiverseContentRangePostRequestDto.builder()
+                .boron_low_i(0.7)
+                .boron_low_f(0.8)
+                .boron_medium_i(0.9)
+                .boron_medium_f(1.0)
+                .boron_hight_i(1.1)
+                .boron_hight_f(1.2)
+                .copper_low_i(1.7)
+                .copper_low_f(1.8)
+                .copper_medium_i(1.9)
+                .copper_medium_f(2.0)
+                .copper_hight_i(2.1)
+                .copper_hight_f(2.2)
+                .iron_low_i(2.7)
+                .iron_low_f(2.8)
+                .iron_medium_i(2.9)
+                .iron_medium_f(3.0)
+                .iron_hight_i(3.1)
+                .iron_hight_f(3.2)
+                .manganese_low_i(3.7)
+                .manganese_low_f(3.8)
+                .manganese_medium_i(3.9)
+                .manganese_medium_f(4.0)
+                .manganese_hight_i(4.1)
+                .manganese_hight_f(4.2)
+                .zinc_low_i(4.7)
+                .zinc_low_f(4.8)
+                .zinc_medium_i(4.9)
+                .zinc_medium_f(5.0)
+                .zinc_hight_i(5.1)
+                .zinc_hight_f(5.2)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(diverseContentRangeRepository.findById(existingCriterion.getId()))
+                .thenReturn(Optional.of(existingCriterion));
+        when(diverseContentRangeRepository.save(existingCriterion)).thenAnswer(invocation -> {
+            DiverseContentRangeModel criterion = invocation.getArgument(0);
+            assertNull(criterion.getBoron_too_low());
+            assertNull(criterion.getBoron_too_hight());
+            assertNull(criterion.getCopper_too_low());
+            assertNull(criterion.getCopper_too_hight());
+            assertNull(criterion.getIron_too_low());
+            assertNull(criterion.getIron_too_hight());
+            assertNull(criterion.getManganese_too_low());
+            assertNull(criterion.getManganese_too_hight());
+            assertNull(criterion.getZinc_too_low());
+            assertNull(criterion.getZinc_too_hight());
+            return criterion;
+        });
+
+        mockMvc.perform(put("/diverse-content-range/update")
+                        .param("criterionId", existingCriterion.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teor_inicial_baixo_boro").value(0.7))
+                .andExpect(jsonPath("$.teor_final_alto_zinco").value(5.2));
     }
 
     @Test
