@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.fertility;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -54,37 +55,73 @@ public class FertilityAnalysisExtractResponseDto {
     @JsonProperty("calcio")
     Double calcio;
 
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_calcio")
+    FertilityAnalysisUnit unidadeCalcio;
+
     @Schema(example = "20.1")
     @JsonProperty("magnesio")
     Double magnesio;
+
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_magnesio")
+    FertilityAnalysisUnit unidadeMagnesio;
 
     @Schema(example = "3.5")
     @JsonProperty("potassio")
     Double potassio;
 
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_potassio")
+    FertilityAnalysisUnit unidadePotassio;
+
     @Schema(example = "2.4")
     @JsonProperty("sodio")
     Double sodio;
+
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_sodio")
+    FertilityAnalysisUnit unidadeSodio;
 
     @Schema(example = "0.5")
     @JsonProperty("aluminio")
     Double aluminio;
 
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_aluminio")
+    FertilityAnalysisUnit unidadeAluminio;
+
     @Schema(example = "4.2")
     @JsonProperty("aluminio_mais_hidrogenio")
     Double aluminioMaisHidrogenio;
+
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_aluminio_mais_hidrogenio")
+    FertilityAnalysisUnit unidadeAluminioMaisHidrogenio;
 
     @Schema(example = "69.5")
     @JsonProperty("soma_bases")
     Double somaBases;
 
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_soma_bases")
+    FertilityAnalysisUnit unidadeSomaBases;
+
     @Schema(example = "72.4")
     @JsonProperty("ctc_efetiva")
     Double ctcEfetiva;
 
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_ctc_efetiva")
+    FertilityAnalysisUnit unidadeCtcEfetiva;
+
     @Schema(example = "89.1")
     @JsonProperty("ctc_ph7")
     Double ctcPh7;
+
+    @Schema(example = "mmolc/dm³")
+    @JsonProperty("unidade_ctc_ph7")
+    FertilityAnalysisUnit unidadeCtcPh7;
 
     @Schema(example = "70.0")
     @JsonProperty("saturacao_bases_v")

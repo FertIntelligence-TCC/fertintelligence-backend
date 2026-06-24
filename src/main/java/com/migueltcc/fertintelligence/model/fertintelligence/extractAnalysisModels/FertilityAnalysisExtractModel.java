@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels;
 
 import com.migueltcc.fertintelligence.composedAttributes.soilExtracts.Camada;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnitConverter;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -15,6 +17,8 @@ import lombok.*;
 @Table(name = "EXTRATOS_ANALISES_FERTILIDADE")
 @EqualsAndHashCode
 public class FertilityAnalysisExtractModel {
+
+    private static final FertilityAnalysisUnit DEFAULT_EXCHANGE_COMPLEX_UNIT = FertilityAnalysisUnit.MMOLC_PER_DM3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,41 +40,86 @@ public class FertilityAnalysisExtractModel {
     @Column(name = "PH_CACL2", nullable = true)
     Double phCacl2;
 
-    // Ca2+ (número e + sobrescrito), mmolc/dm3
+    // Ca2+ (número e + sobrescrito), mmolc/dm³
     @Column(name = "CALCIO", nullable = true)
     Double calcio;
 
-    // Mg2+ (número e + sobrescrito), mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_CALCIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeCalcio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // Mg2+ (número e + sobrescrito), mmolc/dm³
     @Column(name = "MAGNESIO", nullable = true)
     Double magnesio;
 
-    // K+ (número e + sobrescrito), mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_MAGNESIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeMagnesio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // K+ (número e + sobrescrito), mmolc/dm³
     @Column(name = "POTASSIO", nullable = true)
     Double potassio;
 
-    // Na+ (número e + sobrescrito), mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_POTASSIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadePotassio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // Na+ (número e + sobrescrito), mmolc/dm³
     @Column(name = "SODIO", nullable = true)
     Double sodio;
 
-    // Al3+ (número e + sobrescrito), mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_SODIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeSodio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // Al3+ (número e + sobrescrito), mmolc/dm³
     @Column(name = "ALUMINIO", nullable = true)
     Double aluminio;
 
-    // Al+H, mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_ALUMINIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeAluminio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // Al+H, mmolc/dm³
     @Column(name = "ALUMINIO_MAIS_HIDROGENIO", nullable = true)
     Double aluminioMaisHidrogenio;
 
-    // Soma de Bases, SB, mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_ALUMINIO_MAIS_HIDROGENIO", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeAluminioMaisHidrogenio = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // Soma de Bases, SB, mmolc/dm³
     @Column(name = "SOMA_BASES", nullable = true)
     Double somaBases;
 
-    // CTC efetiva (t), mmolc/dm3
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_SOMA_BASES", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeSomaBases = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // CTC efetiva (t), mmolc/dm³
     @Column(name = "CTC_EFETIVA", nullable = true)
     Double ctcEfetiva;
 
-    // CTC pH 7,0 (T), mmol/dm3,
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_CTC_EFETIVA", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeCtcEfetiva = DEFAULT_EXCHANGE_COMPLEX_UNIT;
+
+    // CTC pH 7,0 (T), mmolc/dm³
     @Column(name = "CTC_PH_7", nullable = true)
     Double ctcPh7;
+
+    @Convert(converter = FertilityAnalysisUnitConverter.class)
+    @Column(name = "UNIDADE_CTC_PH_7", nullable = false)
+    @Builder.Default
+    FertilityAnalysisUnit unidadeCtcPh7 = DEFAULT_EXCHANGE_COMPLEX_UNIT;
 
     // Valor de saturação de bases trocáveis (V),
     @Column(name = "SATURACAO_BASES_V", nullable = true)
@@ -124,7 +173,27 @@ public class FertilityAnalysisExtractModel {
     @Column(name = "ZINCO", nullable = true)
     Double zinco;
 
+    @PrePersist
+    @PreUpdate
+    public void normalizeFertilityUnits() {
+        this.unidadeCalcio = normalizeFertilityUnit(this.unidadeCalcio);
+        this.unidadeMagnesio = normalizeFertilityUnit(this.unidadeMagnesio);
+        this.unidadePotassio = normalizeFertilityUnit(this.unidadePotassio);
+        this.unidadeSodio = normalizeFertilityUnit(this.unidadeSodio);
+        this.unidadeAluminio = normalizeFertilityUnit(this.unidadeAluminio);
+        this.unidadeAluminioMaisHidrogenio = normalizeFertilityUnit(this.unidadeAluminioMaisHidrogenio);
+        this.unidadeSomaBases = normalizeFertilityUnit(this.unidadeSomaBases);
+        this.unidadeCtcEfetiva = normalizeFertilityUnit(this.unidadeCtcEfetiva);
+        this.unidadeCtcPh7 = normalizeFertilityUnit(this.unidadeCtcPh7);
+    }
+
+    private FertilityAnalysisUnit normalizeFertilityUnit(FertilityAnalysisUnit unit) {
+        return unit != null ? unit.canonicalForFertilityExtract() : DEFAULT_EXCHANGE_COMPLEX_UNIT;
+    }
+
     public FertilityAnalysisExtractResponseDto toDto() {
+        normalizeFertilityUnits();
+
         RangeExtractModel range = this.rangeExtract;
         LayerExtractModel layer = this.layerExtract;
 
@@ -158,14 +227,23 @@ public class FertilityAnalysisExtractModel {
                 .phAgua(this.phAgua)
                 .phCacl2(this.phCacl2)
                 .calcio(this.calcio)
+                .unidadeCalcio(this.unidadeCalcio)
                 .magnesio(this.magnesio)
+                .unidadeMagnesio(this.unidadeMagnesio)
                 .potassio(this.potassio)
+                .unidadePotassio(this.unidadePotassio)
                 .sodio(this.sodio)
+                .unidadeSodio(this.unidadeSodio)
                 .aluminio(this.aluminio)
+                .unidadeAluminio(this.unidadeAluminio)
                 .aluminioMaisHidrogenio(this.aluminioMaisHidrogenio)
+                .unidadeAluminioMaisHidrogenio(this.unidadeAluminioMaisHidrogenio)
                 .somaBases(this.somaBases)
+                .unidadeSomaBases(this.unidadeSomaBases)
                 .ctcEfetiva(this.ctcEfetiva)
+                .unidadeCtcEfetiva(this.unidadeCtcEfetiva)
                 .ctcPh7(this.ctcPh7)
+                .unidadeCtcPh7(this.unidadeCtcPh7)
                 .saturacaoBasesV(this.saturacaoBasesV)
                 .saturacaoAluminioM(this.saturacaoAluminioM)
                 .pst(this.pst)

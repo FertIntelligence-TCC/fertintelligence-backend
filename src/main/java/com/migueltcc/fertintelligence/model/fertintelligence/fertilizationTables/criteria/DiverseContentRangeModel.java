@@ -174,7 +174,7 @@ public class DiverseContentRangeModel {
     Double sum_of_bases_too_hight;
 
     // =================================================================================
-    // ACIDEZ TROCÁVEL (Al3+) - cmolc/dm³
+    // ACIDEZ TROCÁVEL (Al3+) - mmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_ALUMINIO", nullable = false)
     Double aluminum_too_low;
@@ -194,7 +194,7 @@ public class DiverseContentRangeModel {
     Double aluminum_too_hight;
 
     // =================================================================================
-    // ACIDEZ POTENCIAL (H+Al) - cmolc/dm³
+    // ACIDEZ POTENCIAL (H+Al) - mmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_ACIDEZ_POTENCIAL", nullable = false)
     Double potential_acidity_too_low;
@@ -214,7 +214,7 @@ public class DiverseContentRangeModel {
     Double potential_acidity_too_hight;
 
     // =================================================================================
-    // CTC EFETIVA (t) - cmolc/dm³
+    // CTC EFETIVA (t) - mmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_CTC_EFETIVA", nullable = false)
     Double effective_cec_too_low;
@@ -234,7 +234,7 @@ public class DiverseContentRangeModel {
     Double effective_cec_too_hight;
 
     // =================================================================================
-    // CTC pH 7,0 (T) - cmolc/dm³
+    // CTC pH 7,0 (T) - mmolc/dm³
     // =================================================================================
     @Column(name = "MENOR_TEOR_CTC_PH_7", nullable = false)
     Double ph7_cec_too_low;
