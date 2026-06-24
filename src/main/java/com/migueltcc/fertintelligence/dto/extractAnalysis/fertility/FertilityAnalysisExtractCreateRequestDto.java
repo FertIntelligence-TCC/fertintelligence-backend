@@ -1,6 +1,9 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.fertility;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FertilityAnalysisExtractCreateRequestDto {
 
     @JsonProperty("ph_agua")
@@ -21,29 +25,65 @@ public class FertilityAnalysisExtractCreateRequestDto {
     @JsonProperty("calcio")
     Double calcio;
 
+    @JsonProperty("unidade_calcio")
+    @JsonAlias("unidadeCalcio")
+    FertilityAnalysisUnit unidadeCalcio;
+
     @JsonProperty("magnesio")
     Double magnesio;
+
+    @JsonProperty("unidade_magnesio")
+    @JsonAlias("unidadeMagnesio")
+    FertilityAnalysisUnit unidadeMagnesio;
 
     @JsonProperty("potassio")
     Double potassio;
 
+    @JsonProperty("unidade_potassio")
+    @JsonAlias("unidadePotassio")
+    FertilityAnalysisUnit unidadePotassio;
+
     @JsonProperty("sodio")
     Double sodio;
+
+    @JsonProperty("unidade_sodio")
+    @JsonAlias("unidadeSodio")
+    FertilityAnalysisUnit unidadeSodio;
 
     @JsonProperty("aluminio")
     Double aluminio;
 
+    @JsonProperty("unidade_aluminio")
+    @JsonAlias("unidadeAluminio")
+    FertilityAnalysisUnit unidadeAluminio;
+
     @JsonProperty("aluminio_mais_hidrogenio")
     Double aluminioMaisHidrogenio;
+
+    @JsonProperty("unidade_aluminio_mais_hidrogenio")
+    @JsonAlias("unidadeAluminioMaisHidrogenio")
+    FertilityAnalysisUnit unidadeAluminioMaisHidrogenio;
 
     @JsonProperty("soma_bases")
     Double somaBases;
 
+    @JsonProperty("unidade_soma_bases")
+    @JsonAlias("unidadeSomaBases")
+    FertilityAnalysisUnit unidadeSomaBases;
+
     @JsonProperty("ctc_efetiva")
     Double ctcEfetiva;
 
+    @JsonProperty("unidade_ctc_efetiva")
+    @JsonAlias("unidadeCtcEfetiva")
+    FertilityAnalysisUnit unidadeCtcEfetiva;
+
     @JsonProperty("ctc_ph7")
     Double ctcPh7;
+
+    @JsonProperty("unidade_ctc_ph7")
+    @JsonAlias("unidadeCtcPh7")
+    FertilityAnalysisUnit unidadeCtcPh7;
 
     @JsonProperty("saturacao_bases_v")
     Double saturacaoBasesV;

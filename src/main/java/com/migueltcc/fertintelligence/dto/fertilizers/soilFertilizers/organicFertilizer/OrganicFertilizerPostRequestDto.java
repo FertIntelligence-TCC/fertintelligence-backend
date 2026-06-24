@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.organicFertilizer;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
@@ -15,6 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrganicFertilizerPostRequestDto {
 
     @JsonProperty("novo_nome_adubo")
@@ -77,19 +79,22 @@ public class OrganicFertilizerPostRequestDto {
     private Double teorUmidade;
 
     @JsonProperty("novo_teor_materia_organica_percentual")
-    @JsonAlias("novo_teor_cinzas")
+    @JsonAlias({"teor_materia_organica_percentual", "novo_teor_cinzas", "teor_cinzas", "materia_organica_percentual", "teorMateriaOrganicaPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double teorMateriaOrganicaPercentual;
 
     @JsonProperty("novo_taxa_mineralizacao_primeiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_primeiro_ano_percentual", "taxa_mineralizacao_primeiro_ano", "novo_taxa_mineralizacao_primeiro_ano", "taxaMineralizacaoPrimeiroAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoPrimeiroAnoPercentual;
 
     @JsonProperty("novo_taxa_mineralizacao_segundo_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_segundo_ano_percentual", "taxa_mineralizacao_segundo_ano", "novo_taxa_mineralizacao_segundo_ano", "taxaMineralizacaoSegundoAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoSegundoAnoPercentual;
 
     @JsonProperty("novo_taxa_mineralizacao_terceiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_terceiro_ano_percentual", "taxa_mineralizacao_terceiro_ano", "novo_taxa_mineralizacao_terceiro_ano", "taxaMineralizacaoTerceiroAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 

@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.dto.fertilizers.soilFertilizers.greenFertilizer;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
@@ -15,6 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GreenFertilizerCreateRequestDto {
 
     @JsonProperty("nome_adubo")
@@ -78,18 +81,22 @@ public class GreenFertilizerCreateRequestDto {
     private Double zn;
 
     @JsonProperty("produtividade_esperada_kg_ha")
+    @JsonAlias({"produtividade_esperada", "produtividadeEsperadaKgHa"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double produtividadeEsperadaKgHa;
 
     @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_primeiro_ano", "taxaMineralizacaoPrimeiroAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoPrimeiroAnoPercentual;
 
     @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_segundo_ano", "taxaMineralizacaoSegundoAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoSegundoAnoPercentual;
 
     @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_terceiro_ano", "taxaMineralizacaoTerceiroAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 

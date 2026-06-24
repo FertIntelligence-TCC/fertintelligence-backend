@@ -1,5 +1,7 @@
 package com.migueltcc.fertintelligence.dto.extractAnalysis.physical;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import lombok.AllArgsConstructor;
@@ -11,36 +13,47 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PhysicalAnalysisExtractPostRequestDto {
 
     @JsonProperty("novo_teor_areia")
+    @JsonAlias({"teor_areia", "teorAreia"})
     Double teorAreia;
 
     @JsonProperty("nova_unidade_teor_areia")
+    @JsonAlias({"unidade_teor_areia", "unidadeTeorAreia"})
     PhysicalAnalysisUnit unidadeTeorAreia;
 
     @JsonProperty("novo_teor_silte")
+    @JsonAlias({"teor_silte", "teorSilte"})
     Double teorSilte;
 
     @JsonProperty("nova_unidade_teor_silte")
+    @JsonAlias({"unidade_teor_silte", "unidadeTeorSilte"})
     PhysicalAnalysisUnit unidadeTeorSilte;
 
     @JsonProperty("novo_teor_argila")
+    @JsonAlias({"teor_argila", "teorArgila"})
     Double teorArgila;
 
     @JsonProperty("nova_unidade_teor_argila")
+    @JsonAlias({"unidade_teor_argila", "unidadeTeorArgila"})
     PhysicalAnalysisUnit unidadeTeorArgila;
 
     @JsonProperty("nova_densidade_aparente")
+    @JsonAlias({"densidade_aparente", "densidadeAparente"})
     Double densidadeAparente;
 
     @JsonProperty("nova_unidade_densidade_aparente")
+    @JsonAlias({"unidade_densidade_aparente", "unidadeDensidadeAparente"})
     PhysicalAnalysisUnit unidadeDensidadeAparente;
 
     @JsonProperty("nova_densidade_real")
+    @JsonAlias({"densidade_real", "densidadeReal"})
     Double densidadeReal;
 
     @JsonProperty("nova_unidade_densidade_real")
+    @JsonAlias({"unidade_densidade_real", "unidadeDensidadeReal"})
     PhysicalAnalysisUnit unidadeDensidadeReal;
 
     @JsonProperty("nova_porosidade_total")

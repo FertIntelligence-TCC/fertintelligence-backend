@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AvailableSPostRequestDto {
 
     @JsonProperty("novo_menor_teor_enxofre_argila_menor_400")

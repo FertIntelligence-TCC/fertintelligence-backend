@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.tables.cropFertilization;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.*;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CropFertilizationTableCreateRequestDto {
 
     @JsonProperty("nome_comum_cultura")
@@ -63,6 +65,7 @@ public class CropFertilizationTableCreateRequestDto {
     private Double regional_productivity;
 
     @JsonProperty("produtividade_esperada")
+    @JsonAlias({"expected_productivity", "expectedProductivity"})
     @NotNull
     private Double expected_productivity;
 
@@ -101,5 +104,6 @@ public class CropFertilizationTableCreateRequestDto {
     private String sources;
 
     @JsonProperty("tabela_publica")
+    @JsonAlias({"public_table", "publicTable"})
     private Boolean public_table;
 }

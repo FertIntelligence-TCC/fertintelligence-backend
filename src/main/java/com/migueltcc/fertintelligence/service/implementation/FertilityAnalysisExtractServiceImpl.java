@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractPostRequestDto;
 import com.migueltcc.fertintelligence.dto.extractAnalysis.fertility.FertilityAnalysisExtractResponseDto;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
@@ -27,6 +28,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExtractService {
+
+    private static final FertilityAnalysisUnit DEFAULT_FERTILITY_UNIT = FertilityAnalysisUnit.MMOLC_PER_DM3;
 
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
     private final RangeExtractRepository rangeExtractRepository;
@@ -56,11 +59,20 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
                 .phAgua(createRequestDto.getPhAgua())
                 .phCacl2(createRequestDto.getPhCacl2())
                 .calcio(createRequestDto.getCalcio())
+                .unidadeCalcio(normalizeFertilityUnit(createRequestDto.getUnidadeCalcio()))
                 .magnesio(createRequestDto.getMagnesio())
+                .unidadeMagnesio(normalizeFertilityUnit(createRequestDto.getUnidadeMagnesio()))
                 .potassio(createRequestDto.getPotassio())
+                .unidadePotassio(normalizeFertilityUnit(createRequestDto.getUnidadePotassio()))
                 .sodio(createRequestDto.getSodio())
+                .unidadeSodio(normalizeFertilityUnit(createRequestDto.getUnidadeSodio()))
                 .aluminio(createRequestDto.getAluminio())
+                .unidadeAluminio(normalizeFertilityUnit(createRequestDto.getUnidadeAluminio()))
                 .aluminioMaisHidrogenio(createRequestDto.getAluminioMaisHidrogenio())
+                .unidadeAluminioMaisHidrogenio(normalizeFertilityUnit(createRequestDto.getUnidadeAluminioMaisHidrogenio()))
+                .unidadeSomaBases(normalizeFertilityUnit(createRequestDto.getUnidadeSomaBases()))
+                .unidadeCtcEfetiva(normalizeFertilityUnit(createRequestDto.getUnidadeCtcEfetiva()))
+                .unidadeCtcPh7(normalizeFertilityUnit(createRequestDto.getUnidadeCtcPh7()))
                 .fosforoMehlich1(createRequestDto.getFosforoMehlich1())
                 .fosforoResina(createRequestDto.getFosforoResina())
                 .enxofre(createRequestDto.getEnxofre())
@@ -148,11 +160,20 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         updateIfNotNull(updateRequestDto.getPhAgua(), analysisExtract::setPhAgua);
         updateIfNotNull(updateRequestDto.getPhCacl2(), analysisExtract::setPhCacl2);
         updateIfNotNull(updateRequestDto.getCalcio(), analysisExtract::setCalcio);
+        updateIfNotNull(updateRequestDto.getUnidadeCalcio(), unit -> analysisExtract.setUnidadeCalcio(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getMagnesio(), analysisExtract::setMagnesio);
+        updateIfNotNull(updateRequestDto.getUnidadeMagnesio(), unit -> analysisExtract.setUnidadeMagnesio(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getPotassio(), analysisExtract::setPotassio);
+        updateIfNotNull(updateRequestDto.getUnidadePotassio(), unit -> analysisExtract.setUnidadePotassio(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getSodio(), analysisExtract::setSodio);
+        updateIfNotNull(updateRequestDto.getUnidadeSodio(), unit -> analysisExtract.setUnidadeSodio(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getAluminio(), analysisExtract::setAluminio);
+        updateIfNotNull(updateRequestDto.getUnidadeAluminio(), unit -> analysisExtract.setUnidadeAluminio(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getAluminioMaisHidrogenio(), analysisExtract::setAluminioMaisHidrogenio);
+        updateIfNotNull(updateRequestDto.getUnidadeAluminioMaisHidrogenio(), unit -> analysisExtract.setUnidadeAluminioMaisHidrogenio(normalizeFertilityUnit(unit)));
+        updateIfNotNull(updateRequestDto.getUnidadeSomaBases(), unit -> analysisExtract.setUnidadeSomaBases(normalizeFertilityUnit(unit)));
+        updateIfNotNull(updateRequestDto.getUnidadeCtcEfetiva(), unit -> analysisExtract.setUnidadeCtcEfetiva(normalizeFertilityUnit(unit)));
+        updateIfNotNull(updateRequestDto.getUnidadeCtcPh7(), unit -> analysisExtract.setUnidadeCtcPh7(normalizeFertilityUnit(unit)));
         updateIfNotNull(updateRequestDto.getFosforoMehlich1(), analysisExtract::setFosforoMehlich1);
         updateIfNotNull(updateRequestDto.getFosforoResina(), analysisExtract::setFosforoResina);
         updateIfNotNull(updateRequestDto.getEnxofre(), analysisExtract::setEnxofre);
@@ -188,6 +209,14 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
     private void updateIfNotNull(Double value, Consumer<Double> setter) {
         if (value != null) setter.accept(value);
+    }
+
+    private void updateIfNotNull(FertilityAnalysisUnit value, Consumer<FertilityAnalysisUnit> setter) {
+        if (value != null) setter.accept(value);
+    }
+
+    private FertilityAnalysisUnit normalizeFertilityUnit(FertilityAnalysisUnit unit) {
+        return unit != null ? unit.canonicalForFertilityExtract() : DEFAULT_FERTILITY_UNIT;
     }
 
     private void recalculateExchangeComplex(FertilityAnalysisExtractModel analysisExtract) {

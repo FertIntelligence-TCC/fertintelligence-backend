@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SoilFertilityInterpretationCriteriaTablePostRequestDto {
 
     @JsonProperty("novo_nome_criterios")
