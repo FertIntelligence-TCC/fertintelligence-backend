@@ -85,6 +85,18 @@ public class GreenFertilizerModel {
     @Column(name = "PORCENTAGEM_ZINCO")
     private Double Zn;
 
+    @Column(name = "PRODUTIVIDADE_ESPERADA_KG_HA")
+    private Double produtividadeEsperadaKgHa;
+
+    @Column(name = "TAXA_MINERALIZACAO_PRIMEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_SEGUNDO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
     public List<String> getIdsFotos() {
         return new ArrayList<>(this.idsFotos);
     }
@@ -117,6 +129,10 @@ public class GreenFertilizerModel {
                 .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
+                .produtividadeEsperadaKgHa(this.produtividadeEsperadaKgHa)
+                .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
+                .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
+                .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }

@@ -89,6 +89,22 @@ public class GreenFertilizerResponseDto {
     @JsonProperty("fonte")
     private String source;
 
+    @Schema(example = "12000.0", description = "Produtividade esperada em kg/ha")
+    @JsonProperty("produtividade_esperada_kg_ha")
+    private Double produtividadeEsperadaKgHa;
+
+    @Schema(example = "50.0", description = "Taxa de mineralização no primeiro ano em %")
+    @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Schema(example = "30.0", description = "Taxa de mineralização no segundo ano em %")
+    @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Schema(example = "20.0", description = "Taxa de mineralização no terceiro ano em %")
+    @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
     @JsonProperty("nome_criador")
     private String nomeCriador;
 }

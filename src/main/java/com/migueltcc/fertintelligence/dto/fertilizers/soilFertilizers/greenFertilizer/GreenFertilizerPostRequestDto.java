@@ -71,6 +71,22 @@ public class GreenFertilizerPostRequestDto {
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double zn;
 
+    @JsonProperty("novo_produtividade_esperada_kg_ha")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double produtividadeEsperadaKgHa;
+
+    @JsonProperty("novo_taxa_mineralizacao_primeiro_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @JsonProperty("novo_taxa_mineralizacao_segundo_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @JsonProperty("novo_taxa_mineralizacao_terceiro_ano_percentual")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
     @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
     @JsonProperty("novos_ids_fotos")
     private List<String> idsFotos;

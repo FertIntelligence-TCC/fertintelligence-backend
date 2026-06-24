@@ -66,6 +66,10 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
+                .produtividadeEsperadaKgHa(dto.getProdutividadeEsperadaKgHa())
+                .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
+                .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
+                .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
                 .build();
         List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
@@ -151,6 +155,10 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         if (dto.getMn() != null) fertilizer.setMn(dto.getMn());
         if (dto.getMo() != null) fertilizer.setMo(dto.getMo());
         if (dto.getZn() != null) fertilizer.setZn(dto.getZn());
+        if (dto.getProdutividadeEsperadaKgHa() != null) fertilizer.setProdutividadeEsperadaKgHa(dto.getProdutividadeEsperadaKgHa());
+        if (dto.getTaxaMineralizacaoPrimeiroAnoPercentual() != null) fertilizer.setTaxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual());
+        if (dto.getTaxaMineralizacaoSegundoAnoPercentual() != null) fertilizer.setTaxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual());
+        if (dto.getTaxaMineralizacaoTerceiroAnoPercentual() != null) fertilizer.setTaxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual());
 
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
         List<String> idsFotos = null;

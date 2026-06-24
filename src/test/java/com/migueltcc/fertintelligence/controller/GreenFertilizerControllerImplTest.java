@@ -67,6 +67,10 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .mn(0.1)
                 .mo(0.01)
                 .zn(0.07)
+                .produtividadeEsperadaKgHa(12000.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
+                .taxaMineralizacaoSegundoAnoPercentual(30.0)
+                .taxaMineralizacaoTerceiroAnoPercentual(20.0)
                 .build();
     }
 
@@ -88,6 +92,10 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .Mn(0.1)
                 .Mo(0.01)
                 .Zn(0.07)
+                .produtividadeEsperadaKgHa(12000.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
+                .taxaMineralizacaoSegundoAnoPercentual(30.0)
+                .taxaMineralizacaoTerceiroAnoPercentual(20.0)
                 .build();
     }
 
@@ -107,7 +115,11 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(header().string("Location", "http://localhost/green-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Teste"))
-                .andExpect(jsonPath("$.c").value(15.0));
+                .andExpect(jsonPath("$.c").value(15.0))
+                .andExpect(jsonPath("$.produtividade_esperada_kg_ha").value(12000.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(50.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(30.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0));
     }
 
     @Test
@@ -123,7 +135,11 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Teste"))
-                .andExpect(jsonPath("$.c").value(15.0));
+                .andExpect(jsonPath("$.c").value(15.0))
+                .andExpect(jsonPath("$.produtividade_esperada_kg_ha").value(12000.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(50.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(30.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0));
     }
 
     @Test
@@ -164,6 +180,10 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
         GreenFertilizerPostRequestDto updateDto = GreenFertilizerPostRequestDto.builder()
                 .name("Adubo Verde Atualizado")
                 .c(18.0)
+                .produtividadeEsperadaKgHa(14000.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(55.0)
+                .taxaMineralizacaoSegundoAnoPercentual(25.0)
+                .taxaMineralizacaoTerceiroAnoPercentual(15.0)
                 .build();
 
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(owner));
@@ -173,6 +193,10 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
             GreenFertilizerModel arg = invocation.getArgument(0);
             arg.setName("Adubo Verde Atualizado");
             arg.setC(18.0);
+            arg.setProdutividadeEsperadaKgHa(14000.0);
+            arg.setTaxaMineralizacaoPrimeiroAnoPercentual(55.0);
+            arg.setTaxaMineralizacaoSegundoAnoPercentual(25.0);
+            arg.setTaxaMineralizacaoTerceiroAnoPercentual(15.0);
             return arg;
         });
 
@@ -182,7 +206,11 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                         .content(mapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Atualizado"))
-                .andExpect(jsonPath("$.c").value(18.0));
+                .andExpect(jsonPath("$.c").value(18.0))
+                .andExpect(jsonPath("$.produtividade_esperada_kg_ha").value(14000.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(55.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(25.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(15.0));
     }
 
     @Test
