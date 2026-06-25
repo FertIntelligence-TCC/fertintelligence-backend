@@ -1,4 +1,4 @@
-package com.migueltcc.fertintelligence.service.implementation;
+package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import org.springframework.stereotype.Service;
 

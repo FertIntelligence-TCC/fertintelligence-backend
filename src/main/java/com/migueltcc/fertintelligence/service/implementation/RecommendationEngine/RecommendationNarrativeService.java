@@ -1,5 +1,6 @@
-package com.migueltcc.fertintelligence.service.implementation;
+package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
+import com.migueltcc.fertintelligence.service.implementation.FertAiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

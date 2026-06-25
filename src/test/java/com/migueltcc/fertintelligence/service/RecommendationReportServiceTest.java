@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.service;
 
-import com.migueltcc.fertintelligence.service.implementation.RecommendationCalculationService;
-import com.migueltcc.fertintelligence.service.implementation.RecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
