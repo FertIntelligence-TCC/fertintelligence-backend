@@ -34,6 +34,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
@@ -76,6 +77,7 @@ public class RecommendationCalculationService {
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
     private final SulfurDoseRepository sulfurDoseRepository;
+    private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final ExchangeableSodiumRepository exchangeableSodiumRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
     private final OrganicFertilizerRepository organicFertilizerRepository;
@@ -106,6 +108,7 @@ public class RecommendationCalculationService {
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
                                             SulfurDoseRepository sulfurDoseRepository,
+                                            MicronutrientDoseRepository micronutrientDoseRepository,
                                             ExchangeableSodiumRepository exchangeableSodiumRepository,
                                             SalinityInterpretationRepository salinityInterpretationRepository,
                                             OrganicFertilizerRepository organicFertilizerRepository,
@@ -135,6 +138,7 @@ public class RecommendationCalculationService {
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
         this.sulfurDoseRepository = sulfurDoseRepository;
+        this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.exchangeableSodiumRepository = exchangeableSodiumRepository;
         this.salinityInterpretationRepository = salinityInterpretationRepository;
         this.organicFertilizerRepository = organicFertilizerRepository;
@@ -294,7 +298,7 @@ public class RecommendationCalculationService {
         List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows =
                 buildOrganicOrganoMineralAndMicronutrientRows(
                         requiredN, requiredP2O5, requiredK2O, chemicalDiagnosis, foliarDiagnosis,
-                        table, user, sourceOption, warnings);
+                        table, inputs.soilInterpretationTable(), user, sourceOption, warnings);
 
         return new FertilizationRecommendationContext(
                 recommendationRows, fertilizerSuggestions, nutrientBalanceRows, alternativeFertilizationRows,
@@ -959,6 +963,7 @@ public class RecommendationCalculationService {
             List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<FoliarDiagnosisItem> foliarDiagnosis,
             CropFertilizationTableModel cropFertilizationTable,
+            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
             UserModel user,
             FertilizerSourceOption sourceOption,
             List<String> warnings) {
@@ -969,7 +974,7 @@ public class RecommendationCalculationService {
                 requiredN, requiredP2O5, requiredK2O, warnings);
         addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
         addBiofertilizerLimitation(rows, user, sourceOption, warnings);
-        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, cropFertilizationTable, user, sourceOption, warnings));
+        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, warnings));
         return rows;
     }
 
@@ -1105,20 +1110,52 @@ public class RecommendationCalculationService {
     private List<AlternativeFertilizationRecommendationRow> buildMicronutrientRows(
             List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<FoliarDiagnosisItem> foliarDiagnosis,
-            CropFertilizationTableModel cropFertilizationTable,
-            UserModel user,
-            FertilizerSourceOption sourceOption,
+            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
             List<String> warnings) {
+        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> soilMicronutrients = soilMicronutrientDiagnosis(chemicalDiagnosis);
+        Optional<MicronutrientDoseModel> micronutrientDoses = soilInterpretationTable != null
+                ? micronutrientDoseRepository.findByTable(soilInterpretationTable)
+                : Optional.empty();
+
+        if (micronutrientDoses.isPresent()) {
+            MicronutrientDoseModel doses = micronutrientDoses.get();
+            for (Map.Entry<AppliedMicronutrient, SoilChemicalDiagnosisItem> entry : soilMicronutrients.entrySet()) {
+                SoilChemicalDiagnosisItem item = entry.getValue();
+                Double dose = selectMicronutrientDose(doses, entry.getKey(), item.getInterpretation());
+                if (dose == null) {
+                    warnings.add("Dose de micronutriente não calculada para " + entry.getKey().name()
+                            + " por ausência de dose cadastrada para a faixa " + item.getInterpretation() + ".");
+                    continue;
+                }
+                rows.add(AlternativeFertilizationRecommendationRow.builder()
+                        .sourceType("MICRONUTRIENTE")
+                        .nutrientOrObjective(entry.getKey().name())
+                        .sourceName("Dose elementar cadastrada")
+                        .dose(formatNumber(dose))
+                        .unit("kg/ha")
+                        .justification("Dose selecionada pela faixa " + item.getInterpretation()
+                                + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.")
+                        .limitations("A dose representa kg/ha do micronutriente; o backend não converte automaticamente para produto comercial ou fonte específica.")
+                        .build());
+            }
+        } else if (!soilMicronutrients.isEmpty()) {
+            warnings.add("Tabela de doses de micronutrientes não encontrada para a tabela de interpretação da fertilidade do solo selecionada.");
+        }
+
+        if (!rows.isEmpty()) {
+            return rows;
+        }
+
         Map<AppliedMicronutrient, String> deficiencyEvidence = micronutrientDeficiencyEvidence(chemicalDiagnosis, foliarDiagnosis);
-        String limitation = "Doses de micronutrientes por tabela de adubação de cultura foram descontinuadas; recomendação quantitativa de micronutrientes não está modelada no backend atual.";
+        String limitation = "Doses de micronutrientes por tabela de adubação de cultura foram descontinuadas; recomendação quantitativa de micronutrientes não está modelada para os dados disponíveis.";
         warnings.add(limitation);
         String objective = deficiencyEvidence.isEmpty()
                 ? "B/Cu/Fe/Mn/Mo/Zn"
                 : deficiencyEvidence.keySet().stream().map(Enum::name).collect(java.util.stream.Collectors.joining("/"));
         String justification = deficiencyEvidence.isEmpty()
                 ? "Não houve deficiência de micronutriente classificada pelos diagnósticos químico ou foliar disponíveis."
-                : "Há evidência diagnóstica para micronutrientes, mas não há fonte/dose própria modelada para recomendação quantitativa.";
-        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+                : "Há evidência diagnóstica para micronutrientes, mas faltam teores classificados e doses cadastradas para recomendação quantitativa.";
         rows.add(AlternativeFertilizationRecommendationRow.builder()
                 .sourceType("MICRONUTRIENTE")
                 .nutrientOrObjective(objective)
@@ -1129,6 +1166,45 @@ public class RecommendationCalculationService {
                 .limitations(limitation)
                 .build());
         return rows;
+    }
+
+    private Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> soilMicronutrientDiagnosis(List<SoilChemicalDiagnosisItem> chemicalDiagnosis) {
+        Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> diagnosis = new LinkedHashMap<>();
+        if (chemicalDiagnosis == null) return diagnosis;
+        for (SoilChemicalDiagnosisItem item : chemicalDiagnosis) {
+            if (item == null || item.getAnalyzedValue() == null || item.getInterpretation() == null) continue;
+            if (!isInterpretation(item, "Baixo", "Médio", "Alto")) continue;
+            AppliedMicronutrient micronutrient = micronutrientFromText(item.getAttribute());
+            if (micronutrient == AppliedMicronutrient.B
+                    || micronutrient == AppliedMicronutrient.Cu
+                    || micronutrient == AppliedMicronutrient.Fe
+                    || micronutrient == AppliedMicronutrient.Mn
+                    || micronutrient == AppliedMicronutrient.Zn) {
+                diagnosis.putIfAbsent(micronutrient, item);
+            }
+        }
+        return diagnosis;
+    }
+
+    private Double selectMicronutrientDose(MicronutrientDoseModel doses, AppliedMicronutrient micronutrient, String interpretation) {
+        if (doses == null || micronutrient == null || interpretation == null) return null;
+        return switch (micronutrient) {
+            case B -> selectThreeLevelDose(interpretation, doses.getBoronLowDose(), doses.getBoronMediumDose(), doses.getBoronHighDose());
+            case Cu -> selectThreeLevelDose(interpretation, doses.getCopperLowDose(), doses.getCopperMediumDose(), doses.getCopperHighDose());
+            case Fe -> selectThreeLevelDose(interpretation, doses.getIronLowDose(), doses.getIronMediumDose(), doses.getIronHighDose());
+            case Mn -> selectThreeLevelDose(interpretation, doses.getManganeseLowDose(), doses.getManganeseMediumDose(), doses.getManganeseHighDose());
+            case Zn -> selectThreeLevelDose(interpretation, doses.getZincLowDose(), doses.getZincMediumDose(), doses.getZincHighDose());
+            default -> null;
+        };
+    }
+
+    private Double selectThreeLevelDose(String interpretation, Double lowDose, Double mediumDose, Double highDose) {
+        return switch (interpretation) {
+            case "Baixo" -> lowDose;
+            case "Médio" -> mediumDose;
+            case "Alto" -> highDose;
+            default -> null;
+        };
     }
 
     private Map<AppliedMicronutrient, String> micronutrientDeficiencyEvidence(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
@@ -1513,19 +1589,19 @@ public class RecommendationCalculationService {
         addDiverseDiagnosisIfPresent(diagnosis, "Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
                 r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
                 "Saturação por alumínio classificada a partir do valor pronto do extrato de fertilidade.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm³", diverseRange,
+        addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getBoron_too_low(), r.getBoron_low_i(), r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i(), r.getBoron_hight_f(), r.getBoron_too_hight()),
                 "Boro disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm³", diverseRange,
+        addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getCopper_too_low(), r.getCopper_low_i(), r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i(), r.getCopper_hight_f(), r.getCopper_too_hight()),
                 "Cobre disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm³", diverseRange,
+        addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getIron_too_low(), r.getIron_low_i(), r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i(), r.getIron_hight_f(), r.getIron_too_hight()),
                 "Ferro disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm³", diverseRange,
+        addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getManganese_too_low(), r.getManganese_low_i(), r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i(), r.getManganese_hight_f(), r.getManganese_too_hight()),
                 "Manganês disponível classificado pelas faixas diversas da tabela selecionada.");
-        addDiverseDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm³", diverseRange,
+        addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm³", diverseRange,
                 r -> new RangeCriterion(r.getZinc_too_low(), r.getZinc_low_i(), r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i(), r.getZinc_hight_f(), r.getZinc_too_hight()),
                 "Zinco disponível classificado pelas faixas diversas da tabela selecionada.");
         return diagnosis;
@@ -1643,6 +1719,21 @@ public class RecommendationCalculationService {
         diagnosis.add(classifyDiverseRange(attribute, value, unit, range, criterionExtractor, observation));
     }
 
+    private void addDiverseMicronutrientDiagnosisIfPresent(List<SoilChemicalDiagnosisItem> diagnosis,
+                                                           String attribute,
+                                                           Double value,
+                                                           String unit,
+                                                           Optional<DiverseContentRangeModel> range,
+                                                           Function<DiverseContentRangeModel, RangeCriterion> criterionExtractor,
+                                                           String observation) {
+        if (value == null) return;
+        if (range.isEmpty()) {
+            diagnosis.add(notClassified(attribute, value, unit, "Critério ausente na tabela selecionada."));
+            return;
+        }
+        diagnosis.add(classifyThreeLevelRange(attribute, value, unit, criterionExtractor.apply(range.get()), observation));
+    }
+
     private SoilChemicalDiagnosisItem classifyRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
         if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
         if (criterion == null || criterion.lowStart() == null || criterion.mediumStart() == null
@@ -1666,6 +1757,33 @@ public class RecommendationCalculationService {
         } else {
             interpretation = "Muito alto";
             usedRange = ">= " + formatNumber(criterion.tooHighStart());
+        }
+        return SoilChemicalDiagnosisItem.builder()
+                .attribute(attribute)
+                .analyzedValue(value)
+                .unit(unit)
+                .interpretation(interpretation)
+                .usedCriterion(usedRange)
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private SoilChemicalDiagnosisItem classifyThreeLevelRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
+        if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
+        if (criterion == null || criterion.mediumStart() == null || criterion.highStart() == null) {
+            return notClassified(attribute, value, unit, "Critério incompleto na tabela selecionada.");
+        }
+        String interpretation;
+        String usedRange;
+        if (value < criterion.mediumStart()) {
+            interpretation = "Baixo";
+            usedRange = "< " + formatNumber(criterion.mediumStart());
+        } else if (value < criterion.highStart()) {
+            interpretation = "Médio";
+            usedRange = formatInterval(criterion.mediumStart(), criterion.mediumEnd(), criterion.highStart());
+        } else {
+            interpretation = "Alto";
+            usedRange = ">= " + formatNumber(criterion.highStart());
         }
         return SoilChemicalDiagnosisItem.builder()
                 .attribute(attribute)
