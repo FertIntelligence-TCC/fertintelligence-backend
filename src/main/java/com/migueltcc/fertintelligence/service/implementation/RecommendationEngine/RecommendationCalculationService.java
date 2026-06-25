@@ -35,6 +35,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.GreenFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.OrganoMineralFertilizerModel;
@@ -74,6 +75,7 @@ public class RecommendationCalculationService {
     private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
+    private final SulfurDoseRepository sulfurDoseRepository;
     private final ExchangeableSodiumRepository exchangeableSodiumRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
     private final OrganicFertilizerRepository organicFertilizerRepository;
@@ -103,6 +105,7 @@ public class RecommendationCalculationService {
                                             AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository,
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
+                                            SulfurDoseRepository sulfurDoseRepository,
                                             ExchangeableSodiumRepository exchangeableSodiumRepository,
                                             SalinityInterpretationRepository salinityInterpretationRepository,
                                             OrganicFertilizerRepository organicFertilizerRepository,
@@ -131,6 +134,7 @@ public class RecommendationCalculationService {
         this.availablePMehlich1ExtractorRepository = availablePMehlich1ExtractorRepository;
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
+        this.sulfurDoseRepository = sulfurDoseRepository;
         this.exchangeableSodiumRepository = exchangeableSodiumRepository;
         this.salinityInterpretationRepository = salinityInterpretationRepository;
         this.organicFertilizerRepository = organicFertilizerRepository;
@@ -209,7 +213,7 @@ public class RecommendationCalculationService {
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
         List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
-                chemicalDiagnosis, inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
+                chemicalDiagnosis, inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
                 inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
 
@@ -744,6 +748,7 @@ public class RecommendationCalculationService {
     }
 
     private List<CorrectiveFertilizationRow> buildCorrectiveFertilizationRows(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+                                                                              PhysicalAnalysisExtractModel physicalAnalysis,
                                                                               CropFertilizationTableModel cropFertilizationTable,
                                                                               SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                                                               UserModel user,
@@ -760,11 +765,11 @@ public class RecommendationCalculationService {
         }
 
         addCorrectiveRowIfRelevant(rows, "Fósforo corretivo", findFirstDiagnosis(byAttribute, "fosforo"),
-                "P2O5", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+                "P2O5", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
         addCorrectiveRowIfRelevant(rows, "Potássio corretivo", findFirstDiagnosis(byAttribute, "potassio"),
-                "K2O", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+                "K2O", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
         addCorrectiveRowIfRelevant(rows, "Enxofre corretivo", findFirstDiagnosis(byAttribute, "enxofre"),
-                "S", cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+                "S", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
 
         if (rows.isEmpty()) {
             rows.add(CorrectiveFertilizationRow.builder()
@@ -792,12 +797,19 @@ public class RecommendationCalculationService {
                                             String correctedAttribute,
                                             SoilChemicalDiagnosisItem diagnosis,
                                             String nutrientTarget,
+                                            PhysicalAnalysisExtractModel physicalAnalysis,
                                             CropFertilizationTableModel cropFertilizationTable,
                                             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                             UserModel user,
                                             FertilizerSourceOption sourceOption,
                                             List<String> warnings) {
         if (diagnosis == null || diagnosis.getInterpretation() == null) return;
+
+        if ("S".equals(nutrientTarget)) {
+            rows.add(buildSulfurCorrectiveRow(correctedAttribute, diagnosis, physicalAnalysis,
+                    cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings));
+            return;
+        }
 
         boolean deficiency = isInterpretation(diagnosis, "Muito baixo", "Baixo");
         SimpleMineralFertilizerModel source = deficiency ? selectCorrectiveSource(user, sourceOption, nutrientTarget) : null;
@@ -828,6 +840,96 @@ public class RecommendationCalculationService {
                         + " não possuem dose corretiva independente para " + nutrientTarget + ".")
                 .technicalWarning(sourceDetail + " " + warning)
                 .build());
+    }
+
+    private CorrectiveFertilizationRow buildSulfurCorrectiveRow(String correctedAttribute,
+                                                                SoilChemicalDiagnosisItem diagnosis,
+                                                                PhysicalAnalysisExtractModel physicalAnalysis,
+                                                                CropFertilizationTableModel cropFertilizationTable,
+                                                                SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                                                UserModel user,
+                                                                FertilizerSourceOption sourceOption,
+                                                                List<String> warnings) {
+        Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
+        if (clay == null) {
+            String warning = "Dose de S não calculada por ausência de teor de argila na análise física.";
+            warnings.add(warning);
+            return sulfurNotCalculatedRow(correctedAttribute, diagnosis, warning, cropFertilizationTable, soilInterpretationTable);
+        }
+
+        Optional<SulfurDoseModel> criterion = sulfurDoseRepository.findByTable(soilInterpretationTable);
+        if (criterion.isEmpty()) {
+            String warning = "Dose de S não calculada porque não há tabela auxiliar Doses de S vinculada à tabela de interpretação selecionada.";
+            warnings.add(warning);
+            return sulfurNotCalculatedRow(correctedAttribute, diagnosis, warning, cropFertilizationTable, soilInterpretationTable);
+        }
+
+        SulfurDoseModel doses = criterion.get();
+        boolean less400 = clay < 400d;
+        Double dose = selectSulfurDose(doses, less400, diagnosis.getInterpretation());
+        if (dose == null) {
+            String warning = "Dose de S não calculada porque a classe " + diagnosis.getInterpretation()
+                    + " não possui dose preenchida na tabela auxiliar Doses de S.";
+            warnings.add(warning);
+            return sulfurNotCalculatedRow(correctedAttribute, diagnosis, warning, cropFertilizationTable, soilInterpretationTable);
+        }
+
+        SimpleMineralFertilizerModel source = selectCorrectiveSource(user, sourceOption, "S");
+        String sourceName = source != null ? source.getName() : "Não sugerida automaticamente";
+        String sourceDetail = source != null
+                ? "Fonte mineral simples compatível encontrada (" + source.getName() + "), mas a dose registrada é de S em kg/ha e não foi convertida para dose comercial do produto."
+                : "Fonte comercial não selecionada porque não há adubo mineral simples com teor de S acessível pela origem selecionada.";
+        if (source == null) {
+            warnings.add(sourceDetail);
+        }
+
+        return CorrectiveFertilizationRow.builder()
+                .correctedAttribute(correctedAttribute)
+                .need("Dose definida pela classe de S disponível: " + diagnosis.getInterpretation())
+                .suggestedSource(sourceName)
+                .dose(round2(dose))
+                .doseUnit("kg/ha de S")
+                .calculationMemory("Diagnóstico: " + diagnosis.getAttribute()
+                        + " = " + formatNumber(diagnosis.getAnalyzedValue()) + " " + (diagnosis.getUnit() != null ? diagnosis.getUnit() : "")
+                        + "; interpretação: " + diagnosis.getInterpretation()
+                        + "; argila = " + formatNumber(clay) + " " + physicalUnit(physicalAnalysis.getUnidadeTeorArgila())
+                        + "; seção usada: " + (less400 ? "Argila < 400 g/dm³" : "Argila > 400 g/dm³")
+                        + "; Doses de S ID " + doses.getId()
+                        + "; tabela de interpretação ID " + (soilInterpretationTable != null ? soilInterpretationTable.getId() : null) + ".")
+                .technicalWarning(sourceDetail)
+                .build();
+    }
+
+    private CorrectiveFertilizationRow sulfurNotCalculatedRow(String correctedAttribute,
+                                                              SoilChemicalDiagnosisItem diagnosis,
+                                                              String warning,
+                                                              CropFertilizationTableModel cropFertilizationTable,
+                                                              SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable) {
+        return CorrectiveFertilizationRow.builder()
+                .correctedAttribute(correctedAttribute)
+                .need("Avaliação dependente de Doses de S: " + diagnosis.getInterpretation())
+                .suggestedSource("Não sugerida automaticamente")
+                .dose(null)
+                .doseUnit("kg/ha de S")
+                .calculationMemory("Diagnóstico: " + diagnosis.getAttribute()
+                        + " = " + formatNumber(diagnosis.getAnalyzedValue()) + " " + (diagnosis.getUnit() != null ? diagnosis.getUnit() : "")
+                        + "; interpretação: " + diagnosis.getInterpretation()
+                        + ". Tabela de adubação ID " + (cropFertilizationTable != null ? cropFertilizationTable.getId() : null)
+                        + " e tabela de interpretação ID " + (soilInterpretationTable != null ? soilInterpretationTable.getId() : null) + ".")
+                .technicalWarning(warning)
+                .build();
+    }
+
+    private Double selectSulfurDose(SulfurDoseModel doses, boolean less400, String interpretation) {
+        if (doses == null || interpretation == null) return null;
+        return switch (interpretation) {
+            case "Muito baixo" -> less400 ? doses.getLess400VeryLowDose() : doses.getGreater400VeryLowDose();
+            case "Baixo" -> less400 ? doses.getLess400LowDose() : doses.getGreater400LowDose();
+            case "Médio" -> less400 ? doses.getLess400MediumDose() : doses.getGreater400MediumDose();
+            case "Alto" -> less400 ? doses.getLess400HighDose() : doses.getGreater400HighDose();
+            case "Muito alto" -> less400 ? doses.getLess400VeryHighDose() : doses.getGreater400VeryHighDose();
+            default -> null;
+        };
     }
 
     private SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {

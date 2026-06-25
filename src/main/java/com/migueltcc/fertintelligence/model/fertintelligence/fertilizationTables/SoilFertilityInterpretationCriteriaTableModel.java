@@ -66,6 +66,10 @@ public class SoilFertilityInterpretationCriteriaTableModel {
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    private SulfurDoseModel sulfurDose;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
     private DiverseContentRangeModel diverseContentRange;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
