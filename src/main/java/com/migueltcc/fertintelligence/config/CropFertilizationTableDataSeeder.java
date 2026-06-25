@@ -87,8 +87,6 @@ public class CropFertilizationTableDataSeeder implements CommandLineRunner {
                     .regional_productivity(3000.0)
                     .expected_productivity(4000.0)
                     .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
-                    .manure(TipoEsterco.BOVINO)
-                    .manure_qtd(5.0)
                     .observations("Ajustar doses conforme análise de solo recente e expectativa produtiva local.")
                     .sources("Manual de adubação regional; boletins técnicos de manejo nutricional")
                     .build();

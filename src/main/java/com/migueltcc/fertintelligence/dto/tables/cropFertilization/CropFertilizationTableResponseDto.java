@@ -108,14 +108,6 @@ public class CropFertilizationTableResponseDto {
     @JsonProperty("identificacao_analise_fertilidade")
     private String fertilityAnalysisIdentification;
 
-    @Schema(example = "BOVINO") // OK
-    @JsonProperty("tipo_de_esterco")
-    private TipoEsterco manure;
-
-    @Schema(example = "5.0")
-    @JsonProperty("quantidade_de_esterco")
-    private Double manure_qtd;
-
     @Schema(example = "Aplicar NPK em cobertura.")
     @JsonProperty("observacoes")
     private String observations;

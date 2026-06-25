@@ -84,14 +84,6 @@ public class CropFertilizationTablePostRequestDto {
     @JsonAlias({"id_extrato_analise_fertilidade", "fertilityAnalysisId", "novo_fertilityAnalysisId", "id_analise_fertilidade_solo", "novo_id_analise_fertilidade_solo", "id_analise_fertilidade", "novo_id_analise_fertilidade", "id_extrato_fertilidade", "novo_id_extrato_fertilidade", "id_extrato_analise_fertilidade_solo", "novo_id_extrato_analise_fertilidade_solo"})
     private Long fertilityAnalysisId;
 
-    @JsonProperty("novo_tipo_de_esterco")
-    @Schema(example = "GALINHA") // CORRIGIDO
-    private TipoEsterco manure;
-
-    @JsonProperty("novo_quantidade_de_esterco")
-    @Schema(example = "3.0")
-    private Double manure_qtd;
-
     @JsonProperty("novo_observacoes")
     @Schema(example = "Observação atualizada.")
     private String observations;

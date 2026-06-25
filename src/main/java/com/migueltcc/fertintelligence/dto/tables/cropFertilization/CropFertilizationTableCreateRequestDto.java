@@ -88,14 +88,6 @@ public class CropFertilizationTableCreateRequestDto {
     @JsonAlias({"fertilityAnalysisId", "id_analise_fertilidade_solo", "id_analise_fertilidade", "id_extrato_fertilidade", "id_extrato_analise_fertilidade_solo"})
     private Long fertilityAnalysisId;
 
-    @JsonProperty("tipo_de_esterco")
-    @NotNull
-    private TipoEsterco manure;
-
-    @JsonProperty("quantidade_de_esterco")
-    @NotNull
-    private Double manure_qtd;
-
     @JsonProperty("observacoes")
     private String observations;
 

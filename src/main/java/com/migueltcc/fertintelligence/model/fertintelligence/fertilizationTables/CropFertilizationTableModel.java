@@ -87,12 +87,6 @@ public class CropFertilizationTableModel {
     // @Column(name = "NECESSIDADE_CALAGEM", nullable = false)
     // private Double liming_necessity; // t/ha
 
-    @Column(name = "TIPO_DE_ESTERCO", nullable = false)
-    private TipoEsterco manure;
-
-    @Column(name = "QUANTIDADE_DE_ESTERCO", nullable = false)
-    private Double manure_qtd; // t/ha
-
     @Column(name = "OBSERVACOES", length = 1000)
     private String observations;
 
@@ -129,8 +123,6 @@ public class CropFertilizationTableModel {
                 .physicalAnalysisIdentification(buildPhysicalAnalysisIdentification(this.physicalAnalysis))
                 .fertilityAnalysisId(this.fertilityAnalysis != null ? this.fertilityAnalysis.getId() : null)
                 .fertilityAnalysisIdentification(buildFertilityAnalysisIdentification(this.fertilityAnalysis))
-                .manure(this.manure)
-                .manure_qtd(this.manure_qtd)
                 .observations(this.observations)
                 .sources(this.sources)
                 .public_table(this.publicTable)

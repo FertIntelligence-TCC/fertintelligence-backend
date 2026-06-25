@@ -115,8 +115,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
                 .plot(selection.plot())
                 .physicalAnalysis(selection.physicalAnalysis())
                 .fertilityAnalysis(selection.fertilityAnalysis())
-                .manure(createRequestDto.getManure())
-                .manure_qtd(createRequestDto.getManure_qtd())
                 .observations(createRequestDto.getObservations())
                 .sources(createRequestDto.getSources())
                 .publicTable(Boolean.TRUE.equals(createRequestDto.getPublic_table()))
@@ -315,8 +313,6 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (dto.getRegional_productivity() != null) table.setRegional_productivity(dto.getRegional_productivity());
         if (dto.getExpected_productivity() != null) table.setExpected_productivity(dto.getExpected_productivity());
         // Critério de calagem é calculado pelo servidor a partir das análises selecionadas.
-        if (dto.getManure() != null) table.setManure(dto.getManure());
-        if (dto.getManure_qtd() != null) table.setManure_qtd(dto.getManure_qtd());
         if (dto.getObservations() != null) table.setObservations(dto.getObservations());
         if (dto.getSources() != null) table.setSources(dto.getSources());
         if (dto.getPublic_table() != null) table.setPublicTable(dto.getPublic_table());
