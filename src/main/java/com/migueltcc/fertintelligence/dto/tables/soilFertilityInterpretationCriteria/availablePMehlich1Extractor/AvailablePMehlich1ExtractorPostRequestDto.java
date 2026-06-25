@@ -147,4 +147,12 @@ public class AvailablePMehlich1ExtractorPostRequestDto {
     @JsonProperty("maior_teor_fosforo_solo_muito_argiloso")
     @JsonAlias("novo_maior_teor_fosforo_solo_muito_argiloso")
     private Double p_content_very_clayey_too_hight;
+
+    @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "fonte_literatura"})
+    private String sources;
 }

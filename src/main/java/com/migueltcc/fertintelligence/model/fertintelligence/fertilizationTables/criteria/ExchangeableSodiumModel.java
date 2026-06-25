@@ -129,6 +129,12 @@ public class ExchangeableSodiumModel {
     @Column(name = "CTC_MAIOR_15_VERYHIGHGREATERTHAN", nullable = false)
     private Double ctcGreaterThan15VeryHighGreaterThan;
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    private String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    private String sources;
+
     @PrePersist
     @PreUpdate
     private void normalizeUnits() {

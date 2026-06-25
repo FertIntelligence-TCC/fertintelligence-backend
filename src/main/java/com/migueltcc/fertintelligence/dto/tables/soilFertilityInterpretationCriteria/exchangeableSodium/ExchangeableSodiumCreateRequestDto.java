@@ -141,4 +141,12 @@ public class ExchangeableSodiumCreateRequestDto {
     @JsonAlias("maior_teor_sodio_ctc_maior_15")
     private Double ctcGreaterThan15VeryHighGreaterThan;
 
+    @JsonProperty("observacoes")
+    @JsonAlias({"novo_observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("fontes")
+    @JsonAlias({"novo_fontes", "fonte", "fonte_literatura"})
+    private String sources;
+
 }

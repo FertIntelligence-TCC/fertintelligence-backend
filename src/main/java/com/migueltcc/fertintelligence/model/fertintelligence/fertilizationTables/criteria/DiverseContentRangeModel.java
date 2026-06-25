@@ -453,6 +453,12 @@ public class DiverseContentRangeModel {
     @Column(name = "MAIOR_TEOR_ZINCO")
     Double zinc_too_hight;
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
     @PrePersist
     @PreUpdate
     private void normalizeUnits() {
@@ -679,6 +685,8 @@ public class DiverseContentRangeModel {
                 .zinc_hight_i(this.zinc_hight_i)
                 .zinc_hight_f(this.zinc_hight_f)
                 .zinc_too_hight(this.zinc_too_hight)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }

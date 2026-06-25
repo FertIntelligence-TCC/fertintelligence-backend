@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.salinityInterpretation;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -66,4 +67,12 @@ public class SalinityInterpretationPostRequestDto {
 
     @JsonProperty("novo_menor_ras_solo_sodico")
     private Double sodic_soil_lowest_ras;
+
+    @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "fonte_literatura"})
+    private String sources;
 }

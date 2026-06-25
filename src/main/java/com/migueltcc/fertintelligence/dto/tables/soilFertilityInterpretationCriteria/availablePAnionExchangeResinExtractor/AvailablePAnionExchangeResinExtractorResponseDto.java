@@ -46,4 +46,10 @@ public class AvailablePAnionExchangeResinExtractorResponseDto {
 
     @JsonProperty("muito_alto")
     private Double pContentTooHigh;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

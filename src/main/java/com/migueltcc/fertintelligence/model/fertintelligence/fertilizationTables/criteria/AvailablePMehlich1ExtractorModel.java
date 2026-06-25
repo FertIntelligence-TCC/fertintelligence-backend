@@ -132,6 +132,12 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_MUITO_ARGILOSO", nullable = false)
     Double p_content_very_clayey_too_hight;
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
     public AvailablePMehlich1ExtractorResponseDto toDto() {
         return AvailablePMehlich1ExtractorResponseDto.builder()
                 .id(this.id)
@@ -176,6 +182,8 @@ public class AvailablePMehlich1ExtractorModel {
                 .p_content_very_clayey_hight_i(this.p_content_very_clayey_hight_i)
                 .p_content_very_clayey_hight_f(this.p_content_very_clayey_hight_f)
                 .p_content_very_clayey_too_hight(this.p_content_very_clayey_too_hight)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 

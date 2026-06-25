@@ -114,4 +114,10 @@ public class AvailablePMehlich1ExtractorCreateRequestDto {
 
     @JsonProperty("maior_teor_fosforo_solo_muito_argiloso")
     private Double p_content_very_clayey_too_hight;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

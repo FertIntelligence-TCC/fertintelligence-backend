@@ -440,4 +440,10 @@ public class DiverseContentRangeCreateRequestDto {
     private Double zinc_hight_f;
     @JsonProperty("maior_teor_zinco")
     private Double zinc_too_hight;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

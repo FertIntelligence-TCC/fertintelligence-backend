@@ -46,4 +46,12 @@ public class KExchangeableContentPostRequestDto {
     @JsonProperty("maior_teor_k")
     @JsonAlias("novo_maior_teor_k")
     private Double kContentTooHigh;
+
+    @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "fonte_literatura"})
+    private String sources;
 }

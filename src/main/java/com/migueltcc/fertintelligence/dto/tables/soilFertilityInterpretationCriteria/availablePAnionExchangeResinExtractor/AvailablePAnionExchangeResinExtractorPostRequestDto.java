@@ -46,4 +46,12 @@ public class AvailablePAnionExchangeResinExtractorPostRequestDto {
     @JsonProperty("muito_alto")
     @JsonAlias("novo_muito_alto")
     private Double pContentTooHigh;
+
+    @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "fonte_literatura"})
+    private String sources;
 }

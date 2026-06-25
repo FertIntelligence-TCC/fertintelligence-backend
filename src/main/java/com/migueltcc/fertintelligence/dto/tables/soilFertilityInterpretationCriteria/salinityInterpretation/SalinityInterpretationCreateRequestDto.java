@@ -66,4 +66,10 @@ public class SalinityInterpretationCreateRequestDto {
 
     @JsonProperty("menor_ras_solo_sodico")
     private Double sodic_soil_lowest_ras;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

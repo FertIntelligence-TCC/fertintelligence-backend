@@ -37,4 +37,10 @@ public class KExchangeableContentCreateRequestDto {
 
     @JsonProperty("maior_teor_k")
     private Double kContentTooHigh;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

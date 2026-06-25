@@ -129,6 +129,8 @@ public class ExchangeableSodiumServiceImpl implements ExchangeableSodiumService 
         dto.setCtcGreaterThan15HighMin(model.getCtcGreaterThan15HighMin());
         dto.setCtcGreaterThan15HighMax(model.getCtcGreaterThan15HighMax());
         dto.setCtcGreaterThan15VeryHighGreaterThan(model.getCtcGreaterThan15VeryHighGreaterThan());
+        dto.setObservations(model.getObservations());
+        dto.setSources(model.getSources());
         return dto;
     }
 

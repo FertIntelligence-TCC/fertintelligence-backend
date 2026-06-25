@@ -91,4 +91,10 @@ public class SalinityInterpretationResponseDto {
     @Schema(description = "Menor RAS para solo sódico")
     @JsonProperty("sodic_soil_lowest_ras")
     private Double sodic_soil_lowest_ras;
+
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
 }

@@ -560,4 +560,12 @@ public class DiverseContentRangePostRequestDto {
     @JsonProperty("maior_teor_zinco")
     @JsonAlias("novo_maior_teor_zinco")
     private Double zinc_too_hight;
+
+    @JsonProperty("novo_observacoes")
+    @JsonAlias({"observacoes", "observacao"})
+    private String observations;
+
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "fonte_literatura"})
+    private String sources;
 }

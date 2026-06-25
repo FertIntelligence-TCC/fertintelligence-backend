@@ -132,4 +132,10 @@ public class ExchangeableSodiumResponseDto {
     @JsonProperty("maior_teor_sodio_ctc_maior_15")
     private Double ctcGreaterThan15VeryHighGreaterThan;
 
+    @JsonProperty("observacoes")
+    private String observations;
+
+    @JsonProperty("fontes")
+    private String sources;
+
 }

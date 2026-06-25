@@ -82,6 +82,12 @@ public class SalinityInterpretationModel {
     @Column(name = "MENOR_RAS_SOLO_SODICO", nullable = false)
     Double sodic_soil_lowest_ras; // mmolc per mmol**0.5
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
     @PrePersist
     @PreUpdate
     private void normalizeUnits() {
@@ -121,6 +127,8 @@ public class SalinityInterpretationModel {
                 .sodic_soil_lowest_pst(this.sodic_soil_lowest_pst)
                 .sodic_soil_lowest_ph(this.sodic_soil_lowest_ph)
                 .sodic_soil_lowest_ras(this.sodic_soil_lowest_ras)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }

@@ -58,6 +58,12 @@ public class KExchangeableContentModel {
     @Column(name = "MAIOR_TEOR_K", nullable = false)
     Double kContentTooHigh;
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
     @PrePersist
     @PreUpdate
     private void normalizeUnit() {
@@ -77,6 +83,8 @@ public class KExchangeableContentModel {
                 .kContentHighI(this.kContentHighI)
                 .kContentHighF(this.kContentHighF)
                 .kContentTooHigh(this.kContentTooHigh)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }

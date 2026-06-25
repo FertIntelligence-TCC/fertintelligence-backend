@@ -66,6 +66,12 @@ public class AvailablePAnionExchangeResinExtractorModel {
     @Builder.Default
     Double pContentTooHigh = 999.0;
 
+    @Column(name = "OBSERVACOES", length = 1000)
+    String observations;
+
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
     @PrePersist
     @PreUpdate
     private void normalizeUnit() {
@@ -85,6 +91,8 @@ public class AvailablePAnionExchangeResinExtractorModel {
                 .pContentHighI(this.pContentHighI)
                 .pContentHighF(this.pContentHighF)
                 .pContentTooHigh(this.pContentTooHigh)
+                .observations(this.observations)
+                .sources(this.sources)
                 .build();
     }
 }
