@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.availableS;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -52,5 +53,8 @@ public class AvailableSCreateRequestDto {
     private String literatureSource;
     @JsonProperty("observacoes")
     private String observations;
+    @JsonProperty("fontes")
+    @JsonAlias({"fonte", "sources", "source", "references"})
+    private String sources;
 
 }

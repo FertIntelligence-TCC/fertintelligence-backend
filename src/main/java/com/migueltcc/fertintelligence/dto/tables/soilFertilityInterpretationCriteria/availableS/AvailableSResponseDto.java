@@ -58,5 +58,7 @@ public class AvailableSResponseDto {
     private String literatureSource;
     @JsonProperty("observacoes")
     private String observations;
+    @JsonProperty("fontes")
+    private String sources;
 
 }

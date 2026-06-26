@@ -65,6 +65,9 @@ public class AvailableSModel {
     @Column(name = "OBSERVACOES", length = 1000)
     String observations;
 
+    @Column(name = "FONTES", length = 1000)
+    String sources;
+
 
     public AvailableSResponseDto toDto() {
         return AvailableSResponseDto.builder()
@@ -89,6 +92,7 @@ public class AvailableSModel {
                 .sContentGreater400TooHigh(this.sContentGreater400TooHigh)
                 .literatureSource(this.literatureSource)
                 .observations(this.observations)
+                .sources(this.sources)
 
                 .build();
     }

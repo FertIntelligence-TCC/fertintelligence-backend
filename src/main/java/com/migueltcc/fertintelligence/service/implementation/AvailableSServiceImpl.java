@@ -51,6 +51,7 @@ public class AvailableSServiceImpl implements AvailableSService {
                 .table(table)
                 .build();
         BeanUtils.copyProperties(createRequestDto, criterion);
+        syncSourcesFields(criterion);
 
         AvailableSModel savedCriterion = availableSRepository.save(criterion);
         return savedCriterion.toDto();
@@ -91,6 +92,8 @@ public class AvailableSServiceImpl implements AvailableSService {
         checkModifyPermission(criterion.getTable(), owner);
 
         copyNonNullProperties(updateRequestDto, criterion);
+        syncSourcesFields(criterion, updateRequestDto.getSources(), updateRequestDto.getLiteratureSource());
+        syncSourcesFields(criterion);
 
         AvailableSModel updatedCriterion = availableSRepository.save(criterion);
         return updatedCriterion.toDto();
@@ -157,6 +160,22 @@ public class AvailableSServiceImpl implements AvailableSService {
 
     private boolean isSupremeUser(UserModel user) {
         return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
+    }
+
+    private void syncSourcesFields(AvailableSModel criterion) {
+        if (criterion.getSources() == null && criterion.getLiteratureSource() != null) {
+            criterion.setSources(criterion.getLiteratureSource());
+        } else if (criterion.getLiteratureSource() == null && criterion.getSources() != null) {
+            criterion.setLiteratureSource(criterion.getSources());
+        }
+    }
+
+    private void syncSourcesFields(AvailableSModel criterion, String sources, String literatureSource) {
+        if (sources != null && literatureSource == null) {
+            criterion.setLiteratureSource(sources);
+        } else if (literatureSource != null && sources == null) {
+            criterion.setSources(literatureSource);
+        }
     }
 
     private void copyNonNullProperties(Object source, Object target) {

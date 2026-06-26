@@ -71,5 +71,8 @@ public class AvailableSPostRequestDto {
     @JsonProperty("novo_observacoes")
     @JsonAlias({"observacoes", "observacao"})
     private String observations;
+    @JsonProperty("novo_fontes")
+    @JsonAlias({"fontes", "fonte", "sources", "source", "references"})
+    private String sources;
 
 }
