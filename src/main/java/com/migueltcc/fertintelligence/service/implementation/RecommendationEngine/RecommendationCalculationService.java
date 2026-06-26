@@ -1117,12 +1117,16 @@ public class RecommendationCalculationService {
         Optional<MicronutrientDoseModel> micronutrientDoses = soilInterpretationTable != null
                 ? micronutrientDoseRepository.findByTable(soilInterpretationTable)
                 : Optional.empty();
+        Optional<DiverseContentRangeModel> micronutrientRanges = soilInterpretationTable != null
+                ? diverseContentRangeRepository.findByTable(soilInterpretationTable)
+                : Optional.empty();
 
         if (micronutrientDoses.isPresent()) {
             MicronutrientDoseModel doses = micronutrientDoses.get();
             for (Map.Entry<AppliedMicronutrient, SoilChemicalDiagnosisItem> entry : soilMicronutrients.entrySet()) {
                 SoilChemicalDiagnosisItem item = entry.getValue();
-                Double dose = selectMicronutrientDose(doses, entry.getKey(), item.getInterpretation());
+                String functionalRange = classifyMicronutrientDoseRange(entry.getKey(), item.getAnalyzedValue(), micronutrientRanges);
+                Double dose = selectMicronutrientDose(doses, entry.getKey(), item.getAnalyzedValue(), item.getInterpretation(), micronutrientRanges);
                 if (dose == null) {
                     warnings.add("Dose de micronutriente não calculada para " + entry.getKey().name()
                             + " por ausência de dose cadastrada para a faixa " + item.getInterpretation() + ".");
@@ -1134,7 +1138,7 @@ public class RecommendationCalculationService {
                         .sourceName("Dose elementar cadastrada")
                         .dose(formatNumber(dose))
                         .unit("kg/ha")
-                        .justification("Dose selecionada pela faixa " + item.getInterpretation()
+                        .justification("Dose selecionada pela faixa " + (functionalRange != null ? functionalRange : item.getInterpretation())
                                 + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.")
                         .limitations("A dose representa kg/ha do micronutriente; o backend não converte automaticamente para produto comercial ou fonte específica.")
                         .build());
@@ -1186,14 +1190,42 @@ public class RecommendationCalculationService {
         return diagnosis;
     }
 
-    private Double selectMicronutrientDose(MicronutrientDoseModel doses, AppliedMicronutrient micronutrient, String interpretation) {
-        if (doses == null || micronutrient == null || interpretation == null) return null;
+    private Double selectMicronutrientDose(MicronutrientDoseModel doses,
+                                           AppliedMicronutrient micronutrient,
+                                           Double analyzedValue,
+                                           String interpretation,
+                                           Optional<DiverseContentRangeModel> diverseRange) {
+        if (doses == null || micronutrient == null) return null;
+        String range = classifyMicronutrientDoseRange(micronutrient, analyzedValue, diverseRange);
+        if (range == null) {
+            range = interpretation;
+        }
+        if (range == null) return null;
         return switch (micronutrient) {
-            case B -> selectThreeLevelDose(interpretation, doses.getBoronLowDose(), doses.getBoronMediumDose(), doses.getBoronHighDose());
-            case Cu -> selectThreeLevelDose(interpretation, doses.getCopperLowDose(), doses.getCopperMediumDose(), doses.getCopperHighDose());
-            case Fe -> selectThreeLevelDose(interpretation, doses.getIronLowDose(), doses.getIronMediumDose(), doses.getIronHighDose());
-            case Mn -> selectThreeLevelDose(interpretation, doses.getManganeseLowDose(), doses.getManganeseMediumDose(), doses.getManganeseHighDose());
-            case Zn -> selectThreeLevelDose(interpretation, doses.getZincLowDose(), doses.getZincMediumDose(), doses.getZincHighDose());
+            case B -> selectThreeLevelDose(range, doses.getBoronLowDose(), doses.getBoronMediumDose(), doses.getBoronHighDose());
+            case Cu -> selectThreeLevelDose(range, doses.getCopperLowDose(), doses.getCopperMediumDose(), doses.getCopperHighDose());
+            case Fe -> selectThreeLevelDose(range, doses.getIronLowDose(), doses.getIronMediumDose(), doses.getIronHighDose());
+            case Mn -> selectThreeLevelDose(range, doses.getManganeseLowDose(), doses.getManganeseMediumDose(), doses.getManganeseHighDose());
+            case Zn -> selectThreeLevelDose(range, doses.getZincLowDose(), doses.getZincMediumDose(), doses.getZincHighDose());
+            default -> null;
+        };
+    }
+
+    private String classifyMicronutrientDoseRange(AppliedMicronutrient micronutrient,
+                                                  Double analyzedValue,
+                                                  Optional<DiverseContentRangeModel> diverseRange) {
+        if (micronutrient == null || analyzedValue == null || diverseRange == null || diverseRange.isEmpty()) return null;
+        return classifyThreeLevelRangeName(analyzedValue, micronutrientCriterion(diverseRange.get(), micronutrient));
+    }
+
+    private ThreeLevelCriterion micronutrientCriterion(DiverseContentRangeModel range, AppliedMicronutrient micronutrient) {
+        if (range == null || micronutrient == null) return null;
+        return switch (micronutrient) {
+            case B -> new ThreeLevelCriterion(range.getBoron_low_f(), range.getBoron_medium_i(), range.getBoron_medium_f(), range.getBoron_hight_i());
+            case Cu -> new ThreeLevelCriterion(range.getCopper_low_f(), range.getCopper_medium_i(), range.getCopper_medium_f(), range.getCopper_hight_i());
+            case Fe -> new ThreeLevelCriterion(range.getIron_low_f(), range.getIron_medium_i(), range.getIron_medium_f(), range.getIron_hight_i());
+            case Mn -> new ThreeLevelCriterion(range.getManganese_low_f(), range.getManganese_medium_i(), range.getManganese_medium_f(), range.getManganese_hight_i());
+            case Zn -> new ThreeLevelCriterion(range.getZinc_low_f(), range.getZinc_medium_i(), range.getZinc_medium_f(), range.getZinc_hight_i());
             default -> null;
         };
     }
@@ -1734,6 +1766,17 @@ public class RecommendationCalculationService {
         diagnosis.add(classifyThreeLevelRange(attribute, value, unit, criterionExtractor.apply(range.get()), observation));
     }
 
+    private String classifyThreeLevelRangeName(Double value, ThreeLevelCriterion criterion) {
+        if (value == null || criterion == null || criterion.lowLimit() == null || criterion.mediumStart() == null
+                || criterion.mediumEnd() == null || criterion.highLimit() == null) {
+            return null;
+        }
+        if (value < criterion.lowLimit()) return "Baixo";
+        if (value >= criterion.mediumStart() && value <= criterion.mediumEnd()) return "Médio";
+        if (value > criterion.highLimit()) return "Alto";
+        return null;
+    }
+
     private SoilChemicalDiagnosisItem classifyRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
         if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
         if (criterion == null || criterion.lowStart() == null || criterion.mediumStart() == null
@@ -1774,18 +1817,17 @@ public class RecommendationCalculationService {
                 || criterion.mediumEnd() == null || criterion.highLimit() == null) {
             return notClassified(attribute, value, unit, "Critério incompleto na tabela selecionada.");
         }
-        String interpretation;
-        String usedRange;
-        if (value <= criterion.lowLimit()) {
-            interpretation = "Baixo";
-            usedRange = "<= " + formatNumber(criterion.lowLimit());
-        } else if (value < criterion.highLimit()) {
-            interpretation = "Médio";
-            usedRange = formatInterval(criterion.mediumStart(), criterion.mediumEnd(), criterion.highLimit());
-        } else {
-            interpretation = "Alto";
-            usedRange = ">= " + formatNumber(criterion.highLimit());
+        String interpretation = classifyThreeLevelRangeName(value, criterion);
+        if (interpretation == null) {
+            return notClassified(attribute, value, unit,
+                    "Valor fora dos intervalos funcionais de micronutrientes cadastrados na tabela selecionada.");
         }
+        String usedRange = switch (interpretation) {
+            case "Baixo" -> "< " + formatNumber(criterion.lowLimit());
+            case "Médio" -> formatNumber(criterion.mediumStart()) + " a " + formatNumber(criterion.mediumEnd());
+            case "Alto" -> "> " + formatNumber(criterion.highLimit());
+            default -> "não classificado";
+        };
         return SoilChemicalDiagnosisItem.builder()
                 .attribute(attribute)
                 .analyzedValue(value)
