@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "RECOMMENDATIONS")
-@EqualsAndHashCode
+@EqualsAndHashCode(exclude = "generalRecommendation")
 public class RecommendationModel {
 
     @Id
@@ -34,6 +34,9 @@ public class RecommendationModel {
     @ManyToOne
     @JoinColumn(name = "ID_PLOT", nullable = false)
     PlotModel plot;
+
+    @Column(name = "RECOMMENDATION_FOLDER_NAME")
+    String recommendationFolderName;
 
     @Column(name = "RECOMMENDATION_TYPE", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -77,6 +80,9 @@ public class RecommendationModel {
     @Lob
     @Column(name = "TECHNICAL_REPORT", nullable = false)
     String technicalReport;
+
+    @OneToOne(mappedBy = "recommendation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    GeneralRecommendationModel generalRecommendation;
 
     @Column(name = "CREATED_AT", nullable = false)
     LocalDateTime createdAt;

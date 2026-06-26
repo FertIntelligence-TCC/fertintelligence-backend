@@ -163,6 +163,9 @@ public abstract class AbstractControllerTest {
     protected RecommendationRepository recommendationRepository;
 
     @MockitoBean
+    protected GeneralRecommendationRepository generalRecommendationRepository;
+
+    @MockitoBean
     protected FertigramRepository fertigramRepository;
 
     @MockitoBean

@@ -30,6 +30,8 @@ public class RecommendationResponseDto {
     private Long plotId;
     @JsonProperty("identificacao_talhao")
     private String plotIdentification;
+    @JsonProperty("nome_pasta_recomendacao")
+    private String recommendationFolderName;
     @JsonProperty("tipo_recomendacao")
     private RecommendationType recommendationType;
     @JsonProperty("cultura")
@@ -54,6 +56,12 @@ public class RecommendationResponseDto {
     private TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
     @JsonProperty("laudo_tecnico")
     private String technicalReport;
+    @JsonProperty("id_recomendacao_geral")
+    private Long generalRecommendationId;
+    @JsonProperty("recomendacao_geral_gerada")
+    private Boolean generalRecommendationGenerated;
+    @JsonProperty("nome_documento_recomendacao_geral")
+    private String generalRecommendationDocumentName;
     @JsonProperty("imprimivel")
     private Boolean printable;
     @JsonProperty("criado_em")

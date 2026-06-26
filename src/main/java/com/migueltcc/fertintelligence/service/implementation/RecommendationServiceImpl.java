@@ -4,14 +4,17 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
+import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationNarrativeService;
@@ -28,12 +31,14 @@ import java.util.List;
 public class RecommendationServiceImpl implements RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
+    private final GeneralRecommendationRepository generalRecommendationRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final PlotRepository plotRepository;
     private final RecommendationCalculationService recommendationCalculationService;
     private final RecommendationReportService recommendationReportService;
     private final RecommendationNarrativeService recommendationNarrativeService;
+    private final GeneralRecommendationService generalRecommendationService;
     private final PermissionManager permissionManager;
 
     @Override
@@ -57,6 +62,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .creator(user)
                 .property(property)
                 .plot(plot)
+                .recommendationFolderName(dto.getRecommendationFolderName())
                 .recommendationType(dto.getRecommendationType())
                 .cropName(resolveCropName(calculationResult))
                 .cropYear(calculationResult.getAnnualCropFolderYear())
@@ -71,7 +77,10 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .technicalReport(improvedReport)
                 .build();
 
-        return toDto(recommendationRepository.save(recommendation));
+        RecommendationModel savedRecommendation = recommendationRepository.save(recommendation);
+        generalRecommendationService.createInitial(savedRecommendation, improvedReport);
+
+        return toDto(savedRecommendation);
     }
 
     @Override
@@ -100,8 +109,16 @@ public class RecommendationServiceImpl implements RecommendationService {
         RecommendationModel recommendation = findRecommendationByIdOrThrow(id);
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
 
-        String improvedNarrative = recommendationNarrativeService.improveNarrative(recommendation.getTechnicalReport());
+        GeneralRecommendationModel generalRecommendation = resolveGeneralRecommendation(recommendation);
+        String sourceReport = generalRecommendation != null
+                ? generalRecommendation.getTechnicalReport()
+                : recommendation.getTechnicalReport();
+        String improvedNarrative = recommendationNarrativeService.improveNarrative(sourceReport);
         recommendation.setTechnicalReport(improvedNarrative);
+        if (generalRecommendation != null) {
+            generalRecommendation.setTechnicalReport(improvedNarrative);
+            generalRecommendationRepository.save(generalRecommendation);
+        }
 
         RecommendationModel savedRecommendation = recommendationRepository.save(recommendation);
         return toDto(savedRecommendation, user);
@@ -147,6 +164,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     private RecommendationResponseDto toDto(RecommendationModel model, UserModel authenticatedUser) {
+        GeneralRecommendationModel generalRecommendation = resolveGeneralRecommendation(model);
         return RecommendationResponseDto.builder()
                 .id(model.getId())
                 .creatorUserId(model.getCreator().getId())
@@ -155,6 +173,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .propertyName(model.getProperty().getNome())
                 .plotId(model.getPlot().getId())
                 .plotIdentification(model.getPlot().getIdentification())
+                .recommendationFolderName(model.getRecommendationFolderName())
                 .recommendationType(model.getRecommendationType())
                 .cropName(model.getCropName())
                 .cropYear(model.getCropYear())
@@ -167,10 +186,27 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropFoliarAnalysisInterpretationTableId(model.getCropFoliarAnalysisInterpretationTableId())
                 .cropFoliarAnalysisInterpretationTableGroup(model.getCropFoliarAnalysisInterpretationTableGroup())
                 .technicalReport(model.getTechnicalReport())
+                .generalRecommendationId(generalRecommendation != null ? generalRecommendation.getId() : null)
+                .generalRecommendationGenerated(generalRecommendation != null || hasLegacyTechnicalReport(model))
+                .generalRecommendationDocumentName(GeneralRecommendationModel.DOCUMENT_NAME)
                 .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
+    }
+
+    private GeneralRecommendationModel resolveGeneralRecommendation(RecommendationModel model) {
+        if (model.getGeneralRecommendation() != null) {
+            return model.getGeneralRecommendation();
+        }
+        if (model.getId() == null) {
+            return null;
+        }
+        return generalRecommendationRepository.findByRecommendation(model).orElse(null);
+    }
+
+    private Boolean hasLegacyTechnicalReport(RecommendationModel model) {
+        return model.getTechnicalReport() != null && !model.getTechnicalReport().isBlank();
     }
 
     private NomeComum resolveCropName(RecommendationCalculationService.RecommendationCalculationResult calculationResult) {

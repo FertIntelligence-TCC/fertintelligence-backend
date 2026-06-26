@@ -34,6 +34,10 @@ public class RecommendationCreateRequestDto {
     @NotNull
     private Long plotId;
 
+    @JsonProperty("nome_pasta_recomendacao")
+    @JsonAlias({"recommendationFolderName", "nomePastaRecomendacao"})
+    private String recommendationFolderName;
+
     @JsonProperty("id_extrato_analise_fisica")
     @JsonAlias({"physicalAnalysisExtractId", "physicalAnalysisId", "id_analise_fisica", "id_extrato_fisico"})
     @NotNull

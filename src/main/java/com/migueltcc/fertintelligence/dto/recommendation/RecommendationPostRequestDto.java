@@ -28,6 +28,10 @@ public class RecommendationPostRequestDto {
     @JsonProperty("nova_cultura")
     private NomeComum newCropName;
 
+    @JsonProperty("novo_nome_pasta_recomendacao")
+    @JsonAlias({"nome_pasta_recomendacao", "recommendationFolderName", "newRecommendationFolderName"})
+    private String newRecommendationFolderName;
+
     @JsonProperty("novo_id_tabela_adubacao_cultura")
     @JsonAlias({"id_tabela_adubacao_cultura", "cropFertilizationTableId", "newCropFertilizationTableId"})
     private Long newCropFertilizationTableId;
