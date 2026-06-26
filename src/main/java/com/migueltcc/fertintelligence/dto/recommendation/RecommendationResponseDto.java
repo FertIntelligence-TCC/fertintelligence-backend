@@ -62,6 +62,24 @@ public class RecommendationResponseDto {
     private Boolean generalRecommendationGenerated;
     @JsonProperty("nome_documento_recomendacao_geral")
     private String generalRecommendationDocumentName;
+    @JsonProperty("id_recomendacao_resumida")
+    private Long summaryRecommendationId;
+    @JsonProperty("recomendacao_resumida_gerada")
+    private Boolean summaryRecommendationGenerated;
+    @JsonProperty("nome_documento_recomendacao_resumida")
+    private String summaryRecommendationDocumentName;
+    @JsonProperty("id_recomendacao_direta")
+    private Long directRecommendationId;
+    @JsonProperty("recomendacao_direta_gerada")
+    private Boolean directRecommendationGenerated;
+    @JsonProperty("nome_documento_recomendacao_direta")
+    private String directRecommendationDocumentName;
+    @JsonProperty("id_lista_compras")
+    private Long shoppingListId;
+    @JsonProperty("lista_compras_gerada")
+    private Boolean shoppingListGenerated;
+    @JsonProperty("nome_documento_lista_compras")
+    private String shoppingListDocumentName;
     @JsonProperty("imprimivel")
     private Boolean printable;
     @JsonProperty("criado_em")

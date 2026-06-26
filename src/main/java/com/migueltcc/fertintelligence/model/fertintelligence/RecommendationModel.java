@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "RECOMMENDATIONS")
-@EqualsAndHashCode(exclude = "generalRecommendation")
+@EqualsAndHashCode(exclude = {"generalRecommendation", "summaryRecommendation", "directRecommendation", "shoppingList"})
 public class RecommendationModel {
 
     @Id
@@ -83,6 +83,15 @@ public class RecommendationModel {
 
     @OneToOne(mappedBy = "recommendation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     GeneralRecommendationModel generalRecommendation;
+
+    @OneToOne(mappedBy = "recommendation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    SummaryRecommendationModel summaryRecommendation;
+
+    @OneToOne(mappedBy = "recommendation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    DirectRecommendationModel directRecommendation;
+
+    @OneToOne(mappedBy = "recommendation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    ShoppingListModel shoppingList;
 
     @Column(name = "CREATED_AT", nullable = false)
     LocalDateTime createdAt;

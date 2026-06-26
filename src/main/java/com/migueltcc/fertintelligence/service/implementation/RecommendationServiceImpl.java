@@ -4,15 +4,21 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.ShoppingListModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SummaryRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
+import com.migueltcc.fertintelligence.repository.ShoppingListRepository;
+import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
@@ -32,6 +38,9 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
     private final GeneralRecommendationRepository generalRecommendationRepository;
+    private final SummaryRecommendationRepository summaryRecommendationRepository;
+    private final DirectRecommendationRepository directRecommendationRepository;
+    private final ShoppingListRepository shoppingListRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final PlotRepository plotRepository;
@@ -165,6 +174,9 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     private RecommendationResponseDto toDto(RecommendationModel model, UserModel authenticatedUser) {
         GeneralRecommendationModel generalRecommendation = resolveGeneralRecommendation(model);
+        SummaryRecommendationModel summaryRecommendation = resolveSummaryRecommendation(model);
+        DirectRecommendationModel directRecommendation = resolveDirectRecommendation(model);
+        ShoppingListModel shoppingList = resolveShoppingList(model);
         return RecommendationResponseDto.builder()
                 .id(model.getId())
                 .creatorUserId(model.getCreator().getId())
@@ -187,8 +199,17 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropFoliarAnalysisInterpretationTableGroup(model.getCropFoliarAnalysisInterpretationTableGroup())
                 .technicalReport(model.getTechnicalReport())
                 .generalRecommendationId(generalRecommendation != null ? generalRecommendation.getId() : null)
-                .generalRecommendationGenerated(generalRecommendation != null || hasLegacyTechnicalReport(model))
+                .generalRecommendationGenerated(generalRecommendation != null)
                 .generalRecommendationDocumentName(GeneralRecommendationModel.DOCUMENT_NAME)
+                .summaryRecommendationId(summaryRecommendation != null ? summaryRecommendation.getId() : null)
+                .summaryRecommendationGenerated(summaryRecommendation != null)
+                .summaryRecommendationDocumentName(SummaryRecommendationModel.DOCUMENT_NAME)
+                .directRecommendationId(directRecommendation != null ? directRecommendation.getId() : null)
+                .directRecommendationGenerated(directRecommendation != null)
+                .directRecommendationDocumentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .shoppingListId(shoppingList != null ? shoppingList.getId() : null)
+                .shoppingListGenerated(shoppingList != null)
+                .shoppingListDocumentName(ShoppingListModel.DOCUMENT_NAME)
                 .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
@@ -205,8 +226,34 @@ public class RecommendationServiceImpl implements RecommendationService {
         return generalRecommendationRepository.findByRecommendation(model).orElse(null);
     }
 
-    private Boolean hasLegacyTechnicalReport(RecommendationModel model) {
-        return model.getTechnicalReport() != null && !model.getTechnicalReport().isBlank();
+    private SummaryRecommendationModel resolveSummaryRecommendation(RecommendationModel model) {
+        if (model.getSummaryRecommendation() != null) {
+            return model.getSummaryRecommendation();
+        }
+        if (model.getId() == null) {
+            return null;
+        }
+        return summaryRecommendationRepository.findByRecommendation(model).orElse(null);
+    }
+
+    private DirectRecommendationModel resolveDirectRecommendation(RecommendationModel model) {
+        if (model.getDirectRecommendation() != null) {
+            return model.getDirectRecommendation();
+        }
+        if (model.getId() == null) {
+            return null;
+        }
+        return directRecommendationRepository.findByRecommendation(model).orElse(null);
+    }
+
+    private ShoppingListModel resolveShoppingList(RecommendationModel model) {
+        if (model.getShoppingList() != null) {
+            return model.getShoppingList();
+        }
+        if (model.getId() == null) {
+            return null;
+        }
+        return shoppingListRepository.findByRecommendation(model).orElse(null);
     }
 
     private NomeComum resolveCropName(RecommendationCalculationService.RecommendationCalculationResult calculationResult) {
