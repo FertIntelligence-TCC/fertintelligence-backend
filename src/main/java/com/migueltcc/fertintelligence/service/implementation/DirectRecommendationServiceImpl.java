@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.DirectRecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
+    private final DirectRecommendationReportService directRecommendationReportService;
 
     @Override
     @Transactional
@@ -76,7 +78,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         return directRecommendationRepository.findByRecommendation(recommendation)
                 .map(this::toDto)
-                .orElseGet(() -> toDto(createInitial(recommendation, DirectRecommendationModel.PENDING_TECHNICAL_REPORT)));
+                .orElseGet(() -> toDto(createInitial(recommendation, directRecommendationReportService.build(recommendation))));
     }
 
     @Override

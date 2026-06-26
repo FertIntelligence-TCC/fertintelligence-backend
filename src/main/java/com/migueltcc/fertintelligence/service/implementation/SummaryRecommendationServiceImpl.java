@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SummaryRecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
+    private final SummaryRecommendationReportService summaryRecommendationReportService;
 
     @Override
     @Transactional
@@ -76,7 +78,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         return summaryRecommendationRepository.findByRecommendation(recommendation)
                 .map(this::toDto)
-                .orElseGet(() -> toDto(createInitial(recommendation, SummaryRecommendationModel.PENDING_TECHNICAL_REPORT)));
+                .orElseGet(() -> toDto(createInitial(recommendation, summaryRecommendationReportService.build(recommendation))));
     }
 
     @Override
