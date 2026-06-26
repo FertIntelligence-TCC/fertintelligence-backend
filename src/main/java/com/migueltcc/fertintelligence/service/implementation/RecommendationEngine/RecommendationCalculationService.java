@@ -1590,19 +1590,19 @@ public class RecommendationCalculationService {
                 r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
                 "Saturação por alumínio classificada a partir do valor pronto do extrato de fertilidade.");
         addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Boro", fertility.getBoro(), "mg/dm³", diverseRange,
-                r -> new RangeCriterion(r.getBoron_too_low(), r.getBoron_low_i(), r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i(), r.getBoron_hight_f(), r.getBoron_too_hight()),
+                r -> new ThreeLevelCriterion(r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i()),
                 "Boro disponível classificado pelas faixas diversas da tabela selecionada.");
         addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Cobre", fertility.getCobre(), "mg/dm³", diverseRange,
-                r -> new RangeCriterion(r.getCopper_too_low(), r.getCopper_low_i(), r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i(), r.getCopper_hight_f(), r.getCopper_too_hight()),
+                r -> new ThreeLevelCriterion(r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i()),
                 "Cobre disponível classificado pelas faixas diversas da tabela selecionada.");
         addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Ferro", fertility.getFerro(), "mg/dm³", diverseRange,
-                r -> new RangeCriterion(r.getIron_too_low(), r.getIron_low_i(), r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i(), r.getIron_hight_f(), r.getIron_too_hight()),
+                r -> new ThreeLevelCriterion(r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i()),
                 "Ferro disponível classificado pelas faixas diversas da tabela selecionada.");
         addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Manganês", fertility.getManganes(), "mg/dm³", diverseRange,
-                r -> new RangeCriterion(r.getManganese_too_low(), r.getManganese_low_i(), r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i(), r.getManganese_hight_f(), r.getManganese_too_hight()),
+                r -> new ThreeLevelCriterion(r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i()),
                 "Manganês disponível classificado pelas faixas diversas da tabela selecionada.");
         addDiverseMicronutrientDiagnosisIfPresent(diagnosis, "Zinco", fertility.getZinco(), "mg/dm³", diverseRange,
-                r -> new RangeCriterion(r.getZinc_too_low(), r.getZinc_low_i(), r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i(), r.getZinc_hight_f(), r.getZinc_too_hight()),
+                r -> new ThreeLevelCriterion(r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i()),
                 "Zinco disponível classificado pelas faixas diversas da tabela selecionada.");
         return diagnosis;
     }
@@ -1724,7 +1724,7 @@ public class RecommendationCalculationService {
                                                            Double value,
                                                            String unit,
                                                            Optional<DiverseContentRangeModel> range,
-                                                           Function<DiverseContentRangeModel, RangeCriterion> criterionExtractor,
+                                                           Function<DiverseContentRangeModel, ThreeLevelCriterion> criterionExtractor,
                                                            String observation) {
         if (value == null) return;
         if (range.isEmpty()) {
@@ -1768,22 +1768,23 @@ public class RecommendationCalculationService {
                 .build();
     }
 
-    private SoilChemicalDiagnosisItem classifyThreeLevelRange(String attribute, Double value, String unit, RangeCriterion criterion, String observation) {
+    private SoilChemicalDiagnosisItem classifyThreeLevelRange(String attribute, Double value, String unit, ThreeLevelCriterion criterion, String observation) {
         if (value == null) return missingValue(attribute, "Valor ausente no extrato de fertilidade.");
-        if (criterion == null || criterion.mediumStart() == null || criterion.highStart() == null) {
+        if (criterion == null || criterion.lowLimit() == null || criterion.mediumStart() == null
+                || criterion.mediumEnd() == null || criterion.highLimit() == null) {
             return notClassified(attribute, value, unit, "Critério incompleto na tabela selecionada.");
         }
         String interpretation;
         String usedRange;
-        if (value < criterion.mediumStart()) {
+        if (value <= criterion.lowLimit()) {
             interpretation = "Baixo";
-            usedRange = "< " + formatNumber(criterion.mediumStart());
-        } else if (value < criterion.highStart()) {
+            usedRange = "<= " + formatNumber(criterion.lowLimit());
+        } else if (value < criterion.highLimit()) {
             interpretation = "Médio";
-            usedRange = formatInterval(criterion.mediumStart(), criterion.mediumEnd(), criterion.highStart());
+            usedRange = formatInterval(criterion.mediumStart(), criterion.mediumEnd(), criterion.highLimit());
         } else {
             interpretation = "Alto";
-            usedRange = ">= " + formatNumber(criterion.highStart());
+            usedRange = ">= " + formatNumber(criterion.highLimit());
         }
         return SoilChemicalDiagnosisItem.builder()
                 .attribute(attribute)
@@ -1955,6 +1956,7 @@ public class RecommendationCalculationService {
     private record GypsumSourceSelection(String sourceName, String sourceType, Double commercialDose, String commercialDoseUnit, String justification, String limitations) {}
     private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                   Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
+    private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {}
     private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                         Double mediumEnd, Double highStart, Double highEnd, Double veryHighStart) {}
     private class NutrientBalanceAccumulator {

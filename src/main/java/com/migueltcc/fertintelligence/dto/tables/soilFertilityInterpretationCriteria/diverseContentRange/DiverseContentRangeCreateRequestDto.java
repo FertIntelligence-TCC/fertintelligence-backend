@@ -357,12 +357,14 @@ public class DiverseContentRangeCreateRequestDto {
     @JsonProperty("teor_inicial_baixo_boro")
     private Double boron_low_i;
     @JsonProperty("teor_final_baixo_boro")
+    @JsonAlias("baixo_boro")
     private Double boron_low_f;
     @JsonProperty("teor_inicial_medio_boro")
     private Double boron_medium_i;
     @JsonProperty("teor_final_medio_boro")
     private Double boron_medium_f;
     @JsonProperty("teor_inicial_alto_boro")
+    @JsonAlias("alto_boro")
     private Double boron_hight_i;
     @JsonProperty("teor_final_alto_boro")
     private Double boron_hight_f;
@@ -375,12 +377,14 @@ public class DiverseContentRangeCreateRequestDto {
     @JsonProperty("teor_inicial_baixo_cobre")
     private Double copper_low_i;
     @JsonProperty("teor_final_baixo_cobre")
+    @JsonAlias("baixo_cobre")
     private Double copper_low_f;
     @JsonProperty("teor_inicial_medio_cobre")
     private Double copper_medium_i;
     @JsonProperty("teor_final_medio_cobre")
     private Double copper_medium_f;
     @JsonProperty("teor_inicial_alto_cobre")
+    @JsonAlias("alto_cobre")
     private Double copper_hight_i;
     @JsonProperty("teor_final_alto_cobre")
     private Double copper_hight_f;
@@ -393,12 +397,14 @@ public class DiverseContentRangeCreateRequestDto {
     @JsonProperty("teor_inicial_baixo_ferro")
     private Double iron_low_i;
     @JsonProperty("teor_final_baixo_ferro")
+    @JsonAlias("baixo_ferro")
     private Double iron_low_f;
     @JsonProperty("teor_inicial_medio_ferro")
     private Double iron_medium_i;
     @JsonProperty("teor_final_medio_ferro")
     private Double iron_medium_f;
     @JsonProperty("teor_inicial_alto_ferro")
+    @JsonAlias("alto_ferro")
     private Double iron_hight_i;
     @JsonProperty("teor_final_alto_ferro")
     private Double iron_hight_f;
@@ -411,12 +417,14 @@ public class DiverseContentRangeCreateRequestDto {
     @JsonProperty("teor_inicial_baixo_manganes")
     private Double manganese_low_i;
     @JsonProperty("teor_final_baixo_manganes")
+    @JsonAlias("baixo_manganes")
     private Double manganese_low_f;
     @JsonProperty("teor_inicial_medio_manganes")
     private Double manganese_medium_i;
     @JsonProperty("teor_final_medio_manganes")
     private Double manganese_medium_f;
     @JsonProperty("teor_inicial_alto_manganes")
+    @JsonAlias("alto_manganes")
     private Double manganese_hight_i;
     @JsonProperty("teor_final_alto_manganes")
     private Double manganese_hight_f;
@@ -429,12 +437,14 @@ public class DiverseContentRangeCreateRequestDto {
     @JsonProperty("teor_inicial_baixo_zinco")
     private Double zinc_low_i;
     @JsonProperty("teor_final_baixo_zinco")
+    @JsonAlias("baixo_zinco")
     private Double zinc_low_f;
     @JsonProperty("teor_inicial_medio_zinco")
     private Double zinc_medium_i;
     @JsonProperty("teor_final_medio_zinco")
     private Double zinc_medium_f;
     @JsonProperty("teor_inicial_alto_zinco")
+    @JsonAlias("alto_zinco")
     private Double zinc_hight_i;
     @JsonProperty("teor_final_alto_zinco")
     private Double zinc_hight_f;
@@ -446,4 +456,21 @@ public class DiverseContentRangeCreateRequestDto {
 
     @JsonProperty("fontes")
     private String sources;
+
+    public void normalizeMicronutrientFunctionalFields() {
+        boron_low_i = defaultToFunctionalBoundary(boron_low_i, boron_low_f);
+        boron_hight_f = defaultToFunctionalBoundary(boron_hight_f, boron_hight_i);
+        copper_low_i = defaultToFunctionalBoundary(copper_low_i, copper_low_f);
+        copper_hight_f = defaultToFunctionalBoundary(copper_hight_f, copper_hight_i);
+        iron_low_i = defaultToFunctionalBoundary(iron_low_i, iron_low_f);
+        iron_hight_f = defaultToFunctionalBoundary(iron_hight_f, iron_hight_i);
+        manganese_low_i = defaultToFunctionalBoundary(manganese_low_i, manganese_low_f);
+        manganese_hight_f = defaultToFunctionalBoundary(manganese_hight_f, manganese_hight_i);
+        zinc_low_i = defaultToFunctionalBoundary(zinc_low_i, zinc_low_f);
+        zinc_hight_f = defaultToFunctionalBoundary(zinc_hight_f, zinc_hight_i);
+    }
+
+    private Double defaultToFunctionalBoundary(Double legacyValue, Double functionalValue) {
+        return legacyValue != null ? legacyValue : functionalValue;
+    }
 }

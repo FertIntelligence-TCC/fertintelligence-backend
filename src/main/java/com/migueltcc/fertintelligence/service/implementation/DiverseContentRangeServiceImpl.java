@@ -53,6 +53,7 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
         DiverseContentRangeModel criterion = DiverseContentRangeModel.builder()
                 .table(table)
                 .build();
+        createRequestDto.normalizeMicronutrientFunctionalFields();
         BeanUtils.copyProperties(createRequestDto, criterion);
 
         DiverseContentRangeModel savedCriterion = diverseContentRangeRepository.save(criterion);
@@ -96,6 +97,7 @@ public class DiverseContentRangeServiceImpl implements DiverseContentRangeServic
         DiverseContentRangeModel criterion = findCriterionByIdOrThrow(criterionId);
         checkModifyPermission(criterion.getTable(), owner);
 
+        updateRequestDto.normalizeMicronutrientFunctionalFields();
         copyNonNullProperties(updateRequestDto, criterion);
 
         DiverseContentRangeModel updatedCriterion = diverseContentRangeRepository.save(criterion);

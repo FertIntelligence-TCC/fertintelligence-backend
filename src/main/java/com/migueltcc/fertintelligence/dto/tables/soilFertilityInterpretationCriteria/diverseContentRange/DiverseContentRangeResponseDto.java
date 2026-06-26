@@ -479,12 +479,16 @@ public class DiverseContentRangeResponseDto {
     private Double boron_low_i;
     @JsonProperty("teor_final_baixo_boro")
     private Double boron_low_f;
+    @JsonProperty("baixo_boro")
+    private Double boron_low;
     @JsonProperty("teor_inicial_medio_boro")
     private Double boron_medium_i;
     @JsonProperty("teor_final_medio_boro")
     private Double boron_medium_f;
     @JsonProperty("teor_inicial_alto_boro")
     private Double boron_hight_i;
+    @JsonProperty("alto_boro")
+    private Double boron_high;
     @JsonProperty("teor_final_alto_boro")
     private Double boron_hight_f;
     @JsonProperty("maior_teor_boro")
@@ -497,12 +501,16 @@ public class DiverseContentRangeResponseDto {
     private Double copper_low_i;
     @JsonProperty("teor_final_baixo_cobre")
     private Double copper_low_f;
+    @JsonProperty("baixo_cobre")
+    private Double copper_low;
     @JsonProperty("teor_inicial_medio_cobre")
     private Double copper_medium_i;
     @JsonProperty("teor_final_medio_cobre")
     private Double copper_medium_f;
     @JsonProperty("teor_inicial_alto_cobre")
     private Double copper_hight_i;
+    @JsonProperty("alto_cobre")
+    private Double copper_high;
     @JsonProperty("teor_final_alto_cobre")
     private Double copper_hight_f;
     @JsonProperty("maior_teor_cobre")
@@ -515,12 +523,16 @@ public class DiverseContentRangeResponseDto {
     private Double iron_low_i;
     @JsonProperty("teor_final_baixo_ferro")
     private Double iron_low_f;
+    @JsonProperty("baixo_ferro")
+    private Double iron_low;
     @JsonProperty("teor_inicial_medio_ferro")
     private Double iron_medium_i;
     @JsonProperty("teor_final_medio_ferro")
     private Double iron_medium_f;
     @JsonProperty("teor_inicial_alto_ferro")
     private Double iron_hight_i;
+    @JsonProperty("alto_ferro")
+    private Double iron_high;
     @JsonProperty("teor_final_alto_ferro")
     private Double iron_hight_f;
     @JsonProperty("maior_teor_ferro")
@@ -533,12 +545,16 @@ public class DiverseContentRangeResponseDto {
     private Double manganese_low_i;
     @JsonProperty("teor_final_baixo_manganes")
     private Double manganese_low_f;
+    @JsonProperty("baixo_manganes")
+    private Double manganese_low;
     @JsonProperty("teor_inicial_medio_manganes")
     private Double manganese_medium_i;
     @JsonProperty("teor_final_medio_manganes")
     private Double manganese_medium_f;
     @JsonProperty("teor_inicial_alto_manganes")
     private Double manganese_hight_i;
+    @JsonProperty("alto_manganes")
+    private Double manganese_high;
     @JsonProperty("teor_final_alto_manganes")
     private Double manganese_hight_f;
     @JsonProperty("maior_teor_manganes")
@@ -551,12 +567,16 @@ public class DiverseContentRangeResponseDto {
     private Double zinc_low_i;
     @JsonProperty("teor_final_baixo_zinco")
     private Double zinc_low_f;
+    @JsonProperty("baixo_zinco")
+    private Double zinc_low;
     @JsonProperty("teor_inicial_medio_zinco")
     private Double zinc_medium_i;
     @JsonProperty("teor_final_medio_zinco")
     private Double zinc_medium_f;
     @JsonProperty("teor_inicial_alto_zinco")
     private Double zinc_hight_i;
+    @JsonProperty("alto_zinco")
+    private Double zinc_high;
     @JsonProperty("teor_final_alto_zinco")
     private Double zinc_hight_f;
     @JsonProperty("maior_teor_zinco")

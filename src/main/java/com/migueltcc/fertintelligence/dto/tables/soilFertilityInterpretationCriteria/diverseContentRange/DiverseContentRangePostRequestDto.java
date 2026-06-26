@@ -439,7 +439,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_inicial_baixo_boro")
     private Double boron_low_i;
     @JsonProperty("teor_final_baixo_boro")
-    @JsonAlias("novo_teor_final_baixo_boro")
+    @JsonAlias({"novo_teor_final_baixo_boro", "baixo_boro", "novo_baixo_boro"})
     private Double boron_low_f;
     @JsonProperty("teor_inicial_medio_boro")
     @JsonAlias("novo_teor_inicial_medio_boro")
@@ -448,7 +448,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_final_medio_boro")
     private Double boron_medium_f;
     @JsonProperty("teor_inicial_alto_boro")
-    @JsonAlias("novo_teor_inicial_alto_boro")
+    @JsonAlias({"novo_teor_inicial_alto_boro", "alto_boro", "novo_alto_boro"})
     private Double boron_hight_i;
     @JsonProperty("teor_final_alto_boro")
     @JsonAlias("novo_teor_final_alto_boro")
@@ -465,7 +465,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_inicial_baixo_cobre")
     private Double copper_low_i;
     @JsonProperty("teor_final_baixo_cobre")
-    @JsonAlias("novo_teor_final_baixo_cobre")
+    @JsonAlias({"novo_teor_final_baixo_cobre", "baixo_cobre", "novo_baixo_cobre"})
     private Double copper_low_f;
     @JsonProperty("teor_inicial_medio_cobre")
     @JsonAlias("novo_teor_inicial_medio_cobre")
@@ -474,7 +474,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_final_medio_cobre")
     private Double copper_medium_f;
     @JsonProperty("teor_inicial_alto_cobre")
-    @JsonAlias("novo_teor_inicial_alto_cobre")
+    @JsonAlias({"novo_teor_inicial_alto_cobre", "alto_cobre", "novo_alto_cobre"})
     private Double copper_hight_i;
     @JsonProperty("teor_final_alto_cobre")
     @JsonAlias("novo_teor_final_alto_cobre")
@@ -491,7 +491,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_inicial_baixo_ferro")
     private Double iron_low_i;
     @JsonProperty("teor_final_baixo_ferro")
-    @JsonAlias("novo_teor_final_baixo_ferro")
+    @JsonAlias({"novo_teor_final_baixo_ferro", "baixo_ferro", "novo_baixo_ferro"})
     private Double iron_low_f;
     @JsonProperty("teor_inicial_medio_ferro")
     @JsonAlias("novo_teor_inicial_medio_ferro")
@@ -500,7 +500,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_final_medio_ferro")
     private Double iron_medium_f;
     @JsonProperty("teor_inicial_alto_ferro")
-    @JsonAlias("novo_teor_inicial_alto_ferro")
+    @JsonAlias({"novo_teor_inicial_alto_ferro", "alto_ferro", "novo_alto_ferro"})
     private Double iron_hight_i;
     @JsonProperty("teor_final_alto_ferro")
     @JsonAlias("novo_teor_final_alto_ferro")
@@ -517,7 +517,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_inicial_baixo_manganes")
     private Double manganese_low_i;
     @JsonProperty("teor_final_baixo_manganes")
-    @JsonAlias("novo_teor_final_baixo_manganes")
+    @JsonAlias({"novo_teor_final_baixo_manganes", "baixo_manganes", "novo_baixo_manganes"})
     private Double manganese_low_f;
     @JsonProperty("teor_inicial_medio_manganes")
     @JsonAlias("novo_teor_inicial_medio_manganes")
@@ -526,7 +526,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_final_medio_manganes")
     private Double manganese_medium_f;
     @JsonProperty("teor_inicial_alto_manganes")
-    @JsonAlias("novo_teor_inicial_alto_manganes")
+    @JsonAlias({"novo_teor_inicial_alto_manganes", "alto_manganes", "novo_alto_manganes"})
     private Double manganese_hight_i;
     @JsonProperty("teor_final_alto_manganes")
     @JsonAlias("novo_teor_final_alto_manganes")
@@ -543,7 +543,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_inicial_baixo_zinco")
     private Double zinc_low_i;
     @JsonProperty("teor_final_baixo_zinco")
-    @JsonAlias("novo_teor_final_baixo_zinco")
+    @JsonAlias({"novo_teor_final_baixo_zinco", "baixo_zinco", "novo_baixo_zinco"})
     private Double zinc_low_f;
     @JsonProperty("teor_inicial_medio_zinco")
     @JsonAlias("novo_teor_inicial_medio_zinco")
@@ -552,7 +552,7 @@ public class DiverseContentRangePostRequestDto {
     @JsonAlias("novo_teor_final_medio_zinco")
     private Double zinc_medium_f;
     @JsonProperty("teor_inicial_alto_zinco")
-    @JsonAlias("novo_teor_inicial_alto_zinco")
+    @JsonAlias({"novo_teor_inicial_alto_zinco", "alto_zinco", "novo_alto_zinco"})
     private Double zinc_hight_i;
     @JsonProperty("teor_final_alto_zinco")
     @JsonAlias("novo_teor_final_alto_zinco")
@@ -568,4 +568,21 @@ public class DiverseContentRangePostRequestDto {
     @JsonProperty("novo_fontes")
     @JsonAlias({"fontes", "fonte", "fonte_literatura"})
     private String sources;
+
+    public void normalizeMicronutrientFunctionalFields() {
+        boron_low_i = defaultToFunctionalBoundary(boron_low_i, boron_low_f);
+        boron_hight_f = defaultToFunctionalBoundary(boron_hight_f, boron_hight_i);
+        copper_low_i = defaultToFunctionalBoundary(copper_low_i, copper_low_f);
+        copper_hight_f = defaultToFunctionalBoundary(copper_hight_f, copper_hight_i);
+        iron_low_i = defaultToFunctionalBoundary(iron_low_i, iron_low_f);
+        iron_hight_f = defaultToFunctionalBoundary(iron_hight_f, iron_hight_i);
+        manganese_low_i = defaultToFunctionalBoundary(manganese_low_i, manganese_low_f);
+        manganese_hight_f = defaultToFunctionalBoundary(manganese_hight_f, manganese_hight_i);
+        zinc_low_i = defaultToFunctionalBoundary(zinc_low_i, zinc_low_f);
+        zinc_hight_f = defaultToFunctionalBoundary(zinc_hight_f, zinc_hight_i);
+    }
+
+    private Double defaultToFunctionalBoundary(Double legacyValue, Double functionalValue) {
+        return legacyValue != null ? legacyValue : functionalValue;
+    }
 }
