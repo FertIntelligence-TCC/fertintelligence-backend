@@ -11,9 +11,9 @@ import com.migueltcc.fertintelligence.repository.ShoppingListRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.ShoppingListService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.ShoppingListReportService;
-import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,19 +46,25 @@ public class ShoppingListServiceImpl implements ShoppingListService {
         if (technicalReport == null || technicalReport.isBlank()) {
             throw new IllegalArgumentException("O conteúdo da Lista de Compras não pode ser vazio.");
         }
-        if (shoppingListRepository.existsByRecommendation(recommendation)) {
-            throw new EntityExistsException("Já existe Lista de Compras para a recomendação informada.");
-        }
+        return shoppingListRepository.findByRecommendation(recommendation)
+                .orElseGet(() -> saveNew(recommendation, technicalReport));
+    }
 
+    private ShoppingListModel saveNew(RecommendationModel recommendation, String technicalReport) {
         ShoppingListModel shoppingList = ShoppingListModel.builder()
                 .recommendation(recommendation)
                 .documentName(ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(technicalReport)
                 .build();
 
-        ShoppingListModel saved = shoppingListRepository.save(shoppingList);
-        recommendation.setShoppingList(saved);
-        return saved;
+        try {
+            ShoppingListModel saved = shoppingListRepository.saveAndFlush(shoppingList);
+            recommendation.setShoppingList(saved);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            return shoppingListRepository.findByRecommendation(recommendation)
+                    .orElseThrow(() -> ex);
+        }
     }
 
     @Override
@@ -111,6 +117,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
+                .content(model.getTechnicalReport())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -123,7 +130,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
     }
 
     private RecommendationModel findRecommendationByIdOrThrow(Long id) {
-        return recommendationRepository.findById(id)
+        return recommendationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Recomendação não encontrada com o ID: " + id));
     }
 

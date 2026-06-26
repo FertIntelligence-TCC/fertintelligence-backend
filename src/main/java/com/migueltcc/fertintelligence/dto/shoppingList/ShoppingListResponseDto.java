@@ -23,6 +23,25 @@ public class ShoppingListResponseDto {
     @JsonProperty("laudo_tecnico")
     private String technicalReport;
 
+    @JsonProperty("conteudo")
+    private String content;
+
+    @Builder.Default
+    @JsonProperty("formato_conteudo")
+    private String contentFormat = "markdown";
+
+    @Builder.Default
+    @JsonProperty("fonte_recomendada")
+    private String recommendedSource = "Aptos";
+
+    @Builder.Default
+    @JsonProperty("tamanho_fonte")
+    private Integer fontSize = 10;
+
+    @Builder.Default
+    @JsonProperty("gerado")
+    private Boolean generated = true;
+
     @JsonProperty("criado_em")
     private LocalDateTime createdAt;
 

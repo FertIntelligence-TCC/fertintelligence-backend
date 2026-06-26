@@ -11,9 +11,9 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.DirectRecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
-import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,19 +46,25 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         if (technicalReport == null || technicalReport.isBlank()) {
             throw new IllegalArgumentException("O conteúdo da Recomendação Direta não pode ser vazio.");
         }
-        if (directRecommendationRepository.existsByRecommendation(recommendation)) {
-            throw new EntityExistsException("Já existe Recomendação Direta para a recomendação informada.");
-        }
+        return directRecommendationRepository.findByRecommendation(recommendation)
+                .orElseGet(() -> saveNew(recommendation, technicalReport));
+    }
 
+    private DirectRecommendationModel saveNew(RecommendationModel recommendation, String technicalReport) {
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .recommendation(recommendation)
                 .documentName(DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(technicalReport)
                 .build();
 
-        DirectRecommendationModel saved = directRecommendationRepository.save(directRecommendation);
-        recommendation.setDirectRecommendation(saved);
-        return saved;
+        try {
+            DirectRecommendationModel saved = directRecommendationRepository.saveAndFlush(directRecommendation);
+            recommendation.setDirectRecommendation(saved);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            return directRecommendationRepository.findByRecommendation(recommendation)
+                    .orElseThrow(() -> ex);
+        }
     }
 
     @Override
@@ -111,6 +117,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
+                .content(model.getTechnicalReport())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -123,7 +130,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     }
 
     private RecommendationModel findRecommendationByIdOrThrow(Long id) {
-        return recommendationRepository.findById(id)
+        return recommendationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Recomendação não encontrada com o ID: " + id));
     }
 

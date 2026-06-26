@@ -11,9 +11,9 @@ import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SummaryRecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
-import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,19 +46,25 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
         if (technicalReport == null || technicalReport.isBlank()) {
             throw new IllegalArgumentException("O conteúdo da Recomendação Resumida não pode ser vazio.");
         }
-        if (summaryRecommendationRepository.existsByRecommendation(recommendation)) {
-            throw new EntityExistsException("Já existe Recomendação Resumida para a recomendação informada.");
-        }
+        return summaryRecommendationRepository.findByRecommendation(recommendation)
+                .orElseGet(() -> saveNew(recommendation, technicalReport));
+    }
 
+    private SummaryRecommendationModel saveNew(RecommendationModel recommendation, String technicalReport) {
         SummaryRecommendationModel summaryRecommendation = SummaryRecommendationModel.builder()
                 .recommendation(recommendation)
                 .documentName(SummaryRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(technicalReport)
                 .build();
 
-        SummaryRecommendationModel saved = summaryRecommendationRepository.save(summaryRecommendation);
-        recommendation.setSummaryRecommendation(saved);
-        return saved;
+        try {
+            SummaryRecommendationModel saved = summaryRecommendationRepository.saveAndFlush(summaryRecommendation);
+            recommendation.setSummaryRecommendation(saved);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            return summaryRecommendationRepository.findByRecommendation(recommendation)
+                    .orElseThrow(() -> ex);
+        }
     }
 
     @Override
@@ -111,6 +117,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : SummaryRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
+                .content(model.getTechnicalReport())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -123,7 +130,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
     }
 
     private RecommendationModel findRecommendationByIdOrThrow(Long id) {
-        return recommendationRepository.findById(id)
+        return recommendationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Recomendação não encontrada com o ID: " + id));
     }
 

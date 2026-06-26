@@ -10,9 +10,9 @@ import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
-import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +29,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
     @Transactional
     public GeneralRecommendationResponseDto create(GeneralRecommendationCreateRequestDto dto, String username) {
         UserModel user = findUserByUsernameOrEmailOrThrow(username);
-        RecommendationModel recommendation = findRecommendationByIdOrThrow(dto.getRecommendationId());
+        RecommendationModel recommendation = findRecommendationByIdForUpdateOrThrow(dto.getRecommendationId());
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         GeneralRecommendationModel generalRecommendation = createInitial(recommendation, dto.getTechnicalReport());
         return toDto(generalRecommendation);
@@ -44,19 +44,25 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
         if (technicalReport == null || technicalReport.isBlank()) {
             throw new IllegalArgumentException("O conteúdo da Recomendação Geral não pode ser vazio.");
         }
-        if (generalRecommendationRepository.existsByRecommendation(recommendation)) {
-            throw new EntityExistsException("Já existe Recomendação Geral para a recomendação informada.");
-        }
+        return generalRecommendationRepository.findByRecommendation(recommendation)
+                .orElseGet(() -> saveNew(recommendation, technicalReport));
+    }
 
+    private GeneralRecommendationModel saveNew(RecommendationModel recommendation, String technicalReport) {
         GeneralRecommendationModel generalRecommendation = GeneralRecommendationModel.builder()
                 .recommendation(recommendation)
                 .documentName(GeneralRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(technicalReport)
                 .build();
 
-        GeneralRecommendationModel saved = generalRecommendationRepository.save(generalRecommendation);
-        recommendation.setGeneralRecommendation(saved);
-        return saved;
+        try {
+            GeneralRecommendationModel saved = generalRecommendationRepository.saveAndFlush(generalRecommendation);
+            recommendation.setGeneralRecommendation(saved);
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            return generalRecommendationRepository.findByRecommendation(recommendation)
+                    .orElseThrow(() -> ex);
+        }
     }
 
     @Override
@@ -110,6 +116,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : GeneralRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
+                .content(model.getTechnicalReport())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -121,6 +128,8 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .recommendationId(recommendation.getId())
                 .documentName(GeneralRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(recommendation.getTechnicalReport())
+                .content(recommendation.getTechnicalReport())
+                .generated(recommendation.getTechnicalReport() != null && !recommendation.getTechnicalReport().isBlank())
                 .createdAt(recommendation.getCreatedAt())
                 .updatedAt(recommendation.getUpdatedAt())
                 .build();
@@ -134,6 +143,11 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
 
     private RecommendationModel findRecommendationByIdOrThrow(Long id) {
         return recommendationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Recomendação não encontrada com o ID: " + id));
+    }
+
+    private RecommendationModel findRecommendationByIdForUpdateOrThrow(Long id) {
+        return recommendationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Recomendação não encontrada com o ID: " + id));
     }
 

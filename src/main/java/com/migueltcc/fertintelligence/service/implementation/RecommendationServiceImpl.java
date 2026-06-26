@@ -199,7 +199,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropFoliarAnalysisInterpretationTableGroup(model.getCropFoliarAnalysisInterpretationTableGroup())
                 .technicalReport(model.getTechnicalReport())
                 .generalRecommendationId(generalRecommendation != null ? generalRecommendation.getId() : null)
-                .generalRecommendationGenerated(generalRecommendation != null)
+                .generalRecommendationGenerated(generalRecommendation != null || hasLegacyTechnicalReport(model))
                 .generalRecommendationDocumentName(GeneralRecommendationModel.DOCUMENT_NAME)
                 .summaryRecommendationId(summaryRecommendation != null ? summaryRecommendation.getId() : null)
                 .summaryRecommendationGenerated(summaryRecommendation != null)
@@ -224,6 +224,10 @@ public class RecommendationServiceImpl implements RecommendationService {
             return null;
         }
         return generalRecommendationRepository.findByRecommendation(model).orElse(null);
+    }
+
+    private boolean hasLegacyTechnicalReport(RecommendationModel model) {
+        return model.getTechnicalReport() != null && !model.getTechnicalReport().isBlank();
     }
 
     private SummaryRecommendationModel resolveSummaryRecommendation(RecommendationModel model) {
