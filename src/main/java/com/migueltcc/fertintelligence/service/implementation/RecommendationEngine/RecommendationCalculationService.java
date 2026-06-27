@@ -170,7 +170,7 @@ public class RecommendationCalculationService {
         PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrThrow(dto.getPhysicalAnalysisExtractId());
         FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot);
         SoilAnalysisModel soilFertilityAnalysis = soilFertilitySelection.soilAnalysis();
-        SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrThrow(dto.getSaturationExtractAnalysisExtractId());
+        SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrNull(dto.getSaturationExtractAnalysisExtractId());
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(dto.getAnnualCropFolderId());
         CropModel crop = findCropByIdOrThrow(dto.getCropId());
         CropFertilizationTableModel cropFertilizationTable = findCropFertilizationTableBySelectionOrThrow(
@@ -191,7 +191,9 @@ public class RecommendationCalculationService {
     private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot) {
         validateSamePlot(resolvePlot(inputs.physicalAnalysis()), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
         validateSamePlot(inputs.soilFertilityAnalysis().getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
-        validateSamePlot(resolvePlot(inputs.saturationExtractAnalysis()), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
+        if (inputs.saturationExtractAnalysis() != null) {
+            validateSamePlot(resolvePlot(inputs.saturationExtractAnalysis()), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
+        }
         validateSamePlot(inputs.annualCropFolder().getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
         if (inputs.crop().getFolder() == null || !Objects.equals(inputs.crop().getFolder().getId(), inputs.annualCropFolder().getId())) {
             throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
@@ -210,7 +212,7 @@ public class RecommendationCalculationService {
         List<FoliarDiagnosisItem> foliarDiagnosis = buildFoliarDiagnosis(inputs.foliarAnalysis(), inputs.crop(), inputs.foliarInterpretationTable(), warnings);
         String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis, warnings);
 
-        List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.of(inputs.saturationExtractAnalysis()), warnings);
+        List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
         LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
         GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
@@ -342,7 +344,7 @@ public class RecommendationCalculationService {
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
                 .physicalAnalysisId(inputs.physicalAnalysis().getId())
                 .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
-                .saturationExtractAnalysisId(inputs.saturationExtractAnalysis().getId())
+                .saturationExtractAnalysisId(inputs.saturationExtractAnalysis() != null ? inputs.saturationExtractAnalysis().getId() : null)
                 .annualCropFolderId(inputs.annualCropFolder().getId())
                 .cropId(inputs.crop().getId()).foliarAnalysisId(inputs.foliarAnalysis().map(FoliarAnalysisModel::getId).orElse(null))
                 .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.salinityDiagnosis().summary())
@@ -2233,6 +2235,7 @@ public class RecommendationCalculationService {
 
     private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {return physicalAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));}
     private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id); if (extract.isPresent()) {SoilAnalysisModel soil = resolveSoilAnalysis(extract.get()); if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) return new FertilityAnalysisSelection(soil, extract);} Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id); if (soil.isPresent()) return new FertilityAnalysisSelection(soil.get(), Optional.empty()); return extract.map(e -> new FertilityAnalysisSelection(resolveSoilAnalysis(e), Optional.of(e))).orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));}
+    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findSaturationExtractAnalysisExtractByIdOrThrow(id);}
     private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {return saturationExtractAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));}
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {return annualCropFolderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));}
     private CropModel findCropByIdOrThrow(Long id) {return cropRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + id));}

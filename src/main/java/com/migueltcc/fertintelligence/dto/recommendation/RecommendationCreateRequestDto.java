@@ -50,7 +50,6 @@ public class RecommendationCreateRequestDto {
 
     @JsonProperty("id_extrato_analise_extrato_saturacao")
     @JsonAlias({"saturationExtractAnalysisExtractId", "saturationAnalysisId", "id_extrato_saturacao", "id_analise_extrato_saturacao"})
-    @NotNull
     private Long saturationExtractAnalysisExtractId;
 
     @JsonProperty("id_pasta_cultura_anual")
