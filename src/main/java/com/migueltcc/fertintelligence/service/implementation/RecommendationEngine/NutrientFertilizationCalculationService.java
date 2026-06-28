@@ -38,19 +38,22 @@ class NutrientFertilizationCalculationService {
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
     private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
+    private final CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService;
 
     NutrientFertilizationCalculationService(ContentRangeRepository contentRangeRepository,
                                             CoverageRepository coverageRepository,
                                             FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
-                                            PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService) {
+                                            PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService,
+                                            CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
         this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
+        this.coverageFormulatedFertilizerRecommendationService = coverageFormulatedFertilizerRecommendationService;
     }
 
     FertilizationRecommendationContext calculate(CropFertilizationTableModel table,
@@ -84,6 +87,7 @@ class NutrientFertilizationCalculationService {
         planting.suggestion().ifPresent(fertilizerSuggestions::add);
         NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(requiredN, requiredP2O5, requiredK2O);
         nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
+        CoverageNpkAccumulator coverageNpkAccumulator = new CoverageNpkAccumulator();
 
         recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
                 .phase("Plantio")
@@ -107,7 +111,8 @@ class NutrientFertilizationCalculationService {
 
         for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
             if (selectedRange != null) {
-                recommendationRows.addAll(buildCoverageRows(selectedRange, crop, user, sourceOption, fertilizerSuggestions, nutrientBalance, warnings));
+                recommendationRows.addAll(buildCoverageRows(
+                        selectedRange, crop, user, sourceOption, fertilizerSuggestions, nutrientBalance, coverageNpkAccumulator, warnings));
             }
         }
         recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
@@ -132,12 +137,16 @@ class NutrientFertilizationCalculationService {
         List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedRows =
                 plantingFormulatedFertilizerRecommendationService.calculate(
                         user, sourceOption, requiredN, requiredP2O5, requiredK2O, crop, warnings);
+        List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedRows =
+                coverageFormulatedFertilizerRecommendationService.calculate(
+                        user, sourceOption, coverageNpkAccumulator.toRecommendations(), crop, warnings);
 
         return new FertilizationRecommendationContext(
                 recommendationRows, fertilizerSuggestions, nutrientBalanceRows,
                 alternativeFertilizationResult.alternativeRows(),
                 alternativeFertilizationResult.directRecommendationRows(),
                 plantingFormulatedRows,
+                coverageFormulatedRows,
                 requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
     }
 
@@ -254,7 +263,15 @@ class NutrientFertilizationCalculationService {
                 calc.nutrient(), calc.targetNeedKgHa(), calc.concentrationPercent(), calc.quantityKgHa(), calc.method(), providedN, providedP2O5, providedK2O, balanceN, balanceP2O5, balanceK2O);
     }
 
-    private List<RecommendationCalculationService.FertilizationRecommendationRow> buildCoverageRows(ContentRangeModel range, CropModel crop, UserModel user, FertilizerSourceOption sourceOption, List<RecommendationCalculationService.FertilizerSuggestion> suggestions, NutrientBalanceAccumulator balance, List<String> warnings) {
+    private List<RecommendationCalculationService.FertilizationRecommendationRow> buildCoverageRows(
+            ContentRangeModel range,
+            CropModel crop,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
+            List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
+            NutrientBalanceAccumulator balance,
+            CoverageNpkAccumulator coverageNpkAccumulator,
+            List<String> warnings) {
         List<RecommendationCalculationService.FertilizationRecommendationRow> rows = new ArrayList<>();
         Nutriente nutrient = range.getNutrient();
         List<CoverageModel> coverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
@@ -263,6 +280,7 @@ class NutrientFertilizationCalculationService {
             if (c.getApplication() == null) continue;
 
             double targetApplication = round2(c.getApplication());
+            coverageNpkAccumulator.add(c.getOrder(), nutrient, targetApplication);
             String fertName = targetApplication > 0d ? "Fonte não definida" : "Não se aplica";
             Double q = null;
             String limitingNutrient = null;
@@ -490,6 +508,42 @@ class NutrientFertilizationCalculationService {
                     .finalBalanceKgHa(round2(balance))
                     .status(balance < 0d ? "Déficit" : balance > 0d ? "Excedente" : "Atendido")
                     .build();
+        }
+    }
+
+    private class CoverageNpkAccumulator {
+        private final Map<Integer, CoverageNpkDose> dosesByOrder = new LinkedHashMap<>();
+
+        void add(Integer coverageOrder, Nutriente nutrient, double applicationKgHa) {
+            CoverageNpkDose dose = dosesByOrder.computeIfAbsent(coverageOrder, CoverageNpkDose::new);
+            dose.add(nutrient, applicationKgHa);
+        }
+
+        List<CoverageFormulatedFertilizerRecommendationService.CoverageNpkRecommendation> toRecommendations() {
+            return dosesByOrder.values().stream()
+                    .map(dose -> new CoverageFormulatedFertilizerRecommendationService.CoverageNpkRecommendation(
+                            dose.coverageOrder,
+                            round2(dose.requiredN),
+                            round2(dose.requiredP2O5),
+                            round2(dose.requiredK2O)))
+                    .toList();
+        }
+    }
+
+    private class CoverageNpkDose {
+        private final Integer coverageOrder;
+        private double requiredN;
+        private double requiredP2O5;
+        private double requiredK2O;
+
+        CoverageNpkDose(Integer coverageOrder) {
+            this.coverageOrder = coverageOrder;
+        }
+
+        void add(Nutriente nutrient, double applicationKgHa) {
+            if (nutrient == Nutriente.NITROGENIO) requiredN = round2(requiredN + applicationKgHa);
+            else if (nutrient == Nutriente.POTASSIO) requiredK2O = round2(requiredK2O + applicationKgHa);
+            else requiredP2O5 = round2(requiredP2O5 + applicationKgHa);
         }
     }
 

@@ -1,15 +1,18 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationCoverageFormulatedFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationMicronutrientFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationPostRequestDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationPlantingFormulatedFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
@@ -33,6 +36,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
+    private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
@@ -60,7 +64,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
             RecommendationModel recommendation,
             String technicalReport,
             List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows) {
-        return createInitial(recommendation, technicalReport, micronutrientFertilizerRows, List.of());
+        return createInitial(recommendation, technicalReport, micronutrientFertilizerRows, List.of(), List.of());
     }
 
     @Override
@@ -69,7 +73,8 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
             RecommendationModel recommendation,
             String technicalReport,
             List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
-            List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows) {
+            List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
+            List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows) {
         if (recommendation == null || recommendation.getId() == null) {
             throw new IllegalArgumentException("A recomendação precisa estar salva antes da criação da Recomendação Direta.");
         }
@@ -80,6 +85,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
                 .orElseGet(() -> saveNew(recommendation, technicalReport));
         syncMicronutrientFertilizerLines(directRecommendation, micronutrientFertilizerRows);
         syncPlantingFormulatedFertilizerLines(directRecommendation, plantingFormulatedFertilizerRows);
+        syncCoverageFormulatedFertilizerLines(directRecommendation, coverageFormulatedFertilizerRows);
         return directRecommendation;
     }
 
@@ -167,6 +173,45 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
                 .build();
     }
 
+    private void syncCoverageFormulatedFertilizerLines(
+            DirectRecommendationModel directRecommendation,
+            List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        coverageFormulatedFertilizerLineRepository.deleteAllByDirectRecommendation(directRecommendation);
+        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> models = rows.stream()
+                .map(row -> toCoverageFormulatedFertilizerLineModel(directRecommendation, row))
+                .toList();
+        coverageFormulatedFertilizerLineRepository.saveAll(models);
+    }
+
+    private DirectRecommendationCoverageFormulatedFertilizerLineModel toCoverageFormulatedFertilizerLineModel(
+            DirectRecommendationModel directRecommendation,
+            RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow row) {
+        return DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
+                .directRecommendation(directRecommendation)
+                .coverageOrder(row.getCoverageOrder())
+                .phase(row.getPhase())
+                .fertilizerId(row.getFertilizerId())
+                .fertilizerName(row.getFertilizerName())
+                .nitrogenPercent(row.getNitrogenPercent())
+                .p2o5Percent(row.getP2o5Percent())
+                .k2oPercent(row.getK2oPercent())
+                .requiredN(row.getRequiredN())
+                .requiredP2O5(row.getRequiredP2O5())
+                .requiredK2O(row.getRequiredK2O())
+                .relationUsed(row.getRelationUsed())
+                .selectionType(row.getSelectionType())
+                .doseKgHa(row.getDoseKgHa())
+                .doseUnitMode(row.getDoseUnitMode())
+                .doseUnitLabel(row.getDoseUnitLabel())
+                .gramsPerLinearMeter(row.getGramsPerLinearMeter())
+                .gramsPerPit(row.getGramsPerPit())
+                .technicalObservation(row.getTechnicalObservation())
+                .build();
+    }
+
     @Override
     @Transactional(readOnly = true)
     public DirectRecommendationResponseDto get(Long id, String username) {
@@ -226,6 +271,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
                 .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
                 .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
                 .plantingFormulatedFertilizerLines(toPlantingFormulatedFertilizerLineDtos(model))
+                .coverageFormulatedFertilizerLines(toCoverageFormulatedFertilizerLineDtos(model))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -283,6 +329,43 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
                 .nitrogenPercent(line.getNitrogenPercent())
                 .p2o5Percent(line.getP2o5Percent())
                 .k2oPercent(line.getK2oPercent())
+                .relationUsed(line.getRelationUsed())
+                .selectionType(line.getSelectionType())
+                .doseKgHa(line.getDoseKgHa())
+                .doseUnitMode(line.getDoseUnitMode())
+                .doseUnitLabel(line.getDoseUnitLabel())
+                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
+                .gramsPerPit(line.getGramsPerPit())
+                .technicalObservation(line.getTechnicalObservation())
+                .build();
+    }
+
+    private List<DirectRecommendationCoverageFormulatedFertilizerLineResponseDto> toCoverageFormulatedFertilizerLineDtos(
+            DirectRecommendationModel directRecommendation) {
+        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines =
+                coverageFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation);
+        if (lines == null) {
+            return List.of();
+        }
+        return lines.stream()
+                .map(this::toCoverageFormulatedFertilizerLineDto)
+                .toList();
+    }
+
+    private DirectRecommendationCoverageFormulatedFertilizerLineResponseDto toCoverageFormulatedFertilizerLineDto(
+            DirectRecommendationCoverageFormulatedFertilizerLineModel line) {
+        return DirectRecommendationCoverageFormulatedFertilizerLineResponseDto.builder()
+                .id(line.getId())
+                .coverageOrder(line.getCoverageOrder())
+                .phase(line.getPhase())
+                .fertilizerId(line.getFertilizerId())
+                .fertilizerName(line.getFertilizerName())
+                .nitrogenPercent(line.getNitrogenPercent())
+                .p2o5Percent(line.getP2o5Percent())
+                .k2oPercent(line.getK2oPercent())
+                .requiredN(line.getRequiredN())
+                .requiredP2O5(line.getRequiredP2O5())
+                .requiredK2O(line.getRequiredK2O())
                 .relationUsed(line.getRelationUsed())
                 .selectionType(line.getSelectionType())
                 .doseKgHa(line.getDoseKgHa())
