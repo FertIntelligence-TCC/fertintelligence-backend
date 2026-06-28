@@ -2,6 +2,9 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 
@@ -109,6 +112,14 @@ final class TechnicalRecommendationDocumentSupport {
     }
 
     static List<ShoppingItem> collectShoppingItems(RecommendationModel recommendation) {
+        return collectShoppingItems(recommendation, List.of(), List.of(), List.of());
+    }
+
+    static List<ShoppingItem> collectShoppingItems(
+            RecommendationModel recommendation,
+            List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
         String source = recommendation.getTechnicalReport();
         addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"),
@@ -116,6 +127,9 @@ final class TechnicalRecommendationDocumentSupport {
                 "Dose efetiva registrada pelo cálculo",
                 "Dose corrigida por PRNT");
         addCorrectiveItem(items, source, "Gesso", section(source, "8. Gessagem"), "Dose comercial");
+        addDirectMicronutrientItems(items, micronutrientFertilizerLines);
+        addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines);
+        addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines);
         addAlternativeItems(items, subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         addFertilizationItems(items, section(source, "10. Adubação de plantio"));
         addFertilizationItems(items, section(source, "11. Adubação de cobertura"));
@@ -178,7 +192,7 @@ final class TechnicalRecommendationDocumentSupport {
                 if (!normalize(line).contains(normalize(label))) continue;
                 Optional<Double> kgHa = extractKgHa(line);
                 if (kgHa.isPresent()) {
-                    merge(items, itemName, kgHa.get(), source);
+                    merge(items, itemName, kgHa.get(), null, null, null);
                     return;
                 }
             }
@@ -191,7 +205,9 @@ final class TechnicalRecommendationDocumentSupport {
             String fertilizer = row.get(2);
             String quantity = row.get(3);
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
-            extractKgHa(quantity).ifPresent(kgHa -> merge(items, removeId(fertilizer), kgHa, section));
+            String itemName = removeId(fertilizer);
+            if (items.containsKey(safe(itemName))) continue;
+            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, null, null, null));
         }
     }
 
@@ -203,18 +219,104 @@ final class TechnicalRecommendationDocumentSupport {
             String unit = row.get(4);
             if (looksUnavailable(sourceName) || looksUnavailable(dose) || unit == null) continue;
             if (!normalize(unit).contains("kg/ha")) continue;
-            parseDecimal(dose).ifPresent(kgHa -> merge(items, removeId(sourceName), kgHa, section));
+            String itemName = removeId(sourceName);
+            if (items.containsKey(safe(itemName))) continue;
+            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, null, null));
         }
     }
 
-    private static void merge(Map<String, ShoppingItem> items, String name, Double kgHa, String source) {
+    private static void addDirectMicronutrientItems(
+            Map<String, ShoppingItem> items,
+            List<DirectRecommendationMicronutrientFertilizerLineModel> lines) {
+        if (lines == null) return;
+        for (DirectRecommendationMicronutrientFertilizerLineModel line : lines) {
+            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getFertilizerDoseKgHa() == null) continue;
+            merge(
+                    items,
+                    removeId(line.getFertilizerName()),
+                    line.getFertilizerDoseKgHa(),
+                    "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
+                    null,
+                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+        }
+    }
+
+    private static void addDirectPlantingFormulatedItems(
+            Map<String, ShoppingItem> items,
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines) {
+        if (lines == null) return;
+        for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
+            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getDoseKgHa() == null) continue;
+            merge(
+                    items,
+                    removeId(line.getFertilizerName()),
+                    line.getDoseKgHa(),
+                    formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    line.getPhase(),
+                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+        }
+    }
+
+    private static void addDirectCoverageFormulatedItems(
+            Map<String, ShoppingItem> items,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines) {
+        if (lines == null) return;
+        for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
+            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getDoseKgHa() == null) continue;
+            String phase = line.getPhase();
+            if (line.getCoverageOrder() != null) {
+                phase = safePhase(phase) + " " + line.getCoverageOrder();
+            }
+            merge(
+                    items,
+                    removeId(line.getFertilizerName()),
+                    line.getDoseKgHa(),
+                    formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    phase,
+                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+        }
+    }
+
+    private static String formattedFormulatedGroup(Double nitrogen, Double p2o5, Double k2o) {
+        String formula = formatPercentForFormula(nitrogen) + "-" + formatPercentForFormula(p2o5) + "-" + formatPercentForFormula(k2o);
+        return "Formulado NPK " + formula;
+    }
+
+    private static String formatPercentForFormula(Double value) {
+        if (value == null) return "?";
+        if (Math.rint(value) == value) {
+            return String.format(Locale.US, "%.0f", value);
+        }
+        return String.format(Locale.US, "%.2f", value);
+    }
+
+    private static String localizedDose(String label, Double gramsPerLinearMeter, Double gramsPerPit) {
+        if (label == null || label.isBlank()) return null;
+        String normalizedLabel = normalize(label);
+        if (normalizedLabel.contains("cova")) {
+            return gramsPerPit == null ? null : String.format(Locale.US, "%.2f %s", gramsPerPit, label);
+        }
+        if (normalizedLabel.contains("m linear")) {
+            return gramsPerLinearMeter == null ? null : String.format(Locale.US, "%.2f %s", gramsPerLinearMeter, label);
+        }
+        return null;
+    }
+
+    private static String safePhase(String value) {
+        return value == null || value.isBlank() ? "Cobertura" : value.trim();
+    }
+
+    private static void merge(Map<String, ShoppingItem> items, String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
         String itemName = safe(name);
         ShoppingItem existing = items.get(itemName);
         if (existing == null) {
-            items.put(itemName, new ShoppingItem(itemName, kgHa));
+            items.put(itemName, new ShoppingItem(itemName, kgHa, typeGroup, phase, localizedDose));
             return;
         }
         existing.addKgHa(kgHa);
+        existing.addTypeGroup(typeGroup);
+        existing.addPhase(phase);
+        existing.addLocalizedDose(localizedDose);
     }
 
     private static Optional<Double> parseDecimal(String value) {
@@ -249,10 +351,16 @@ final class TechnicalRecommendationDocumentSupport {
     static final class ShoppingItem {
         private final String name;
         private Double kgHa;
+        private String typeGroup;
+        private String phase;
+        private String localizedDose;
 
-        ShoppingItem(String name, Double kgHa) {
+        ShoppingItem(String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
             this.name = name;
             this.kgHa = kgHa;
+            this.typeGroup = typeGroup;
+            this.phase = phase;
+            this.localizedDose = localizedDose;
         }
 
         String getName() {
@@ -263,9 +371,44 @@ final class TechnicalRecommendationDocumentSupport {
             return kgHa;
         }
 
+        String getTypeGroup() {
+            return typeGroup == null || typeGroup.isBlank() ? NOT_APPLICABLE : typeGroup;
+        }
+
+        String getPhase() {
+            return phase == null || phase.isBlank() ? NOT_APPLICABLE : phase;
+        }
+
+        String getLocalizedDose() {
+            return localizedDose == null || localizedDose.isBlank() ? NOT_APPLICABLE : localizedDose;
+        }
+
         void addKgHa(Double value) {
             if (value == null) return;
             this.kgHa = this.kgHa == null ? value : this.kgHa + value;
+        }
+
+        void addTypeGroup(String value) {
+            this.typeGroup = appendDistinct(this.typeGroup, value);
+        }
+
+        void addPhase(String value) {
+            this.phase = appendDistinct(this.phase, value);
+        }
+
+        void addLocalizedDose(String value) {
+            this.localizedDose = appendDistinct(this.localizedDose, value);
+        }
+
+        private String appendDistinct(String current, String value) {
+            if (value == null || value.isBlank()) return current;
+            if (current == null || current.isBlank()) return value.trim();
+            for (String part : current.split(";")) {
+                if (normalize(part.trim()).equals(normalize(value.trim()))) {
+                    return current;
+                }
+            }
+            return current + "; " + value.trim();
         }
     }
 }
