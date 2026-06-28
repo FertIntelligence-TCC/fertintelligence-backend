@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
+import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.dto.crop.CropCreateRequestDto;
@@ -76,6 +77,10 @@ public class CropServiceImpl implements CropService {
                 .cycle(createRequestDto.getCycle())
                 .distanceBetweenLines(createRequestDto.getDistanceBetweenLines())
                 .plantsPerMeter(createRequestDto.getPlantsPerMeter())
+                .spacingMode(Optional.ofNullable(createRequestDto.getSpacingMode())
+                        .orElse(CropSpacingMode.PLANTS_PER_LINEAR_METER))
+                .distanceBetweenPits(createRequestDto.getDistanceBetweenPits())
+                .plantsPerPit(createRequestDto.getPlantsPerPit())
                 .expectedProductivity(createRequestDto.getExpectedProductivity())
                 .obtainedProductivity(createRequestDto.getObtainedProductivity())
                 .usedAreaInThePlot(createRequestDto.getUsedAreaInThePlot())
@@ -155,6 +160,9 @@ public class CropServiceImpl implements CropService {
         if (updateRequestDto.getCycle() != null) crop.setCycle(updateRequestDto.getCycle());
         if (updateRequestDto.getDistanceBetweenLines() != null) crop.setDistanceBetweenLines(updateRequestDto.getDistanceBetweenLines());
         if (updateRequestDto.getPlantsPerMeter() != null) crop.setPlantsPerMeter(updateRequestDto.getPlantsPerMeter());
+        if (updateRequestDto.getSpacingMode() != null) crop.setSpacingMode(updateRequestDto.getSpacingMode());
+        if (updateRequestDto.getDistanceBetweenPits() != null) crop.setDistanceBetweenPits(updateRequestDto.getDistanceBetweenPits());
+        if (updateRequestDto.getPlantsPerPit() != null) crop.setPlantsPerPit(updateRequestDto.getPlantsPerPit());
         if (updateRequestDto.getExpectedProductivity() != null) crop.setExpectedProductivity(updateRequestDto.getExpectedProductivity());
         if (updateRequestDto.getObtainedProductivity() != null) crop.setObtainedProductivity(updateRequestDto.getObtainedProductivity());
         if (updateRequestDto.getUsedAreaInThePlot() != null) crop.setUsedAreaInThePlot(updateRequestDto.getUsedAreaInThePlot());

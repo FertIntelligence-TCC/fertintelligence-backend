@@ -1,7 +1,9 @@
 package com.migueltcc.fertintelligence.dto.crop;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,7 +40,20 @@ public class CropPostRequestDto {
 
     @Schema(example = "330.0")
     @JsonProperty("novo_numero_plantas_por_metro")
+    @JsonAlias("novo_plantas_por_metro_linear")
     Double plantsPerMeter;
+
+    @Schema(example = "PLANTS_PER_LINEAR_METER")
+    @JsonProperty("novo_modo_espacamento")
+    CropSpacingMode spacingMode;
+
+    @Schema(example = "0.3")
+    @JsonProperty("novo_distancia_entre_covas")
+    Double distanceBetweenPits;
+
+    @Schema(example = "2.0")
+    @JsonProperty("novo_numero_plantas_por_cova")
+    Double plantsPerPit;
 
     @Schema(example = "4200")
     @JsonProperty("novo_produtividade_esperada")

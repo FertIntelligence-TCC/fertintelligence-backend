@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence.cropModels;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.dto.crop.CropResponseDto;
@@ -44,6 +45,17 @@ public class CropModel {
 
     @Column(name = "N_PLANTAS_POR_METRO", nullable = false)
     Double plantsPerMeter;
+
+    @Builder.Default
+    @Column(name = "MODO_ESPACAMENTO")
+    @Enumerated(EnumType.STRING)
+    CropSpacingMode spacingMode = CropSpacingMode.PLANTS_PER_LINEAR_METER;
+
+    @Column(name = "DISTANCIA_ENTRE_COVAS")
+    Double distanceBetweenPits;
+
+    @Column(name = "N_PLANTAS_POR_COVA")
+    Double plantsPerPit;
 
     @Column(name = "PRODUTIVIDADE_ESPERADA", nullable = false)
     Double expectedProductivity;
@@ -106,6 +118,9 @@ public class CropModel {
                 .cycle(this.cycle)
                 .distanceBetweenLines(this.distanceBetweenLines)
                 .plantsPerMeter(this.plantsPerMeter)
+                .spacingMode(this.spacingMode)
+                .distanceBetweenPits(this.distanceBetweenPits)
+                .plantsPerPit(this.plantsPerPit)
                 .expectedProductivity(this.expectedProductivity)
                 .obtainedProductivity(this.obtainedProductivity)
                 .usedAreaInThePlot(this.usedAreaInThePlot)
