@@ -60,7 +60,7 @@ public class RecommendationCalculationService {
             "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
 
     private final LimingRequirementCalculator limingRequirementCalculator = new LimingRequirementCalculator();
-    private final SoilTextureClassificationService soilTextureClassificationService = new SoilTextureClassificationService();
+    private final SoilTextureClassificationService soilTextureClassificationService;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
@@ -122,7 +122,8 @@ public class RecommendationCalculationService {
                                             GreenFertilizerRepository greenFertilizerRepository,
                                             BioFertilizerRepository bioFertilizerRepository,
                                             MineralFertilizerRepository mineralFertilizerRepository,
-                                            ChelatedFertilizerRepository chelatedFertilizerRepository) {
+                                            ChelatedFertilizerRepository chelatedFertilizerRepository,
+                                            SoilTextureClassificationService soilTextureClassificationService) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -153,6 +154,7 @@ public class RecommendationCalculationService {
         this.bioFertilizerRepository = bioFertilizerRepository;
         this.mineralFertilizerRepository = mineralFertilizerRepository;
         this.chelatedFertilizerRepository = chelatedFertilizerRepository;
+        this.soilTextureClassificationService = soilTextureClassificationService;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {

@@ -3,6 +3,10 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import org.springframework.stereotype.Service;
 
+import java.text.Normalizer;
+import java.util.List;
+import java.util.Locale;
+
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_INFORMED;
 
@@ -11,6 +15,7 @@ public class SummaryRecommendationReportService {
 
     public String build(RecommendationModel recommendation) {
         String source = recommendation.getTechnicalReport();
+        String granulometricClassification = extractGranulometricClassification(source);
         StringBuilder report = new StringBuilder();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
         TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
@@ -18,7 +23,7 @@ public class SummaryRecommendationReportService {
         TechnicalRecommendationDocumentSupport.appendIdentification(report, recommendation);
 
         report.append("## Diagnóstico da Fertilidade do Solo da Área Avaliada\n\n");
-        report.append("- Classificação granulométrica: ").append(TechnicalRecommendationDocumentSupport.safe(recommendation.getPlot() != null ? recommendation.getPlot().getSoilTexture() : null)).append("\n");
+        report.append("- Classificação granulométrica: ").append(TechnicalRecommendationDocumentSupport.safe(granulometricClassification)).append("\n");
         report.append("- Critérios Muito Baixo/Baixo/Médio/Alto ou Bom/Muito Alto: ver tabela técnica calculada abaixo quando disponível.\n");
         report.append("- Fertigrama/gráfico: ").append(NOT_CALCULATED).append("\n\n");
         report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "3. Diagnóstico químico"))).append("\n\n");
@@ -30,7 +35,7 @@ public class SummaryRecommendationReportService {
                 NOT_CALCULATED);
 
         report.append("## Diagnóstico geral\n\n");
-        TechnicalRecommendationDocumentSupport.appendBullet(report, "Textura", recommendation.getPlot() != null ? String.valueOf(recommendation.getPlot().getSoilTexture()) : null);
+        TechnicalRecommendationDocumentSupport.appendBullet(report, "Classificação granulométrica", granulometricClassification);
         report.append("- Acidez/calagem: consolidada na seção de calagem quando calculada.\n");
         report.append("- Salinidade/sodicidade: consolidada na seção de sais quando calculada.\n");
         report.append("- Fertilidade alta/média/baixa: usar as interpretações por atributo do diagnóstico químico; o backend não gerou uma classe global única persistida.\n\n");
@@ -77,8 +82,33 @@ public class SummaryRecommendationReportService {
         return report.toString();
     }
 
+    private String extractGranulometricClassification(String source) {
+        String physicalDiagnosis = TechnicalRecommendationDocumentSupport.section(source, "4. Diagnóstico físico");
+        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(physicalDiagnosis)) {
+            if (row.size() < 4 || !normalize(row.get(0)).contains("classificacao granulometrica")) {
+                continue;
+            }
+            String texturalClass = row.get(3);
+            String strategy = row.get(2);
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(texturalClass)) {
+                return NOT_CALCULATED;
+            }
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(strategy)) {
+                return texturalClass;
+            }
+            return texturalClass + " (" + strategy + ")";
+        }
+        return NOT_CALCULATED;
+    }
+
     private void appendWithoutHeading(StringBuilder report, String source, String heading, String fallback) {
         String section = TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, heading));
         report.append(section.isBlank() ? fallback : section).append("\n\n");
+    }
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        String noAccent = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return noAccent.toLowerCase(Locale.ROOT);
     }
 }
