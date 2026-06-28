@@ -75,12 +75,6 @@ public class CropServiceImpl implements CropService {
                 .name(createRequestDto.getName())
                 .variety(createRequestDto.getVariety())
                 .cycle(createRequestDto.getCycle())
-                .distanceBetweenLines(createRequestDto.getDistanceBetweenLines())
-                .plantsPerMeter(createRequestDto.getPlantsPerMeter())
-                .spacingMode(Optional.ofNullable(createRequestDto.getSpacingMode())
-                        .orElse(CropSpacingMode.PLANTS_PER_LINEAR_METER))
-                .distanceBetweenPits(createRequestDto.getDistanceBetweenPits())
-                .plantsPerPit(createRequestDto.getPlantsPerPit())
                 .expectedProductivity(createRequestDto.getExpectedProductivity())
                 .obtainedProductivity(createRequestDto.getObtainedProductivity())
                 .usedAreaInThePlot(createRequestDto.getUsedAreaInThePlot())
@@ -92,7 +86,17 @@ public class CropServiceImpl implements CropService {
                 .idFoto(createRequestDto.getIdFoto())
                 .build();
 
-        return cropRepository.save(crop).toDto();
+        applySpacingFields(
+                crop,
+                createRequestDto.getDistanceBetweenLines(),
+                createRequestDto.getPlantsPerMeter(),
+                createRequestDto.getSpacingMode(),
+                createRequestDto.getDistanceBetweenPits(),
+                createRequestDto.getPlantsPerPit()
+        );
+        validateSpacing(crop);
+
+        return toResponseDto(cropRepository.save(crop));
     }
 
     @Override
@@ -104,7 +108,7 @@ public class CropServiceImpl implements CropService {
         CropModel crop = findCropByIdOrThrow(cropId);
 
         // Se você quiser enforcement de leitura também, criamos depois um assertCanReadPlot/property.
-        return crop.toDto();
+        return toResponseDto(crop);
     }
 
     @Override
@@ -115,7 +119,7 @@ public class CropServiceImpl implements CropService {
         AnnualCropFolderModel folder = findAnnualCropFolderByIdOrThrow(folderId);
 
         return cropRepository.findAllByFolder(folder).stream()
-                .map(CropModel::toDto)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -158,11 +162,16 @@ public class CropServiceImpl implements CropService {
         crop.setVariety(newVariety);
 
         if (updateRequestDto.getCycle() != null) crop.setCycle(updateRequestDto.getCycle());
-        if (updateRequestDto.getDistanceBetweenLines() != null) crop.setDistanceBetweenLines(updateRequestDto.getDistanceBetweenLines());
-        if (updateRequestDto.getPlantsPerMeter() != null) crop.setPlantsPerMeter(updateRequestDto.getPlantsPerMeter());
-        if (updateRequestDto.getSpacingMode() != null) crop.setSpacingMode(updateRequestDto.getSpacingMode());
-        if (updateRequestDto.getDistanceBetweenPits() != null) crop.setDistanceBetweenPits(updateRequestDto.getDistanceBetweenPits());
-        if (updateRequestDto.getPlantsPerPit() != null) crop.setPlantsPerPit(updateRequestDto.getPlantsPerPit());
+        applySpacingFields(
+                crop,
+                updateRequestDto.getDistanceBetweenLines(),
+                updateRequestDto.getPlantsPerMeter(),
+                updateRequestDto.getSpacingMode(),
+                updateRequestDto.getDistanceBetweenPits(),
+                updateRequestDto.getPlantsPerPit()
+        );
+        validateSpacing(crop);
+
         if (updateRequestDto.getExpectedProductivity() != null) crop.setExpectedProductivity(updateRequestDto.getExpectedProductivity());
         if (updateRequestDto.getObtainedProductivity() != null) crop.setObtainedProductivity(updateRequestDto.getObtainedProductivity());
         if (updateRequestDto.getUsedAreaInThePlot() != null) crop.setUsedAreaInThePlot(updateRequestDto.getUsedAreaInThePlot());
@@ -174,7 +183,7 @@ public class CropServiceImpl implements CropService {
         if (updateRequestDto.getHarvestDate() != null) crop.setHarvestDate(copyDate(updateRequestDto.getHarvestDate()));
         if (updateRequestDto.getIdFoto() != null) crop.setIdFoto(updateRequestDto.getIdFoto());
 
-        return cropRepository.save(crop).toDto();
+        return toResponseDto(cropRepository.save(crop));
     }
 
     @Override
@@ -228,6 +237,66 @@ public class CropServiceImpl implements CropService {
     private Date copyDate(Date source) {
         if (source == null) return null;
         return new Date(source.getDay(), source.getMonth(), source.getYear());
+    }
+
+    private CropResponseDto toResponseDto(CropModel crop) {
+        CropResponseDto dto = crop.toDto();
+        dto.setSpacingMode(resolveSpacingMode(crop.getSpacingMode(), crop.getPlantsPerMeter()));
+        return dto;
+    }
+
+    private void applySpacingFields(
+            CropModel crop,
+            Double distanceBetweenLines,
+            Double plantsPerMeter,
+            CropSpacingMode spacingMode,
+            Double distanceBetweenPits,
+            Double plantsPerPit
+    ) {
+        if (distanceBetweenLines != null) crop.setDistanceBetweenLines(distanceBetweenLines);
+        if (plantsPerMeter != null) crop.setPlantsPerMeter(plantsPerMeter);
+        if (spacingMode != null) crop.setSpacingMode(spacingMode);
+        if (distanceBetweenPits != null) crop.setDistanceBetweenPits(distanceBetweenPits);
+        if (plantsPerPit != null) crop.setPlantsPerPit(plantsPerPit);
+
+        crop.setSpacingMode(resolveSpacingMode(crop.getSpacingMode(), crop.getPlantsPerMeter()));
+    }
+
+    private CropSpacingMode resolveSpacingMode(CropSpacingMode spacingMode, Double plantsPerMeter) {
+        if (spacingMode != null && spacingMode != CropSpacingMode.UNKNOWN) {
+            return spacingMode;
+        }
+        if (isPositive(plantsPerMeter)) {
+            return CropSpacingMode.PLANTS_PER_LINEAR_METER;
+        }
+        return spacingMode;
+    }
+
+    private void validateSpacing(CropModel crop) {
+        if (!isPositive(crop.getDistanceBetweenLines())) {
+            throw new IllegalArgumentException("A distância entre linhas deve ser maior que zero.");
+        }
+
+        CropSpacingMode spacingMode = resolveSpacingMode(crop.getSpacingMode(), crop.getPlantsPerMeter());
+        if (spacingMode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
+            if (!isPositive(crop.getPlantsPerMeter())) {
+                throw new IllegalArgumentException("O modo Nº de Plantas/m linear exige número de plantas por metro linear maior que zero.");
+            }
+            return;
+        }
+
+        if (spacingMode == CropSpacingMode.PIT) {
+            if (!isPositive(crop.getDistanceBetweenPits())) {
+                throw new IllegalArgumentException("O modo Distância entre covas (m) exige distância entre covas maior que zero.");
+            }
+            if (!isPositive(crop.getPlantsPerPit())) {
+                throw new IllegalArgumentException("O modo Distância entre covas (m) exige número de plantas por cova maior que zero.");
+            }
+        }
+    }
+
+    private boolean isPositive(Double value) {
+        return value != null && value > 0;
     }
 
     private void validateUsedAreaLimit(
