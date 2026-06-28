@@ -57,7 +57,6 @@ public class RecommendationCreateRequestDto {
     private Long annualCropFolderId;
 
     @JsonProperty("id_cultura")
-    @NotNull
     private Long cropId;
 
     @JsonProperty("id_tabela_adubacao_cultura")

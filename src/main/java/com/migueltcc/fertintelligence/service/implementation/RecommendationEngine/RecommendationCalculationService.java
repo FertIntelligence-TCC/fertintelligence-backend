@@ -137,8 +137,8 @@ public class RecommendationCalculationService {
         FertilizerSourceOption sourceOption = dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH;
         List<String> warnings = new ArrayList<>();
 
-        RecommendationInputs inputs = loadRecommendationInputs(dto, user, plot);
-        validateRecommendationInputs(inputs, plot);
+        RecommendationInputs inputs = loadRecommendationInputs(dto, user, plot, warnings);
+        validateRecommendationInputs(inputs, plot, warnings);
 
         DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
         FertilizationRecommendationContext recommendations = buildFertilizationRecommendations(
@@ -149,20 +149,20 @@ public class RecommendationCalculationService {
         return buildCalculationResult(dto, user, property, plot, diagnostics, warnings, inputs, diagnoses, recommendations);
     }
 
-    private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot) {
+    private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot, List<String> warnings) {
         PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrNull(dto.getPhysicalAnalysisExtractId());
         FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot);
         SoilAnalysisModel soilFertilityAnalysis = soilFertilitySelection.soilAnalysis();
         SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrNull(dto.getSaturationExtractAnalysisExtractId());
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(dto.getAnnualCropFolderId());
-        CropModel crop = findCropByIdOrThrow(dto.getCropId());
+        CropModel crop = resolveCropFromRecommendationContext(dto, annualCropFolder, warnings).orElse(null);
         CropFertilizationTableModel cropFertilizationTable = findCropFertilizationTableBySelectionOrThrow(
                 dto.getCropFertilizationTableId(), dto.getCropFertilizationTableGroup(), user);
         SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = findSoilFertilityInterpretationTableBySelectionOrThrow(
                 dto.getSoilFertilityInterpretationCriteriaTableId(), dto.getSoilFertilityInterpretationCriteriaTableGroup(), user);
         CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
                 dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user);
-        Optional<FoliarAnalysisModel> foliarAnalysis = findLatestFoliarAnalysis(crop);
+        Optional<FoliarAnalysisModel> foliarAnalysis = crop != null ? findLatestFoliarAnalysis(crop) : Optional.empty();
         Optional<FertilityAnalysisExtractModel> fertilityExtract = soilFertilitySelection.selectedExtract()
                 .or(() -> findLatestFertilityExtract(soilFertilityAnalysis));
 
@@ -171,7 +171,7 @@ public class RecommendationCalculationService {
                 cropFertilizationTable, soilInterpretationTable, foliarInterpretationTable, foliarAnalysis, fertilityExtract);
     }
 
-    private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot) {
+    private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot, List<String> warnings) {
         if (inputs.physicalAnalysis() != null) {
             validateSamePlot(resolvePlot(inputs.physicalAnalysis()), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
         }
@@ -180,6 +180,10 @@ public class RecommendationCalculationService {
             validateSamePlot(resolvePlot(inputs.saturationExtractAnalysis()), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
         }
         validateSamePlot(inputs.annualCropFolder().getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
+        if (inputs.crop() == null) {
+            warnings.add("Pasta de cultura anual sem cultura resolvida; validação Cultura x Tabela não foi executada.");
+            return;
+        }
         if (inputs.crop().getFolder() == null || !Objects.equals(inputs.crop().getFolder().getId(), inputs.annualCropFolder().getId())) {
             throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
         }
@@ -206,7 +210,9 @@ public class RecommendationCalculationService {
         PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(inputs.physicalAnalysis(), texturalClassification, warnings);
         String physicalSummary = physicalDiagnosis.summary();
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
-        String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
+        String cropSummary = inputs.crop() != null
+                ? "Cultura considerada conforme cadastro da pasta anual."
+                : "Cultura da pasta anual não encontrada; campos dependentes da cultura foram tratados como ausentes.";
         List<FoliarDiagnosisItem> foliarDiagnosis = buildFoliarDiagnosis(inputs.foliarAnalysis(), inputs.crop(), inputs.foliarInterpretationTable(), warnings);
         String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis);
 
@@ -254,7 +260,7 @@ public class RecommendationCalculationService {
                 .propertyId(property != null ? property.getId() : null)
                 .plotIdentification(plot != null ? plot.getIdentification() : null)
                 .plotId(plot != null ? plot.getId() : null)
-                .cropName(inputs.crop().getName() != null ? inputs.crop().getName().name() : null)
+                .cropName(resolveCropNameForResult(inputs))
                 .annualCropFolderYear(inputs.annualCropFolder().getCropsYear())
                 .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
                 .limingCriteria(diagnoses.limingRequirement() != null ? diagnoses.limingRequirement().getSelectedCriteria() : null)
@@ -277,10 +283,20 @@ public class RecommendationCalculationService {
                 .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
                 .saturationExtractAnalysisId(inputs.saturationExtractAnalysis() != null ? inputs.saturationExtractAnalysis().getId() : null)
                 .annualCropFolderId(inputs.annualCropFolder().getId())
-                .cropId(inputs.crop().getId()).foliarAnalysisId(inputs.foliarAnalysis().map(FoliarAnalysisModel::getId).orElse(null))
+                .cropId(inputs.crop() != null ? inputs.crop().getId() : null).foliarAnalysisId(inputs.foliarAnalysis().map(FoliarAnalysisModel::getId).orElse(null))
                 .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.salinityDiagnosis().summary())
                 .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
                 .cropSummary(diagnoses.cropSummary()).foliarAnalysisSummary(diagnoses.foliarSummary()).build();
+    }
+
+    private String resolveCropNameForResult(RecommendationInputs inputs) {
+        if (inputs.crop() != null && inputs.crop().getName() != null) {
+            return inputs.crop().getName().name();
+        }
+        if (inputs.cropFertilizationTable() != null && inputs.cropFertilizationTable().getCrop_common_name() != null) {
+            return inputs.cropFertilizationTable().getCrop_common_name().name();
+        }
+        return null;
     }
 
     private record RecommendationInputs(
@@ -1363,6 +1379,28 @@ public class RecommendationCalculationService {
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {
         return annualCropFolderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));
+    }
+
+    private Optional<CropModel> resolveCropFromRecommendationContext(RecommendationCreateRequestDto dto,
+                                                                     AnnualCropFolderModel annualCropFolder,
+                                                                     List<String> warnings) {
+        if (dto.getCropId() != null) {
+            Optional<CropModel> selectedCrop = cropRepository.findById(dto.getCropId());
+            if (selectedCrop.isPresent()) {
+                return selectedCrop;
+            }
+            warnings.add("Cultura informada não foi encontrada; tentando resolver cultura pela pasta anual.");
+        }
+
+        List<CropModel> crops = cropRepository.findAllByFolderId(annualCropFolder.getId());
+        Optional<CropModel> resolvedCrop = crops.stream()
+                .max(Comparator.comparing(crop -> crop.getId() == null ? 0L : crop.getId()));
+        if (resolvedCrop.isEmpty()) {
+            warnings.add("Nenhuma cultura cadastrada foi encontrada na pasta anual informada.");
+        } else if (dto.getCropId() == null) {
+            warnings.add("Cultura resolvida automaticamente a partir da pasta anual informada.");
+        }
+        return resolvedCrop;
     }
 
     private CropModel findCropByIdOrThrow(Long id) {
