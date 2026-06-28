@@ -60,6 +60,7 @@ public class RecommendationCalculationService {
             "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
 
     private final LimingRequirementCalculator limingRequirementCalculator;
+    private final GypsumCalculationService gypsumCalculationService;
     private final SoilTextureClassificationService soilTextureClassificationService;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
@@ -124,6 +125,7 @@ public class RecommendationCalculationService {
                                             MineralFertilizerRepository mineralFertilizerRepository,
                                             ChelatedFertilizerRepository chelatedFertilizerRepository,
                                             LimingRequirementCalculator limingRequirementCalculator,
+                                            GypsumCalculationService gypsumCalculationService,
                                             SoilTextureClassificationService soilTextureClassificationService) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
@@ -156,6 +158,7 @@ public class RecommendationCalculationService {
         this.mineralFertilizerRepository = mineralFertilizerRepository;
         this.chelatedFertilizerRepository = chelatedFertilizerRepository;
         this.limingRequirementCalculator = limingRequirementCalculator;
+        this.gypsumCalculationService = gypsumCalculationService;
         this.soilTextureClassificationService = soilTextureClassificationService;
     }
 
@@ -240,7 +243,7 @@ public class RecommendationCalculationService {
         List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
         LimingRequirementResult limingRequirement = limingRequirementCalculator.calculate(
                 dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
-        GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
+        GypsumRequirementResult gypsumRequirement = gypsumCalculationService.calculate(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
@@ -430,198 +433,9 @@ public class RecommendationCalculationService {
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
 
-    private GypsumRequirementResult calculateGypsumRequirement(Optional<FertilityAnalysisExtractModel> fertilityExtract,
-                                                               PhysicalAnalysisExtractModel physicalAnalysis,
-                                                               CropFertilizationTableModel cropFertilizationTable,
-                                                               SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
-                                                               UserModel user,
-                                                               FertilizerSourceOption sourceOption,
-                                                               List<String> warnings) {
-        String criterion = "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose quantitativa de gessagem não modelada no backend atual.";
-        Map<String, Double> inputValues = new LinkedHashMap<>();
-        List<String> gypsumWarnings = new ArrayList<>();
-        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
-
-        if (fertility == null) {
-            gypsumWarnings.add("Nenhum extrato de fertilidade foi encontrado para avaliar necessidade de gessagem.");
-            warnings.addAll(gypsumWarnings);
-            return GypsumRequirementResult.builder()
-                    .needed(null)
-                    .criterion(criterion)
-                    .inputValues(inputValues)
-                    .unit("t/ha")
-                    .justification("Gessagem não avaliada por ausência de extrato de fertilidade.")
-                    .warnings(gypsumWarnings)
-                    .build();
-        }
-
-        inputValues.put("Cálcio (" + fertilityUnit(fertility.getUnidadeCalcio()) + ")", fertility.getCalcio());
-        inputValues.put("Alumínio (" + fertilityUnit(fertility.getUnidadeAluminio()) + ")", fertility.getAluminio());
-        inputValues.put("Saturação por alumínio (%)", fertility.getSaturacaoAluminioM());
-        inputValues.put("CTC efetiva (" + fertilityUnit(fertility.getUnidadeCtcEfetiva()) + ")", fertility.getCtcEfetiva());
-        inputValues.put("CTC pH 7,0 (" + fertilityUnit(fertility.getUnidadeCtcPh7()) + ")", fertility.getCtcPh7());
-        inputValues.put("Argila (" + physicalUnit(physicalAnalysis != null ? physicalAnalysis.getUnidadeTeorArgila() : null) + ")", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
-        inputValues.put("Enxofre (mg/dm³)", fertility.getEnxofre());
-        inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
-        inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
-
-        if (extractInitialDepth(fertility) == null || extractFinalDepth(fertility) == null) {
-            gypsumWarnings.add("Profundidade do extrato de fertilidade não disponível; o backend não inferiu camada para gessagem.");
-        }
-
-        Optional<DiverseContentRangeModel> diverseRange = diverseContentRangeRepository.findByTable(soilInterpretationTable);
-        if (diverseRange.isEmpty()) {
-            gypsumWarnings.add("Não há faixas diversas cadastradas para avaliar cálcio, alumínio e saturação por alumínio na gessagem.");
-            warnings.addAll(gypsumWarnings);
-            return GypsumRequirementResult.builder()
-                    .needed(null)
-                    .criterion(criterion)
-                    .inputValues(inputValues)
-                    .unit("t/ha")
-                    .justification("Gessagem não calculada por ausência de critério técnico cadastrado para os indicadores disponíveis.")
-                    .warnings(gypsumWarnings)
-                    .build();
-        }
-
-        SoilChemicalDiagnosisItem calcium = classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
-                r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
-                "Cálcio usado como indicador para necessidade de gessagem.");
-        SoilChemicalDiagnosisItem aluminum = classifyDiverseRange("Alumínio", fertility.getAluminio(), fertilityUnit(fertility.getUnidadeAluminio()), diverseRange,
-                r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
-                "Alumínio usado como indicador para necessidade de gessagem.");
-        SoilChemicalDiagnosisItem aluminumSaturation = classifyDiverseRange("Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
-                r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
-                "Saturação por alumínio usada como indicador para necessidade de gessagem.");
-
-        boolean calciumIndicatesNeed = isInterpretation(calcium, "Muito baixo", "Baixo");
-        boolean aluminumIndicatesNeed = isInterpretation(aluminum, "Alto", "Muito alto");
-        boolean aluminumSaturationIndicatesNeed = isInterpretation(aluminumSaturation, "Alto", "Muito alto");
-        boolean hasClassifiedIndicator = calcium.getInterpretation() != null
-                || aluminum.getInterpretation() != null
-                || aluminumSaturation.getInterpretation() != null;
-
-        if (!hasClassifiedIndicator) {
-            gypsumWarnings.add("Dados ou critérios insuficientes para classificar cálcio, alumínio ou saturação por alumínio.");
-            warnings.addAll(gypsumWarnings);
-            return GypsumRequirementResult.builder()
-                    .needed(null)
-                    .criterion(criterion)
-                    .inputValues(inputValues)
-                    .unit("t/ha")
-                    .justification("Gessagem não calculada porque nenhum indicador pôde ser classificado com os dados e critérios cadastrados.")
-                    .warnings(gypsumWarnings)
-                    .build();
-        }
-
-        boolean needed = calciumIndicatesNeed || aluminumIndicatesNeed || aluminumSaturationIndicatesNeed;
-        Double dose = needed ? null : 0d;
-        if (needed) {
-            gypsumWarnings.add("Gessagem foi indicada pelos critérios disponíveis, mas a dose quantitativa não está modelada no backend atual.");
-        }
-
-        String justification = needed
-                ? "Gessagem indicada por pelo menos um indicador crítico: Ca=" + safeInterpretation(calcium)
-                + ", Al=" + safeInterpretation(aluminum)
-                + ", m%=" + safeInterpretation(aluminumSaturation) + "."
-                : "Gessagem não indicada pelos indicadores classificados: Ca=" + safeInterpretation(calcium)
-                + ", Al=" + safeInterpretation(aluminum)
-                + ", m%=" + safeInterpretation(aluminumSaturation) + ".";
-
-        GypsumSourceSelection sourceSelection = selectGypsumSource(user, sourceOption, dose, gypsumWarnings);
-
-        warnings.addAll(gypsumWarnings);
-        return GypsumRequirementResult.builder()
-                .needed(needed)
-                .criterion(criterion)
-                .inputValues(inputValues)
-                .calculatedRequirement(dose)
-                .unit("t/ha")
-                .sourceName(sourceSelection.sourceName())
-                .sourceType(sourceSelection.sourceType())
-                .commercialDose(sourceSelection.commercialDose())
-                .commercialDoseUnit(sourceSelection.commercialDoseUnit())
-                .sourceJustification(sourceSelection.justification())
-                .sourceLimitations(sourceSelection.limitations())
-                .justification(justification)
-                .warnings(gypsumWarnings)
-                .build();
-    }
-
-    private GypsumSourceSelection selectGypsumSource(UserModel user,
-                                                     FertilizerSourceOption sourceOption,
-                                                     Double calculatedDose,
-                                                     List<String> gypsumWarnings) {
-        if (calculatedDose == null) {
-            String limitation = "Fonte comercial de gesso agrícola não selecionada porque a dose de gessagem não foi calculada.";
-            gypsumWarnings.add(limitation);
-            return new GypsumSourceSelection(null, null, null, null,
-                    "Seleção de fonte não realizada por ausência de dose calculada.", limitation);
-        }
-        if (calculatedDose <= 0d) {
-            return new GypsumSourceSelection(null, null, 0d, "t/ha",
-                    "Gessagem não indicada; não há fonte comercial a aplicar.", "Sem limitação adicional para fonte comercial.");
-        }
-
-        Optional<SimpleMineralFertilizerModel> gypsumSource = selectSimpleFertilizers(user, sourceOption).stream()
-                .filter(this::isGypsumProduct)
-                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> nvl(f.getCa()) + nvl(f.getS()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
-
-        if (gypsumSource.isEmpty()) {
-            String limitation = "Não há produto de gesso agrícola cadastrado nos adubos minerais simples acessíveis pela origem selecionada; a dose calculada foi mantida sem fonte comercial.";
-            gypsumWarnings.add(limitation);
-            return new GypsumSourceSelection(null, null, calculatedDose, "t/ha",
-                    "Dose mantida como gesso agrícola calculado pela tabela, sem produto comercial selecionado.", limitation);
-        }
-
-        SimpleMineralFertilizerModel source = gypsumSource.get();
-        String justification = String.format(Locale.US,
-                "Produto cadastrado como adubo mineral simples com nome compatível com gesso agrícola e composição Ca %.2f%% / S %.2f%%.",
-                nvl(source.getCa()), nvl(source.getS()));
-        String limitation = "O modelo do produto não possui teor de pureza de gesso agrícola; portanto a dose comercial foi mantida igual à dose de gesso calculada.";
-        gypsumWarnings.add(limitation);
-        return new GypsumSourceSelection(source.getName(), "SIMPLES", calculatedDose, "t/ha", justification, limitation);
-    }
-
-    private boolean isGypsumProduct(SimpleMineralFertilizerModel fertilizer) {
-        if (fertilizer == null || fertilizer.getName() == null) return false;
-        String name = normalizeText(fertilizer.getName());
-        boolean nameMatches = name.contains("gesso") || name.contains("gypsum") || name.contains("sulfato de calcio");
-        return nameMatches && (nvl(fertilizer.getCa()) > 0d || nvl(fertilizer.getS()) > 0d);
-    }
-
-    private String normalizeText(String value) {
-        if (value == null) return "";
-        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
-    }
-
-    private Double extractInitialDepth(FertilityAnalysisExtractModel fertility) {
-        if (fertility == null) return null;
-        if (fertility.getRangeExtract() != null) return doubleFromInteger(fertility.getRangeExtract().getProfundidade_inicial());
-        if (fertility.getLayerExtract() != null) return doubleFromInteger(fertility.getLayerExtract().getProfundidade_inicial());
-        return null;
-    }
-
-    private Double extractFinalDepth(FertilityAnalysisExtractModel fertility) {
-        if (fertility == null) return null;
-        if (fertility.getRangeExtract() != null) return doubleFromInteger(fertility.getRangeExtract().getProfundidade_final());
-        if (fertility.getLayerExtract() != null) return doubleFromInteger(fertility.getLayerExtract().getProfundidade_final());
-        return null;
-    }
-
-    private Double doubleFromInteger(Integer value) {
-        return value == null ? null : value.doubleValue();
-    }
-
     private boolean isInterpretation(SoilChemicalDiagnosisItem item, String... expected) {
         if (item == null || item.getInterpretation() == null) return false;
         return Arrays.asList(expected).contains(item.getInterpretation());
-    }
-
-    private String safeInterpretation(SoilChemicalDiagnosisItem item) {
-        return item == null || item.getInterpretation() == null ? "não classificado" : item.getInterpretation();
     }
 
     private List<CorrectiveFertilizationRow> buildCorrectiveFertilizationRows(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
@@ -1889,9 +1703,15 @@ public class RecommendationCalculationService {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
+    private String normalizeText(String value) {
+        if (value == null) return "";
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+    }
+
     private record PhysicalDiagnosis(String summary, List<SoilPhysicalDiagnosisItem> items) {}
     private record SalinityDiagnosis(String summary, List<SoilSalinityDiagnosisItem> items) {}
-    private record GypsumSourceSelection(String sourceName, String sourceType, Double commercialDose, String commercialDoseUnit, String justification, String limitations) {}
     private record RangeCriterion(Double tooLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                   Double mediumEnd, Double highStart, Double highEnd, Double tooHighStart) {}
     private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {}
