@@ -59,7 +59,7 @@ public class RecommendationCalculationService {
     private static final String INCOMPATIBLE_CROP_AND_FERTILIZATION_TABLE_MESSAGE =
             "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
 
-    private final LimingRequirementCalculator limingRequirementCalculator = new LimingRequirementCalculator();
+    private final LimingRequirementCalculator limingRequirementCalculator;
     private final SoilTextureClassificationService soilTextureClassificationService;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
@@ -123,6 +123,7 @@ public class RecommendationCalculationService {
                                             BioFertilizerRepository bioFertilizerRepository,
                                             MineralFertilizerRepository mineralFertilizerRepository,
                                             ChelatedFertilizerRepository chelatedFertilizerRepository,
+                                            LimingRequirementCalculator limingRequirementCalculator,
                                             SoilTextureClassificationService soilTextureClassificationService) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
@@ -154,6 +155,7 @@ public class RecommendationCalculationService {
         this.bioFertilizerRepository = bioFertilizerRepository;
         this.mineralFertilizerRepository = mineralFertilizerRepository;
         this.chelatedFertilizerRepository = chelatedFertilizerRepository;
+        this.limingRequirementCalculator = limingRequirementCalculator;
         this.soilTextureClassificationService = soilTextureClassificationService;
     }
 
@@ -236,7 +238,8 @@ public class RecommendationCalculationService {
         String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis, warnings);
 
         List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
-        LimingRequirementResult limingRequirement = calculateLimingRequirement(dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
+        LimingRequirementResult limingRequirement = limingRequirementCalculator.calculate(
+                dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
         GypsumRequirementResult gypsumRequirement = calculateGypsumRequirement(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
@@ -426,14 +429,6 @@ public class RecommendationCalculationService {
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
-
-    private LimingRequirementResult calculateLimingRequirement(RecommendationCreateRequestDto dto,
-                                                               Optional<FertilityAnalysisExtractModel> fertilityExtract,
-                                                               PhysicalAnalysisExtractModel physicalAnalysis,
-                                                               CropFertilizationTableModel cropFertilizationTable,
-                                                               List<String> warnings) {
-        return limingRequirementCalculator.calculate(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
-    }
 
     private GypsumRequirementResult calculateGypsumRequirement(Optional<FertilityAnalysisExtractModel> fertilityExtract,
                                                                PhysicalAnalysisExtractModel physicalAnalysis,
