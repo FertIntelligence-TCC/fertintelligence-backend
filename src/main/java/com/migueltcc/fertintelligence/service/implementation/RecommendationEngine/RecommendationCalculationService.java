@@ -635,15 +635,35 @@ public class RecommendationCalculationService {
             return new PhysicalDiagnosis(message, diagnosis);
         }
 
-        boolean hasTextureFractions = physicalAnalysis.getTeorAreia() != null
-                || physicalAnalysis.getTeorSilte() != null
-                || physicalAnalysis.getTeorArgila() != null;
+        boolean hasTextureFractions = hasAnyTextureFraction(physicalAnalysis);
+        boolean hasCompleteTextureFractions = hasCompleteTextureFractions(physicalAnalysis);
+        boolean hasGranulometryInGramsPerKg = hasGranulometryInGramsPerKg(physicalAnalysis);
         String summary = textureClassification.classified()
                 ? "Análise física considerada com classificação granulométrica " + textureClassification.texturalClass() + "."
+                : hasCompleteTextureFractions && hasGranulometryInGramsPerKg
+                ? "Análise física considerada com frações granulométricas em g/kg; classificação granulométrica não calculada pelo critério textural selecionado."
                 : hasTextureFractions
-                ? "Análise física considerada com frações granulométricas; classificação granulométrica não calculada por dados ou unidade insuficientes."
+                ? "Análise física considerada com frações granulométricas; classificação granulométrica não calculada por frações incompletas ou unidade granulométrica não confirmada em g/kg."
                 : "Análise física considerada com atributos físicos disponíveis; frações granulométricas insuficientes para descrever textura.";
         return new PhysicalDiagnosis(summary, diagnosis);
+    }
+
+    private boolean hasAnyTextureFraction(PhysicalAnalysisExtractModel physicalAnalysis) {
+        return physicalAnalysis.getTeorAreia() != null
+                || physicalAnalysis.getTeorSilte() != null
+                || physicalAnalysis.getTeorArgila() != null;
+    }
+
+    private boolean hasCompleteTextureFractions(PhysicalAnalysisExtractModel physicalAnalysis) {
+        return physicalAnalysis.getTeorAreia() != null
+                && physicalAnalysis.getTeorSilte() != null
+                && physicalAnalysis.getTeorArgila() != null;
+    }
+
+    private boolean hasGranulometryInGramsPerKg(PhysicalAnalysisExtractModel physicalAnalysis) {
+        return physicalAnalysis.getUnidadeTeorAreia() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorSilte() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorArgila() == PhysicalAnalysisUnit.G_PER_KG;
     }
 
     private void appendTextureClassification(List<SoilPhysicalDiagnosisItem> diagnosis,

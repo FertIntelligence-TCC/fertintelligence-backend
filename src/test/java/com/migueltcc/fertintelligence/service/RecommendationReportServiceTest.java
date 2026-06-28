@@ -33,7 +33,7 @@ class RecommendationReportServiceTest {
                                 RecommendationCalculationService.SoilPhysicalDiagnosisItem.builder()
                                         .attribute("Argila")
                                         .analyzedValue(420.0)
-                                        .unit("g/dm³")
+                                        .unit("g/kg")
                                         .technicalObservation("Unidade de granulometria atualizada.")
                                         .build()))
                         .soilChemicalDiagnosis(List.of(
@@ -75,7 +75,7 @@ class RecommendationReportServiceTest {
 
         String report = reportService.buildTechnicalReport(result);
 
-        assertTrue(report.contains("g/dm³"));
+        assertTrue(report.contains("g/kg"));
         assertTrue(report.contains("mmolc/dm³"));
         assertTrue(report.contains("mg/dm³"));
         assertTrue(report.contains("(mmolc)**0.5"));
