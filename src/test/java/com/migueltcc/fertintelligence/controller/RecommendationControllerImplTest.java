@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOptionConverter;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
@@ -14,7 +15,10 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -344,6 +348,50 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         when(recommendationRepository.findById(7L)).thenReturn(Optional.of(item));
         when(annualCropFolderRepository.findByPlotAndCropsYear(plot, 2026)).thenReturn(Optional.of(folder));
         when(cropRepository.findTopByFolderAndNameOrderByIdDesc(folder, NomeComum.ALGODAO)).thenReturn(Optional.of(crop));
+        when(directRecommendationMicronutrientFertilizerLineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                        .id(701L)
+                        .directRecommendation(directRecommendation)
+                        .micronutrient(AppliedMicronutrient.B)
+                        .micronutrientDoseKgHa(1.2)
+                        .fertilizerId(801L)
+                        .fertilizerName("Borax")
+                        .fertilizerDoseKgHa(10.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(0.5)
+                        .gramsPerPit(null)
+                        .technicalObservation("Dose calculada por B.")
+                        .build()));
+        when(directRecommendationPlantingFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
+                        .id(702L)
+                        .directRecommendation(directRecommendation)
+                        .phase("Plantio")
+                        .fertilizerId(802L)
+                        .fertilizerName("04-14-08")
+                        .relationUsed("1-3.5-2")
+                        .doseKgHa(250.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(12.5)
+                        .technicalObservation("Formulado de plantio selecionado.")
+                        .build()));
+        when(directRecommendationCoverageFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
+                        .id(703L)
+                        .directRecommendation(directRecommendation)
+                        .coverageOrder(1)
+                        .phase("Cobertura")
+                        .fertilizerId(803L)
+                        .fertilizerName("20-00-20")
+                        .relationUsed("1-0-1")
+                        .doseKgHa(180.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(9.0)
+                        .technicalObservation("Formulado de cobertura selecionado.")
+                        .build()));
 
         mockMvc.perform(get("/recommendation/get").param("id", "7"))
                 .andExpect(status().isOk())
@@ -351,7 +399,17 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.recomendacao_direta.id").value(70L))
                 .andExpect(jsonPath("$.recomendacao_direta.dose_unit_mode").value("LINEAR_METER"))
                 .andExpect(jsonPath("$.recomendacao_direta.dose_unit_label").value("g/m linear"))
-                .andExpect(jsonPath("$.recomendacao_direta.applicable_dose_column").value("gPerLinearMeter"));
+                .andExpect(jsonPath("$.recomendacao_direta.applicable_dose_column").value("gPerLinearMeter"))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].nome_adubo").value("Borax"))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_g_m_linear").value(0.5))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_aplicavel_valor").value(0.5))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_aplicavel_unidade").value("g/m linear"))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_aplicavel_coluna").value("gPerLinearMeter"))
+                .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].observacao_tecnica").value("Dose calculada por B."))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_plantio[0].nome_formulado").value("04-14-08"))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_plantio[0].dose_aplicavel_valor").value(12.5))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_cobertura[0].nome_formulado").value("20-00-20"))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_cobertura[0].dose_aplicavel_valor").value(9.0));
     }
 
     @Test

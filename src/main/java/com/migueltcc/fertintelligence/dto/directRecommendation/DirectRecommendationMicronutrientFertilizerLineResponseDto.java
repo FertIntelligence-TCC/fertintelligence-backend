@@ -43,6 +43,15 @@ public class DirectRecommendationMicronutrientFertilizerLineResponseDto {
     @JsonProperty("dose_g_cova")
     private Double gramsPerPit;
 
+    @JsonProperty("dose_aplicavel_valor")
+    private Double applicableDoseValue;
+
+    @JsonProperty("dose_aplicavel_unidade")
+    private String applicableDoseUnit;
+
+    @JsonProperty("dose_aplicavel_coluna")
+    private String applicableDoseColumn;
+
     @JsonProperty("observacao_tecnica")
     private String technicalObservation;
 }

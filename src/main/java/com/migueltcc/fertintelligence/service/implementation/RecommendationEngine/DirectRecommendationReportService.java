@@ -2,10 +2,18 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +36,19 @@ public class DirectRecommendationReportService {
     private final CropSpacingCalculationService cropSpacingCalculationService;
     private final AnnualCropFolderRepository annualCropFolderRepository;
     private final CropRepository cropRepository;
+    private final DirectRecommendationRepository directRecommendationRepository;
+    private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
+    private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
+    private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
 
     public String build(RecommendationModel recommendation) {
-        return build(recommendation, resolveCrop(recommendation).orElse(null));
+        DirectRecommendationModel directRecommendation = resolveDirectRecommendation(recommendation).orElse(null);
+        return build(
+                recommendation,
+                resolveCrop(recommendation).orElse(null),
+                micronutrientFertilizerLines(directRecommendation),
+                plantingFormulatedFertilizerLines(directRecommendation),
+                coverageFormulatedFertilizerLines(directRecommendation));
     }
 
     public DirectDoseUnitMetadata resolveDoseUnitMetadata(RecommendationModel recommendation) {
@@ -53,8 +71,20 @@ public class DirectRecommendationReportService {
     }
 
     public String build(RecommendationModel recommendation, CropModel crop) {
+        return build(recommendation, crop, List.of(), List.of(), List.of());
+    }
+
+    private String build(RecommendationModel recommendation,
+                         CropModel crop,
+                         List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
+                         List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+                         List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
         String source = recommendation != null ? recommendation.getTechnicalReport() : null;
-        DirectDoseUnitMetadata doseUnitMetadata = resolveDoseUnitMetadata(crop);
+        DirectDoseUnitMetadata doseUnitMetadata = resolveEffectiveDoseUnitMetadata(
+                resolveDoseUnitMetadata(crop),
+                micronutrientFertilizerLines,
+                plantingFormulatedFertilizerLines,
+                coverageFormulatedFertilizerLines);
         StringBuilder report = new StringBuilder();
         List<String> spacingWarnings = new ArrayList<>();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
@@ -74,8 +104,9 @@ public class DirectRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
                 NOT_APPLICABLE);
 
-        appendMicronutrientTable(report, source, doseUnitMetadata);
-        appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings);
+        appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
+        appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
+                plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
 
         report.append("## Observação sobre MAP\n\n");
         report.append(resolveMapObservation(source)).append("\n\n");
@@ -86,8 +117,29 @@ public class DirectRecommendationReportService {
         return report.toString();
     }
 
-    private void appendMicronutrientTable(StringBuilder report, String source, DirectDoseUnitMetadata doseUnitMetadata) {
+    private void appendMicronutrientTable(StringBuilder report,
+                                          String source,
+                                          DirectDoseUnitMetadata doseUnitMetadata,
+                                          List<DirectRecommendationMicronutrientFertilizerLineModel> directLines) {
         report.append("## Tabela de micronutrientes\n\n");
+        if (directLines != null && !directLines.isEmpty()) {
+            report.append("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | ")
+                    .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
+            report.append("|---|---|---:|---:|---:|---|\n");
+            for (DirectRecommendationMicronutrientFertilizerLineModel line : directLines) {
+                if (line == null) continue;
+                report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
+                        .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
+                        .append(" |\n");
+            }
+            report.append("\n");
+            return;
+        }
+
         report.append("| Nutriente/Adubo | kg/ha | ").append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
         report.append("|---|---:|---:|\n");
         List<List<String>> rows = TechnicalRecommendationDocumentSupport.tableRows(
@@ -115,8 +167,20 @@ public class DirectRecommendationReportService {
                                 String source,
                                 CropModel crop,
                                 DirectDoseUnitMetadata doseUnitMetadata,
-                                List<String> spacingWarnings) {
+                                List<String> spacingWarnings,
+                                List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+                                List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
         report.append("## Tabela de N, P2O5 e K2O\n\n");
+        if (hasFormulatedLines(plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines)) {
+            report.append("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | ")
+                    .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
+            report.append("|---|---|---|---:|---:|---|\n");
+            appendPlantingFormulatedRows(report, plantingFormulatedFertilizerLines);
+            appendCoverageFormulatedRows(report, coverageFormulatedFertilizerLines);
+            report.append("\n");
+            return;
+        }
+
         report.append("| Adubação | Adubos simples/formulados | kg/ha | ")
                 .append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
         report.append("|---|---|---:|---:|\n");
@@ -151,6 +215,42 @@ public class DirectRecommendationReportService {
             appended = true;
         }
         return appended;
+    }
+
+    private void appendPlantingFormulatedRows(
+            StringBuilder report,
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines) {
+        if (lines == null) return;
+        for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
+            if (line == null) continue;
+            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getPhase()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()))
+                    .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+    }
+
+    private void appendCoverageFormulatedRows(
+            StringBuilder report,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines) {
+        if (lines == null) return;
+        for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
+            if (line == null) continue;
+            String phase = line.getPhase();
+            if (line.getCoverageOrder() != null) {
+                phase = (phase == null || phase.isBlank() ? "Cobertura" : phase) + " " + line.getCoverageOrder();
+            }
+            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()))
+                    .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
+                    .append(" |\n");
+        }
     }
 
     private String calculateSpacingDose(CropModel crop,
@@ -232,6 +332,122 @@ public class DirectRecommendationReportService {
 
     private boolean hasApplicableDoseColumn(DirectDoseUnitMetadata doseUnitMetadata) {
         return doseUnitMetadata != null && doseUnitMetadata.applicableDoseColumn() != null;
+    }
+
+    private String applicableLocalizedDose(String doseUnitMode, Double gramsPerLinearMeter, Double gramsPerPit) {
+        if ("LINEAR_METER".equals(doseUnitMode)) {
+            return formatGramDose(gramsPerLinearMeter);
+        }
+        if ("PIT".equals(doseUnitMode)) {
+            return formatGramDose(gramsPerPit);
+        }
+        return spacingUnavailableCell();
+    }
+
+    private boolean hasFormulatedLines(
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+        return (plantingFormulatedFertilizerLines != null && !plantingFormulatedFertilizerLines.isEmpty())
+                || (coverageFormulatedFertilizerLines != null && !coverageFormulatedFertilizerLines.isEmpty());
+    }
+
+    private DirectDoseUnitMetadata resolveEffectiveDoseUnitMetadata(
+            DirectDoseUnitMetadata cropMetadata,
+            List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+        if (hasApplicableDoseColumn(cropMetadata)) {
+            return cropMetadata;
+        }
+        DirectDoseUnitMetadata lineMetadata = firstLineDoseUnitMetadata(
+                micronutrientFertilizerLines,
+                plantingFormulatedFertilizerLines,
+                coverageFormulatedFertilizerLines);
+        return hasApplicableDoseColumn(lineMetadata) ? lineMetadata : cropMetadata;
+    }
+
+    private DirectDoseUnitMetadata firstLineDoseUnitMetadata(
+            List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+        if (micronutrientFertilizerLines != null) {
+            for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrientFertilizerLines) {
+                DirectDoseUnitMetadata metadata = lineDoseUnitMetadata(
+                        line != null ? line.getDoseUnitMode() : null,
+                        line != null ? line.getDoseUnitLabel() : null);
+                if (hasApplicableDoseColumn(metadata)) return metadata;
+            }
+        }
+        if (plantingFormulatedFertilizerLines != null) {
+            for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : plantingFormulatedFertilizerLines) {
+                DirectDoseUnitMetadata metadata = lineDoseUnitMetadata(
+                        line != null ? line.getDoseUnitMode() : null,
+                        line != null ? line.getDoseUnitLabel() : null);
+                if (hasApplicableDoseColumn(metadata)) return metadata;
+            }
+        }
+        if (coverageFormulatedFertilizerLines != null) {
+            for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : coverageFormulatedFertilizerLines) {
+                DirectDoseUnitMetadata metadata = lineDoseUnitMetadata(
+                        line != null ? line.getDoseUnitMode() : null,
+                        line != null ? line.getDoseUnitLabel() : null);
+                if (hasApplicableDoseColumn(metadata)) return metadata;
+            }
+        }
+        return INSUFFICIENT_DATA_METADATA;
+    }
+
+    private DirectDoseUnitMetadata lineDoseUnitMetadata(String mode, String label) {
+        if ("LINEAR_METER".equals(mode)) {
+            return new DirectDoseUnitMetadata("LINEAR_METER", label != null ? label : "g/m linear", "gPerLinearMeter");
+        }
+        if ("PIT".equals(mode)) {
+            return new DirectDoseUnitMetadata("PIT", label != null ? label : "g/cova", "gPerPit");
+        }
+        return INSUFFICIENT_DATA_METADATA;
+    }
+
+    private Optional<DirectRecommendationModel> resolveDirectRecommendation(RecommendationModel recommendation) {
+        if (recommendation == null) {
+            return Optional.empty();
+        }
+        if (recommendation.getDirectRecommendation() != null) {
+            return Optional.of(recommendation.getDirectRecommendation());
+        }
+        if (recommendation.getId() == null || directRecommendationRepository == null) {
+            return Optional.empty();
+        }
+        return directRecommendationRepository.findByRecommendation(recommendation);
+    }
+
+    private List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines(
+            DirectRecommendationModel directRecommendation) {
+        if (directRecommendation == null || micronutrientFertilizerLineRepository == null) {
+            return List.of();
+        }
+        List<DirectRecommendationMicronutrientFertilizerLineModel> lines =
+                micronutrientFertilizerLineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation);
+        return lines != null ? lines : List.of();
+    }
+
+    private List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines(
+            DirectRecommendationModel directRecommendation) {
+        if (directRecommendation == null || plantingFormulatedFertilizerLineRepository == null) {
+            return List.of();
+        }
+        List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines =
+                plantingFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation);
+        return lines != null ? lines : List.of();
+    }
+
+    private List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines(
+            DirectRecommendationModel directRecommendation) {
+        if (directRecommendation == null || coverageFormulatedFertilizerLineRepository == null) {
+            return List.of();
+        }
+        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines =
+                coverageFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation);
+        return lines != null ? lines : List.of();
     }
 
     private String spacingUnavailableCell() {

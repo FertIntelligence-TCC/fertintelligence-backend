@@ -2,13 +2,24 @@ package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DirectRecommendationReportServiceTest {
 
@@ -75,9 +86,73 @@ class DirectRecommendationReportServiceTest {
         assertThat(report).doesNotContain("g/cova");
     }
 
+    @Test
+    void buildUsesPersistedStructuredLinesWhenTheyExist() {
+        DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
+        DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
+                mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
+        DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
+                mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationReportService service = new DirectRecommendationReportService(
+                new CropSpacingCalculationService(),
+                null,
+                null,
+                null,
+                micronutrientRepository,
+                plantingRepository,
+                coverageRepository
+        );
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+        recommendation.setId(1L);
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(2L)
+                .recommendation(recommendation)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(micronutrientRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                        .micronutrient(AppliedMicronutrient.B)
+                        .fertilizerName("Borax")
+                        .micronutrientDoseKgHa(1.2)
+                        .fertilizerDoseKgHa(10.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(0.5)
+                        .technicalObservation("Dose calculada por B.")
+                        .build()));
+        when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
+                        .phase("Plantio")
+                        .fertilizerName("04-14-08")
+                        .relationUsed("1-3.5-2")
+                        .doseKgHa(250.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(12.5)
+                        .technicalObservation("Formulado de plantio selecionado.")
+                        .build()));
+        when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of());
+
+        String report = service.build(recommendation);
+
+        assertThat(report).contains("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | g/m linear | Observação técnica |");
+        assertThat(report).contains("| B | Borax | 1.20 kg/ha | 10.00 kg/ha | 0.50 | Dose calculada por B. |");
+        assertThat(report).contains("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | g/m linear | Observação técnica |");
+        assertThat(report).contains("| Plantio | 04-14-08 | 1-3.5-2 | 250.00 kg/ha | 12.50 | Formulado de plantio selecionado. |");
+        assertThat(report).doesNotContain("g/cova");
+    }
+
     private DirectRecommendationReportService newService() {
         return new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null
         );

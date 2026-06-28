@@ -1,10 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationCreateRequestDto;
-import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationCoverageFormulatedFertilizerLineResponseDto;
-import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationMicronutrientFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationPostRequestDto;
-import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationPlantingFormulatedFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
@@ -41,6 +38,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
     private final DirectRecommendationReportService directRecommendationReportService;
+    private final DirectRecommendationDtoMapper directRecommendationDtoMapper;
 
     @Override
     @Transactional
@@ -49,7 +47,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         RecommendationModel recommendation = findRecommendationByIdOrThrow(dto.getRecommendationId());
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         DirectRecommendationModel directRecommendation = createInitial(recommendation, dto.getTechnicalReport());
-        return toDto(directRecommendation);
+        return directRecommendationDtoMapper.toDto(directRecommendation);
     }
 
     @Override
@@ -86,7 +84,20 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         syncMicronutrientFertilizerLines(directRecommendation, micronutrientFertilizerRows);
         syncPlantingFormulatedFertilizerLines(directRecommendation, plantingFormulatedFertilizerRows);
         syncCoverageFormulatedFertilizerLines(directRecommendation, coverageFormulatedFertilizerRows);
+        if (hasStructuredLines(micronutrientFertilizerRows, plantingFormulatedFertilizerRows, coverageFormulatedFertilizerRows)) {
+            directRecommendation.setTechnicalReport(directRecommendationReportService.build(recommendation));
+            directRecommendation = directRecommendationRepository.save(directRecommendation);
+        }
         return directRecommendation;
+    }
+
+    private boolean hasStructuredLines(
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
+            List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
+            List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows) {
+        return (micronutrientFertilizerRows != null && !micronutrientFertilizerRows.isEmpty())
+                || (plantingFormulatedFertilizerRows != null && !plantingFormulatedFertilizerRows.isEmpty())
+                || (coverageFormulatedFertilizerRows != null && !coverageFormulatedFertilizerRows.isEmpty());
     }
 
     private DirectRecommendationModel saveNew(RecommendationModel recommendation, String technicalReport) {
@@ -218,7 +229,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         UserModel user = findUserByUsernameOrEmailOrThrow(username);
         DirectRecommendationModel directRecommendation = findDirectRecommendationByIdOrThrow(id);
         permissionManager.assertCanReadPlot(directRecommendation.getRecommendation().getPlot(), user);
-        return toDto(directRecommendation);
+        return directRecommendationDtoMapper.toDto(directRecommendation);
     }
 
     @Override
@@ -228,8 +239,9 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         RecommendationModel recommendation = findRecommendationByIdOrThrow(recommendationId);
         permissionManager.assertCanReadPlot(recommendation.getPlot(), user);
         return directRecommendationRepository.findByRecommendation(recommendation)
-                .map(this::toDto)
-                .orElseGet(() -> toDto(createInitial(recommendation, directRecommendationReportService.build(recommendation))));
+                .map(directRecommendationDtoMapper::toDto)
+                .orElseGet(() -> directRecommendationDtoMapper.toDto(
+                        createInitial(recommendation, directRecommendationReportService.build(recommendation))));
     }
 
     @Override
@@ -243,7 +255,7 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
             directRecommendation.setTechnicalReport(dto.getNewTechnicalReport());
         }
 
-        return toDto(directRecommendationRepository.save(directRecommendation));
+        return directRecommendationDtoMapper.toDto(directRecommendationRepository.save(directRecommendation));
     }
 
     @Override
@@ -254,127 +266,6 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         permissionManager.assertCanReadPlot(directRecommendation.getRecommendation().getPlot(), user);
         directRecommendation.getRecommendation().setDirectRecommendation(null);
         directRecommendationRepository.delete(directRecommendation);
-    }
-
-    private DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
-        RecommendationModel recommendation = model.getRecommendation();
-        DirectRecommendationReportService.DirectDoseUnitMetadata doseUnitMetadata =
-                directRecommendationReportService.resolveDoseUnitMetadata(recommendation);
-        return DirectRecommendationResponseDto.builder()
-                .id(model.getId())
-                .recommendationId(recommendation != null ? recommendation.getId() : null)
-                .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
-                .technicalReport(model.getTechnicalReport())
-                .content(model.getTechnicalReport())
-                .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
-                .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
-                .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
-                .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
-                .plantingFormulatedFertilizerLines(toPlantingFormulatedFertilizerLineDtos(model))
-                .coverageFormulatedFertilizerLines(toCoverageFormulatedFertilizerLineDtos(model))
-                .createdAt(model.getCreatedAt())
-                .updatedAt(model.getUpdatedAt())
-                .build();
-    }
-
-    private List<DirectRecommendationMicronutrientFertilizerLineResponseDto> toMicronutrientFertilizerLineDtos(
-            DirectRecommendationModel directRecommendation) {
-        List<DirectRecommendationMicronutrientFertilizerLineModel> lines =
-                micronutrientFertilizerLineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation);
-        if (lines == null) {
-            return List.of();
-        }
-        return lines.stream()
-                .map(this::toMicronutrientFertilizerLineDto)
-                .toList();
-    }
-
-    private DirectRecommendationMicronutrientFertilizerLineResponseDto toMicronutrientFertilizerLineDto(
-            DirectRecommendationMicronutrientFertilizerLineModel line) {
-        return DirectRecommendationMicronutrientFertilizerLineResponseDto.builder()
-                .id(line.getId())
-                .micronutrient(line.getMicronutrient())
-                .micronutrientDoseKgHa(line.getMicronutrientDoseKgHa())
-                .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .micronutrientConcentrationPercent(line.getMicronutrientConcentrationPercent())
-                .fertilizerDoseKgHa(line.getFertilizerDoseKgHa())
-                .doseUnitMode(line.getDoseUnitMode())
-                .doseUnitLabel(line.getDoseUnitLabel())
-                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
-                .gramsPerPit(line.getGramsPerPit())
-                .technicalObservation(line.getTechnicalObservation())
-                .build();
-    }
-
-    private List<DirectRecommendationPlantingFormulatedFertilizerLineResponseDto> toPlantingFormulatedFertilizerLineDtos(
-            DirectRecommendationModel directRecommendation) {
-        List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines =
-                plantingFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation);
-        if (lines == null) {
-            return List.of();
-        }
-        return lines.stream()
-                .map(this::toPlantingFormulatedFertilizerLineDto)
-                .toList();
-    }
-
-    private DirectRecommendationPlantingFormulatedFertilizerLineResponseDto toPlantingFormulatedFertilizerLineDto(
-            DirectRecommendationPlantingFormulatedFertilizerLineModel line) {
-        return DirectRecommendationPlantingFormulatedFertilizerLineResponseDto.builder()
-                .id(line.getId())
-                .phase(line.getPhase())
-                .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .nitrogenPercent(line.getNitrogenPercent())
-                .p2o5Percent(line.getP2o5Percent())
-                .k2oPercent(line.getK2oPercent())
-                .relationUsed(line.getRelationUsed())
-                .selectionType(line.getSelectionType())
-                .doseKgHa(line.getDoseKgHa())
-                .doseUnitMode(line.getDoseUnitMode())
-                .doseUnitLabel(line.getDoseUnitLabel())
-                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
-                .gramsPerPit(line.getGramsPerPit())
-                .technicalObservation(line.getTechnicalObservation())
-                .build();
-    }
-
-    private List<DirectRecommendationCoverageFormulatedFertilizerLineResponseDto> toCoverageFormulatedFertilizerLineDtos(
-            DirectRecommendationModel directRecommendation) {
-        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines =
-                coverageFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation);
-        if (lines == null) {
-            return List.of();
-        }
-        return lines.stream()
-                .map(this::toCoverageFormulatedFertilizerLineDto)
-                .toList();
-    }
-
-    private DirectRecommendationCoverageFormulatedFertilizerLineResponseDto toCoverageFormulatedFertilizerLineDto(
-            DirectRecommendationCoverageFormulatedFertilizerLineModel line) {
-        return DirectRecommendationCoverageFormulatedFertilizerLineResponseDto.builder()
-                .id(line.getId())
-                .coverageOrder(line.getCoverageOrder())
-                .phase(line.getPhase())
-                .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .nitrogenPercent(line.getNitrogenPercent())
-                .p2o5Percent(line.getP2o5Percent())
-                .k2oPercent(line.getK2oPercent())
-                .requiredN(line.getRequiredN())
-                .requiredP2O5(line.getRequiredP2O5())
-                .requiredK2O(line.getRequiredK2O())
-                .relationUsed(line.getRelationUsed())
-                .selectionType(line.getSelectionType())
-                .doseKgHa(line.getDoseKgHa())
-                .doseUnitMode(line.getDoseUnitMode())
-                .doseUnitLabel(line.getDoseUnitLabel())
-                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
-                .gramsPerPit(line.getGramsPerPit())
-                .technicalObservation(line.getTechnicalObservation())
-                .build();
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {
