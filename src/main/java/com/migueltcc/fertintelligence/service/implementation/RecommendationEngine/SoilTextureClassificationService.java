@@ -46,11 +46,11 @@ public class SoilTextureClassificationService {
     }
 
     public SoilTextureClassificationResult classifyAmerican(PhysicalAnalysisExtractModel physicalAnalysis) {
-        NormalizedFractions normalized = readAndNormalizeFractions(physicalAnalysis);
-        if (normalized.hasErrors()) {
-            return unclassified(TexturalClassification.AMERICANO, normalized.fractions(), normalized.warnings());
+        GranulometricFractions fractions = readAmericanFractionsInGramsPerKg(physicalAnalysis);
+        if (fractions.hasErrors()) {
+            return unclassified(TexturalClassification.AMERICANO, fractions.toPercentFractions(), fractions.warnings());
         }
-        return classifyAmerican(normalized);
+        return classifyAmerican(fractions);
     }
 
     public Optional<TexturalClassification> selectStrategy(RecommendationModel recommendation) {
@@ -78,6 +78,32 @@ public class SoilTextureClassificationService {
         }
         if (!isBrazilianUnitConfirmed(physicalAnalysis)) {
             warnings.add("Classificacao brasileira requer areia, silte e argila em g/kg; unidade informada nao confirmada como g/kg.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+
+        return new GranulometricFractions(sand, silt, clay, warnings, false);
+    }
+
+    private GranulometricFractions readAmericanFractionsInGramsPerKg(PhysicalAnalysisExtractModel physicalAnalysis) {
+        List<String> warnings = new ArrayList<>();
+        if (physicalAnalysis == null) {
+            warnings.add("Analise fisica ausente; nao ha fracoes granulometricas para classificar textura.");
+            return new GranulometricFractions(null, null, null, warnings, true);
+        }
+
+        Double sand = physicalAnalysis.getTeorAreia();
+        Double silt = physicalAnalysis.getTeorSilte();
+        Double clay = physicalAnalysis.getTeorArgila();
+        if (hasMissingFraction(sand, silt, clay)) {
+            warnings.add("Areia, silte e argila devem estar informados para classificar textura americana.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+        if (hasInvalidFraction(sand, silt, clay)) {
+            warnings.add("Fracoes granulometricas invalidas; valores devem ser finitos e nao negativos.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+        if (!isAmericanUnitConfirmed(physicalAnalysis)) {
+            warnings.add("Classificacao americana requer areia, silte e argila em g/kg; unidade informada nao confirmada como g/kg.");
             return new GranulometricFractions(sand, silt, clay, warnings, true);
         }
 
@@ -160,85 +186,96 @@ public class SoilTextureClassificationService {
                 && fractions.silt() >= 650d;
     }
 
-    private SoilTextureClassificationResult classifyAmerican(NormalizedFractions normalized) {
-        SoilTextureFractions fractions = normalized.fractions();
+    private SoilTextureClassificationResult classifyAmerican(GranulometricFractions fractions) {
         String texturalClass = americanTextureClass(
-                fractions.sandPercent(),
-                fractions.siltPercent(),
-                fractions.clayPercent()
+                fractions.sand(),
+                fractions.silt(),
+                fractions.clay()
         );
         if (texturalClass == null) {
-            List<String> warnings = new ArrayList<>(normalized.warnings());
+            List<String> warnings = new ArrayList<>(fractions.warnings());
             warnings.add("Fracoes granulometricas nao se enquadraram nas regras americanas modeladas.");
-            return unclassified(TexturalClassification.AMERICANO, fractions, warnings);
+            return unclassified(TexturalClassification.AMERICANO, fractions.toPercentFractions(), warnings);
         }
-        return classified(TexturalClassification.AMERICANO, texturalClass, normalized);
+        return new SoilTextureClassificationResult(
+                true,
+                TexturalClassification.AMERICANO,
+                texturalClass,
+                fractions.toPercentFractions(),
+                List.copyOf(fractions.warnings())
+        );
     }
 
     private String americanTextureClass(double sand, double silt, double clay) {
-        if (isSand(sand, silt, clay)) return "Sand";
-        if (isLoamySand(sand, silt, clay)) return "Loamy sand";
-        if (isSandyLoam(sand, silt, clay)) return "Sandy loam";
-        if (isLoam(sand, silt, clay)) return "Loam";
-        if (isSiltLoam(sand, silt, clay)) return "Silt loam";
-        if (isSilt(silt, clay)) return "Silt";
-        if (isSandyClayLoam(sand, silt, clay)) return "Sandy clay loam";
-        if (isClayLoam(sand, clay)) return "Clay loam";
-        if (isSiltyClayLoam(sand, clay)) return "Silty clay loam";
-        if (isSandyClay(sand, clay)) return "Sandy clay";
-        if (isSiltyClay(silt, clay)) return "Silty clay";
-        if (isClay(sand, silt, clay)) return "Clay";
+        // Ordem segue o triangulo textural americano para resolver bordas compartilhadas.
+        if (isSand(sand, silt, clay)) return "Areia";
+        if (isLoamySand(sand, silt, clay)) return "Areia franca";
+        if (isSandyLoam(sand, silt, clay)) return "Franco arenosa";
+        if (isLoam(sand, silt, clay)) return "Franca";
+        if (isSiltLoam(silt, clay)) return "Franco siltosa";
+        if (isSilt(silt, clay)) return "Silte";
+        if (isSandyClayLoam(sand, clay)) return "Franco argilo arenosa";
+        if (isClayLoam(sand, clay)) return "Franco argilosa";
+        if (isSiltyClayLoam(sand, clay)) return "Franco argilo siltosa";
+        if (isSandyClay(sand, clay)) return "Argilo arenosa";
+        if (isClay(sand, silt, clay)) return "Argila";
+        if (isSiltyClay(silt, clay)) return "Argilo siltosa";
+        if (isVeryClayey(clay)) return "Muito argilosa";
         return null;
     }
 
     private boolean isSand(double sand, double silt, double clay) {
-        return sand >= 85d && silt + 1.5d * clay < 15d;
+        return sand >= 850d && silt + 1.5d * clay < 150d;
     }
 
     private boolean isLoamySand(double sand, double silt, double clay) {
-        return sand >= 70d && sand < 90d && silt + 1.5d * clay >= 15d && silt + 2d * clay < 30d;
+        return sand >= 700d && sand < 900d && silt + 1.5d * clay >= 150d && silt + 2d * clay < 300d;
     }
 
     private boolean isSandyLoam(double sand, double silt, double clay) {
-        return (clay >= 7d && clay < 20d && sand > 52d && silt + 2d * clay >= 30d)
-                || (clay < 7d && silt < 50d && sand > 43d);
+        return (clay >= 70d && clay < 200d && sand > 520d && silt + 2d * clay >= 300d)
+                || (clay < 70d && silt < 500d && sand > 430d && silt + 2d * clay >= 300d);
     }
 
     private boolean isLoam(double sand, double silt, double clay) {
-        return clay >= 7d && clay < 27d && silt >= 28d && silt < 50d && sand <= 52d;
+        return clay >= 70d && clay < 270d && silt >= 280d && silt < 500d && sand <= 520d;
     }
 
-    private boolean isSiltLoam(double sand, double silt, double clay) {
-        return (silt >= 50d && silt < 80d && clay < 12d)
-                || (silt >= 50d && clay >= 12d && clay < 27d);
+    private boolean isSiltLoam(double silt, double clay) {
+        return (silt >= 500d && silt < 800d && clay < 120d)
+                || (silt >= 500d && clay >= 120d && clay < 270d);
     }
 
     private boolean isSilt(double silt, double clay) {
-        return silt >= 80d && clay < 12d;
+        return silt >= 800d && clay < 120d;
     }
 
-    private boolean isSandyClayLoam(double sand, double silt, double clay) {
-        return clay >= 20d && clay < 35d && silt < 28d && sand > 45d;
+    private boolean isSandyClayLoam(double sand, double clay) {
+        return clay >= 200d && clay < 350d && sand > 450d;
     }
 
     private boolean isClayLoam(double sand, double clay) {
-        return clay >= 27d && clay < 40d && sand > 20d && sand <= 45d;
+        return clay >= 270d && clay < 400d && sand > 200d && sand <= 450d;
     }
 
     private boolean isSiltyClayLoam(double sand, double clay) {
-        return clay >= 27d && clay < 40d && sand <= 20d;
+        return clay >= 270d && clay < 400d && sand <= 200d;
     }
 
     private boolean isSandyClay(double sand, double clay) {
-        return clay >= 35d && sand > 45d;
+        return clay >= 350d && clay <= 600d && sand > 450d;
     }
 
     private boolean isSiltyClay(double silt, double clay) {
-        return clay >= 40d && silt >= 40d;
+        return clay >= 400d && clay <= 600d && silt > 400d;
     }
 
     private boolean isClay(double sand, double silt, double clay) {
-        return clay >= 40d && sand <= 45d && silt < 40d;
+        return clay >= 400d && clay <= 600d && sand <= 450d && silt <= 400d;
+    }
+
+    private boolean isVeryClayey(double clay) {
+        return clay > 600d;
     }
 
     private boolean hasMissingFraction(Double sand, Double silt, Double clay) {
@@ -255,6 +292,12 @@ public class SoilTextureClassificationService {
     }
 
     private boolean isBrazilianUnitConfirmed(PhysicalAnalysisExtractModel physicalAnalysis) {
+        return physicalAnalysis.getUnidadeTeorAreia() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorSilte() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorArgila() == PhysicalAnalysisUnit.G_PER_KG;
+    }
+
+    private boolean isAmericanUnitConfirmed(PhysicalAnalysisExtractModel physicalAnalysis) {
         return physicalAnalysis.getUnidadeTeorAreia() == PhysicalAnalysisUnit.G_PER_KG
                 && physicalAnalysis.getUnidadeTeorSilte() == PhysicalAnalysisUnit.G_PER_KG
                 && physicalAnalysis.getUnidadeTeorArgila() == PhysicalAnalysisUnit.G_PER_KG;
