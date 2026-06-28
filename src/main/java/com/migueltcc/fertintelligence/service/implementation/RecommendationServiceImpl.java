@@ -4,11 +4,13 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationMicronutrientFertilizerLineResponseDto;
+import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationPlantingFormulatedFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -18,6 +20,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.SummaryRecommendati
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
@@ -48,6 +51,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final SummaryRecommendationRepository summaryRecommendationRepository;
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository directRecommendationMicronutrientFertilizerLineRepository;
+    private final DirectRecommendationPlantingFormulatedFertilizerLineRepository directRecommendationPlantingFormulatedFertilizerLineRepository;
     private final ShoppingListRepository shoppingListRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
@@ -102,7 +106,8 @@ public class RecommendationServiceImpl implements RecommendationService {
         directRecommendationService.createInitial(
                 savedRecommendation,
                 directRecommendationReportService.build(savedRecommendation),
-                calculationResult.getMicronutrientFertilizerRows());
+                calculationResult.getMicronutrientFertilizerRows(),
+                calculationResult.getPlantingFormulatedFertilizerRows());
 
         return toDto(savedRecommendation);
     }
@@ -250,6 +255,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
                 .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
                 .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
+                .plantingFormulatedFertilizerLines(toPlantingFormulatedFertilizerLineDtos(model))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -277,6 +283,39 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .fertilizerName(line.getFertilizerName())
                 .micronutrientConcentrationPercent(line.getMicronutrientConcentrationPercent())
                 .fertilizerDoseKgHa(line.getFertilizerDoseKgHa())
+                .doseUnitMode(line.getDoseUnitMode())
+                .doseUnitLabel(line.getDoseUnitLabel())
+                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
+                .gramsPerPit(line.getGramsPerPit())
+                .technicalObservation(line.getTechnicalObservation())
+                .build();
+    }
+
+    private List<DirectRecommendationPlantingFormulatedFertilizerLineResponseDto> toPlantingFormulatedFertilizerLineDtos(
+            DirectRecommendationModel directRecommendation) {
+        List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines =
+                directRecommendationPlantingFormulatedFertilizerLineRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation);
+        if (lines == null) {
+            return List.of();
+        }
+        return lines.stream()
+                .map(this::toPlantingFormulatedFertilizerLineDto)
+                .toList();
+    }
+
+    private DirectRecommendationPlantingFormulatedFertilizerLineResponseDto toPlantingFormulatedFertilizerLineDto(
+            DirectRecommendationPlantingFormulatedFertilizerLineModel line) {
+        return DirectRecommendationPlantingFormulatedFertilizerLineResponseDto.builder()
+                .id(line.getId())
+                .phase(line.getPhase())
+                .fertilizerId(line.getFertilizerId())
+                .fertilizerName(line.getFertilizerName())
+                .nitrogenPercent(line.getNitrogenPercent())
+                .p2o5Percent(line.getP2o5Percent())
+                .k2oPercent(line.getK2oPercent())
+                .relationUsed(line.getRelationUsed())
+                .selectionType(line.getSelectionType())
+                .doseKgHa(line.getDoseKgHa())
                 .doseUnitMode(line.getDoseUnitMode())
                 .doseUnitLabel(line.getDoseUnitLabel())
                 .gramsPerLinearMeter(line.getGramsPerLinearMeter())

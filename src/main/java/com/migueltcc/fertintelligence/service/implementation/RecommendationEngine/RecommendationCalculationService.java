@@ -278,6 +278,7 @@ public class RecommendationCalculationService {
                 .nutrientBalanceRows(recommendations.nutrientBalanceRows())
                 .alternativeFertilizationRows(recommendations.alternativeFertilizationRows())
                 .micronutrientFertilizerRows(recommendations.micronutrientFertilizerRows())
+                .plantingFormulatedFertilizerRows(recommendations.plantingFormulatedFertilizerRows())
                 .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
                 .physicalAnalysisId(inputs.physicalAnalysis() != null ? inputs.physicalAnalysis().getId() : null)
@@ -1591,6 +1592,8 @@ public class RecommendationCalculationService {
         private List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows = new ArrayList<>();
         @Builder.Default
         private List<MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows = new ArrayList<>();
+        @Builder.Default
+        private List<PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows = new ArrayList<>();
     }
     @Data
     @Builder
@@ -1772,6 +1775,27 @@ public class RecommendationCalculationService {
         private String fertilizerName;
         private Double micronutrientConcentrationPercent;
         private Double fertilizerDoseKgHa;
+        private String doseUnitMode;
+        private String doseUnitLabel;
+        private Double gramsPerLinearMeter;
+        private Double gramsPerPit;
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PlantingFormulatedFertilizerRecommendationRow {
+        private String phase;
+        private Long fertilizerId;
+        private String fertilizerName;
+        private Double nitrogenPercent;
+        private Double p2o5Percent;
+        private Double k2oPercent;
+        private String relationUsed;
+        private String selectionType;
+        private Double doseKgHa;
         private String doseUnitMode;
         private String doseUnitLabel;
         private Double gramsPerLinearMeter;

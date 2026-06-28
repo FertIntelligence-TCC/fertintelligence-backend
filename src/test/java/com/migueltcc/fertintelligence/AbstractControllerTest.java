@@ -172,6 +172,9 @@ public abstract class AbstractControllerTest {
     protected DirectRecommendationMicronutrientFertilizerLineRepository directRecommendationMicronutrientFertilizerLineRepository;
 
     @MockitoBean
+    protected DirectRecommendationPlantingFormulatedFertilizerLineRepository directRecommendationPlantingFormulatedFertilizerLineRepository;
+
+    @MockitoBean
     protected SummaryRecommendationRepository summaryRecommendationRepository;
 
     @MockitoBean

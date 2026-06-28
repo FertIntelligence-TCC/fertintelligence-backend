@@ -13,7 +13,7 @@ import java.util.List;
 @Entity
 @Data
 @Table(name = "DIRECT_RECOMMENDATIONS")
-@EqualsAndHashCode(exclude = {"recommendation", "micronutrientFertilizerLines"})
+@EqualsAndHashCode(exclude = {"recommendation", "micronutrientFertilizerLines", "plantingFormulatedFertilizerLines"})
 public class DirectRecommendationModel {
 
     public static final String DOCUMENT_NAME = "Recomendação Direta";
@@ -43,6 +43,10 @@ public class DirectRecommendationModel {
     @Builder.Default
     @OneToMany(mappedBy = "directRecommendation", cascade = CascadeType.ALL, orphanRemoval = true)
     List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "directRecommendation", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines = new ArrayList<>();
 
     @PrePersist
     void onCreate() {

@@ -37,17 +37,20 @@ class NutrientFertilizationCalculationService {
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
+    private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
 
     NutrientFertilizationCalculationService(ContentRangeRepository contentRangeRepository,
                                             CoverageRepository coverageRepository,
                                             FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
-                                            AlternativeFertilizationCalculationService alternativeFertilizationCalculationService) {
+                                            AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
+                                            PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
+        this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
     }
 
     FertilizationRecommendationContext calculate(CropFertilizationTableModel table,
@@ -126,11 +129,15 @@ class NutrientFertilizationCalculationService {
                 alternativeFertilizationCalculationService.calculate(
                         requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
                         soilInterpretationTable, user, sourceOption, warnings);
+        List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedRows =
+                plantingFormulatedFertilizerRecommendationService.calculate(
+                        user, sourceOption, requiredN, requiredP2O5, requiredK2O, crop, warnings);
 
         return new FertilizationRecommendationContext(
                 recommendationRows, fertilizerSuggestions, nutrientBalanceRows,
                 alternativeFertilizationResult.alternativeRows(),
                 alternativeFertilizationResult.directRecommendationRows(),
+                plantingFormulatedRows,
                 requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
     }
 

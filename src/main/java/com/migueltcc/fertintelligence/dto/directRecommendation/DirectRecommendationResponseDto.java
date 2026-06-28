@@ -50,6 +50,10 @@ public class DirectRecommendationResponseDto {
     private List<DirectRecommendationMicronutrientFertilizerLineResponseDto> micronutrientFertilizerLines = new ArrayList<>();
 
     @Builder.Default
+    @JsonProperty("formulados_plantio")
+    private List<DirectRecommendationPlantingFormulatedFertilizerLineResponseDto> plantingFormulatedFertilizerLines = new ArrayList<>();
+
+    @Builder.Default
     @JsonProperty("tamanho_fonte")
     private Integer fontSize = 10;
 
