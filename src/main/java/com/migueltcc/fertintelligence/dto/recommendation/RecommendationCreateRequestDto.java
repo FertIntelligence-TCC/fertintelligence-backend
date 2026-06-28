@@ -8,6 +8,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Cri
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.recommendation.deserializer.NullableLimingCriteriaDeserializer;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -89,6 +90,10 @@ public class RecommendationCreateRequestDto {
     @JsonProperty("criterio_calagem")
     @JsonDeserialize(using = NullableLimingCriteriaDeserializer.class)
     private CriterioCalagem limingCriteria;
+
+    @JsonProperty("classificacao_textural")
+    @JsonAlias({"texturalClassification", "classificacaoTextural"})
+    private TexturalClassification texturalClassification;
 
     @JsonProperty("origem_adubos")
     @JsonAlias({"fertilizerSourceOption", "origemAdubos"})

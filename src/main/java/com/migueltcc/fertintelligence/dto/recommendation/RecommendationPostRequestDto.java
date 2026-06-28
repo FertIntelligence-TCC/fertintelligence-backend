@@ -8,6 +8,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Cri
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.recommendation.deserializer.NullableLimingCriteriaDeserializer;
 import lombok.*;
 
@@ -59,5 +60,9 @@ public class RecommendationPostRequestDto {
     @JsonProperty("novo_criterio_calagem")
     @JsonDeserialize(using = NullableLimingCriteriaDeserializer.class)
     private CriterioCalagem newLimingCriteria;
+
+    @JsonProperty("nova_classificacao_textural")
+    @JsonAlias({"classificacao_textural", "texturalClassification", "newTexturalClassification"})
+    private TexturalClassification newTexturalClassification;
 
 }

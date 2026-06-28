@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
@@ -76,6 +77,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(resolveCropName(calculationResult))
                 .cropYear(calculationResult.getAnnualCropFolderYear())
                 .limingCriteria(dto.getLimingCriteria())
+                .texturalClassification(resolveTexturalClassification(dto.getTexturalClassification()))
                 .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(dto.getCropFertilizationTableId())
                 .cropFertilizationTableGroup(dto.getCropFertilizationTableGroup())
@@ -190,6 +192,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropName(model.getCropName())
                 .cropYear(model.getCropYear())
                 .limingCriteria(model.getLimingCriteria())
+                .texturalClassification(resolveTexturalClassification(model.getTexturalClassification()))
                 .origemAdubos(model.getOrigemAdubos() != null ? model.getOrigemAdubos() : FertilizerSourceOption.BOTH)
                 .cropFertilizationTableId(model.getCropFertilizationTableId())
                 .cropFertilizationTableGroup(model.getCropFertilizationTableGroup())
@@ -265,6 +268,10 @@ public class RecommendationServiceImpl implements RecommendationService {
             throw new IllegalArgumentException("A cultura selecionada não possui nome informado.");
         }
         return NomeComum.valueOf(calculationResult.getCropName());
+    }
+
+    private TexturalClassification resolveTexturalClassification(TexturalClassification texturalClassification) {
+        return texturalClassification != null ? texturalClassification : TexturalClassification.BRASILEIRO;
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {

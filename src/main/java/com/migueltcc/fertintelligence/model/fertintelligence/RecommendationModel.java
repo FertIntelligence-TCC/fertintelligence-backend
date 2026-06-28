@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -52,6 +53,10 @@ public class RecommendationModel {
     @Column(name = "LIMING_CRITERIA")
     @Enumerated(EnumType.STRING)
     CriterioCalagem limingCriteria;
+
+    @Column(name = "TEXTURAL_CLASSIFICATION", nullable = false)
+    @Enumerated(EnumType.STRING)
+    TexturalClassification texturalClassification;
 
     @Column(name = "FERTILIZER_SOURCE_OPTION")
     FertilizerSourceOption origemAdubos;

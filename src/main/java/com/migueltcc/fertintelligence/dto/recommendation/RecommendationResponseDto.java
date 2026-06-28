@@ -6,6 +6,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import lombok.*;
 
@@ -40,6 +41,8 @@ public class RecommendationResponseDto {
     private Integer cropYear;
     @JsonProperty("criterio_calagem")
     private CriterioCalagem limingCriteria;
+    @JsonProperty("classificacao_textural")
+    private TexturalClassification texturalClassification;
     @JsonProperty("origem_adubos")
     private FertilizerSourceOption origemAdubos;
     @JsonProperty("id_tabela_adubacao_cultura")
