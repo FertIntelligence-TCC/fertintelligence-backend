@@ -62,6 +62,7 @@ public class RecommendationCalculationService {
     private final LimingRequirementCalculator limingRequirementCalculator;
     private final GypsumCalculationService gypsumCalculationService;
     private final SoilTextureClassificationService soilTextureClassificationService;
+    private final NutrientFertilizationCalculationService nutrientFertilizationCalculationService;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
@@ -70,10 +71,6 @@ public class RecommendationCalculationService {
     private final CropRepository cropRepository;
     private final FoliarAnalysisRepository foliarAnalysisRepository;
     private final CropFertilizationTableRepository cropFertilizationTableRepository;
-    private final ContentRangeRepository contentRangeRepository;
-    private final CoverageRepository coverageRepository;
-    private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
-    private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
     private final SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository;
     private final CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository;
@@ -84,15 +81,8 @@ public class RecommendationCalculationService {
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
     private final SulfurDoseRepository sulfurDoseRepository;
-    private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final ExchangeableSodiumRepository exchangeableSodiumRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
-    private final OrganicFertilizerRepository organicFertilizerRepository;
-    private final OrganoMineralFertilizerRepository organoMineralFertilizerRepository;
-    private final GreenFertilizerRepository greenFertilizerRepository;
-    private final BioFertilizerRepository bioFertilizerRepository;
-    private final MineralFertilizerRepository mineralFertilizerRepository;
-    private final ChelatedFertilizerRepository chelatedFertilizerRepository;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -101,10 +91,6 @@ public class RecommendationCalculationService {
                                             CropRepository cropRepository,
                                             FoliarAnalysisRepository foliarAnalysisRepository,
                                             CropFertilizationTableRepository cropFertilizationTableRepository,
-                                            ContentRangeRepository contentRangeRepository,
-                                            CoverageRepository coverageRepository,
-                                            FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
-                                            SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository,
                                             SoilFertilityInterpretationCriteriaTableRepository soilFertilityInterpretationCriteriaTableRepository,
                                             CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository,
@@ -115,18 +101,12 @@ public class RecommendationCalculationService {
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
                                             SulfurDoseRepository sulfurDoseRepository,
-                                            MicronutrientDoseRepository micronutrientDoseRepository,
                                             ExchangeableSodiumRepository exchangeableSodiumRepository,
                                             SalinityInterpretationRepository salinityInterpretationRepository,
-                                            OrganicFertilizerRepository organicFertilizerRepository,
-                                            OrganoMineralFertilizerRepository organoMineralFertilizerRepository,
-                                            GreenFertilizerRepository greenFertilizerRepository,
-                                            BioFertilizerRepository bioFertilizerRepository,
-                                            MineralFertilizerRepository mineralFertilizerRepository,
-                                            ChelatedFertilizerRepository chelatedFertilizerRepository,
                                             LimingRequirementCalculator limingRequirementCalculator,
                                             GypsumCalculationService gypsumCalculationService,
-                                            SoilTextureClassificationService soilTextureClassificationService) {
+                                            SoilTextureClassificationService soilTextureClassificationService,
+                                            NutrientFertilizationCalculationService nutrientFertilizationCalculationService) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -134,10 +114,6 @@ public class RecommendationCalculationService {
         this.cropRepository = cropRepository;
         this.foliarAnalysisRepository = foliarAnalysisRepository;
         this.cropFertilizationTableRepository = cropFertilizationTableRepository;
-        this.contentRangeRepository = contentRangeRepository;
-        this.coverageRepository = coverageRepository;
-        this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
-        this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.fertilityAnalysisExtractRepository = fertilityAnalysisExtractRepository;
         this.soilFertilityInterpretationCriteriaTableRepository = soilFertilityInterpretationCriteriaTableRepository;
         this.cropFoliarAnalysisInterpretationTableRepository = cropFoliarAnalysisInterpretationTableRepository;
@@ -148,18 +124,12 @@ public class RecommendationCalculationService {
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
         this.sulfurDoseRepository = sulfurDoseRepository;
-        this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.exchangeableSodiumRepository = exchangeableSodiumRepository;
         this.salinityInterpretationRepository = salinityInterpretationRepository;
-        this.organicFertilizerRepository = organicFertilizerRepository;
-        this.organoMineralFertilizerRepository = organoMineralFertilizerRepository;
-        this.greenFertilizerRepository = greenFertilizerRepository;
-        this.bioFertilizerRepository = bioFertilizerRepository;
-        this.mineralFertilizerRepository = mineralFertilizerRepository;
-        this.chelatedFertilizerRepository = chelatedFertilizerRepository;
         this.limingRequirementCalculator = limingRequirementCalculator;
         this.gypsumCalculationService = gypsumCalculationService;
         this.soilTextureClassificationService = soilTextureClassificationService;
+        this.nutrientFertilizationCalculationService = nutrientFertilizationCalculationService;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -263,77 +233,9 @@ public class RecommendationCalculationService {
                                                                                  List<String> warnings,
                                                                                  List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
                                                                                  List<FoliarDiagnosisItem> foliarDiagnosis) {
-        List<FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
-        List<FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
-        List<NutrientBalanceRow> nutrientBalanceRows = List.of();
-
-        CropFertilizationTableModel table = inputs.cropFertilizationTable();
-        Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
-        Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(inputs.fertilityExtract()), warnings, "fósforo (P) disponível em mg/dm³");
-        Optional<ContentRangeModel> kRange = selectNutrientRange(table, Nutriente.POTASSIO, extractPotassiumValue(inputs.fertilityExtract()), warnings, "potássio (K) trocável em mmolc/dm³");
-
-        Double requiredN = nRange.map(ContentRangeModel::getApplication).orElse(null);
-        Double requiredP2O5 = pRange.map(ContentRangeModel::getApplication).orElse(null);
-        Double requiredK2O = kRange.map(ContentRangeModel::getApplication).orElse(null);
-        Long nRangeId = nRange.map(ContentRangeModel::getId).orElse(null);
-        Long pRangeId = pRange.map(ContentRangeModel::getId).orElse(null);
-        Long kRangeId = kRange.map(ContentRangeModel::getId).orElse(null);
-
-        if (nRange.isEmpty()) warnings.add("Não foi encontrado intervalo para NITROGENIO na tabela selecionada.");
-        if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
-        if (kRange.isEmpty()) warnings.add("Não foi encontrado intervalo para POTASSIO na tabela selecionada.");
-
-        FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, requiredN, requiredP2O5, requiredK2O, warnings);
-        planting.suggestion().ifPresent(fertilizerSuggestions::add);
-        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(requiredN, requiredP2O5, requiredK2O);
-        nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
-
-        recommendationRows.add(FertilizationRecommendationRow.builder()
-                .phase("Plantio")
-                .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O)))
-                .suggestedFertilizer(planting.name())
-                .fertilizerQuantityKgHa(planting.quantityKgHa())
-                .providedN(planting.providedN())
-                .providedP2O5(planting.providedP2O5())
-                .providedK2O(planting.providedK2O())
-                .balanceN(planting.balanceN())
-                .balanceP2O5(planting.balanceP2O5())
-                .balanceK2O(planting.balanceK2O())
-                .limitingNutrient(planting.limitingNutrient())
-                .targetNeedKgHa(planting.targetNeedKgHa())
-                .productConcentrationPercent(planting.productConcentrationPercent())
-                .calculationMemory(planting.calculationMemory())
-                .warning(planting.warning())
-                .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
-                .source("Tabela de adubação de culturas ID " + table.getId())
-                .build());
-
-        for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
-            if (selectedRange != null) recommendationRows.addAll(buildCoverageRows(selectedRange, inputs.crop(), user, sourceOption, fertilizerSuggestions, nutrientBalance, warnings));
-        }
-        recommendationRows.add(FertilizationRecommendationRow.builder()
-                .phase("Balanço global NPK")
-                .nutrients("Consolidado após plantio e coberturas recomendadas")
-                .suggestedFertilizer("Não se aplica")
-                .applicationMode("Memória de cálculo consolidada em kg/ha.")
-                .providedN(nutrientBalance.providedTotalN())
-                .providedP2O5(nutrientBalance.providedTotalP2O5())
-                .providedK2O(nutrientBalance.providedTotalK2O())
-                .balanceN(nutrientBalance.balanceN())
-                .balanceP2O5(nutrientBalance.balanceP2O5())
-                .balanceK2O(nutrientBalance.balanceK2O())
-                .source("Balanço global calculado pelo backend")
-                .build());
-        nutrientBalanceRows = nutrientBalance.toRows();
-
-        List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows =
-                buildOrganicOrganoMineralAndMicronutrientRows(
-                        requiredN, requiredP2O5, requiredK2O, chemicalDiagnosis, foliarDiagnosis,
-                        table, inputs.soilInterpretationTable(), user, sourceOption, warnings);
-
-        return new FertilizationRecommendationContext(
-                recommendationRows, fertilizerSuggestions, nutrientBalanceRows, alternativeFertilizationRows,
-                requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
+        return nutrientFertilizationCalculationService.calculate(
+                inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), inputs.soilInterpretationTable(),
+                user, sourceOption, warnings, chemicalDiagnosis, foliarDiagnosis);
     }
 
     private RecommendationCalculationResult buildCalculationResult(RecommendationCreateRequestDto dto,
@@ -409,26 +311,11 @@ public class RecommendationCalculationService {
             SalinityDiagnosis salinityDiagnosis) {
     }
 
-    private record FertilizationRecommendationContext(
-            List<FertilizationRecommendationRow> recommendationRows,
-            List<FertilizerSuggestion> fertilizerSuggestions,
-            List<NutrientBalanceRow> nutrientBalanceRows,
-            List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows,
-            Double requiredN,
-            Double requiredP2O5,
-            Double requiredK2O,
-            Long nRangeId,
-            Long pRangeId,
-            Long kRangeId) {
-    }
     private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
     private double nvl(Double v){return v==null?0d:v;}
-    private Optional<ContentRangeModel> selectNitrogenRange(CropFertilizationTableModel t){var l=contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(t,Nutriente.NITROGENIO);return l.stream().findFirst();}
-    private Optional<ContentRangeModel> selectNutrientRange(CropFertilizationTableModel t,Nutriente n,Optional<Double> value,List<String>w,String label){var ranges=contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(t,n);if(ranges.isEmpty())return Optional.empty();if(value.isEmpty()){w.add("Não foi possível classificar teor de "+label+"; primeiro intervalo da tabela foi utilizado.");return Optional.of(ranges.get(0));} double v=value.get(); return ranges.stream().filter(r->(r.getSmallest()==null||v>=r.getSmallest())&&(r.getLargest()==null||v<r.getLargest())).findFirst().or(()->Optional.of(ranges.get(0)));}
+    private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
     private Optional<FertilityAnalysisExtractModel> findLatestFertilityExtract(SoilAnalysisModel soil){return fertilityAnalysisExtractRepository.findAll().stream().filter(e->(e.getRangeExtract()!=null&&e.getRangeExtract().getAnalysis()!=null&&Objects.equals(e.getRangeExtract().getAnalysis().getId(),soil.getId()))||(e.getLayerExtract()!=null&&e.getLayerExtract().getAnalysis()!=null&&Objects.equals(e.getLayerExtract().getAnalysis().getId(),soil.getId()))).max(Comparator.comparing(FertilityAnalysisExtractModel::getId));}
     private SoilAnalysisModel resolveSoilAnalysis(FertilityAnalysisExtractModel extract) {if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) return extract.getRangeExtract().getAnalysis(); if (extract.getLayerExtract() != null && extract.getLayerExtract().getAnalysis() != null) return extract.getLayerExtract().getAnalysis(); throw new IllegalArgumentException("Extrato de análise de fertilidade não possui análise de solo associada.");}
-    private Optional<Double> extractPhosphorusValue(Optional<FertilityAnalysisExtractModel> e){return e.map(x->x.getFosforoMehlich1()!=null?x.getFosforoMehlich1():x.getFosforoResina());}
-    private Optional<Double> extractPotassiumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getPotassio);}
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
     private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
     private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
@@ -624,341 +511,7 @@ public class RecommendationCalculationService {
     }
 
     private SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {
-        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
-        if (fertilizers == null) return null;
-        return fertilizers.stream()
-                .filter(f -> correctiveSourcePercentage(f, nutrientTarget) > 0d)
-                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> correctiveSourcePercentage(f, nutrientTarget))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .orElse(null);
-    }
-
-    private double correctiveSourcePercentage(SimpleMineralFertilizerModel fertilizer, String nutrientTarget) {
-        if (fertilizer == null || nutrientTarget == null) return 0d;
-        return switch (nutrientTarget) {
-            case "P2O5" -> nvl(fertilizer.getP2O5());
-            case "K2O" -> nvl(fertilizer.getK2O());
-            case "S" -> nvl(fertilizer.getS());
-            default -> 0d;
-        };
-    }
-
-    private List<AlternativeFertilizationRecommendationRow> buildOrganicOrganoMineralAndMicronutrientRows(
-            Double requiredN,
-            Double requiredP2O5,
-            Double requiredK2O,
-            List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
-            List<FoliarDiagnosisItem> foliarDiagnosis,
-            CropFertilizationTableModel cropFertilizationTable,
-            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
-            UserModel user,
-            FertilizerSourceOption sourceOption,
-            List<String> warnings) {
-        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
-        addNpkAlternativeRow(rows, "ORGÂNICA", selectBestOrganicSource(user, sourceOption),
-                requiredN, requiredP2O5, requiredK2O, warnings);
-        addNpkAlternativeRow(rows, "ORGANOMINERAL", selectBestOrganoMineralSource(user, sourceOption),
-                requiredN, requiredP2O5, requiredK2O, warnings);
-        addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
-        addBiofertilizerLimitation(rows, user, sourceOption, warnings);
-        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, warnings));
-        return rows;
-    }
-
-    private void addNpkAlternativeRow(List<AlternativeFertilizationRecommendationRow> rows,
-                                      String sourceType,
-                                      Optional<NpkAlternativeSource> source,
-                                      Double requiredN,
-                                      Double requiredP2O5,
-                                      Double requiredK2O,
-                                      List<String> warnings) {
-        if (source.isEmpty()) {
-            String limitation = "Não há fonte " + sourceType.toLowerCase(Locale.ROOT)
-                    + " acessível com N, P2O5 ou K2O informado para a origem de adubos selecionada.";
-            warnings.add(limitation);
-            rows.add(AlternativeFertilizationRecommendationRow.builder()
-                    .sourceType(sourceType)
-                    .nutrientOrObjective("NPK")
-                    .sourceName("Não selecionada")
-                    .dose("Não calculada")
-                    .unit("kg/ha")
-                    .justification("Fonte não selecionada por ausência de produto cadastrado com composição NPK utilizável.")
-                    .limitations(limitation)
-                    .build());
-            return;
-        }
-
-        NpkAlternativeSource selected = source.get();
-        Optional<FertilizerDoseCalculation> calculation = calculateByGreatestFactor(
-                requiredN, requiredP2O5, requiredK2O, selected.n(), selected.p2o5(), selected.k2o(),
-                "concentração NPK declarada no cadastro da fonte " + sourceType.toLowerCase(Locale.ROOT));
-        if (calculation.isEmpty()) {
-            String limitation = "Há fonte " + sourceType.toLowerCase(Locale.ROOT)
-                    + " cadastrada, mas não há necessidade NPK positiva ou concentração válida para calcular dose.";
-            warnings.add(limitation);
-            rows.add(AlternativeFertilizationRecommendationRow.builder()
-                    .sourceType(sourceType)
-                    .nutrientOrObjective("NPK")
-                    .sourceName(selected.name())
-                    .dose("Não calculada")
-                    .unit("kg/ha")
-                    .justification("Produto com composição NPK disponível, porém sem alvo quantitativo compatível.")
-                    .limitations(limitation)
-                    .build());
-            return;
-        }
-
-        FertilizerDoseCalculation calc = calculation.get();
-        String limitation = sourceType.equals("ORGÂNICA")
-                ? "A dose usa teor total cadastrado; o backend não possui coeficiente de mineralização, umidade efetiva, eficiência agronômica ou restrição sanitária para fonte orgânica."
-                : "A dose usa teor total cadastrado; o backend não possui coeficiente de eficiência agronômica, liberação gradual ou restrição específica do produto organomineral.";
-        warnings.add(limitation);
-        rows.add(AlternativeFertilizationRecommendationRow.builder()
-                .sourceType(sourceType)
-                .nutrientOrObjective("NPK - nutriente alvo " + calc.nutrient())
-                .sourceName(selected.name())
-                .dose(String.format(Locale.US, "%.2f", calc.quantityKgHa()))
-                .unit("kg/ha de produto")
-                .justification(String.format(Locale.US,
-                        "Dose calculada por %.2f kg/ha de %s e concentração cadastrada de %.2f%% na fonte.",
-                        calc.targetNeedKgHa(), calc.nutrient(), calc.concentrationPercent()))
-                .limitations(limitation)
-                .build());
-    }
-
-    private void addGreenFertilizerLimitation(List<AlternativeFertilizationRecommendationRow> rows,
-                                              UserModel user,
-                                              FertilizerSourceOption sourceOption,
-                                              List<String> warnings) {
-        List<GreenFertilizerModel> sources = selectGreenFertilizers(user, sourceOption);
-        if (sources.isEmpty()) {
-            String limitation = "Não há adubo verde acessível para a origem de adubos selecionada.";
-            warnings.add(limitation);
-            rows.add(limitationRow("ADUBO VERDE", "Matéria orgânica/NPK", limitation));
-            return;
-        }
-        GreenFertilizerModel source = sources.stream()
-                .max(Comparator.comparing((GreenFertilizerModel f) -> nvl(f.getC()) + nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .orElse(null);
-        String limitation = "Adubo verde possui composição cadastrada, mas o backend não possui biomassa produzida/incorporada, matéria seca, época de manejo ou eficiência de liberação para converter em dose.";
-        warnings.add(limitation);
-        rows.add(AlternativeFertilizationRecommendationRow.builder()
-                .sourceType("ADUBO VERDE")
-                .nutrientOrObjective("Matéria orgânica/NPK")
-                .sourceName(source != null ? source.getName() : "Não selecionada")
-                .dose("Não calculada")
-                .unit("kg/ha")
-                .justification("Fonte apresentada como opção cadastrada, sem recomendação quantitativa automática.")
-                .limitations(limitation)
-                .build());
-    }
-
-    private void addBiofertilizerLimitation(List<AlternativeFertilizationRecommendationRow> rows,
-                                            UserModel user,
-                                            FertilizerSourceOption sourceOption,
-                                            List<String> warnings) {
-        List<BioFertilizerModel> sources = selectBioFertilizers(user, sourceOption);
-        if (sources.isEmpty()) {
-            String limitation = "Não há biofertilizante acessível para a origem de adubos selecionada.";
-            warnings.add(limitation);
-            rows.add(limitationRow("BIOFERTILIZANTE", "Nutrição foliar/estímulo fisiológico", limitation));
-            return;
-        }
-        BioFertilizerModel source = sources.stream()
-                .max(Comparator.comparing((BioFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()) + nvl(f.getB()) + nvl(f.getZn()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .orElse(null);
-        String limitation = "Biofertilizante possui composição cadastrada, mas o backend não possui dose recomendada por cultura, concentração de calda, via de aplicação ou eficiência para calcular recomendação operacional.";
-        warnings.add(limitation);
-        rows.add(AlternativeFertilizationRecommendationRow.builder()
-                .sourceType("BIOFERTILIZANTE")
-                .nutrientOrObjective("Nutrição foliar/estímulo fisiológico")
-                .sourceName(source != null ? source.getName() : "Não selecionada")
-                .dose("Não calculada")
-                .unit("L/ha ou kg/ha")
-                .justification("Fonte apresentada como opção cadastrada, sem recomendação quantitativa automática.")
-                .limitations(limitation)
-                .build());
-    }
-
-    private AlternativeFertilizationRecommendationRow limitationRow(String sourceType, String objective, String limitation) {
-        return AlternativeFertilizationRecommendationRow.builder()
-                .sourceType(sourceType)
-                .nutrientOrObjective(objective)
-                .sourceName("Não selecionada")
-                .dose("Não calculada")
-                .unit("Não modelada")
-                .justification("Recomendação não gerada por ausência de dados suportados.")
-                .limitations(limitation)
-                .build();
-    }
-
-    private List<AlternativeFertilizationRecommendationRow> buildMicronutrientRows(
-            List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
-            List<FoliarDiagnosisItem> foliarDiagnosis,
-            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
-            List<String> warnings) {
-        List<AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
-        Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> soilMicronutrients = soilMicronutrientDiagnosis(chemicalDiagnosis);
-        Optional<MicronutrientDoseModel> micronutrientDoses = soilInterpretationTable != null
-                ? micronutrientDoseRepository.findByTable(soilInterpretationTable)
-                : Optional.empty();
-        Optional<DiverseContentRangeModel> micronutrientRanges = soilInterpretationTable != null
-                ? diverseContentRangeRepository.findByTable(soilInterpretationTable)
-                : Optional.empty();
-
-        if (micronutrientDoses.isPresent()) {
-            MicronutrientDoseModel doses = micronutrientDoses.get();
-            for (Map.Entry<AppliedMicronutrient, SoilChemicalDiagnosisItem> entry : soilMicronutrients.entrySet()) {
-                SoilChemicalDiagnosisItem item = entry.getValue();
-                String functionalRange = classifyMicronutrientDoseRange(entry.getKey(), item.getAnalyzedValue(), micronutrientRanges);
-                Double dose = selectMicronutrientDose(doses, entry.getKey(), item.getAnalyzedValue(), item.getInterpretation(), micronutrientRanges);
-                if (dose == null) {
-                    warnings.add("Dose de micronutriente não calculada para " + entry.getKey().name()
-                            + " por ausência de dose cadastrada para a faixa " + item.getInterpretation() + ".");
-                    continue;
-                }
-                rows.add(AlternativeFertilizationRecommendationRow.builder()
-                        .sourceType("MICRONUTRIENTE")
-                        .nutrientOrObjective(entry.getKey().name())
-                        .sourceName("Dose elementar cadastrada")
-                        .dose(formatNumber(dose))
-                        .unit("kg/ha")
-                        .justification("Dose selecionada pela faixa " + (functionalRange != null ? functionalRange : item.getInterpretation())
-                                + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.")
-                        .limitations("A dose representa kg/ha do micronutriente; o backend não converte automaticamente para produto comercial ou fonte específica.")
-                        .build());
-            }
-        } else if (!soilMicronutrients.isEmpty()) {
-            warnings.add("Tabela de doses de micronutrientes não encontrada para a tabela de interpretação da fertilidade do solo selecionada.");
-        }
-
-        if (!rows.isEmpty()) {
-            return rows;
-        }
-
-        Map<AppliedMicronutrient, String> deficiencyEvidence = micronutrientDeficiencyEvidence(chemicalDiagnosis, foliarDiagnosis);
-        String limitation = "Doses de micronutrientes por tabela de adubação de cultura foram descontinuadas; recomendação quantitativa de micronutrientes não está modelada para os dados disponíveis.";
-        warnings.add(limitation);
-        String objective = deficiencyEvidence.isEmpty()
-                ? "B/Cu/Fe/Mn/Mo/Zn"
-                : deficiencyEvidence.keySet().stream().map(Enum::name).collect(java.util.stream.Collectors.joining("/"));
-        String justification = deficiencyEvidence.isEmpty()
-                ? "Não houve deficiência de micronutriente classificada pelos diagnósticos químico ou foliar disponíveis."
-                : "Há evidência diagnóstica para micronutrientes, mas faltam teores classificados e doses cadastradas para recomendação quantitativa.";
-        rows.add(AlternativeFertilizationRecommendationRow.builder()
-                .sourceType("MICRONUTRIENTE")
-                .nutrientOrObjective(objective)
-                .sourceName("Não selecionada")
-                .dose("Não calculada")
-                .unit("Não modelada")
-                .justification(justification)
-                .limitations(limitation)
-                .build());
-        return rows;
-    }
-
-    private Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> soilMicronutrientDiagnosis(List<SoilChemicalDiagnosisItem> chemicalDiagnosis) {
-        Map<AppliedMicronutrient, SoilChemicalDiagnosisItem> diagnosis = new LinkedHashMap<>();
-        if (chemicalDiagnosis == null) return diagnosis;
-        for (SoilChemicalDiagnosisItem item : chemicalDiagnosis) {
-            if (item == null || item.getAnalyzedValue() == null || item.getInterpretation() == null) continue;
-            if (!isInterpretation(item, "Baixo", "Médio", "Alto")) continue;
-            AppliedMicronutrient micronutrient = micronutrientFromText(item.getAttribute());
-            if (micronutrient == AppliedMicronutrient.B
-                    || micronutrient == AppliedMicronutrient.Cu
-                    || micronutrient == AppliedMicronutrient.Fe
-                    || micronutrient == AppliedMicronutrient.Mn
-                    || micronutrient == AppliedMicronutrient.Zn) {
-                diagnosis.putIfAbsent(micronutrient, item);
-            }
-        }
-        return diagnosis;
-    }
-
-    private Double selectMicronutrientDose(MicronutrientDoseModel doses,
-                                           AppliedMicronutrient micronutrient,
-                                           Double analyzedValue,
-                                           String interpretation,
-                                           Optional<DiverseContentRangeModel> diverseRange) {
-        if (doses == null || micronutrient == null) return null;
-        String range = classifyMicronutrientDoseRange(micronutrient, analyzedValue, diverseRange);
-        if (range == null) {
-            range = interpretation;
-        }
-        if (range == null) return null;
-        return switch (micronutrient) {
-            case B -> selectThreeLevelDose(range, doses.getBoronLowDose(), doses.getBoronMediumDose(), doses.getBoronHighDose());
-            case Cu -> selectThreeLevelDose(range, doses.getCopperLowDose(), doses.getCopperMediumDose(), doses.getCopperHighDose());
-            case Fe -> selectThreeLevelDose(range, doses.getIronLowDose(), doses.getIronMediumDose(), doses.getIronHighDose());
-            case Mn -> selectThreeLevelDose(range, doses.getManganeseLowDose(), doses.getManganeseMediumDose(), doses.getManganeseHighDose());
-            case Zn -> selectThreeLevelDose(range, doses.getZincLowDose(), doses.getZincMediumDose(), doses.getZincHighDose());
-            default -> null;
-        };
-    }
-
-    private String classifyMicronutrientDoseRange(AppliedMicronutrient micronutrient,
-                                                  Double analyzedValue,
-                                                  Optional<DiverseContentRangeModel> diverseRange) {
-        if (micronutrient == null || analyzedValue == null || diverseRange == null || diverseRange.isEmpty()) return null;
-        return classifyThreeLevelRangeName(analyzedValue, micronutrientCriterion(diverseRange.get(), micronutrient));
-    }
-
-    private ThreeLevelCriterion micronutrientCriterion(DiverseContentRangeModel range, AppliedMicronutrient micronutrient) {
-        if (range == null || micronutrient == null) return null;
-        return switch (micronutrient) {
-            case B -> new ThreeLevelCriterion(range.getBoron_low_f(), range.getBoron_medium_i(), range.getBoron_medium_f(), range.getBoron_hight_i());
-            case Cu -> new ThreeLevelCriterion(range.getCopper_low_f(), range.getCopper_medium_i(), range.getCopper_medium_f(), range.getCopper_hight_i());
-            case Fe -> new ThreeLevelCriterion(range.getIron_low_f(), range.getIron_medium_i(), range.getIron_medium_f(), range.getIron_hight_i());
-            case Mn -> new ThreeLevelCriterion(range.getManganese_low_f(), range.getManganese_medium_i(), range.getManganese_medium_f(), range.getManganese_hight_i());
-            case Zn -> new ThreeLevelCriterion(range.getZinc_low_f(), range.getZinc_medium_i(), range.getZinc_medium_f(), range.getZinc_hight_i());
-            default -> null;
-        };
-    }
-
-    private Double selectThreeLevelDose(String interpretation, Double lowDose, Double mediumDose, Double highDose) {
-        return switch (interpretation) {
-            case "Baixo" -> lowDose;
-            case "Médio" -> mediumDose;
-            case "Alto" -> highDose;
-            default -> null;
-        };
-    }
-
-    private Map<AppliedMicronutrient, String> micronutrientDeficiencyEvidence(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
-                                                                              List<FoliarDiagnosisItem> foliarDiagnosis) {
-        Map<AppliedMicronutrient, String> evidence = new LinkedHashMap<>();
-        if (chemicalDiagnosis != null) {
-            for (SoilChemicalDiagnosisItem item : chemicalDiagnosis) {
-                if (item == null || !isInterpretation(item, "Muito baixo", "Baixo")) continue;
-                AppliedMicronutrient micronutrient = micronutrientFromText(item.getAttribute());
-                if (micronutrient != null) {
-                    evidence.putIfAbsent(micronutrient, "diagnóstico químico do solo (" + item.getAttribute() + " " + item.getInterpretation() + ")");
-                }
-            }
-        }
-        if (foliarDiagnosis != null) {
-            for (FoliarDiagnosisItem item : foliarDiagnosis) {
-                if (item == null || !"Deficiência".equals(item.getInterpretation())) continue;
-                AppliedMicronutrient micronutrient = micronutrientFromText(item.getNutrient());
-                if (micronutrient != null) {
-                    evidence.putIfAbsent(micronutrient, "diagnóstico foliar (" + item.getNutrient() + " em deficiência)");
-                }
-            }
-        }
-        return evidence;
-    }
-
-    private AppliedMicronutrient micronutrientFromText(String text) {
-        String normalized = normalizeText(text);
-        if (normalized.contains("boro") || normalized.contains("(b)")) return AppliedMicronutrient.B;
-        if (normalized.contains("cobre") || normalized.contains("cu")) return AppliedMicronutrient.Cu;
-        if (normalized.contains("ferro") || normalized.contains("fe")) return AppliedMicronutrient.Fe;
-        if (normalized.contains("manganes") || normalized.contains("mn")) return AppliedMicronutrient.Mn;
-        if (normalized.contains("molibdenio") || normalized.contains("mo")) return AppliedMicronutrient.Mo;
-        if (normalized.contains("zinco") || normalized.contains("zn")) return AppliedMicronutrient.Zn;
-        return null;
+        return nutrientFertilizationCalculationService.selectCorrectiveSource(user, sourceOption, nutrientTarget);
     }
 
     private String formatDoseRange(Double minimum, Double maximum) {
@@ -1717,236 +1270,6 @@ public class RecommendationCalculationService {
     private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {}
     private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                         Double mediumEnd, Double highStart, Double highEnd, Double veryHighStart) {}
-    private class NutrientBalanceAccumulator {
-        private final double requiredN;
-        private final double requiredP2O5;
-        private final double requiredK2O;
-        private double plantingN;
-        private double plantingP2O5;
-        private double plantingK2O;
-        private double coverageRecommendedN;
-        private double coverageRecommendedP2O5;
-        private double coverageRecommendedK2O;
-        private double coverageProvidedN;
-        private double coverageProvidedP2O5;
-        private double coverageProvidedK2O;
-
-        NutrientBalanceAccumulator(Double requiredN, Double requiredP2O5, Double requiredK2O) {
-            this.requiredN = nvl(requiredN);
-            this.requiredP2O5 = nvl(requiredP2O5);
-            this.requiredK2O = nvl(requiredK2O);
-        }
-
-        void addPlanting(Double providedN, Double providedP2O5, Double providedK2O) {
-            plantingN = nvl(providedN);
-            plantingP2O5 = nvl(providedP2O5);
-            plantingK2O = nvl(providedK2O);
-        }
-
-        void addCoverage(Nutriente nutrient, double recommendedApplication, double providedN, double providedP2O5, double providedK2O) {
-            if (nutrient == Nutriente.NITROGENIO) coverageRecommendedN = round2(coverageRecommendedN + recommendedApplication);
-            else if (nutrient == Nutriente.POTASSIO) coverageRecommendedK2O = round2(coverageRecommendedK2O + recommendedApplication);
-            else coverageRecommendedP2O5 = round2(coverageRecommendedP2O5 + recommendedApplication);
-            coverageProvidedN = round2(coverageProvidedN + providedN);
-            coverageProvidedP2O5 = round2(coverageProvidedP2O5 + providedP2O5);
-            coverageProvidedK2O = round2(coverageProvidedK2O + providedK2O);
-        }
-
-        double remainingDeficit(Nutriente nutrient) {
-            if (nutrient == Nutriente.NITROGENIO) return Math.max(0d, round2(requiredN - providedTotalN()));
-            if (nutrient == Nutriente.POTASSIO) return Math.max(0d, round2(requiredK2O - providedTotalK2O()));
-            return Math.max(0d, round2(requiredP2O5 - providedTotalP2O5()));
-        }
-
-        double requiredTotalN() { return round2(requiredN + coverageRecommendedN); }
-        double requiredTotalP2O5() { return round2(requiredP2O5 + coverageRecommendedP2O5); }
-        double requiredTotalK2O() { return round2(requiredK2O + coverageRecommendedK2O); }
-        double providedTotalN() { return round2(plantingN + coverageProvidedN); }
-        double providedTotalP2O5() { return round2(plantingP2O5 + coverageProvidedP2O5); }
-        double providedTotalK2O() { return round2(plantingK2O + coverageProvidedK2O); }
-        double balanceN() { return round2(providedTotalN() - requiredTotalN()); }
-        double balanceP2O5() { return round2(providedTotalP2O5() - requiredTotalP2O5()); }
-        double balanceK2O() { return round2(providedTotalK2O() - requiredTotalK2O()); }
-
-        List<NutrientBalanceRow> toRows() {
-            return List.of(
-                    row("N", requiredTotalN(), plantingN, coverageRecommendedN, coverageProvidedN, providedTotalN(), balanceN()),
-                    row("P2O5", requiredTotalP2O5(), plantingP2O5, coverageRecommendedP2O5, coverageProvidedP2O5, providedTotalP2O5(), balanceP2O5()),
-                    row("K2O", requiredTotalK2O(), plantingK2O, coverageRecommendedK2O, coverageProvidedK2O, providedTotalK2O(), balanceK2O())
-            );
-        }
-
-        private NutrientBalanceRow row(String nutrient, double required, double planting, double coverageRecommended, double coverageProvided, double totalProvided, double balance) {
-            return NutrientBalanceRow.builder()
-                    .nutrient(nutrient)
-                    .requiredTotalKgHa(round2(required))
-                    .providedByPlantingKgHa(round2(planting))
-                    .recommendedCoverageKgHa(round2(coverageRecommended))
-                    .providedByCoverageKgHa(round2(coverageProvided))
-                    .providedTotalKgHa(round2(totalProvided))
-                    .finalBalanceKgHa(round2(balance))
-                    .status(balance < 0d ? "Déficit" : balance > 0d ? "Excedente" : "Atendido")
-                    .build();
-        }
-    }
-    private record FertilizerSelection(String name, Double quantityKgHa, Double providedN, Double providedP2O5, Double providedK2O, Double balanceN, Double balanceP2O5, Double balanceK2O, String limitingNutrient, Double targetNeedKgHa, Double productConcentrationPercent, String calculationMemory, String warning, Optional<FertilizerSuggestion> suggestion){}
-    private record FertilizerDoseCalculation(String nutrient, double targetNeedKgHa, double concentrationPercent, double quantityKgHa, String method) {}
-
-    private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String>w){var formulated=selectFormulatedFertilizers(user, sourceOption);var bestF=formulated.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId())); if(bestF.isPresent()){var f=bestF.get();Optional<FertilizerDoseCalculation> calc=calculateByGreatestFactor(n,p,k,f.getN(),f.getP2O5(),f.getK2O(),"maior fator necessário entre N, P2O5 e K2O");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK "+(int)f.getN()+"-"+(int)f.getP2O5()+"-"+(int)f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();if(calc.isEmpty()){String warning="Fertilizante formulado selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";w.add(warning);return buildSelection(s.getFertilizerName(),(Double)null,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),null,w,warning,Optional.of(s));}w.add("Quantidade de adubo formulado estimada a partir do maior fator necessário entre N, P2O5 e K2O; excedentes ficam explícitos no saldo.");return buildSelection(s.getFertilizerName(),calc.get(),n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,null,Optional.of(s));}
-    var simples=selectSimpleFertilizers(user, sourceOption);var bestS=simples.stream().filter(f->f.getN()>0||f.getP2O5()>0||f.getK2O()>0).max((a,b)->compareScore(a.getN(),a.getP2O5(),a.getK2O(),b.getN(),b.getP2O5(),b.getK2O(),n,p,k,a.getId(),b.getId()));if(bestS.isPresent()){var f=bestS.get();Optional<FertilizerDoseCalculation> calc=calculateByGreatestFactor(n,p,k,f.getN(),f.getP2O5(),f.getK2O(),"concentração do nutriente alvo em fertilizante simples");var s=FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado; dose calculada pelo nutriente alvo identificado.").build();if(calc.isEmpty()){String warning="Fertilizante simples selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";w.add(warning);return buildSelection(s.getFertilizerName(),(Double)null,n,p,k,f.getN(),f.getP2O5(),f.getK2O(),null,w,warning,Optional.of(s));}w.add("Quantidade de adubo simples calculada pela concentração do nutriente alvo identificado.");return buildSelection(s.getFertilizerName(),calc.get(),n,p,k,f.getN(),f.getP2O5(),f.getK2O(),w,null,Optional.of(s));}
-    w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada."); return new FertilizerSelection("Não encontrado",null,null,null,null,null,null,null,null,null,null,null,null,Optional.empty());}
-
-    private FertilizerSelection buildSelection(String name, FertilizerDoseCalculation calc, Double rn, Double rp, Double rk, double fn, double fp, double fk, List<String> warnings, String warning, Optional<FertilizerSuggestion> suggestion){Double q=calc!=null?calc.quantityKgHa():null;return buildSelection(name,q,rn,rp,rk,fn,fp,fk,calc,warnings,warning,suggestion);}
-    private FertilizerSelection buildSelection(String name, Double q, Double rn, Double rp, Double rk, double fn, double fp, double fk, FertilizerDoseCalculation calc, List<String> warnings, String warning, Optional<FertilizerSuggestion> suggestion){double pn=q==null?0d:round2(q*fn/100d), pp=q==null?0d:round2(q*fp/100d), pk=q==null?0d:round2(q*fk/100d);double bn=round2(pn-nvl(rn)), bp=round2(pp-nvl(rp)), bk=round2(pk-nvl(rk));String effectiveWarning=warning;if(effectiveWarning==null&&(bn<0||bp<0||bk<0)){effectiveWarning=String.format("Fertilizante selecionado não atende todos os nutrientes no plantio. Déficits: N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha.", Math.max(0d,-bn), Math.max(0d,-bp), Math.max(0d,-bk));warnings.add(effectiveWarning);}String memory=calc==null?null:buildCalculationMemory(calc,pn,pp,pk,bn,bp,bk);return new FertilizerSelection(name,q,pn,pp,pk,bn,bp,bk,calc!=null?calc.nutrient():null,calc!=null?calc.targetNeedKgHa():null,calc!=null?calc.concentrationPercent():null,memory,effectiveWarning,suggestion);}
-    private Optional<FertilizerDoseCalculation> calculateByGreatestFactor(Double rn, Double rp, Double rk, double n, double p, double k, String method) {
-        List<FertilizerDoseCalculation> calculations = new ArrayList<>();
-        addDoseCandidate(calculations, "N", rn, n, method);
-        addDoseCandidate(calculations, "P2O5", rp, p, method);
-        addDoseCandidate(calculations, "K2O", rk, k, method);
-        return calculations.stream().max(Comparator.comparing(FertilizerDoseCalculation::quantityKgHa));
-    }
-    private void addDoseCandidate(List<FertilizerDoseCalculation> calculations, String nutrient, Double required, double concentration, String method) {
-        if (nvl(required) <= 0d || concentration <= 0d) return;
-        calculations.add(new FertilizerDoseCalculation(nutrient, round2(required), round2(concentration), round2(required / concentration * 100d), method));
-    }
-    private String buildCalculationMemory(FertilizerDoseCalculation calc, double providedN, double providedP2O5, double providedK2O, double balanceN, double balanceP2O5, double balanceK2O) {
-        return String.format(Locale.US,
-                "Nutriente limitante/alvo: %s; necessidade alvo: %.2f kg/ha; concentração do produto: %.2f%%; dose calculada: %.2f kg/ha (%s); fornecido: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; déficit/excedente: N %+.2f, P2O5 %+.2f, K2O %+.2f kg/ha.",
-                calc.nutrient(), calc.targetNeedKgHa(), calc.concentrationPercent(), calc.quantityKgHa(), calc.method(), providedN, providedP2O5, providedK2O, balanceN, balanceP2O5, balanceK2O);
-    }
-    private List<FertilizationRecommendationRow> buildCoverageRows(ContentRangeModel range, CropModel crop, UserModel user, FertilizerSourceOption sourceOption, List<FertilizerSuggestion> suggestions, NutrientBalanceAccumulator balance, List<String> warnings) {
-        List<FertilizationRecommendationRow> rows = new ArrayList<>();
-        Nutriente nutrient = range.getNutrient();
-        List<CoverageModel> coverages = coverageRepository.findAllByRangeOrderByOrderAsc(range);
-
-        for (CoverageModel c : coverages) {
-            if (c.getApplication() == null) continue;
-
-            double targetApplication = round2(c.getApplication());
-            String fertName = targetApplication > 0d ? "Fonte não definida" : "Não se aplica";
-            Double q = null;
-            String limitingNutrient = null;
-            Double targetNeed = null;
-            Double concentration = null;
-            String calculationMemory = null;
-            String warning = null;
-            double providedN = 0d;
-            double providedP2O5 = 0d;
-            double providedK2O = 0d;
-
-            if (targetApplication <= 0d) {
-                q = 0d;
-                targetNeed = 0d;
-                balance.addCoverage(nutrient, 0d, 0d, 0d, 0d);
-                calculationMemory = "Dose de cobertura cadastrada como 0,00 kg/ha na tabela técnica da cultura.";
-            } else {
-                var simples = selectSimpleFertilizers(user, sourceOption);
-                SimpleMineralFertilizerModel best = selectCoverageFertilizer(simples, nutrient);
-                if (best != null) {
-                    double pct = coveragePercentage(best, nutrient);
-                    if (pct > 0d) {
-                        q = round2(targetApplication / pct * 100d);
-                        limitingNutrient = nutrientLabel(nutrient);
-                        targetNeed = targetApplication;
-                        concentration = round2(pct);
-                        providedN = round2(q * nvl(best.getN()) / 100d);
-                        providedP2O5 = round2(q * nvl(best.getP2O5()) / 100d);
-                        providedK2O = round2(q * nvl(best.getK2O()) / 100d);
-                        balance.addCoverage(nutrient, targetApplication, providedN, providedP2O5, providedK2O);
-                        calculationMemory = buildCalculationMemory(new FertilizerDoseCalculation(limitingNutrient, targetNeed, concentration, q, "dose de cobertura cadastrada na tabela técnica e concentração do nutriente alvo em fertilizante simples"), providedN, providedP2O5, providedK2O, balance.balanceN(), balance.balanceP2O5(), balance.balanceK2O());
-                    } else {
-                        warning = "Adubo mineral simples encontrado para cobertura de " + nutrient + ", mas sem concentração válida do nutriente alvo; dose não calculada.";
-                        warnings.add(warning);
-                    }
-                    fertName = best.getName();
-                    suggestions.add(FertilizerSuggestion.builder()
-                            .fertilizerId(best.getId())
-                            .fertilizerType("SIMPLES")
-                            .fertilizerName(best.getName())
-                            .n(best.getN())
-                            .p2o5(best.getP2O5())
-                            .k2o(best.getK2O())
-                            .reason("Cobertura por " + nutrient + " baseada na dose cadastrada na tabela técnica da cultura.")
-                            .build());
-                } else {
-                    balance.addCoverage(nutrient, targetApplication, 0d, 0d, 0d);
-                    warnings.add("Não foi encontrado adubo mineral simples para cobertura de " + nutrient + "; a fonte deve ser definida conforme disponibilidade e seleção de adubos.");
-                }
-            }
-
-            rows.add(FertilizationRecommendationRow.builder()
-                    .phase("Cobertura " + c.getOrder() + " - " + nutrient)
-                    .nutrients(nutrient + ": " + String.format(Locale.US, "%.2f", targetApplication) + " kg/ha")
-                    .suggestedFertilizer(fertName)
-                    .fertilizerQuantityKgHa(q)
-                    .applicationMode(buildCoverageApplicationMode(c, crop))
-                    .source("Tabela de adubação da cultura; aplicação cadastrada " + String.format(Locale.US, "%.2f", targetApplication) + " kg/ha")
-                    .providedN(providedN)
-                    .providedP2O5(providedP2O5)
-                    .providedK2O(providedK2O)
-                    .balanceN(balance.balanceN())
-                    .balanceP2O5(balance.balanceP2O5())
-                    .balanceK2O(balance.balanceK2O())
-                    .limitingNutrient(limitingNutrient)
-                    .targetNeedKgHa(targetNeed)
-                    .productConcentrationPercent(concentration)
-                    .calculationMemory(calculationMemory)
-                    .warning(warning)
-                    .build());
-        }
-        return rows;
-    }
-
-    private String buildCoverageApplicationMode(CoverageModel coverage, CropModel crop) {
-        String base = "Aplicação de cobertura programada conforme tabela técnica da cultura.";
-        String dates = buildCropPhenologyReference(crop);
-        if (dates.isBlank()) {
-            return base + " Sem data ou fase específica suficiente no modelo de cobertura; seguir a fase técnica definida para a " + coverageOrderLabel(coverage) + ".";
-        }
-        return base + " Sem data específica no modelo de cobertura; usar as datas fenológicas informadas como referência técnica: " + dates + ".";
-    }
-
-    private String coverageOrderLabel(CoverageModel coverage) {
-        return coverage.getOrder() == null ? "cobertura cadastrada" : coverage.getOrder() + "ª cobertura";
-    }
-
-    private String buildCropPhenologyReference(CropModel crop) {
-        if (crop == null) return "";
-        List<String> dates = new ArrayList<>();
-        addCropDate(dates, "plantio", crop.getPlantingDate());
-        addCropDate(dates, "emergência", crop.getEmergenceDate());
-        addCropDate(dates, "botonamento", crop.getButtoningDate());
-        addCropDate(dates, "florescimento", crop.getFloweringDate());
-        addCropDate(dates, "colheita", crop.getHarvestDate());
-        return String.join(", ", dates);
-    }
-
-    private void addCropDate(List<String> dates, String label, com.migueltcc.fertintelligence.composedAttributes.crop.Date date) {
-        if (date == null || date.getDay() <= 0 || date.getMonth() <= 0 || date.getYear() <= 0) return;
-        dates.add(String.format(Locale.US, "%s %02d/%02d/%04d", label, date.getDay(), date.getMonth(), date.getYear()));
-    }
-
-    private SimpleMineralFertilizerModel selectCoverageFertilizer(List<SimpleMineralFertilizerModel> fertilizers, Nutriente nutrient) {
-        if (nutrient == Nutriente.NITROGENIO) return fertilizers.stream().filter(f -> nvl(f.getN()) > 0d).max(Comparator.comparing(f -> nvl(f.getN()))).orElse(null);
-        if (nutrient == Nutriente.POTASSIO) return fertilizers.stream().filter(f -> nvl(f.getK2O()) > 0d).max(Comparator.comparing(f -> nvl(f.getK2O()))).orElse(null);
-        return fertilizers.stream().filter(f -> nvl(f.getP2O5()) > 0d).max(Comparator.comparing(f -> nvl(f.getP2O5()))).orElse(null);
-    }
-
-    private double coveragePercentage(SimpleMineralFertilizerModel fertilizer, Nutriente nutrient) {
-        if (fertilizer == null) return 0d;
-        if (nutrient == Nutriente.NITROGENIO) return nvl(fertilizer.getN());
-        if (nutrient == Nutriente.POTASSIO) return nvl(fertilizer.getK2O());
-        return nvl(fertilizer.getP2O5());
-    }
-    private String nutrientLabel(Nutriente nutrient) {
-        if (nutrient == Nutriente.NITROGENIO) return "N";
-        if (nutrient == Nutriente.POTASSIO) return "K2O";
-        return "P2O5";
-    }
-    private int compareScore(double an,double ap,double ak,double bn,double bp,double bk,Double rn,Double rp,Double rk,Long aid,Long bid){int as=(nvl(rn)>0&&an>0?1:0)+(nvl(rp)>0&&ap>0?1:0)+(nvl(rk)>0&&ak>0?1:0);int bs=(nvl(rn)>0&&bn>0?1:0)+(nvl(rp)>0&&bp>0?1:0)+(nvl(rk)>0&&bk>0?1:0); if(as!=bs)return Integer.compare(as,bs); if(nvl(rp)>0&&Double.compare(ap,bp)!=0)return Double.compare(ap,bp); return Long.compare(bid,aid);}
-    private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
-    private <T> List<T> dedup(List<T> a,List<T> b, Function<T,Long> id){Map<Long,T> m=new LinkedHashMap<>();a.forEach(x->m.putIfAbsent(id.apply(x),x));b.forEach(x->m.putIfAbsent(id.apply(x),x));return new ArrayList<>(m.values());}
-
     private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findPhysicalAnalysisExtractByIdOrThrow(id);}
     private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {return physicalAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));}
     private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id); if (extract.isPresent()) {SoilAnalysisModel soil = resolveSoilAnalysis(extract.get()); if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) return new FertilityAnalysisSelection(soil, extract);} Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id); if (soil.isPresent()) return new FertilityAnalysisSelection(soil.get(), Optional.empty()); return extract.map(e -> new FertilityAnalysisSelection(resolveSoilAnalysis(e), Optional.of(e))).orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));}
@@ -1964,87 +1287,7 @@ public class RecommendationCalculationService {
     private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) throw new IllegalArgumentException(message);}
     private PlotModel resolvePlot(PhysicalAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");}
     private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");}
-    private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);}    
-    private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user); case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);};}
-    private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), simpleMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId), simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), SimpleMineralFertilizerModel::getId);};}
-    private List<OrganicFertilizerModel> selectOrganicFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> organicFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> organicFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> organicFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(organicFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), organicFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), OrganicFertilizerModel::getId), organicFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), OrganicFertilizerModel::getId);};}
-    private List<OrganoMineralFertilizerModel> selectOrganoMineralFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> organoMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> organoMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> organoMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(organoMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), organoMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), OrganoMineralFertilizerModel::getId), organoMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), OrganoMineralFertilizerModel::getId);};}
-    private List<GreenFertilizerModel> selectGreenFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> greenFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> greenFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(greenFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), greenFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), GreenFertilizerModel::getId), greenFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), GreenFertilizerModel::getId);};}
-    private List<BioFertilizerModel> selectBioFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> bioFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> bioFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> bioFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(bioFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), bioFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), BioFertilizerModel::getId), bioFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), BioFertilizerModel::getId);};}
-    private List<MineralFertilizerModel> selectFoliarMineralFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> mineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> mineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> mineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(mineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), mineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), MineralFertilizerModel::getId), mineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), MineralFertilizerModel::getId);};}
-    private List<ChelatedFertilizerModel> selectChelatedFertilizers(UserModel user, FertilizerSourceOption sourceOption){return switch (sourceOption) {case PRIVATE -> chelatedFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user); case PUBLIC -> chelatedFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO); case DEFAULT -> chelatedFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO); case BOTH, ALL -> dedup(dedup(chelatedFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user), chelatedFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO), ChelatedFertilizerModel::getId), chelatedFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO), ChelatedFertilizerModel::getId);};}
-
-    private Optional<NpkAlternativeSource> selectBestOrganicSource(UserModel user, FertilizerSourceOption sourceOption) {
-        return selectOrganicFertilizers(user, sourceOption).stream()
-                .filter(f -> nvl(f.getN()) > 0d || nvl(f.getP2O5()) > 0d || nvl(f.getK2O()) > 0d)
-                .max(Comparator.comparing((OrganicFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .map(f -> new NpkAlternativeSource(f.getName(), nvl(f.getN()), nvl(f.getP2O5()), nvl(f.getK2O())));
-    }
-
-    private Optional<NpkAlternativeSource> selectBestOrganoMineralSource(UserModel user, FertilizerSourceOption sourceOption) {
-        return selectOrganoMineralFertilizers(user, sourceOption).stream()
-                .filter(f -> nvl(f.getN()) > 0d || nvl(f.getP2O5()) > 0d || nvl(f.getK2O()) > 0d)
-                .max(Comparator.comparing((OrganoMineralFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .map(f -> new NpkAlternativeSource(f.getName(), nvl(f.getN()), nvl(f.getP2O5()), nvl(f.getK2O())));
-    }
-
-    private MicronutrientSourceSelection selectMicronutrientSource(UserModel user, FertilizerSourceOption sourceOption, AppliedMicronutrient micronutrient) {
-        Optional<MineralFertilizerModel> mineral = selectFoliarMineralFertilizers(user, sourceOption).stream()
-                .filter(f -> micronutrientPercentage(f, micronutrient) > 0d)
-                .max(Comparator.comparing((MineralFertilizerModel f) -> micronutrientPercentage(f, micronutrient))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
-        if (mineral.isPresent()) {
-            return new MicronutrientSourceSelection(mineral.get().getName(), "MINERAL COM MICRONUTRIENTE");
-        }
-        Optional<ChelatedFertilizerModel> chelated = selectChelatedFertilizers(user, sourceOption).stream()
-                .filter(f -> micronutrientPercentage(f, micronutrient) > 0d)
-                .max(Comparator.comparing((ChelatedFertilizerModel f) -> micronutrientPercentage(f, micronutrient))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
-        return chelated.map(f -> new MicronutrientSourceSelection(f.getName(), "QUELATADO COM MICRONUTRIENTE"))
-                .orElseGet(() -> new MicronutrientSourceSelection(null, null));
-    }
-
-    private double micronutrientPercentage(MineralFertilizerModel fertilizer, AppliedMicronutrient micronutrient) {
-        if (fertilizer == null || micronutrient == null) return 0d;
-        return switch (micronutrient) {
-            case B -> nvl(fertilizer.getB());
-            case Cu -> nvl(fertilizer.getCu());
-            case Fe -> nvl(fertilizer.getFe());
-            case Mn -> nvl(fertilizer.getMn());
-            case Mo -> nvl(fertilizer.getMo());
-            case Zn -> nvl(fertilizer.getZn());
-            case Ni -> 0d;
-        };
-    }
-
-    private double micronutrientPercentage(ChelatedFertilizerModel fertilizer, AppliedMicronutrient micronutrient) {
-        if (fertilizer == null || micronutrient == null) return 0d;
-        return switch (micronutrient) {
-            case B -> nvl(fertilizer.getB());
-            case Cu -> nvl(fertilizer.getCu());
-            case Fe -> nvl(fertilizer.getFe());
-            case Mn -> nvl(fertilizer.getMn());
-            case Mo -> nvl(fertilizer.getMo());
-            case Zn -> nvl(fertilizer.getZn());
-            case Ni -> 0d;
-        };
-    }
-
-    private record NpkAlternativeSource(
-            String name,
-            double n,
-            double p2o5,
-            double k2o
-    ) {
-    }
-
-    private record MicronutrientSourceSelection(
-            String sourceName,
-            String sourceType
-    ) {
-    }
+    private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);}
 
     private record FertilityAnalysisSelection(
             SoilAnalysisModel soilAnalysis,
