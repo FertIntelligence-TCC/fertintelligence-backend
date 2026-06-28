@@ -22,6 +22,9 @@ import static com.migueltcc.fertintelligence.service.implementation.Recommendati
 @RequiredArgsConstructor
 public class DirectRecommendationReportService {
 
+    private static final DirectDoseUnitMetadata INSUFFICIENT_DATA_METADATA =
+            new DirectDoseUnitMetadata("INSUFFICIENT_DATA", null, null);
+
     private final CropSpacingCalculationService cropSpacingCalculationService;
     private final AnnualCropFolderRepository annualCropFolderRepository;
     private final CropRepository cropRepository;
@@ -31,6 +34,10 @@ public class DirectRecommendationReportService {
     }
 
     public DirectDoseUnitMetadata resolveDoseUnitMetadata(RecommendationModel recommendation) {
+        if (recommendation == null) {
+            return INSUFFICIENT_DATA_METADATA;
+        }
+
         CropSpacingMode mode = resolveApplicableMode(resolveCrop(recommendation).orElse(null), null);
         if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
             return new DirectDoseUnitMetadata("LINEAR_METER", "g/m linear", "gPerLinearMeter");
@@ -38,11 +45,11 @@ public class DirectRecommendationReportService {
         if (mode == CropSpacingMode.PIT) {
             return new DirectDoseUnitMetadata("PIT", "g/cova", "gPerPit");
         }
-        return new DirectDoseUnitMetadata("INSUFFICIENT_DATA", null, null);
+        return INSUFFICIENT_DATA_METADATA;
     }
 
     public String build(RecommendationModel recommendation, CropModel crop) {
-        String source = recommendation.getTechnicalReport();
+        String source = recommendation != null ? recommendation.getTechnicalReport() : null;
         StringBuilder report = new StringBuilder();
         List<String> spacingWarnings = new ArrayList<>();
         TechnicalRecommendationDocumentSupport.appendStyle(report);

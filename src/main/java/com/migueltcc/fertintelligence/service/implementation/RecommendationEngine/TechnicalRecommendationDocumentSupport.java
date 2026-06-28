@@ -43,21 +43,21 @@ final class TechnicalRecommendationDocumentSupport {
     }
 
     static void appendIdentification(StringBuilder report, RecommendationModel recommendation) {
-        PropertyModel property = recommendation.getProperty();
-        PlotModel plot = recommendation.getPlot();
-        UserModel creator = recommendation.getCreator();
+        PropertyModel property = recommendation != null ? recommendation.getProperty() : null;
+        PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
+        UserModel creator = recommendation != null ? recommendation.getCreator() : null;
         report.append("## Identificação\n\n");
         report.append("- Cliente/Produtor: ").append(safe(property != null && property.getOwner() != null ? property.getOwner().getName() : null)).append("\n");
         report.append("- Propriedade: ").append(safe(property != null ? property.getNome() : null)).append("\n");
         report.append("- Município/UF: ").append(NOT_INFORMED).append("\n");
         report.append("- Talhão: ").append(safe(plot != null ? plot.getIdentification() : null)).append("\n");
         report.append("- Área avaliada: ").append(formatArea(plot != null ? plot.getArea() : null)).append("\n");
-        report.append("- Cultura prevista: ").append(safe(recommendation.getCropName())).append("\n");
-        report.append("- Safra/Safrinha: ").append(recommendation.getCropYear() == null ? NOT_INFORMED : recommendation.getCropYear()).append("\n");
+        report.append("- Cultura prevista: ").append(safe(recommendation != null ? recommendation.getCropName() : null)).append("\n");
+        report.append("- Safra/Safrinha: ").append(recommendation == null || recommendation.getCropYear() == null ? NOT_INFORMED : recommendation.getCropYear()).append("\n");
         report.append("- Data de plantio: ").append(NOT_INFORMED).append("\n");
         report.append("- Responsável técnico: ").append(safe(creator != null ? creator.getName() : null)).append("\n");
         report.append("- Registro profissional: ").append(NOT_INFORMED).append("\n");
-        report.append("- Data de emissão: ").append(formatDate(recommendation.getCreatedAt())).append("\n\n");
+        report.append("- Data de emissão: ").append(formatDate(recommendation != null ? recommendation.getCreatedAt() : null)).append("\n\n");
     }
 
     static String section(String markdown, String heading) {

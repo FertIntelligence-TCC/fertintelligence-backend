@@ -112,17 +112,18 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     }
 
     private DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
+        RecommendationModel recommendation = model.getRecommendation();
         DirectRecommendationReportService.DirectDoseUnitMetadata doseUnitMetadata =
-                directRecommendationReportService.resolveDoseUnitMetadata(model.getRecommendation());
+                directRecommendationReportService.resolveDoseUnitMetadata(recommendation);
         return DirectRecommendationResponseDto.builder()
                 .id(model.getId())
-                .recommendationId(model.getRecommendation().getId())
+                .recommendationId(recommendation != null ? recommendation.getId() : null)
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
-                .doseUnitMode(doseUnitMetadata.doseUnitMode())
-                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
-                .applicableDoseColumn(doseUnitMetadata.applicableDoseColumn())
+                .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
+                .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
+                .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
