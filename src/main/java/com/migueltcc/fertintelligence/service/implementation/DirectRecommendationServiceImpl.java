@@ -112,12 +112,17 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
     }
 
     private DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
+        DirectRecommendationReportService.DirectDoseUnitMetadata doseUnitMetadata =
+                directRecommendationReportService.resolveDoseUnitMetadata(model.getRecommendation());
         return DirectRecommendationResponseDto.builder()
                 .id(model.getId())
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
+                .doseUnitMode(doseUnitMetadata.doseUnitMode())
+                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
+                .applicableDoseColumn(doseUnitMetadata.applicableDoseColumn())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();

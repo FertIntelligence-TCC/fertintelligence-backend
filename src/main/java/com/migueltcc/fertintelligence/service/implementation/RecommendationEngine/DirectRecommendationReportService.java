@@ -30,6 +30,17 @@ public class DirectRecommendationReportService {
         return build(recommendation, resolveCrop(recommendation).orElse(null));
     }
 
+    public DirectDoseUnitMetadata resolveDoseUnitMetadata(RecommendationModel recommendation) {
+        CropSpacingMode mode = resolveApplicableMode(resolveCrop(recommendation).orElse(null), null);
+        if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
+            return new DirectDoseUnitMetadata("LINEAR_METER", "g/m linear", "gPerLinearMeter");
+        }
+        if (mode == CropSpacingMode.PIT) {
+            return new DirectDoseUnitMetadata("PIT", "g/cova", "gPerPit");
+        }
+        return new DirectDoseUnitMetadata("INSUFFICIENT_DATA", null, null);
+    }
+
     public String build(RecommendationModel recommendation, CropModel crop) {
         String source = recommendation.getTechnicalReport();
         StringBuilder report = new StringBuilder();
@@ -191,6 +202,9 @@ public class DirectRecommendationReportService {
     }
 
     private record SpacingDoseColumns(String gramsPerLinearMeter, String gramsPerPit) {
+    }
+
+    public record DirectDoseUnitMetadata(String doseUnitMode, String doseUnitLabel, String applicableDoseColumn) {
     }
 
     private String resolveMapObservation(String source) {

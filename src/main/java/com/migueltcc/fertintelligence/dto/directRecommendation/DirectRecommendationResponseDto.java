@@ -34,6 +34,15 @@ public class DirectRecommendationResponseDto {
     @JsonProperty("fonte_recomendada")
     private String recommendedSource = "Aptos";
 
+    @JsonProperty("dose_unit_mode")
+    private String doseUnitMode;
+
+    @JsonProperty("dose_unit_label")
+    private String doseUnitLabel;
+
+    @JsonProperty("applicable_dose_column")
+    private String applicableDoseColumn;
+
     @Builder.Default
     @JsonProperty("tamanho_fonte")
     private Integer fontSize = 10;
