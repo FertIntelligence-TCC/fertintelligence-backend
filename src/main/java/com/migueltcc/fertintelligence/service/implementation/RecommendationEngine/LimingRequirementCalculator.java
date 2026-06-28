@@ -206,7 +206,7 @@ class LimingRequirementCalculator {
     }
 
     private String physicalUnit(PhysicalAnalysisUnit unit) {
-        return unit != null ? unit.getSymbol() : PhysicalAnalysisUnit.G_PER_DM3.getSymbol();
+        return unit != null ? unit.getSymbol() : PhysicalAnalysisUnit.G_PER_KG.getSymbol();
     }
 
     private Double exchangeableValueAsMmol(Double value, FertilityAnalysisUnit unit) {

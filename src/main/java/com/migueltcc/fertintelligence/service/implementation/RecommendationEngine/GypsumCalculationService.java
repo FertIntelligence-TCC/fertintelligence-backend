@@ -298,8 +298,8 @@ class GypsumCalculationService {
     }
 
     private String physicalUnit(PhysicalAnalysisUnit unit) {
-        PhysicalAnalysisUnit normalized = unit != null ? unit.canonicalForPhysicalExtract() : PhysicalAnalysisUnit.G_PER_DM3;
-        return normalizeUnit(normalized.getSymbol(), "g/dm³");
+        PhysicalAnalysisUnit normalized = unit != null ? unit.canonicalForPhysicalExtract() : PhysicalAnalysisUnit.G_PER_KG;
+        return normalizeUnit(normalized.getSymbol(), "g/kg");
     }
 
     private String fertilityUnit(FertilityAnalysisUnit unit) {

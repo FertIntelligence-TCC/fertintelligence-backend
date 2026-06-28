@@ -551,7 +551,7 @@ public class RecommendationCalculationService {
                         + " = " + formatNumber(diagnosis.getAnalyzedValue()) + " " + (diagnosis.getUnit() != null ? diagnosis.getUnit() : "")
                         + "; interpretação: " + diagnosis.getInterpretation()
                         + "; argila = " + formatNumber(clay) + " " + physicalUnit(physicalAnalysis.getUnidadeTeorArgila())
-                        + "; seção usada: " + (less400 ? "Argila < 400 g/dm³" : "Argila > 400 g/dm³")
+                        + "; seção usada: " + (less400 ? "Argila < 400 g/kg" : "Argila > 400 g/kg")
                         + "; Doses de S ID " + doses.getId()
                         + "; tabela de interpretação ID " + (soilInterpretationTable != null ? soilInterpretationTable.getId() : null) + ".")
                 .technicalWarning(sourceDetail)
@@ -993,17 +993,17 @@ public class RecommendationCalculationService {
                 warnings.add(observation);
                 return notClassified("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", observation);
             }
-            double clayGdm3 = clay;
+            double clayGkg = clay;
             AvailablePMehlich1ExtractorModel p = criterion.get();
-            RangeCriterion range = clayGdm3 < 150
+            RangeCriterion range = clayGkg < 150
                     ? new RangeCriterion(p.getP_content_sandy_too_low(), p.getP_content_sandy_low_i(), p.getP_content_sandy_low_f(), p.getP_content_sandy_medium_i(), p.getP_content_sandy_medium_f(), p.getP_content_sandy_hight_i(), p.getP_content_sandy_hight_f(), p.getP_content_sandy_too_hight())
-                    : clayGdm3 <= 350
+                    : clayGkg <= 350
                     ? new RangeCriterion(p.getP_content_sandy_clayey_too_low(), p.getP_content_sandy_clayey_low_i(), p.getP_content_sandy_clayey_low_f(), p.getP_content_sandy_clayey_medium_i(), p.getP_content_sandy_clayey_medium_f(), p.getP_content_sandy_clayey_hight_i(), p.getP_content_sandy_clayey_hight_f(), p.getP_content_sandy_clayey_too_hight())
-                    : clayGdm3 <= 600
+                    : clayGkg <= 600
                     ? new RangeCriterion(p.getP_content_clayey_too_low(), p.getP_content_clayey_low_i(), p.getP_content_clayey_low_f(), p.getP_content_clayey_medium_i(), p.getP_content_clayey_medium_f(), p.getP_content_clayey_hight_i(), p.getP_content_clayey_hight_f(), p.getP_content_clayey_too_hight())
                     : new RangeCriterion(p.getP_content_very_clayey_too_low(), p.getP_content_very_clayey_low_i(), p.getP_content_very_clayey_low_f(), p.getP_content_very_clayey_medium_i(), p.getP_content_very_clayey_medium_f(), p.getP_content_very_clayey_hight_i(), p.getP_content_very_clayey_hight_f(), p.getP_content_very_clayey_too_hight());
             return classifyRange("Fósforo (P) Mehlich-1", fertility.getFosforoMehlich1(), "mg/dm³", range,
-                    "Critério de fósforo (P) disponível por Mehlich-1 selecionado pelo teor de argila da análise física.");
+                    "Critério de fósforo (P) disponível por Mehlich-1 selecionado pelo teor de argila em g/kg da análise física.");
         }
         if (fertility.getFosforoResina() != null) {
             Optional<AvailablePAnionExchangeResinExtractorModel> criterion = availablePAnionExchangeResinExtractorRepository.findByTable(table);
@@ -1063,7 +1063,7 @@ public class RecommendationCalculationService {
                 ? new RangeCriterion(s.getSContentLess400TooLow(), s.getSContentLess400LowI(), s.getSContentLess400LowF(), s.getSContentLess400MediumI(), s.getSContentLess400MediumF(), s.getSContentLess400HighI(), s.getSContentLess400HighF(), s.getSContentLess400TooHigh())
                 : new RangeCriterion(s.getSContentGreater400TooLow(), s.getSContentGreater400LowI(), s.getSContentGreater400LowF(), s.getSContentGreater400MediumI(), s.getSContentGreater400MediumF(), s.getSContentGreater400HighI(), s.getSContentGreater400HighF(), s.getSContentGreater400TooHigh());
         return classifyRange("Enxofre", fertility.getEnxofre(), "mg/dm³", range,
-                "Enxofre classificado pelo critério específico selecionado pelo teor de argila da análise física.");
+                "Enxofre classificado pelo critério específico selecionado pelo teor de argila em g/kg da análise física.");
     }
 
     private SoilChemicalDiagnosisItem classifyDiverseRange(String attribute,
@@ -1302,8 +1302,8 @@ public class RecommendationCalculationService {
     }
 
     private String physicalUnit(PhysicalAnalysisUnit unit) {
-        PhysicalAnalysisUnit normalized = unit != null ? unit.canonicalForPhysicalExtract() : PhysicalAnalysisUnit.G_PER_DM3;
-        return normalizeUnit(normalized.getSymbol(), "g/dm³");
+        PhysicalAnalysisUnit normalized = unit != null ? unit.canonicalForPhysicalExtract() : PhysicalAnalysisUnit.G_PER_KG;
+        return normalizeUnit(normalized.getSymbol(), "g/kg");
     }
 
     private String fertilityUnit(FertilityAnalysisUnit unit) {

@@ -47,7 +47,7 @@ public class PhysicalAnalysisExtractResponseDto {
     @JsonProperty("teor_areia")
     Double teorAreia;
 
-    @Schema(example = "g/dm3")
+    @Schema(example = "g/kg")
     @JsonProperty("unidade_teor_areia")
     PhysicalAnalysisUnit unidadeTeorAreia;
 
@@ -55,7 +55,7 @@ public class PhysicalAnalysisExtractResponseDto {
     @JsonProperty("teor_silte")
     Double teorSilte;
 
-    @Schema(example = "g/dm3")
+    @Schema(example = "g/kg")
     @JsonProperty("unidade_teor_silte")
     PhysicalAnalysisUnit unidadeTeorSilte;
 
@@ -63,7 +63,7 @@ public class PhysicalAnalysisExtractResponseDto {
     @JsonProperty("teor_argila")
     Double teorArgila;
 
-    @Schema(example = "g/dm3")
+    @Schema(example = "g/kg")
     @JsonProperty("unidade_teor_argila")
     PhysicalAnalysisUnit unidadeTeorArgila;
 

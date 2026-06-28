@@ -17,6 +17,7 @@ import lombok.*;
 @EqualsAndHashCode
 public class PhysicalAnalysisExtractModel {
 
+    private static final PhysicalAnalysisUnit DEFAULT_GRANULOMETRY_UNIT = PhysicalAnalysisUnit.G_PER_KG;
     private static final PhysicalAnalysisUnit DEFAULT_PHYSICAL_UNIT = PhysicalAnalysisUnit.G_PER_DM3;
 
     @Id
@@ -31,32 +32,32 @@ public class PhysicalAnalysisExtractModel {
     @JoinColumn(name = "ID_EXTRATO_CAMADAS", nullable = true) // rangeExtract ou layerExtract deve ser nulo!
     LayerExtractModel layerExtract;
 
-    // Teor de Areia (g/dm3)
+    // Teor de Areia (g/kg)
     @Column(name = "TEOR_DE_AREIA", nullable = true)
     Double teorAreia;
 
     @Convert(converter = PhysicalAnalysisUnitConverter.class)
     @Column(name = "UNIDADE_TEOR_DE_AREIA", nullable = false)
     @Builder.Default
-    PhysicalAnalysisUnit unidadeTeorAreia = DEFAULT_PHYSICAL_UNIT;
+    PhysicalAnalysisUnit unidadeTeorAreia = DEFAULT_GRANULOMETRY_UNIT;
 
-    // Teor de Silte (g/dm3)
+    // Teor de Silte (g/kg)
     @Column(name = "TEOR_DE_SILTE", nullable = true)
     Double teorSilte;
 
     @Convert(converter = PhysicalAnalysisUnitConverter.class)
     @Column(name = "UNIDADE_TEOR_DE_SILTE", nullable = false)
     @Builder.Default
-    PhysicalAnalysisUnit unidadeTeorSilte = DEFAULT_PHYSICAL_UNIT;
+    PhysicalAnalysisUnit unidadeTeorSilte = DEFAULT_GRANULOMETRY_UNIT;
 
-    // Teor de Argila (g/dm3)
+    // Teor de Argila (g/kg)
     @Column(name = "TEOR_DE_ARGILA", nullable = true)
     Double teorArgila;
 
     @Convert(converter = PhysicalAnalysisUnitConverter.class)
     @Column(name = "UNIDADE_TEOR_DE_ARGILA", nullable = false)
     @Builder.Default
-    PhysicalAnalysisUnit unidadeTeorArgila = DEFAULT_PHYSICAL_UNIT;
+    PhysicalAnalysisUnit unidadeTeorArgila = DEFAULT_GRANULOMETRY_UNIT;
 
     // Densidade Aparente (g/cm3)
     @Column(name = "DENSIDADE_APARENTE", nullable = true)
@@ -164,15 +165,31 @@ public class PhysicalAnalysisExtractModel {
     }
 
     private void normalizePhysicalUnits() {
-        this.unidadeTeorAreia = normalizePhysicalUnit(this.unidadeTeorAreia);
-        this.unidadeTeorSilte = normalizePhysicalUnit(this.unidadeTeorSilte);
-        this.unidadeTeorArgila = normalizePhysicalUnit(this.unidadeTeorArgila);
+        this.unidadeTeorAreia = normalizeGranulometryUnit(this.unidadeTeorAreia);
+        this.unidadeTeorSilte = normalizeGranulometryUnit(this.unidadeTeorSilte);
+        this.unidadeTeorArgila = normalizeGranulometryUnit(this.unidadeTeorArgila);
         this.unidadeDensidadeAparente = normalizePhysicalUnit(this.unidadeDensidadeAparente);
         this.unidadeDensidadeReal = normalizePhysicalUnit(this.unidadeDensidadeReal);
     }
 
+    private PhysicalAnalysisUnit normalizeGranulometryUnit(PhysicalAnalysisUnit unit) {
+        return DEFAULT_GRANULOMETRY_UNIT;
+    }
+
     private PhysicalAnalysisUnit normalizePhysicalUnit(PhysicalAnalysisUnit unit) {
         return unit != null ? unit.canonicalForPhysicalExtract() : DEFAULT_PHYSICAL_UNIT;
+    }
+
+    public PhysicalAnalysisUnit getUnidadeTeorAreia() {
+        return normalizeGranulometryUnit(this.unidadeTeorAreia);
+    }
+
+    public PhysicalAnalysisUnit getUnidadeTeorSilte() {
+        return normalizeGranulometryUnit(this.unidadeTeorSilte);
+    }
+
+    public PhysicalAnalysisUnit getUnidadeTeorArgila() {
+        return normalizeGranulometryUnit(this.unidadeTeorArgila);
     }
 
     public PhysicalAnalysisExtractResponseDto toDto() {
@@ -207,11 +224,11 @@ public class PhysicalAnalysisExtractModel {
                 .layer(camada)
                 .subLayer(subLayer)
                 .teorAreia(this.teorAreia)
-                .unidadeTeorAreia(normalizePhysicalUnit(this.unidadeTeorAreia))
+                .unidadeTeorAreia(getUnidadeTeorAreia())
                 .teorSilte(this.teorSilte)
-                .unidadeTeorSilte(normalizePhysicalUnit(this.unidadeTeorSilte))
+                .unidadeTeorSilte(getUnidadeTeorSilte())
                 .teorArgila(this.teorArgila)
-                .unidadeTeorArgila(normalizePhysicalUnit(this.unidadeTeorArgila))
+                .unidadeTeorArgila(getUnidadeTeorArgila())
                 .densidadeAparente(this.densidadeAparente)
                 .unidadeDensidadeAparente(normalizePhysicalUnit(this.unidadeDensidadeAparente))
                 .densidadeReal(this.densidadeReal)

@@ -6,8 +6,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SoilTextureClassificationService;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -61,15 +59,17 @@ class SoilTextureClassificationServiceTest {
     }
 
     @ParameterizedTest
-    @NullSource
-    @EnumSource(value = PhysicalAnalysisUnit.class, names = "G_PER_DM3")
-    void classifyAmericanDoesNotClassifyWhenUnitIsNotConfirmed(PhysicalAnalysisUnit unit) {
+    @CsvSource({
+            "G_PER_DM3",
+            "G_PER_KG"
+    })
+    void classifyAmericanUsesGranulometryAsGramsPerKg(PhysicalAnalysisUnit unit) {
         SoilTextureClassificationService.SoilTextureClassificationResult result =
                 service.classifyAmerican(physicalAnalysis(600d, 300d, 100d, unit));
 
-        assertThat(result.classified()).isFalse();
-        assertThat(result.texturalClass()).isNull();
-        assertThat(result.warnings()).isNotEmpty();
+        assertThat(result.classified()).isTrue();
+        assertThat(result.texturalClass()).isEqualTo("Franco arenosa");
+        assertThat(result.warnings()).isEmpty();
     }
 
     private PhysicalAnalysisExtractModel physicalAnalysis(Double sand,

@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtractService {
 
+    private static final PhysicalAnalysisUnit DEFAULT_GRANULOMETRY_UNIT = PhysicalAnalysisUnit.G_PER_KG;
     private static final PhysicalAnalysisUnit DEFAULT_PHYSICAL_UNIT = PhysicalAnalysisUnit.G_PER_DM3;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
@@ -57,11 +58,11 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
                 .rangeExtract(ctx.rangeExtract())
                 .layerExtract(ctx.layerExtract())
                 .teorAreia(zeroIfNull(dto.getTeorAreia()))
-                .unidadeTeorAreia(normalizePhysicalUnit(dto.getUnidadeTeorAreia()))
+                .unidadeTeorAreia(normalizeGranulometryUnit(dto.getUnidadeTeorAreia()))
                 .teorSilte(zeroIfNull(dto.getTeorSilte()))
-                .unidadeTeorSilte(normalizePhysicalUnit(dto.getUnidadeTeorSilte()))
+                .unidadeTeorSilte(normalizeGranulometryUnit(dto.getUnidadeTeorSilte()))
                 .teorArgila(zeroIfNull(dto.getTeorArgila()))
-                .unidadeTeorArgila(normalizePhysicalUnit(dto.getUnidadeTeorArgila()))
+                .unidadeTeorArgila(normalizeGranulometryUnit(dto.getUnidadeTeorArgila()))
                 .densidadeAparente(zeroIfNull(dto.getDensidadeAparente()))
                 .unidadeDensidadeAparente(normalizePhysicalUnit(dto.getUnidadeDensidadeAparente()))
                 .densidadeReal(zeroIfNull(dto.getDensidadeReal()))
@@ -160,11 +161,11 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
         assertCanEdit(plot, requester);
 
         applyIfNonNull(dto.getTeorAreia(), model::setTeorAreia);
-        applyIfNonNull(dto.getUnidadeTeorAreia(), value -> model.setUnidadeTeorAreia(normalizePhysicalUnit(value)));
+        applyIfNonNull(dto.getUnidadeTeorAreia(), value -> model.setUnidadeTeorAreia(normalizeGranulometryUnit(value)));
         applyIfNonNull(dto.getTeorSilte(), model::setTeorSilte);
-        applyIfNonNull(dto.getUnidadeTeorSilte(), value -> model.setUnidadeTeorSilte(normalizePhysicalUnit(value)));
+        applyIfNonNull(dto.getUnidadeTeorSilte(), value -> model.setUnidadeTeorSilte(normalizeGranulometryUnit(value)));
         applyIfNonNull(dto.getTeorArgila(), model::setTeorArgila);
-        applyIfNonNull(dto.getUnidadeTeorArgila(), value -> model.setUnidadeTeorArgila(normalizePhysicalUnit(value)));
+        applyIfNonNull(dto.getUnidadeTeorArgila(), value -> model.setUnidadeTeorArgila(normalizeGranulometryUnit(value)));
         applyIfNonNull(dto.getDensidadeAparente(), model::setDensidadeAparente);
         applyIfNonNull(dto.getUnidadeDensidadeAparente(), value -> model.setUnidadeDensidadeAparente(normalizePhysicalUnit(value)));
         applyIfNonNull(dto.getDensidadeReal(), model::setDensidadeReal);
@@ -225,6 +226,10 @@ public class PhysicalAnalysisExtractServiceImpl implements PhysicalAnalysisExtra
 
     private PhysicalAnalysisUnit normalizePhysicalUnit(PhysicalAnalysisUnit unit) {
         return unit != null ? unit.canonicalForPhysicalExtract() : DEFAULT_PHYSICAL_UNIT;
+    }
+
+    private PhysicalAnalysisUnit normalizeGranulometryUnit(PhysicalAnalysisUnit unit) {
+        return DEFAULT_GRANULOMETRY_UNIT;
     }
 
     private ExtractContext resolveExtractContext(Long rangeExtractId, Long layerExtractId) {

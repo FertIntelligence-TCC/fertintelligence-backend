@@ -32,7 +32,7 @@ public class AvailablePMehlich1ExtractorModel {
      * - hight_f = too_hight - 0.1;
      */
 
-    // Teor de Argila (g/dm³) < 150, Textura Arenoso:
+    // Teor de Argila (g/kg) < 150, Textura Arenoso:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO", nullable = false)
     Double p_content_sandy_too_low;
 
@@ -57,7 +57,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO", nullable = false)
     Double p_content_sandy_too_hight;
 
-    // Teor de Argila (g/dm³) entre 150 e 350, Textura Média (Arenosa/Argilosa):
+    // Teor de Argila (g/kg) entre 150 e 350, Textura Média (Arenosa/Argilosa):
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO_ARGILOSO", nullable = false)
     Double p_content_sandy_clayey_too_low;
 
@@ -82,7 +82,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARENOSO_ARGILOSO", nullable = false)
     Double p_content_sandy_clayey_too_hight;
 
-    // Teor de Argila (g/dm³) entre 351 e 600, Textura Argilosa:
+    // Teor de Argila (g/kg) entre 351 e 600, Textura Argilosa:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_ARGILOSO", nullable = false)
     Double p_content_clayey_too_low;
 
@@ -107,7 +107,7 @@ public class AvailablePMehlich1ExtractorModel {
     @Column(name = "MAIOR_TEOR_DE_FOSFORO_EM_SOLO_ARGILOSO", nullable = false)
     Double p_content_clayey_too_hight;
 
-    // Teor de Argila (g/dm³) > 600, Textura Muito Argilosa:
+    // Teor de Argila (g/kg) > 600, Textura Muito Argilosa:
     @Column(name = "MENOR_TEOR_DE_FOSFORO_EM_SOLO_MUITO_ARGILOSO", nullable = false)
     Double p_content_very_clayey_too_low;
 
