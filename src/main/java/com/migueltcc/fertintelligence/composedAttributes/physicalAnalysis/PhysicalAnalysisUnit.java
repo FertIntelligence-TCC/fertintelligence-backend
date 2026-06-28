@@ -38,6 +38,6 @@ public enum PhysicalAnalysisUnit {
     }
 
     public PhysicalAnalysisUnit canonicalForPhysicalExtract() {
-        return G_PER_DM3;
+        return this;
     }
 }

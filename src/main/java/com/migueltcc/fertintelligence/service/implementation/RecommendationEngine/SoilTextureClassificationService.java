@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
+import com.migueltcc.fertintelligence.composedAttributes.physicalAnalysis.PhysicalAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
@@ -29,23 +30,19 @@ public class SoilTextureClassificationService {
                     "Estrategia de classificacao textural ausente.");
         }
 
-        NormalizedFractions normalized = readAndNormalizeFractions(physicalAnalysis);
-        if (normalized.hasErrors()) {
-            return unclassified(strategy, normalized.fractions(), normalized.warnings());
+        if (strategy == TexturalClassification.BRASILEIRO) {
+            return classifyBrazilian(physicalAnalysis);
         }
 
-        return switch (strategy) {
-            case BRASILEIRO -> classifyBrazilian(normalized);
-            case AMERICANO -> classifyAmerican(normalized);
-        };
+        return classifyAmerican(physicalAnalysis);
     }
 
     public SoilTextureClassificationResult classifyBrazilian(PhysicalAnalysisExtractModel physicalAnalysis) {
-        NormalizedFractions normalized = readAndNormalizeFractions(physicalAnalysis);
-        if (normalized.hasErrors()) {
-            return unclassified(TexturalClassification.BRASILEIRO, normalized.fractions(), normalized.warnings());
+        GranulometricFractions fractions = readBrazilianFractionsInGramsPerKg(physicalAnalysis);
+        if (fractions.hasErrors()) {
+            return unclassified(TexturalClassification.BRASILEIRO, fractions.toPercentFractions(), fractions.warnings());
         }
-        return classifyBrazilian(normalized);
+        return classifyBrazilian(fractions);
     }
 
     public SoilTextureClassificationResult classifyAmerican(PhysicalAnalysisExtractModel physicalAnalysis) {
@@ -59,6 +56,32 @@ public class SoilTextureClassificationService {
     public Optional<TexturalClassification> selectStrategy(RecommendationModel recommendation) {
         return Optional.ofNullable(recommendation)
                 .map(RecommendationModel::getTexturalClassification);
+    }
+
+    private GranulometricFractions readBrazilianFractionsInGramsPerKg(PhysicalAnalysisExtractModel physicalAnalysis) {
+        List<String> warnings = new ArrayList<>();
+        if (physicalAnalysis == null) {
+            warnings.add("Analise fisica ausente; nao ha fracoes granulometricas para classificar textura.");
+            return new GranulometricFractions(null, null, null, warnings, true);
+        }
+
+        Double sand = physicalAnalysis.getTeorAreia();
+        Double silt = physicalAnalysis.getTeorSilte();
+        Double clay = physicalAnalysis.getTeorArgila();
+        if (hasMissingFraction(sand, silt, clay)) {
+            warnings.add("Areia, silte e argila devem estar informados para classificar textura brasileira.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+        if (hasInvalidFraction(sand, silt, clay)) {
+            warnings.add("Fracoes granulometricas invalidas; valores devem ser finitos e nao negativos.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+        if (!isBrazilianUnitConfirmed(physicalAnalysis)) {
+            warnings.add("Classificacao brasileira requer areia, silte e argila em g/kg; unidade informada nao confirmada como g/kg.");
+            return new GranulometricFractions(sand, silt, clay, warnings, true);
+        }
+
+        return new GranulometricFractions(sand, silt, clay, warnings, false);
     }
 
     private NormalizedFractions readAndNormalizeFractions(PhysicalAnalysisExtractModel physicalAnalysis) {
@@ -99,15 +122,42 @@ public class SoilTextureClassificationService {
 
     private SoilTextureClassificationResult classifyBrazilian(NormalizedFractions normalized) {
         double clay = normalized.fractions().clayPercent();
-        String texturalClass = clay < 15d
-                ? "Arenosa"
+        String texturalClass = clay <= 15d
+                ? "Textura Arenosa"
                 : clay <= 35d
-                ? "Textura media"
+                ? "Textura Media"
                 : clay <= 60d
-                ? "Argilosa"
-                : "Muito argilosa";
+                ? "Textura Argilosa"
+                : "Muito Argilosa";
 
         return classified(TexturalClassification.BRASILEIRO, texturalClass, normalized);
+    }
+
+    private SoilTextureClassificationResult classifyBrazilian(GranulometricFractions fractions) {
+        String texturalClass = isSiltTextured(fractions)
+                ? "Textura Siltosa"
+                : brazilianClassByClay(fractions.clay());
+
+        return new SoilTextureClassificationResult(
+                true,
+                TexturalClassification.BRASILEIRO,
+                texturalClass,
+                fractions.toPercentFractions(),
+                List.copyOf(fractions.warnings())
+        );
+    }
+
+    private String brazilianClassByClay(double clay) {
+        if (clay <= 150d) return "Textura Arenosa";
+        if (clay <= 350d) return "Textura Media";
+        if (clay <= 600d) return "Textura Argilosa";
+        return "Muito Argilosa";
+    }
+
+    private boolean isSiltTextured(GranulometricFractions fractions) {
+        return fractions.clay() <= 350d
+                && fractions.sand() <= 150d
+                && fractions.silt() >= 650d;
     }
 
     private SoilTextureClassificationResult classifyAmerican(NormalizedFractions normalized) {
@@ -204,6 +254,12 @@ public class SoilTextureClassificationService {
         return value.isNaN() || value.isInfinite();
     }
 
+    private boolean isBrazilianUnitConfirmed(PhysicalAnalysisExtractModel physicalAnalysis) {
+        return physicalAnalysis.getUnidadeTeorAreia() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorSilte() == PhysicalAnalysisUnit.G_PER_KG
+                && physicalAnalysis.getUnidadeTeorArgila() == PhysicalAnalysisUnit.G_PER_KG;
+    }
+
     private boolean isExpectedTotal(double total) {
         return Math.abs(total - 100d) <= 1d || Math.abs(total - 1000d) <= 10d;
     }
@@ -243,6 +299,20 @@ public class SoilTextureClassificationService {
     }
 
     private record NormalizedFractions(SoilTextureFractions fractions, List<String> warnings, boolean hasErrors) {}
+
+    private record GranulometricFractions(Double sand,
+                                          Double silt,
+                                          Double clay,
+                                          List<String> warnings,
+                                          boolean hasErrors) {
+
+        SoilTextureFractions toPercentFractions() {
+            if (sand == null || silt == null || clay == null) {
+                return null;
+            }
+            return new SoilTextureFractions(sand / 10d, silt / 10d, clay / 10d);
+        }
+    }
 
     public record SoilTextureFractions(double sandPercent, double siltPercent, double clayPercent) {}
 

@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nut
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
@@ -59,6 +60,7 @@ public class RecommendationCalculationService {
             "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
 
     private final LimingRequirementCalculator limingRequirementCalculator = new LimingRequirementCalculator();
+    private final SoilTextureClassificationService soilTextureClassificationService = new SoilTextureClassificationService();
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
@@ -221,7 +223,10 @@ public class RecommendationCalculationService {
                                                           UserModel user,
                                                           FertilizerSourceOption sourceOption,
                                                           List<String> warnings) {
-        PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(inputs.physicalAnalysis(), warnings);
+        TexturalClassification texturalClassification = dto.getTexturalClassification() != null
+                ? dto.getTexturalClassification()
+                : TexturalClassification.BRASILEIRO;
+        PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(inputs.physicalAnalysis(), texturalClassification, warnings);
         String physicalSummary = physicalDiagnosis.summary();
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
         String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
@@ -1151,7 +1156,9 @@ public class RecommendationCalculationService {
         return formatNumber(minimum != null ? minimum : maximum);
     }
 
-    private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis, List<String> warnings) {
+    private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis,
+                                                         TexturalClassification texturalClassification,
+                                                         List<String> warnings) {
         List<SoilPhysicalDiagnosisItem> diagnosis = new ArrayList<>();
         if (physicalAnalysis == null) {
             String message = "Análise física não disponível para diagnóstico físico do solo.";
@@ -1159,12 +1166,16 @@ public class RecommendationCalculationService {
             return new PhysicalDiagnosis(message, diagnosis);
         }
 
+        SoilTextureClassificationService.SoilTextureClassificationResult textureClassification =
+                soilTextureClassificationService.classify(texturalClassification, physicalAnalysis);
+        appendTextureClassification(diagnosis, textureClassification, warnings);
+
         addPhysicalItem(diagnosis, "Areia", physicalAnalysis.getTeorAreia(), physicalUnit(physicalAnalysis.getUnidadeTeorAreia()),
-                "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
+                "Teor usado na classificacao granulometrica quando todas as fracoes possuem unidade compativel com a estrategia selecionada.");
         addPhysicalItem(diagnosis, "Silte", physicalAnalysis.getTeorSilte(), physicalUnit(physicalAnalysis.getUnidadeTeorSilte()),
-                "Teor usado apenas como descrição física; o sistema não possui critério textural modelado para classificar a textura.");
+                "Teor usado na classificacao granulometrica quando todas as fracoes possuem unidade compativel com a estrategia selecionada.");
         addPhysicalItem(diagnosis, "Argila", physicalAnalysis.getTeorArgila(), physicalUnit(physicalAnalysis.getUnidadeTeorArgila()),
-                "Teor de argila considerado nos critérios químicos que dependem da análise física, quando aplicável.");
+                "Teor de argila considerado nos criterios quimicos e na classificacao granulometrica, quando aplicavel.");
         addPhysicalItem(diagnosis, "Densidade aparente", physicalAnalysis.getDensidadeAparente(), "g/cm3",
                 "Valor físico relacionado à compactação e ao crescimento radicular; sem faixa crítica cadastrada nesta etapa.");
         addPhysicalItem(diagnosis, "Densidade real", physicalAnalysis.getDensidadeReal(), "g/cm3",
@@ -1189,10 +1200,27 @@ public class RecommendationCalculationService {
         boolean hasTextureFractions = physicalAnalysis.getTeorAreia() != null
                 || physicalAnalysis.getTeorSilte() != null
                 || physicalAnalysis.getTeorArgila() != null;
-        String summary = hasTextureFractions
-                ? "Análise física considerada com frações granulométricas e atributos físicos disponíveis; classe textural não informada no modelo e não inferida sem critério cadastrado."
+        String summary = textureClassification.classified()
+                ? "Análise física considerada com classificação granulométrica " + textureClassification.texturalClass() + "."
+                : hasTextureFractions
+                ? "Análise física considerada com frações granulométricas; classificação granulométrica não calculada por dados ou unidade insuficientes."
                 : "Análise física considerada com atributos físicos disponíveis; frações granulométricas insuficientes para descrever textura.";
         return new PhysicalDiagnosis(summary, diagnosis);
+    }
+
+    private void appendTextureClassification(List<SoilPhysicalDiagnosisItem> diagnosis,
+                                             SoilTextureClassificationService.SoilTextureClassificationResult textureClassification,
+                                             List<String> warnings) {
+        if (textureClassification == null) return;
+        if (!textureClassification.classified()) {
+            warnings.addAll(textureClassification.warnings());
+            return;
+        }
+        diagnosis.add(SoilPhysicalDiagnosisItem.builder()
+                .attribute("Classificacao granulometrica")
+                .unit(textureClassification.strategy() != null ? textureClassification.strategy().getLabel() : null)
+                .technicalObservation(textureClassification.texturalClass())
+                .build());
     }
 
     private void addPhysicalItem(List<SoilPhysicalDiagnosisItem> diagnosis, String attribute, Double value, String unit, String observation) {
