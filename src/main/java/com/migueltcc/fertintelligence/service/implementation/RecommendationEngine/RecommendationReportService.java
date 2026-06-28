@@ -37,7 +37,7 @@ public class RecommendationReportService {
     }
 
     private void appendTitle(StringBuilder report) {
-        report.append("# Laudo Técnico de Recomendação Agrícola\n\n");
+        report.append("## Laudo Técnico de Recomendação Agrícola\n\n");
     }
 
     private void appendIdentification(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -283,7 +283,7 @@ public class RecommendationReportService {
             report.append("\n");
         }
 
-        report.append("### Fontes orgânicas, organominerais e micronutrientes\n\n");
+        report.append("13.1. Fontes orgânicas, organominerais e micronutrientes\n\n");
         report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
         report.append("|---|---|---|---:|---|---|---|\n");
         if (result.getAlternativeFertilizationRows() == null || result.getAlternativeFertilizationRows().isEmpty()) {
@@ -305,20 +305,20 @@ public class RecommendationReportService {
 
     private void appendLimitationsAndAlerts(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("## 14. Limitações e alertas\n\n");
-        report.append("### Alertas de diagnóstico\n\n");
+        report.append("A) Alertas de diagnóstico\n\n");
         appendBulletList(report, result.getDiagnosticMessages(), "Nenhuma limitação diagnóstica adicional foi registrada.");
         report.append("\n");
-        report.append("### Alertas de correção\n\n");
+        report.append("B) Alertas de correção\n\n");
         appendBulletList(report, result.getCorrectionMessages(), "Nenhuma recomendação de correção foi calculada nesta etapa.");
         report.append("\n");
-        report.append("### Alertas gerais\n\n");
+        report.append("C) Alertas gerais\n\n");
         appendBulletList(report, result.getWarnings(), "Nenhum alerta adicional foi registrado.");
         report.append("\n");
     }
 
     private void appendCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("## 15. Memória de cálculo\n\n");
-        report.append("### Fertilizante comercial\n\n");
+        report.append("A) Fertilizante comercial\n\n");
         report.append("| Fase | Fertilizante | Nutriente limitante/alvo | Necessidade alvo | Concentração do produto | Dose calculada | Fornecido N/P2O5/K2O | Déficit ou excedente N/P2O5/K2O |\n");
         report.append("|---|---|---|---:|---:|---:|---|---|\n");
         List<RecommendationCalculationService.FertilizationRecommendationRow> rows = nonBalanceRows(result);
@@ -339,7 +339,7 @@ public class RecommendationReportService {
         }
         report.append("\n");
 
-        report.append("### Faixas de adubação utilizadas\n\n");
+        report.append("B) Faixas de adubação utilizadas\n\n");
         report.append("| Nutriente | ID da faixa | Necessidade calculada |\n");
         report.append("|---|---:|---:|\n");
         appendRangeMemoryRow(report, "N", result.getNitrogenRangeId(), result.getRequiredN());
