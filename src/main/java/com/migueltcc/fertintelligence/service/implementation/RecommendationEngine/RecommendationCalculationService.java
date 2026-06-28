@@ -208,9 +208,9 @@ public class RecommendationCalculationService {
         String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
         String cropSummary = "Cultura considerada conforme cabeçalho do laudo.";
         List<FoliarDiagnosisItem> foliarDiagnosis = buildFoliarDiagnosis(inputs.foliarAnalysis(), inputs.crop(), inputs.foliarInterpretationTable(), warnings);
-        String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis, warnings);
+        String foliarSummary = buildFoliarSummary(inputs.foliarAnalysis(), foliarDiagnosis);
 
-        List<String> correctionMessages = buildCorrectionMessages(dto, inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
+        List<String> correctionMessages = buildCorrectionMessages(inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
         LimingRequirementResult limingRequirement = limingRequirementCalculator.calculate(
                 dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
         GypsumRequirementResult gypsumRequirement = gypsumCalculationService.calculate(
@@ -311,14 +311,75 @@ public class RecommendationCalculationService {
             SalinityDiagnosis salinityDiagnosis) {
     }
 
-    private String addMissing(List<String> warnings,String m){warnings.add(m);return m;}
-    private double nvl(Double v){return v==null?0d:v;}
-    private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
-    private Optional<FertilityAnalysisExtractModel> findLatestFertilityExtract(SoilAnalysisModel soil){return fertilityAnalysisExtractRepository.findAll().stream().filter(e->(e.getRangeExtract()!=null&&e.getRangeExtract().getAnalysis()!=null&&Objects.equals(e.getRangeExtract().getAnalysis().getId(),soil.getId()))||(e.getLayerExtract()!=null&&e.getLayerExtract().getAnalysis()!=null&&Objects.equals(e.getLayerExtract().getAnalysis().getId(),soil.getId()))).max(Comparator.comparing(FertilityAnalysisExtractModel::getId));}
-    private SoilAnalysisModel resolveSoilAnalysis(FertilityAnalysisExtractModel extract) {if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) return extract.getRangeExtract().getAnalysis(); if (extract.getLayerExtract() != null && extract.getLayerExtract().getAnalysis() != null) return extract.getLayerExtract().getAnalysis(); throw new IllegalArgumentException("Extrato de análise de fertilidade não possui análise de solo associada.");}
-    private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> e,Optional<SaturationExtractAnalysisExtractModel>s){if(e.isPresent()){if(e.get().getPhAgua()!=null)return Optional.of(e.get().getPhAgua());if(e.get().getPhCacl2()!=null)return Optional.of(e.get().getPhCacl2());} return s.map(SaturationExtractAnalysisExtractModel::getPh);}
-    private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> e){return e.map(FertilityAnalysisExtractModel::getAluminio);}
-    private List<String> buildCorrectionMessages(RecommendationCreateRequestDto dto, Optional<FertilityAnalysisExtractModel> fertilityExtract, Optional<SaturationExtractAnalysisExtractModel> saturation, List<String> warnings){List<String> m=new ArrayList<>();Optional<Double> ph=extractPhValue(fertilityExtract,saturation);Optional<Double> al=extractAluminumValue(fertilityExtract); if(ph.isPresent()){double v=ph.get(); if(v<5.5)m.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado."); else if(v<=6.5)m.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases."); else m.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");} if(al.isPresent()&&al.get()>0)m.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado."); if(ph.isEmpty()&&al.isEmpty())warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");return m;}
+    private double round2(double v) {
+        return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private Optional<FertilityAnalysisExtractModel> findLatestFertilityExtract(SoilAnalysisModel soil) {
+        return fertilityAnalysisExtractRepository.findAll().stream()
+                .filter(extract -> belongsToSoilAnalysis(extract, soil))
+                .max(Comparator.comparing(FertilityAnalysisExtractModel::getId));
+    }
+
+    private boolean belongsToSoilAnalysis(FertilityAnalysisExtractModel extract, SoilAnalysisModel soil) {
+        if (extract == null || soil == null) return false;
+        return (extract.getRangeExtract() != null
+                && extract.getRangeExtract().getAnalysis() != null
+                && Objects.equals(extract.getRangeExtract().getAnalysis().getId(), soil.getId()))
+                || (extract.getLayerExtract() != null
+                && extract.getLayerExtract().getAnalysis() != null
+                && Objects.equals(extract.getLayerExtract().getAnalysis().getId(), soil.getId()));
+    }
+
+    private SoilAnalysisModel resolveSoilAnalysis(FertilityAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) {
+            return extract.getRangeExtract().getAnalysis();
+        }
+        if (extract.getLayerExtract() != null && extract.getLayerExtract().getAnalysis() != null) {
+            return extract.getLayerExtract().getAnalysis();
+        }
+        throw new IllegalArgumentException("Extrato de análise de fertilidade não possui análise de solo associada.");
+    }
+
+    private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                            Optional<SaturationExtractAnalysisExtractModel> saturation) {
+        if (fertilityExtract.isPresent()) {
+            FertilityAnalysisExtractModel fertility = fertilityExtract.get();
+            if (fertility.getPhAgua() != null) return Optional.of(fertility.getPhAgua());
+            if (fertility.getPhCacl2() != null) return Optional.of(fertility.getPhCacl2());
+        }
+        return saturation.map(SaturationExtractAnalysisExtractModel::getPh);
+    }
+
+    private Optional<Double> extractAluminumValue(Optional<FertilityAnalysisExtractModel> fertilityExtract) {
+        return fertilityExtract.map(FertilityAnalysisExtractModel::getAluminio);
+    }
+
+    private List<String> buildCorrectionMessages(Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                 Optional<SaturationExtractAnalysisExtractModel> saturation,
+                                                 List<String> warnings) {
+        List<String> messages = new ArrayList<>();
+        Optional<Double> ph = extractPhValue(fertilityExtract, saturation);
+        Optional<Double> aluminum = extractAluminumValue(fertilityExtract);
+
+        if (ph.isPresent()) {
+            double value = ph.get();
+            if (value < 5.5) {
+                messages.add("pH abaixo de 5.5. Indica necessidade provável de correção de acidez, a confirmar com critério de calagem selecionado.");
+            } else if (value <= 6.5) {
+                messages.add("pH em faixa intermediária. Correção deve ser avaliada conforme cultura e saturação por bases.");
+            } else {
+                messages.add("pH elevado. Evitar recomendações automáticas de calagem sem validação técnica.");
+            }
+        }
+        if (aluminum.isPresent() && aluminum.get() > 0) {
+            messages.add("Presença de alumínio trocável detectada. Avaliar neutralização conforme critério selecionado.");
+        }
+        if (ph.isEmpty() && aluminum.isEmpty()) {
+            warnings.add("Não foi possível calcular correção de acidez/salinidade por ausência de parâmetros suficientes.");
+        }
+        return messages;
+    }
 
     private boolean isInterpretation(SoilChemicalDiagnosisItem item, String... expected) {
         if (item == null || item.getInterpretation() == null) return false;
@@ -512,12 +573,6 @@ public class RecommendationCalculationService {
 
     private SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {
         return nutrientFertilizationCalculationService.selectCorrectiveSource(user, sourceOption, nutrientTarget);
-    }
-
-    private String formatDoseRange(Double minimum, Double maximum) {
-        if (minimum == null && maximum == null) return "Não calculada";
-        if (minimum != null && maximum != null) return formatNumber(minimum) + " a " + formatNumber(maximum);
-        return formatNumber(minimum != null ? minimum : maximum);
     }
 
     private PhysicalDiagnosis buildSoilPhysicalDiagnosis(PhysicalAnalysisExtractModel physicalAnalysis,
@@ -1203,8 +1258,7 @@ public class RecommendationCalculationService {
     }
 
     private String buildFoliarSummary(Optional<FoliarAnalysisModel> foliarAnalysis,
-                                      List<FoliarDiagnosisItem> foliarDiagnosis,
-                                      List<String> warnings) {
+                                      List<FoliarDiagnosisItem> foliarDiagnosis) {
         if (foliarAnalysis.isEmpty()) return "Análise foliar não informada.";
         long classified = foliarDiagnosis.stream()
                 .filter(item -> item.getAnalyzedValue() != null && item.getInterpretation() != null)
@@ -1270,24 +1324,148 @@ public class RecommendationCalculationService {
     private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {}
     private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                         Double mediumEnd, Double highStart, Double highEnd, Double veryHighStart) {}
-    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findPhysicalAnalysisExtractByIdOrThrow(id);}
-    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {return physicalAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));}
-    private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id); if (extract.isPresent()) {SoilAnalysisModel soil = resolveSoilAnalysis(extract.get()); if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) return new FertilityAnalysisSelection(soil, extract);} Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id); if (soil.isPresent()) return new FertilityAnalysisSelection(soil.get(), Optional.empty()); return extract.map(e -> new FertilityAnalysisSelection(resolveSoilAnalysis(e), Optional.of(e))).orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));}
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findSaturationExtractAnalysisExtractByIdOrThrow(id);}
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {return saturationExtractAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));}
-    private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {return annualCropFolderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));}
-    private CropModel findCropByIdOrThrow(Long id) {return cropRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + id));}
-    private CropFertilizationTableModel findCropFertilizationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findCropFertilizationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de adubação de culturas não encontrada para o grupo " + group + " e ID: " + id));}
-    private SoilFertilityInterpretationCriteriaTableModel findSoilFertilityInterpretationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findSoilFertilityInterpretationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação da fertilidade do solo não encontrada para o grupo " + group + " e ID: " + id));}
-    private CropFoliarAnalysisInterpretationTableModel findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(Long id, TechnicalTableGroup group, UserModel user) {return findCropFoliarAnalysisInterpretationTableBySelection(id, group, user).orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação de análise foliar não encontrada para o grupo " + group + " e ID: " + id));}
-    private Optional<CropFertilizationTableModel> findCropFertilizationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {validateTableSelection(id, group, "tabela de adubação de culturas"); return switch (group) {case MINHAS, PRIVADAS -> cropFertilizationTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO); case PUBLICAS -> cropFertilizationTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO); case PADRAO -> cropFertilizationTableRepository.findByIdAndCreator_CargoAndPublicTableTrue(id, Cargo.USUARIO_SUPREMO);};}
-    private Optional<SoilFertilityInterpretationCriteriaTableModel> findSoilFertilityInterpretationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {validateTableSelection(id, group, "tabela de interpretação da fertilidade do solo"); return switch (group) {case MINHAS, PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO); case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO); case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);};}
-    private Optional<CropFoliarAnalysisInterpretationTableModel> findCropFoliarAnalysisInterpretationTableBySelection(Long id, TechnicalTableGroup group, UserModel user) {validateTableSelection(id, group, "tabela de interpretação de análise foliar"); return switch (group) {case MINHAS, PRIVADAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO); case PUBLICAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO); case PADRAO -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);};}
-    private void validateTableSelection(Long id, TechnicalTableGroup group, String tableName) {if (id == null) throw new IllegalArgumentException("ID da " + tableName + " é obrigatório."); if (group == null) throw new IllegalArgumentException("Grupo da " + tableName + " é obrigatório.");}
-    private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) throw new IllegalArgumentException(message);}
-    private PlotModel resolvePlot(PhysicalAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");}
-    private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) return model.getRangeExtract().getAnalysis().getPlot(); if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) return model.getLayerExtract().getAnalysis().getPlot(); throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");}
-    private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);}
+    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrNull(Long id) {
+        return id == null ? null : findPhysicalAnalysisExtractByIdOrThrow(id);
+    }
+
+    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {
+        return physicalAnalysisExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));
+    }
+
+    private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {
+        Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id);
+        if (extract.isPresent()) {
+            SoilAnalysisModel soil = resolveSoilAnalysis(extract.get());
+            if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) {
+                return new FertilityAnalysisSelection(soil, extract);
+            }
+        }
+
+        Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id);
+        if (soil.isPresent()) {
+            return new FertilityAnalysisSelection(soil.get(), Optional.empty());
+        }
+
+        return extract.map(value -> new FertilityAnalysisSelection(resolveSoilAnalysis(value), Optional.of(value)))
+                .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));
+    }
+
+    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrNull(Long id) {
+        return id == null ? null : findSaturationExtractAnalysisExtractByIdOrThrow(id);
+    }
+
+    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {
+        return saturationExtractAnalysisExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));
+    }
+
+    private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {
+        return annualCropFolderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Pasta de cultura anual não encontrada com o ID: " + id));
+    }
+
+    private CropModel findCropByIdOrThrow(Long id) {
+        return cropRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Cultura não encontrada com o ID: " + id));
+    }
+
+    private CropFertilizationTableModel findCropFertilizationTableBySelectionOrThrow(Long id,
+                                                                                     TechnicalTableGroup group,
+                                                                                     UserModel user) {
+        return findCropFertilizationTableBySelection(id, group, user)
+                .orElseThrow(() -> new EntityNotFoundException("Tabela de adubação de culturas não encontrada para o grupo " + group + " e ID: " + id));
+    }
+
+    private SoilFertilityInterpretationCriteriaTableModel findSoilFertilityInterpretationTableBySelectionOrThrow(
+            Long id,
+            TechnicalTableGroup group,
+            UserModel user) {
+        return findSoilFertilityInterpretationTableBySelection(id, group, user)
+                .orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação da fertilidade do solo não encontrada para o grupo " + group + " e ID: " + id));
+    }
+
+    private CropFoliarAnalysisInterpretationTableModel findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
+            Long id,
+            TechnicalTableGroup group,
+            UserModel user) {
+        return findCropFoliarAnalysisInterpretationTableBySelection(id, group, user)
+                .orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação de análise foliar não encontrada para o grupo " + group + " e ID: " + id));
+    }
+
+    private Optional<CropFertilizationTableModel> findCropFertilizationTableBySelection(Long id,
+                                                                                       TechnicalTableGroup group,
+                                                                                       UserModel user) {
+        validateTableSelection(id, group, "tabela de adubação de culturas");
+        return switch (group) {
+            case MINHAS, PRIVADAS -> cropFertilizationTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO);
+            case PUBLICAS -> cropFertilizationTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO);
+            case PADRAO -> cropFertilizationTableRepository.findByIdAndCreator_CargoAndPublicTableTrue(id, Cargo.USUARIO_SUPREMO);
+        };
+    }
+
+    private Optional<SoilFertilityInterpretationCriteriaTableModel> findSoilFertilityInterpretationTableBySelection(
+            Long id,
+            TechnicalTableGroup group,
+            UserModel user) {
+        validateTableSelection(id, group, "tabela de interpretação da fertilidade do solo");
+        return switch (group) {
+            case MINHAS, PRIVADAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO);
+            case PUBLICAS -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO);
+            case PADRAO -> soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);
+        };
+    }
+
+    private Optional<CropFoliarAnalysisInterpretationTableModel> findCropFoliarAnalysisInterpretationTableBySelection(
+            Long id,
+            TechnicalTableGroup group,
+            UserModel user) {
+        validateTableSelection(id, group, "tabela de interpretação de análise foliar");
+        return switch (group) {
+            case MINHAS, PRIVADAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreatorAndCreator_CargoNot(id, user, Cargo.USUARIO_SUPREMO);
+            case PUBLICAS -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndPublicTableTrueAndCreator_CargoNot(id, Cargo.USUARIO_SUPREMO);
+            case PADRAO -> cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator_Cargo(id, Cargo.USUARIO_SUPREMO);
+        };
+    }
+
+    private void validateTableSelection(Long id, TechnicalTableGroup group, String tableName) {
+        if (id == null) {
+            throw new IllegalArgumentException("ID da " + tableName + " é obrigatório.");
+        }
+        if (group == null) {
+            throw new IllegalArgumentException("Grupo da " + tableName + " é obrigatório.");
+        }
+    }
+
+    private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {
+        if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private PlotModel resolvePlot(PhysicalAnalysisExtractModel model) {
+        if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) {
+            return model.getRangeExtract().getAnalysis().getPlot();
+        }
+        if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) {
+            return model.getLayerExtract().getAnalysis().getPlot();
+        }
+        throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");
+    }
+
+    private PlotModel resolvePlot(SaturationExtractAnalysisExtractModel model) {
+        if (model.getRangeExtract() != null && model.getRangeExtract().getAnalysis() != null) {
+            return model.getRangeExtract().getAnalysis().getPlot();
+        }
+        if (model.getLayerExtract() != null && model.getLayerExtract().getAnalysis() != null) {
+            return model.getLayerExtract().getAnalysis().getPlot();
+        }
+        throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");
+    }
+
+    private Optional<FoliarAnalysisModel> findLatestFoliarAnalysis(CropModel crop) {
+        return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);
+    }
 
     private record FertilityAnalysisSelection(
             SoilAnalysisModel soilAnalysis,
