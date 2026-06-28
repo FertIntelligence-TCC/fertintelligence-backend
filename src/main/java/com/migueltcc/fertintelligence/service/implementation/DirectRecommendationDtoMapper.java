@@ -12,6 +12,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel
 import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,15 +23,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DirectRecommendationDtoMapper {
 
-    private static final String LINEAR_METER_MODE = "LINEAR_METER";
-    private static final String PIT_MODE = "PIT";
-    private static final String LINEAR_METER_COLUMN = "gPerLinearMeter";
-    private static final String PIT_COLUMN = "gPerPit";
-
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
     private final DirectRecommendationReportService directRecommendationReportService;
+    private final CropSpacingCalculationService cropSpacingCalculationService;
 
     public DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
         if (model == null) {
@@ -172,13 +169,12 @@ public class DirectRecommendationDtoMapper {
     }
 
     private ApplicableDose applicableDose(String mode, String label, Double gramsPerLinearMeter, Double gramsPerPit) {
-        if (LINEAR_METER_MODE.equals(mode)) {
-            return new ApplicableDose(gramsPerLinearMeter, label, LINEAR_METER_COLUMN);
-        }
-        if (PIT_MODE.equals(mode)) {
-            return new ApplicableDose(gramsPerPit, label, PIT_COLUMN);
-        }
-        return new ApplicableDose(null, label, null);
+        CropSpacingCalculationService.DoseUnitMetadata metadata =
+                cropSpacingCalculationService.resolveDoseUnitMetadata(mode, label);
+        return new ApplicableDose(
+                cropSpacingCalculationService.applicableDoseValue(mode, gramsPerLinearMeter, gramsPerPit),
+                metadata.doseUnitLabel(),
+                metadata.applicableDoseColumn());
     }
 
     private record ApplicableDose(Double value, String unit, String column) {

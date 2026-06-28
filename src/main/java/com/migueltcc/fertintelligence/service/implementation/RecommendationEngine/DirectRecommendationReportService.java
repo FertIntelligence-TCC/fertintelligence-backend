@@ -61,13 +61,7 @@ public class DirectRecommendationReportService {
 
     private DirectDoseUnitMetadata resolveDoseUnitMetadata(CropModel crop) {
         CropSpacingMode mode = resolveApplicableMode(crop, null);
-        if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
-            return new DirectDoseUnitMetadata("LINEAR_METER", "g/m linear", "gPerLinearMeter");
-        }
-        if (mode == CropSpacingMode.PIT) {
-            return new DirectDoseUnitMetadata("PIT", "g/cova", "gPerPit");
-        }
-        return INSUFFICIENT_DATA_METADATA;
+        return toDirectDoseUnitMetadata(cropSpacingCalculationService.resolveDoseUnitMetadata(mode));
     }
 
     public String build(RecommendationModel recommendation, CropModel crop) {
@@ -331,17 +325,12 @@ public class DirectRecommendationReportService {
     }
 
     private boolean hasApplicableDoseColumn(DirectDoseUnitMetadata doseUnitMetadata) {
-        return doseUnitMetadata != null && doseUnitMetadata.applicableDoseColumn() != null;
+        return cropSpacingCalculationService.hasApplicableDoseColumn(toCropSpacingDoseUnitMetadata(doseUnitMetadata));
     }
 
     private String applicableLocalizedDose(String doseUnitMode, Double gramsPerLinearMeter, Double gramsPerPit) {
-        if ("LINEAR_METER".equals(doseUnitMode)) {
-            return formatGramDose(gramsPerLinearMeter);
-        }
-        if ("PIT".equals(doseUnitMode)) {
-            return formatGramDose(gramsPerPit);
-        }
-        return spacingUnavailableCell();
+        return formatGramDose(cropSpacingCalculationService.applicableDoseValue(
+                doseUnitMode, gramsPerLinearMeter, gramsPerPit));
     }
 
     private boolean hasFormulatedLines(
@@ -398,13 +387,7 @@ public class DirectRecommendationReportService {
     }
 
     private DirectDoseUnitMetadata lineDoseUnitMetadata(String mode, String label) {
-        if ("LINEAR_METER".equals(mode)) {
-            return new DirectDoseUnitMetadata("LINEAR_METER", label != null ? label : "g/m linear", "gPerLinearMeter");
-        }
-        if ("PIT".equals(mode)) {
-            return new DirectDoseUnitMetadata("PIT", label != null ? label : "g/cova", "gPerPit");
-        }
-        return INSUFFICIENT_DATA_METADATA;
+        return toDirectDoseUnitMetadata(cropSpacingCalculationService.resolveDoseUnitMetadata(mode, label));
     }
 
     private Optional<DirectRecommendationModel> resolveDirectRecommendation(RecommendationModel recommendation) {
@@ -452,6 +435,21 @@ public class DirectRecommendationReportService {
 
     private String spacingUnavailableCell() {
         return LINEAR_CONVERSION_UNAVAILABLE;
+    }
+
+    private DirectDoseUnitMetadata toDirectDoseUnitMetadata(CropSpacingCalculationService.DoseUnitMetadata metadata) {
+        if (metadata == null) {
+            return INSUFFICIENT_DATA_METADATA;
+        }
+        return new DirectDoseUnitMetadata(metadata.doseUnitMode(), metadata.doseUnitLabel(), metadata.applicableDoseColumn());
+    }
+
+    private CropSpacingCalculationService.DoseUnitMetadata toCropSpacingDoseUnitMetadata(DirectDoseUnitMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        return new CropSpacingCalculationService.DoseUnitMetadata(
+                metadata.doseUnitMode(), metadata.doseUnitLabel(), metadata.applicableDoseColumn());
     }
 
     private String resolveSpacingObservation(DirectDoseUnitMetadata doseUnitMetadata, List<String> spacingWarnings) {

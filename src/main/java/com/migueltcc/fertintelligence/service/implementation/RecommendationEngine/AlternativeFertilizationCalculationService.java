@@ -317,6 +317,8 @@ class AlternativeFertilizationCalculationService {
             String technicalObservation) {
         CropSpacingCalculationService.CropSpacingDoseResult spacingDose =
                 cropSpacingCalculationService.calculate(crop, selection.fertilizerDoseKgHa());
+        CropSpacingCalculationService.DoseUnitMetadata doseUnitMetadata =
+                cropSpacingCalculationService.resolveDoseUnitMetadata(spacingDose);
         String observation = technicalObservation;
         if (observation == null) {
             observation = spacingDose.technicalWarning();
@@ -331,34 +333,12 @@ class AlternativeFertilizationCalculationService {
                 .fertilizerName(selection.selectedFertilizer() != null ? selection.selectedFertilizer().getName() : null)
                 .micronutrientConcentrationPercent(selection.selectedConcentrationPercent())
                 .fertilizerDoseKgHa(selection.fertilizerDoseKgHa())
-                .doseUnitMode(resolveDoseUnitMode(spacingDose))
-                .doseUnitLabel(resolveDoseUnitLabel(spacingDose))
+                .doseUnitMode(doseUnitMetadata.doseUnitMode())
+                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
                 .gramsPerLinearMeter(spacingDose.gramsPerLinearMeter())
                 .gramsPerPit(spacingDose.gramsPerPit())
                 .technicalObservation(observation)
                 .build();
-    }
-
-    private String resolveDoseUnitMode(CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
-        if (spacingDose == null || spacingDose.resolvedMode() == null) {
-            return "INSUFFICIENT_DATA";
-        }
-        return switch (spacingDose.resolvedMode()) {
-            case PLANTS_PER_LINEAR_METER -> "LINEAR_METER";
-            case PIT -> "PIT";
-            default -> "INSUFFICIENT_DATA";
-        };
-    }
-
-    private String resolveDoseUnitLabel(CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
-        if (spacingDose == null || spacingDose.resolvedMode() == null) {
-            return null;
-        }
-        return switch (spacingDose.resolvedMode()) {
-            case PLANTS_PER_LINEAR_METER -> "g/m linear";
-            case PIT -> "g/cova";
-            default -> null;
-        };
     }
 
     private Map<AppliedMicronutrient, RecommendationCalculationService.SoilChemicalDiagnosisItem> soilMicronutrientDiagnosis(

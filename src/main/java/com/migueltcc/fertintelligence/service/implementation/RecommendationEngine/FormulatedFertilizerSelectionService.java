@@ -217,13 +217,17 @@ public class FormulatedFertilizerSelectionService {
 
     private boolean hasValidNpkConcentrations(FormulatedMineralFertilizerModel fertilizer) {
         return fertilizer != null
-                && Double.isFinite(fertilizer.getN())
-                && Double.isFinite(fertilizer.getP2O5())
-                && Double.isFinite(fertilizer.getK2O())
+                && isValidConcentration(fertilizer.getN())
+                && isValidConcentration(fertilizer.getP2O5())
+                && isValidConcentration(fertilizer.getK2O())
                 && fertilizer.getN() >= 0d
                 && fertilizer.getP2O5() >= 0d
                 && fertilizer.getK2O() >= 0d
                 && fertilizer.getN() + fertilizer.getP2O5() + fertilizer.getK2O() > 0d;
+    }
+
+    private boolean isValidConcentration(Double value) {
+        return value != null && Double.isFinite(value) && value >= 0d;
     }
 
     private List<FormulatedFertilizerSelectionCandidate> limitForPresentation(

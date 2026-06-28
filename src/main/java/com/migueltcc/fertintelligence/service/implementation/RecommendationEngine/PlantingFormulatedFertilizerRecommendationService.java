@@ -55,7 +55,8 @@ class PlantingFormulatedFertilizerRecommendationService {
         CropSpacingCalculationService.CropSpacingDoseResult spacingDose =
                 cropSpacingCalculationService.calculate(crop, candidate.fertilizerDoseKgHa());
         CropSpacingMode resolvedMode = spacingDose.resolvedMode();
-        String doseUnitMode = resolveDoseUnitMode(resolvedMode);
+        CropSpacingCalculationService.DoseUnitMetadata doseUnitMetadata =
+                cropSpacingCalculationService.resolveDoseUnitMetadata(resolvedMode);
 
         return RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow.builder()
                 .phase(PLANTING_PHASE)
@@ -67,8 +68,8 @@ class PlantingFormulatedFertilizerRecommendationService {
                 .relationUsed(formatRelation(recommendedRatio))
                 .selectionType(candidate.approximateFallback() ? "APROXIMADA" : "DIRETA")
                 .doseKgHa(candidate.fertilizerDoseKgHa())
-                .doseUnitMode(doseUnitMode)
-                .doseUnitLabel(resolveDoseUnitLabel(resolvedMode))
+                .doseUnitMode(doseUnitMetadata.doseUnitMode())
+                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
                 .gramsPerLinearMeter(resolvedMode == CropSpacingMode.PLANTS_PER_LINEAR_METER
                         ? spacingDose.gramsPerLinearMeter()
                         : null)
@@ -89,26 +90,6 @@ class PlantingFormulatedFertilizerRecommendationService {
             return null;
         }
         return String.format(Locale.US, "%.2f-%.2f-%.2f", relation.getN(), relation.getP(), relation.getK());
-    }
-
-    private String resolveDoseUnitMode(CropSpacingMode mode) {
-        if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
-            return "LINEAR_METER";
-        }
-        if (mode == CropSpacingMode.PIT) {
-            return "PIT";
-        }
-        return "INSUFFICIENT_DATA";
-    }
-
-    private String resolveDoseUnitLabel(CropSpacingMode mode) {
-        if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
-            return "g/m linear";
-        }
-        if (mode == CropSpacingMode.PIT) {
-            return "g/cova";
-        }
-        return null;
     }
 
     private String buildTechnicalObservation(
