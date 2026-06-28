@@ -156,6 +156,7 @@ public class RecommendationReportService {
         }
 
         report.append("- Critério selecionado: ").append(safe(liming.getSelectedCriteria())).append("\n");
+        report.append("- Critério aplicado: ").append(safe(liming.getCriterionJustification())).append("\n");
         report.append("- Fórmula usada: ").append(safe(liming.getFormula())).append("\n");
         report.append("- Fonte de calcário/corretivo: ").append(safe(liming.getLimestoneSource())).append("\n");
         report.append("- Dose teórica de calagem: ").append(formatDose(liming.getTheoreticalRequirement(), liming.getUnit())).append("\n");

@@ -1,6 +1,5 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
-import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.MenorMaiorTeores;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
@@ -55,6 +54,8 @@ import java.util.function.Function;
 
 @Service
 public class RecommendationCalculationService {
+
+    private final LimingRequirementCalculator limingRequirementCalculator = new LimingRequirementCalculator();
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
@@ -167,7 +168,7 @@ public class RecommendationCalculationService {
     }
 
     private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot) {
-        PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrThrow(dto.getPhysicalAnalysisExtractId());
+        PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrNull(dto.getPhysicalAnalysisExtractId());
         FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot);
         SoilAnalysisModel soilFertilityAnalysis = soilFertilitySelection.soilAnalysis();
         SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrNull(dto.getSaturationExtractAnalysisExtractId());
@@ -189,7 +190,9 @@ public class RecommendationCalculationService {
     }
 
     private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot) {
-        validateSamePlot(resolvePlot(inputs.physicalAnalysis()), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
+        if (inputs.physicalAnalysis() != null) {
+            validateSamePlot(resolvePlot(inputs.physicalAnalysis()), plot, "O extrato de análise física selecionado não pertence ao talhão informado.");
+        }
         validateSamePlot(inputs.soilFertilityAnalysis().getPlot(), plot, "A análise de fertilidade selecionada não pertence ao talhão informado.");
         if (inputs.saturationExtractAnalysis() != null) {
             validateSamePlot(resolvePlot(inputs.saturationExtractAnalysis()), plot, "O extrato de análise de saturação selecionado não pertence ao talhão informado.");
@@ -342,7 +345,7 @@ public class RecommendationCalculationService {
                 .alternativeFertilizationRows(recommendations.alternativeFertilizationRows())
                 .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
-                .physicalAnalysisId(inputs.physicalAnalysis().getId())
+                .physicalAnalysisId(inputs.physicalAnalysis() != null ? inputs.physicalAnalysis().getId() : null)
                 .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
                 .saturationExtractAnalysisId(inputs.saturationExtractAnalysis() != null ? inputs.saturationExtractAnalysis().getId() : null)
                 .annualCropFolderId(inputs.annualCropFolder().getId())
@@ -409,154 +412,7 @@ public class RecommendationCalculationService {
                                                                PhysicalAnalysisExtractModel physicalAnalysis,
                                                                CropFertilizationTableModel cropFertilizationTable,
                                                                List<String> warnings) {
-        CriterioCalagem selectedCriteria = dto.getLimingCriteria() != null
-                ? dto.getLimingCriteria()
-                : cropFertilizationTable.getCriteria();
-        String formula = "NC teórica (t/ha) = T * (V2 - V1) / 100; NC corrigida (t/ha) = NC teórica * 100 / PRNT";
-        Map<String, Double> inputValues = new LinkedHashMap<>();
-        List<String> limingWarnings = new ArrayList<>();
-
-        if (selectedCriteria == null) {
-            limingWarnings.add("Critério de calagem não informado na recomendação nem na tabela de adubação selecionada.");
-            warnings.addAll(limingWarnings);
-            return LimingRequirementResult.builder()
-                    .selectedCriteria(null)
-                    .formula(formula)
-                    .inputValues(inputValues)
-                    .unit("t/ha")
-                    .warnings(limingWarnings)
-                    .build();
-        }
-
-        if (selectedCriteria == CriterioCalagem.NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL) {
-            return calculateLimingByExchangeableAluminum(selectedCriteria, fertilityExtract, physicalAnalysis, warnings, inputValues, limingWarnings);
-        }
-
-        if (selectedCriteria != CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS) {
-            limingWarnings.add("Cálculo de calagem pelo critério " + selectedCriteria.name()
-                    + " não possui fórmula completa suportada pelos modelos atuais; somente V% e neutralização de Al trocável foram avaliados.");
-            warnings.addAll(limingWarnings);
-            return LimingRequirementResult.builder()
-                    .selectedCriteria(selectedCriteria.name())
-                    .formula("Não calculada: critério sem parametrização completa no backend.")
-                    .inputValues(inputValues)
-                    .unit("t/ha")
-                    .warnings(limingWarnings)
-                    .build();
-        }
-
-        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
-        Double currentBaseSaturation = fertility != null ? fertility.getSaturacaoBasesV() : null;
-        Double ctcPh7 = fertility != null ? fertility.getCtcPh7() : null;
-        Double targetBaseSaturation = null;
-        Double prnt = null;
-        inputValues.put("V atual (%)", currentBaseSaturation);
-        inputValues.put("V desejado (%)", targetBaseSaturation);
-        inputValues.put("CTC pH 7,0 - T (" + fertilityUnit(fertility != null ? fertility.getUnidadeCtcPh7() : null) + ")", ctcPh7);
-        inputValues.put("PRNT (%)", prnt);
-
-        if (currentBaseSaturation == null) limingWarnings.add("V atual ausente no extrato de fertilidade (saturacaoBasesV).");
-        if (ctcPh7 == null) limingWarnings.add("CTC pH 7,0 ausente no extrato de fertilidade (ctcPh7).");
-        if (targetBaseSaturation == null) limingWarnings.add("V desejado não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
-        if (prnt == null) limingWarnings.add("PRNT do calcário não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
-
-        Double theoreticalRequirement = null;
-        if (currentBaseSaturation != null && ctcPh7 != null && targetBaseSaturation != null) {
-            theoreticalRequirement = Math.max(0d, round2(ctcPh7 * (targetBaseSaturation - currentBaseSaturation) / 100d));
-        }
-
-        PrntAdjustment prntAdjustment = applyPrntAdjustment(theoreticalRequirement, prnt, limingWarnings);
-        if (theoreticalRequirement != null && prntAdjustment.correctedRequirement() == null) {
-            limingWarnings.add("Dose teórica calculada, mas dose corrigida por PRNT não foi calculada porque o PRNT não está disponível.");
-        }
-        warnings.addAll(limingWarnings);
-        return LimingRequirementResult.builder()
-                .selectedCriteria(selectedCriteria.name())
-                .formula(formula)
-                .inputValues(inputValues)
-                .theoreticalRequirement(theoreticalRequirement)
-                .prnt(prnt)
-                .correctedRequirement(prntAdjustment.correctedRequirement())
-                .calculatedRequirement(prntAdjustment.effectiveRequirement(theoreticalRequirement))
-                .limestoneSource("Não informada: fonte de calcário/corretivo não está modelada no backend atual.")
-                .unit("t/ha")
-                .warnings(limingWarnings)
-                .build();
-    }
-
-    private LimingRequirementResult calculateLimingByExchangeableAluminum(CriterioCalagem selectedCriteria,
-                                                                          Optional<FertilityAnalysisExtractModel> fertilityExtract,
-                                                                          PhysicalAnalysisExtractModel physicalAnalysis,
-                                                                          List<String> warnings,
-                                                                          Map<String, Double> inputValues,
-                                                                          List<String> limingWarnings) {
-        String formula = "NC teórica (t/ha) = fator de calagem por argila * Al trocável; NC corrigida (t/ha) = NC teórica * 100 / PRNT";
-        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
-        Double exchangeableAluminum = fertility != null ? fertility.getAluminio() : null;
-        Double clayContent = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
-        Double factor = clayContent != null ? limingFactorByClayContent(clayContent) : null;
-        Double prnt = null;
-
-        inputValues.put("Al trocável (" + fertilityUnit(fertility != null ? fertility.getUnidadeAluminio() : null) + ")", exchangeableAluminum);
-        inputValues.put("Argila (" + physicalUnit(physicalAnalysis != null ? physicalAnalysis.getUnidadeTeorArgila() : null) + ")", clayContent);
-        inputValues.put("Fator de calagem por argila", factor);
-        inputValues.put("PRNT (%)", prnt);
-
-        if (exchangeableAluminum == null) {
-            limingWarnings.add("Al trocável ausente no extrato de fertilidade (aluminio).");
-        }
-        if (clayContent == null) {
-            limingWarnings.add("Teor de argila ausente no extrato de análise física (teorArgila), necessário para selecionar o fator de calagem.");
-        }
-
-        Double theoreticalRequirement = null;
-        if (exchangeableAluminum != null && factor != null) {
-            theoreticalRequirement = Math.max(0d, round2(factor * exchangeableAluminum));
-        }
-
-        if (prnt == null) {
-            limingWarnings.add("PRNT do calcário não está modelado nos DTOs, entidades ou tabelas técnicas inspecionadas.");
-        }
-        PrntAdjustment prntAdjustment = applyPrntAdjustment(theoreticalRequirement, prnt, limingWarnings);
-        if (theoreticalRequirement != null && prntAdjustment.correctedRequirement() == null) {
-            limingWarnings.add("Dose teórica calculada, mas dose corrigida por PRNT não foi calculada porque o PRNT não está disponível.");
-        }
-        warnings.addAll(limingWarnings);
-        return LimingRequirementResult.builder()
-                .selectedCriteria(selectedCriteria.name())
-                .formula(formula)
-                .inputValues(inputValues)
-                .theoreticalRequirement(theoreticalRequirement)
-                .prnt(prnt)
-                .correctedRequirement(prntAdjustment.correctedRequirement())
-                .calculatedRequirement(prntAdjustment.effectiveRequirement(theoreticalRequirement))
-                .limestoneSource("Não informada: fonte de calcário/corretivo não está modelada no backend atual.")
-                .unit("t/ha")
-                .warnings(limingWarnings)
-                .build();
-    }
-
-    private PrntAdjustment applyPrntAdjustment(Double theoreticalRequirement, Double prnt, List<String> limingWarnings) {
-        if (theoreticalRequirement == null) return new PrntAdjustment(null);
-        if (prnt == null) return new PrntAdjustment(null);
-        if (prnt <= 0d) {
-            limingWarnings.add("PRNT informado inválido; a correção exige PRNT maior que zero.");
-            return new PrntAdjustment(null);
-        }
-        return new PrntAdjustment(Math.max(0d, round2(theoreticalRequirement * 100d / prnt)));
-    }
-
-    private record PrntAdjustment(Double correctedRequirement) {
-        Double effectiveRequirement(Double theoreticalRequirement) {
-            return correctedRequirement != null ? correctedRequirement : theoreticalRequirement;
-        }
-    }
-
-    private double limingFactorByClayContent(Double clayContent) {
-        double clay = nvl(clayContent);
-        if (clay < 150.0) return 1.5;
-        if (clay <= 350.0) return 2.0;
-        return 2.5;
+        return limingRequirementCalculator.calculate(dto, fertilityExtract, physicalAnalysis, cropFertilizationTable, warnings);
     }
 
     private GypsumRequirementResult calculateGypsumRequirement(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -2233,6 +2089,7 @@ public class RecommendationCalculationService {
     private double round2(double v){return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();}
     private <T> List<T> dedup(List<T> a,List<T> b, Function<T,Long> id){Map<Long,T> m=new LinkedHashMap<>();a.forEach(x->m.putIfAbsent(id.apply(x),x));b.forEach(x->m.putIfAbsent(id.apply(x),x));return new ArrayList<>(m.values());}
 
+    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findPhysicalAnalysisExtractByIdOrThrow(id);}
     private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {return physicalAnalysisExtractRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));}
     private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id); if (extract.isPresent()) {SoilAnalysisModel soil = resolveSoilAnalysis(extract.get()); if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) return new FertilityAnalysisSelection(soil, extract);} Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id); if (soil.isPresent()) return new FertilityAnalysisSelection(soil.get(), Optional.empty()); return extract.map(e -> new FertilityAnalysisSelection(resolveSoilAnalysis(e), Optional.of(e))).orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));}
     private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrNull(Long id) {return id == null ? null : findSaturationExtractAnalysisExtractByIdOrThrow(id);}
@@ -2421,6 +2278,7 @@ public class RecommendationCalculationService {
     @AllArgsConstructor
     public static class LimingRequirementResult {
         private String selectedCriteria;
+        private String criterionJustification;
         private String formula;
         private Map<String, Double> inputValues;
         private Double theoreticalRequirement;

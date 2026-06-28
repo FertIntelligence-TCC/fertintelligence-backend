@@ -40,7 +40,6 @@ public class RecommendationCreateRequestDto {
 
     @JsonProperty("id_extrato_analise_fisica")
     @JsonAlias({"physicalAnalysisExtractId", "physicalAnalysisId", "id_analise_fisica", "id_extrato_fisico"})
-    @NotNull
     private Long physicalAnalysisExtractId;
 
     @JsonProperty("id_analise_fertilidade_solo")
