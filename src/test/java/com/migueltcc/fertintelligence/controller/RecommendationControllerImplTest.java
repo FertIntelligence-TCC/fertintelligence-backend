@@ -19,6 +19,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropMode
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
@@ -154,8 +157,11 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .annualCropFolderId(6L)
                 .cropId(7L)
                 .cropFertilizationTableId(100L)
+                .cropFertilizationTableGroup(TechnicalTableGroup.PADRAO)
                 .soilFertilityInterpretationCriteriaTableId(200L)
+                .soilFertilityInterpretationCriteriaTableGroup(TechnicalTableGroup.PADRAO)
                 .cropFoliarAnalysisInterpretationTableId(300L)
+                .cropFoliarAnalysisInterpretationTableGroup(TechnicalTableGroup.PADRAO)
                 .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
                 .origemAdubos(FertilizerSourceOption.BOTH)
                 .build();
@@ -175,6 +181,9 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         SaturationExtractAnalysisExtractModel saturationAnalysis = SaturationExtractAnalysisExtractModel.builder().id(5L).rangeExtract(rangeExtract).build();
         AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
         CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.ALGODAO).build();
+        CropFertilizationTableModel cropFertilizationTable = CropFertilizationTableModel.builder().id(100L).creator(user).crop_common_name(NomeComum.ALGODAO).build();
+        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = SoilFertilityInterpretationCriteriaTableModel.builder().id(200L).creator(user).build();
+        CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = CropFoliarAnalysisInterpretationTableModel.builder().id(300L).creator(user).build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
@@ -184,6 +193,9 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         when(saturationExtractAnalysisExtractRepository.findById(5L)).thenReturn(Optional.of(saturationAnalysis));
         when(annualCropFolderRepository.findById(6L)).thenReturn(Optional.of(folder));
         when(cropRepository.findById(7L)).thenReturn(Optional.of(crop));
+        when(cropFertilizationTableRepository.findByIdAndCreator_CargoAndPublicTableTrue(100L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(cropFertilizationTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(200L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(soilInterpretationTable));
+        when(cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator_Cargo(300L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(foliarInterpretationTable));
         when(recommendationRepository.save(any(RecommendationModel.class))).thenReturn(saved);
 
         mockMvc.perform(post("/recommendation/generate")
@@ -198,6 +210,53 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(
                 "AMBAS",
                 new FertilizerSourceOptionConverter().convertToDatabaseColumn(recommendationCaptor.getValue().getOrigemAdubos()));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void generateRecommendation_BlocksIncompatibleCropAndFertilizationTable() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationCreateRequestDto request = RecommendationCreateRequestDto.builder()
+                .recommendationType(RecommendationType.BOTH)
+                .propertyId(10L)
+                .plotId(20L)
+                .soilFertilityAnalysisId(2L)
+                .annualCropFolderId(6L)
+                .cropId(7L)
+                .cropFertilizationTableId(100L)
+                .cropFertilizationTableGroup(TechnicalTableGroup.PADRAO)
+                .soilFertilityInterpretationCriteriaTableId(200L)
+                .soilFertilityInterpretationCriteriaTableGroup(TechnicalTableGroup.PADRAO)
+                .cropFoliarAnalysisInterpretationTableId(300L)
+                .cropFoliarAnalysisInterpretationTableGroup(TechnicalTableGroup.PADRAO)
+                .origemAdubos(FertilizerSourceOption.BOTH)
+                .build();
+
+        SoilAnalysisModel soilAnalysis = SoilAnalysisModel.builder().id(2L).plot(plot).analysisYear(2026).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.SOJA).build();
+        CropFertilizationTableModel cropFertilizationTable = CropFertilizationTableModel.builder().id(100L).creator(user).crop_common_name(NomeComum.MILHO).build();
+        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = SoilFertilityInterpretationCriteriaTableModel.builder().id(200L).creator(user).build();
+        CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = CropFoliarAnalysisInterpretationTableModel.builder().id(300L).creator(user).build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(plotRepository.findById(20L)).thenReturn(Optional.of(plot));
+        when(soilAnalysisRepository.findById(2L)).thenReturn(Optional.of(soilAnalysis));
+        when(annualCropFolderRepository.findById(6L)).thenReturn(Optional.of(folder));
+        when(cropRepository.findById(7L)).thenReturn(Optional.of(crop));
+        when(cropFertilizationTableRepository.findByIdAndCreator_CargoAndPublicTableTrue(100L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(cropFertilizationTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(200L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(soilInterpretationTable));
+        when(cropFoliarAnalysisInterpretationTableRepository.findByIdAndCreator_Cargo(300L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(foliarInterpretationTable));
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cultura Anual e Tabela de Adubação de Culturas incompatíveis!"));
     }
 
     @Test

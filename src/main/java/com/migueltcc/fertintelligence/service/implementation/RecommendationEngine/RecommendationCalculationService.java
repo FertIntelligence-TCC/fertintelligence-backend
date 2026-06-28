@@ -55,6 +55,9 @@ import java.util.function.Function;
 @Service
 public class RecommendationCalculationService {
 
+    private static final String INCOMPATIBLE_CROP_AND_FERTILIZATION_TABLE_MESSAGE =
+            "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
+
     private final LimingRequirementCalculator limingRequirementCalculator = new LimingRequirementCalculator();
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
@@ -200,6 +203,16 @@ public class RecommendationCalculationService {
         validateSamePlot(inputs.annualCropFolder().getPlot(), plot, "A pasta de cultura anual selecionada não pertence ao talhão informado.");
         if (inputs.crop().getFolder() == null || !Objects.equals(inputs.crop().getFolder().getId(), inputs.annualCropFolder().getId())) {
             throw new IllegalArgumentException("A cultura selecionada não pertence à pasta de cultura anual informada.");
+        }
+        validateCropCompatibleWithFertilizationTable(inputs.crop(), inputs.cropFertilizationTable());
+    }
+
+    private void validateCropCompatibleWithFertilizationTable(CropModel crop, CropFertilizationTableModel cropFertilizationTable) {
+        if (crop == null || cropFertilizationTable == null || crop.getName() == null || cropFertilizationTable.getCrop_common_name() == null) {
+            throw new IllegalArgumentException("Não foi possível validar compatibilidade entre cultura anual e tabela de adubação por ausência de nome da cultura.");
+        }
+        if (!Objects.equals(crop.getName(), cropFertilizationTable.getCrop_common_name())) {
+            throw new IllegalArgumentException(INCOMPATIBLE_CROP_AND_FERTILIZATION_TABLE_MESSAGE);
         }
     }
 
