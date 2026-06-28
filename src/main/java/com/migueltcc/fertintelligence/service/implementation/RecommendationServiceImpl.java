@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
+import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
@@ -23,6 +24,7 @@ import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationNarrativeService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
@@ -48,6 +50,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final RecommendationCalculationService recommendationCalculationService;
     private final RecommendationReportService recommendationReportService;
     private final RecommendationNarrativeService recommendationNarrativeService;
+    private final DirectRecommendationReportService directRecommendationReportService;
     private final GeneralRecommendationService generalRecommendationService;
     private final PermissionManager permissionManager;
 
@@ -210,10 +213,32 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .directRecommendationId(directRecommendation != null ? directRecommendation.getId() : null)
                 .directRecommendationGenerated(directRecommendation != null)
                 .directRecommendationDocumentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .directRecommendation(toDirectRecommendationDto(directRecommendation))
                 .shoppingListId(shoppingList != null ? shoppingList.getId() : null)
                 .shoppingListGenerated(shoppingList != null)
                 .shoppingListDocumentName(ShoppingListModel.DOCUMENT_NAME)
                 .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
+                .createdAt(model.getCreatedAt())
+                .updatedAt(model.getUpdatedAt())
+                .build();
+    }
+
+    private DirectRecommendationResponseDto toDirectRecommendationDto(DirectRecommendationModel model) {
+        if (model == null) {
+            return null;
+        }
+        RecommendationModel recommendation = model.getRecommendation();
+        DirectRecommendationReportService.DirectDoseUnitMetadata doseUnitMetadata =
+                directRecommendationReportService.resolveDoseUnitMetadata(recommendation);
+        return DirectRecommendationResponseDto.builder()
+                .id(model.getId())
+                .recommendationId(recommendation != null ? recommendation.getId() : null)
+                .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport(model.getTechnicalReport())
+                .content(model.getTechnicalReport())
+                .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
+                .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
+                .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();

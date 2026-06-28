@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOptionConverter;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
@@ -13,6 +14,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
@@ -304,6 +306,52 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(get("/recommendation/get").param("id", "7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7L));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getRecommendation_ReturnsDirectRecommendationDoseUnitMetadataWhenGenerated() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(30L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder()
+                .id(40L)
+                .folder(folder)
+                .name(NomeComum.ALGODAO)
+                .spacingMode(CropSpacingMode.PLANTS_PER_LINEAR_METER)
+                .plantsPerMeter(8.0)
+                .build();
+
+        RecommendationModel item = RecommendationModel.builder()
+                .id(7L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .technicalReport("laudo")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(70L)
+                .recommendation(item)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        item.setDirectRecommendation(directRecommendation);
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(7L)).thenReturn(Optional.of(item));
+        when(annualCropFolderRepository.findByPlotAndCropsYear(plot, 2026)).thenReturn(Optional.of(folder));
+        when(cropRepository.findTopByFolderAndNameOrderByIdDesc(folder, NomeComum.ALGODAO)).thenReturn(Optional.of(crop));
+
+        mockMvc.perform(get("/recommendation/get").param("id", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id_recomendacao_direta").value(70L))
+                .andExpect(jsonPath("$.recomendacao_direta.id").value(70L))
+                .andExpect(jsonPath("$.recomendacao_direta.dose_unit_mode").value("LINEAR_METER"))
+                .andExpect(jsonPath("$.recomendacao_direta.dose_unit_label").value("g/m linear"))
+                .andExpect(jsonPath("$.recomendacao_direta.applicable_dose_column").value("gPerLinearMeter"));
     }
 
     @Test

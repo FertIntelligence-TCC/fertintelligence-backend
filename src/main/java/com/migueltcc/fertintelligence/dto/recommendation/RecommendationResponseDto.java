@@ -8,6 +8,7 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Recommen
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
+import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -77,6 +78,8 @@ public class RecommendationResponseDto {
     private Boolean directRecommendationGenerated;
     @JsonProperty("nome_documento_recomendacao_direta")
     private String directRecommendationDocumentName;
+    @JsonProperty("recomendacao_direta")
+    private DirectRecommendationResponseDto directRecommendation;
     @JsonProperty("id_lista_compras")
     private Long shoppingListId;
     @JsonProperty("lista_compras_gerada")
