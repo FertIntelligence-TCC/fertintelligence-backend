@@ -36,7 +36,43 @@ class DirectRecommendationReportServiceTest {
 
         String report = service.build(recommendation, crop);
 
-        assertThat(report).contains("| Plantio | Ureia | 100 kg/ha | 5.00 | Não aplicável com os dados disponíveis. |");
+        assertThat(report).contains("| Adubação | Adubos simples/formulados | kg/ha | g/m linear |");
+        assertThat(report).contains("| Plantio | Ureia | 100 kg/ha | 5.00 |");
+        assertThat(report).doesNotContain("| Adubação | Adubos simples/formulados | kg/ha | g/m linear | g/cova |");
+        assertThat(report).doesNotContain("g/cova");
+    }
+
+    @Test
+    void buildKeepsApplicablePitUnitWhenSpacingDataExists() {
+        DirectRecommendationReportService service = newService();
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+        CropModel crop = CropModel.builder()
+                .spacingMode(CropSpacingMode.PIT)
+                .distanceBetweenLines(0.5d)
+                .distanceBetweenPits(0.25d)
+                .plantsPerPit(2d)
+                .build();
+
+        String report = service.build(recommendation, crop);
+
+        assertThat(report).contains("| Adubação | Adubos simples/formulados | kg/ha | g/cova |");
+        assertThat(report).contains("| Plantio | Ureia | 100 kg/ha | 1.25 |");
+        assertThat(report).doesNotContain("| Adubação | Adubos simples/formulados | kg/ha | g/m linear | g/cova |");
+        assertThat(report).doesNotContain("g/m linear");
+    }
+
+    @Test
+    void buildUsesHonestSpacingWarningWhenApplicableUnitIsUnknown() {
+        DirectRecommendationReportService service = newService();
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+
+        String report = service.build(recommendation, null);
+
+        assertThat(report).contains("| Adubação | Adubos simples/formulados | kg/ha | Conversão por espaçamento |");
+        assertThat(report).contains("| Plantio | Ureia | 100 kg/ha | Não calculado por falta de dados. |");
+        assertThat(report).contains("Não foi possível determinar uma unidade aplicável com segurança");
+        assertThat(report).doesNotContain("g/m linear");
+        assertThat(report).doesNotContain("g/cova");
     }
 
     private DirectRecommendationReportService newService() {

@@ -38,7 +38,11 @@ public class DirectRecommendationReportService {
             return INSUFFICIENT_DATA_METADATA;
         }
 
-        CropSpacingMode mode = resolveApplicableMode(resolveCrop(recommendation).orElse(null), null);
+        return resolveDoseUnitMetadata(resolveCrop(recommendation).orElse(null));
+    }
+
+    private DirectDoseUnitMetadata resolveDoseUnitMetadata(CropModel crop) {
+        CropSpacingMode mode = resolveApplicableMode(crop, null);
         if (mode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
             return new DirectDoseUnitMetadata("LINEAR_METER", "g/m linear", "gPerLinearMeter");
         }
@@ -50,6 +54,7 @@ public class DirectRecommendationReportService {
 
     public String build(RecommendationModel recommendation, CropModel crop) {
         String source = recommendation != null ? recommendation.getTechnicalReport() : null;
+        DirectDoseUnitMetadata doseUnitMetadata = resolveDoseUnitMetadata(crop);
         StringBuilder report = new StringBuilder();
         List<String> spacingWarnings = new ArrayList<>();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
@@ -69,21 +74,22 @@ public class DirectRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
                 NOT_APPLICABLE);
 
-        appendMicronutrientTable(report, source);
-        appendNpkTable(report, source, crop, spacingWarnings);
+        appendMicronutrientTable(report, source, doseUnitMetadata);
+        appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings);
 
         report.append("## Observação sobre MAP\n\n");
         report.append(resolveMapObservation(source)).append("\n\n");
         report.append("## Observações finais\n\n");
         report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "14. Limitações e alertas")));
-        report.append("\n\n- Conversões g/m linear e g/cova: ").append(resolveSpacingObservation(spacingWarnings)).append("\n");
+        report.append("\n\n- ").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
+                .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
         return report.toString();
     }
 
-    private void appendMicronutrientTable(StringBuilder report, String source) {
+    private void appendMicronutrientTable(StringBuilder report, String source, DirectDoseUnitMetadata doseUnitMetadata) {
         report.append("## Tabela de micronutrientes\n\n");
-        report.append("| Nutriente/Adubo | kg/ha | g/m linear | g/cova |\n");
-        report.append("|---|---:|---:|---:|\n");
+        report.append("| Nutriente/Adubo | kg/ha | ").append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
+        report.append("|---|---:|---:|\n");
         List<List<String>> rows = TechnicalRecommendationDocumentSupport.tableRows(
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         boolean appended = false;
@@ -95,28 +101,30 @@ public class DirectRecommendationReportService {
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(sourceName)) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(sourceName))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(dose + " " + unit))
-                    .append(" | ").append(LINEAR_CONVERSION_UNAVAILABLE)
-                    .append(" | ").append(LINEAR_CONVERSION_UNAVAILABLE)
+                    .append(" | ").append(spacingUnavailableCell())
                     .append(" |\n");
             appended = true;
         }
         if (!appended) {
-            report.append("| Não calculado | Não calculado | ").append(LINEAR_CONVERSION_UNAVAILABLE)
-                    .append(" | ").append(LINEAR_CONVERSION_UNAVAILABLE).append(" |\n");
+            report.append("| Não calculado | Não calculado | ").append(spacingUnavailableCell()).append(" |\n");
         }
         report.append("\n");
     }
 
-    private void appendNpkTable(StringBuilder report, String source, CropModel crop, List<String> spacingWarnings) {
+    private void appendNpkTable(StringBuilder report,
+                                String source,
+                                CropModel crop,
+                                DirectDoseUnitMetadata doseUnitMetadata,
+                                List<String> spacingWarnings) {
         report.append("## Tabela de N, P2O5 e K2O\n\n");
-        report.append("| Adubação | Adubos simples/formulados | kg/ha | g/m linear | g/cova |\n");
-        report.append("|---|---|---:|---:|---:|\n");
-        boolean appended = appendFertilizationRows(report, source, "10. Adubação de plantio", crop, spacingWarnings);
-        appended = appendFertilizationRows(report, source, "11. Adubação de cobertura", crop, spacingWarnings) || appended;
+        report.append("| Adubação | Adubos simples/formulados | kg/ha | ")
+                .append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
+        report.append("|---|---|---:|---:|\n");
+        boolean appended = appendFertilizationRows(report, source, "10. Adubação de plantio", crop, doseUnitMetadata, spacingWarnings);
+        appended = appendFertilizationRows(report, source, "11. Adubação de cobertura", crop, doseUnitMetadata, spacingWarnings) || appended;
         if (!appended) {
             report.append("| Não calculado | Não calculado | Não calculado | ")
-                    .append(LINEAR_CONVERSION_UNAVAILABLE).append(" | ")
-                    .append(LINEAR_CONVERSION_UNAVAILABLE).append(" |\n");
+                    .append(spacingUnavailableCell()).append(" |\n");
         }
         report.append("\n");
     }
@@ -125,6 +133,7 @@ public class DirectRecommendationReportService {
                                             String source,
                                             String sectionName,
                                             CropModel crop,
+                                            DirectDoseUnitMetadata doseUnitMetadata,
                                             List<String> spacingWarnings) {
         boolean appended = false;
         for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(TechnicalRecommendationDocumentSupport.section(source, sectionName))) {
@@ -133,19 +142,25 @@ public class DirectRecommendationReportService {
             String fertilizer = row.get(2);
             String quantity = row.get(3);
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer) || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) continue;
-            SpacingDoseColumns spacingColumns = calculateSpacingColumns(crop, quantity, spacingWarnings);
+            String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
-                    .append(" | ").append(spacingColumns.gramsPerLinearMeter())
-                    .append(" | ").append(spacingColumns.gramsPerPit())
+                    .append(" | ").append(spacingDose)
                     .append(" |\n");
             appended = true;
         }
         return appended;
     }
 
-    private SpacingDoseColumns calculateSpacingColumns(CropModel crop, String quantity, List<String> spacingWarnings) {
+    private String calculateSpacingDose(CropModel crop,
+                                        String quantity,
+                                        DirectDoseUnitMetadata doseUnitMetadata,
+                                        List<String> spacingWarnings) {
+        if (!hasApplicableDoseColumn(doseUnitMetadata)) {
+            return spacingUnavailableCell();
+        }
+
         Optional<Double> kgPerHectare = TechnicalRecommendationDocumentSupport.extractKgHa(quantity);
         CropSpacingCalculationService.CropSpacingDoseResult result =
                 cropSpacingCalculationService.calculate(crop, kgPerHectare.orElse(null));
@@ -156,12 +171,12 @@ public class DirectRecommendationReportService {
         }
 
         if (applicableMode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
-            return new SpacingDoseColumns(formatGramDose(result.gramsPerLinearMeter()), NOT_APPLICABLE);
+            return formatGramDose(result.gramsPerLinearMeter());
         }
         if (applicableMode == CropSpacingMode.PIT) {
-            return new SpacingDoseColumns(NOT_APPLICABLE, formatGramDose(result.gramsPerPit()));
+            return formatGramDose(result.gramsPerPit());
         }
-        return new SpacingDoseColumns(LINEAR_CONVERSION_UNAVAILABLE, LINEAR_CONVERSION_UNAVAILABLE);
+        return spacingUnavailableCell();
     }
 
     private CropSpacingMode resolveApplicableMode(CropModel crop, CropSpacingCalculationService.CropSpacingDoseResult result) {
@@ -201,14 +216,36 @@ public class DirectRecommendationReportService {
         return crops.size() == 1 ? Optional.of(crops.get(0)) : Optional.empty();
     }
 
-    private String resolveSpacingObservation(List<String> spacingWarnings) {
+    private String spacingColumnHeader(DirectDoseUnitMetadata doseUnitMetadata) {
+        if (doseUnitMetadata != null && doseUnitMetadata.doseUnitLabel() != null && !doseUnitMetadata.doseUnitLabel().isBlank()) {
+            return doseUnitMetadata.doseUnitLabel();
+        }
+        return "Conversão por espaçamento";
+    }
+
+    private String spacingObservationLabel(DirectDoseUnitMetadata doseUnitMetadata) {
+        if (doseUnitMetadata != null && doseUnitMetadata.doseUnitLabel() != null && !doseUnitMetadata.doseUnitLabel().isBlank()) {
+            return "Conversão " + doseUnitMetadata.doseUnitLabel();
+        }
+        return "Conversão por espaçamento";
+    }
+
+    private boolean hasApplicableDoseColumn(DirectDoseUnitMetadata doseUnitMetadata) {
+        return doseUnitMetadata != null && doseUnitMetadata.applicableDoseColumn() != null;
+    }
+
+    private String spacingUnavailableCell() {
+        return LINEAR_CONVERSION_UNAVAILABLE;
+    }
+
+    private String resolveSpacingObservation(DirectDoseUnitMetadata doseUnitMetadata, List<String> spacingWarnings) {
+        if (!hasApplicableDoseColumn(doseUnitMetadata)) {
+            return "Não foi possível determinar uma unidade aplicável com segurança; dados de cultura ou espaçamento insuficientes.";
+        }
         if (spacingWarnings == null || spacingWarnings.isEmpty()) {
             return "Calculadas conforme modo de espaçamento da cultura quando houve kg/ha na linha.";
         }
         return String.join(" ", spacingWarnings);
-    }
-
-    private record SpacingDoseColumns(String gramsPerLinearMeter, String gramsPerPit) {
     }
 
     public record DirectDoseUnitMetadata(String doseUnitMode, String doseUnitLabel, String applicableDoseColumn) {
