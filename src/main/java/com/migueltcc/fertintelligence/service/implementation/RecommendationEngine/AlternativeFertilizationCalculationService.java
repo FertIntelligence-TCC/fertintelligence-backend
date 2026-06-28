@@ -41,19 +41,22 @@ class AlternativeFertilizationCalculationService {
     private final BioFertilizerRepository bioFertilizerRepository;
     private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final DiverseContentRangeRepository diverseContentRangeRepository;
+    private final MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService;
 
     AlternativeFertilizationCalculationService(OrganicFertilizerRepository organicFertilizerRepository,
                                                OrganoMineralFertilizerRepository organoMineralFertilizerRepository,
                                                GreenFertilizerRepository greenFertilizerRepository,
                                                BioFertilizerRepository bioFertilizerRepository,
                                                MicronutrientDoseRepository micronutrientDoseRepository,
-                                               DiverseContentRangeRepository diverseContentRangeRepository) {
+                                               DiverseContentRangeRepository diverseContentRangeRepository,
+                                               MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService) {
         this.organicFertilizerRepository = organicFertilizerRepository;
         this.organoMineralFertilizerRepository = organoMineralFertilizerRepository;
         this.greenFertilizerRepository = greenFertilizerRepository;
         this.bioFertilizerRepository = bioFertilizerRepository;
         this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.diverseContentRangeRepository = diverseContentRangeRepository;
+        this.micronutrientFertilizerSelectionService = micronutrientFertilizerSelectionService;
     }
 
     List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> calculate(
@@ -73,7 +76,7 @@ class AlternativeFertilizationCalculationService {
                 requiredN, requiredP2O5, requiredK2O, warnings);
         addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
         addBiofertilizerLimitation(rows, user, sourceOption, warnings);
-        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, warnings));
+        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, user, sourceOption, warnings));
         return rows;
     }
 
@@ -210,6 +213,8 @@ class AlternativeFertilizationCalculationService {
             List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis,
             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
         Map<AppliedMicronutrient, RecommendationCalculationService.SoilChemicalDiagnosisItem> soilMicronutrients = soilMicronutrientDiagnosis(chemicalDiagnosis);
@@ -222,6 +227,8 @@ class AlternativeFertilizationCalculationService {
 
         if (micronutrientDoses.isPresent()) {
             MicronutrientDoseModel doses = micronutrientDoses.get();
+            Map<AppliedMicronutrient, Double> recommendedDoses = new LinkedHashMap<>();
+            Map<AppliedMicronutrient, String> doseJustifications = new LinkedHashMap<>();
             for (Map.Entry<AppliedMicronutrient, RecommendationCalculationService.SoilChemicalDiagnosisItem> entry : soilMicronutrients.entrySet()) {
                 RecommendationCalculationService.SoilChemicalDiagnosisItem item = entry.getValue();
                 String functionalRange = classifyMicronutrientDoseRange(entry.getKey(), item.getAnalyzedValue(), micronutrientRanges);
@@ -231,15 +238,37 @@ class AlternativeFertilizationCalculationService {
                             + " por ausência de dose cadastrada para a faixa " + item.getInterpretation() + ".");
                     continue;
                 }
+                recommendedDoses.put(entry.getKey(), dose);
+                doseJustifications.put(entry.getKey(), "Dose selecionada pela faixa "
+                        + (functionalRange != null ? functionalRange : item.getInterpretation())
+                        + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.");
+            }
+            List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
+                    micronutrientFertilizerSelectionService.select(user, sourceOption, recommendedDoses);
+            for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
+                if (selection.calculated()) {
+                    rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                            .sourceType("MICRONUTRIENTE")
+                            .nutrientOrObjective(selection.micronutrient().name())
+                            .sourceName(selection.selectedFertilizer().getName())
+                            .dose(formatNumber(selection.fertilizerDoseKgHa()))
+                            .unit("kg/ha de produto")
+                            .justification(doseJustifications.getOrDefault(selection.micronutrient(), "Dose elementar selecionada pela tabela de fertilidade do solo.")
+                                    + " Produto escolhido por maior teor cadastrado de " + selection.micronutrient().name()
+                                    + " (" + formatNumber(selection.selectedConcentrationPercent()) + "%).")
+                            .limitations("Dose calculada por 100 * kg/ha do micronutriente recomendado / teor percentual do micronutriente no adubo mineral simples.")
+                            .build());
+                    continue;
+                }
+                warnings.add(selection.technicalMessage());
                 rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
                         .sourceType("MICRONUTRIENTE")
-                        .nutrientOrObjective(entry.getKey().name())
-                        .sourceName("Dose elementar cadastrada")
-                        .dose(formatNumber(dose))
-                        .unit("kg/ha")
-                        .justification("Dose selecionada pela faixa " + (functionalRange != null ? functionalRange : item.getInterpretation())
-                                + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.")
-                        .limitations("A dose representa kg/ha do micronutriente; o backend não converte automaticamente para produto comercial ou fonte específica.")
+                        .nutrientOrObjective(selection.micronutrient().name())
+                        .sourceName("Não selecionada")
+                        .dose("Não calculada")
+                        .unit("kg/ha de produto")
+                        .justification(doseJustifications.getOrDefault(selection.micronutrient(), "Dose elementar selecionada pela tabela de fertilidade do solo."))
+                        .limitations(selection.technicalMessage())
                         .build());
             }
         } else if (!soilMicronutrients.isEmpty()) {
