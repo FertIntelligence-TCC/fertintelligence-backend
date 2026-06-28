@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedM
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
@@ -42,6 +43,7 @@ class AlternativeFertilizationCalculationService {
     private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final DiverseContentRangeRepository diverseContentRangeRepository;
     private final MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService;
+    private final CropSpacingCalculationService cropSpacingCalculationService;
 
     AlternativeFertilizationCalculationService(OrganicFertilizerRepository organicFertilizerRepository,
                                                OrganoMineralFertilizerRepository organoMineralFertilizerRepository,
@@ -49,7 +51,8 @@ class AlternativeFertilizationCalculationService {
                                                BioFertilizerRepository bioFertilizerRepository,
                                                MicronutrientDoseRepository micronutrientDoseRepository,
                                                DiverseContentRangeRepository diverseContentRangeRepository,
-                                               MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService) {
+                                               MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService,
+                                               CropSpacingCalculationService cropSpacingCalculationService) {
         this.organicFertilizerRepository = organicFertilizerRepository;
         this.organoMineralFertilizerRepository = organoMineralFertilizerRepository;
         this.greenFertilizerRepository = greenFertilizerRepository;
@@ -57,12 +60,14 @@ class AlternativeFertilizationCalculationService {
         this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.diverseContentRangeRepository = diverseContentRangeRepository;
         this.micronutrientFertilizerSelectionService = micronutrientFertilizerSelectionService;
+        this.cropSpacingCalculationService = cropSpacingCalculationService;
     }
 
-    List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> calculate(
+    AlternativeFertilizationCalculationResult calculate(
             Double requiredN,
             Double requiredP2O5,
             Double requiredK2O,
+            CropModel crop,
             List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis,
             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
@@ -76,8 +81,10 @@ class AlternativeFertilizationCalculationService {
                 requiredN, requiredP2O5, requiredK2O, warnings);
         addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
         addBiofertilizerLimitation(rows, user, sourceOption, warnings);
-        rows.addAll(buildMicronutrientRows(chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, user, sourceOption, warnings));
-        return rows;
+        MicronutrientRowsResult micronutrientRows = buildMicronutrientRows(
+                chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption, warnings);
+        rows.addAll(micronutrientRows.alternativeRows());
+        return new AlternativeFertilizationCalculationResult(rows, micronutrientRows.directRecommendationRows());
     }
 
     private void addNpkAlternativeRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
@@ -209,14 +216,16 @@ class AlternativeFertilizationCalculationService {
                 .build();
     }
 
-    private List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> buildMicronutrientRows(
+    private MicronutrientRowsResult buildMicronutrientRows(
             List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis,
             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+            CropModel crop,
             UserModel user,
             FertilizerSourceOption sourceOption,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRows = new ArrayList<>();
         Map<AppliedMicronutrient, RecommendationCalculationService.SoilChemicalDiagnosisItem> soilMicronutrients = soilMicronutrientDiagnosis(chemicalDiagnosis);
         Optional<MicronutrientDoseModel> micronutrientDoses = soilInterpretationTable != null
                 ? micronutrientDoseRepository.findByTable(soilInterpretationTable)
@@ -247,6 +256,7 @@ class AlternativeFertilizationCalculationService {
                     micronutrientFertilizerSelectionService.select(user, sourceOption, recommendedDoses);
             for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
                 if (selection.calculated()) {
+                    directRows.add(toDirectRecommendationMicronutrientRow(selection, crop, null));
                     rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
                             .sourceType("MICRONUTRIENTE")
                             .nutrientOrObjective(selection.micronutrient().name())
@@ -261,6 +271,7 @@ class AlternativeFertilizationCalculationService {
                     continue;
                 }
                 warnings.add(selection.technicalMessage());
+                directRows.add(toDirectRecommendationMicronutrientRow(selection, crop, selection.technicalMessage()));
                 rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
                         .sourceType("MICRONUTRIENTE")
                         .nutrientOrObjective(selection.micronutrient().name())
@@ -276,7 +287,7 @@ class AlternativeFertilizationCalculationService {
         }
 
         if (!rows.isEmpty()) {
-            return rows;
+            return new MicronutrientRowsResult(rows, directRows);
         }
 
         Map<AppliedMicronutrient, String> deficiencyEvidence = micronutrientDeficiencyEvidence(chemicalDiagnosis, foliarDiagnosis);
@@ -297,7 +308,57 @@ class AlternativeFertilizationCalculationService {
                 .justification(justification)
                 .limitations(limitation)
                 .build());
-        return rows;
+        return new MicronutrientRowsResult(rows, directRows);
+    }
+
+    private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow toDirectRecommendationMicronutrientRow(
+            MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
+            CropModel crop,
+            String technicalObservation) {
+        CropSpacingCalculationService.CropSpacingDoseResult spacingDose =
+                cropSpacingCalculationService.calculate(crop, selection.fertilizerDoseKgHa());
+        String observation = technicalObservation;
+        if (observation == null) {
+            observation = spacingDose.technicalWarning();
+        } else if (spacingDose.technicalWarning() != null) {
+            observation = observation + " " + spacingDose.technicalWarning();
+        }
+
+        return RecommendationCalculationService.MicronutrientFertilizerRecommendationRow.builder()
+                .micronutrient(selection.micronutrient())
+                .micronutrientDoseKgHa(selection.micronutrientDoseKgHa())
+                .fertilizerId(selection.selectedFertilizer() != null ? selection.selectedFertilizer().getId() : null)
+                .fertilizerName(selection.selectedFertilizer() != null ? selection.selectedFertilizer().getName() : null)
+                .micronutrientConcentrationPercent(selection.selectedConcentrationPercent())
+                .fertilizerDoseKgHa(selection.fertilizerDoseKgHa())
+                .doseUnitMode(resolveDoseUnitMode(spacingDose))
+                .doseUnitLabel(resolveDoseUnitLabel(spacingDose))
+                .gramsPerLinearMeter(spacingDose.gramsPerLinearMeter())
+                .gramsPerPit(spacingDose.gramsPerPit())
+                .technicalObservation(observation)
+                .build();
+    }
+
+    private String resolveDoseUnitMode(CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
+        if (spacingDose == null || spacingDose.resolvedMode() == null) {
+            return "INSUFFICIENT_DATA";
+        }
+        return switch (spacingDose.resolvedMode()) {
+            case PLANTS_PER_LINEAR_METER -> "LINEAR_METER";
+            case PIT -> "PIT";
+            default -> "INSUFFICIENT_DATA";
+        };
+    }
+
+    private String resolveDoseUnitLabel(CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
+        if (spacingDose == null || spacingDose.resolvedMode() == null) {
+            return null;
+        }
+        return switch (spacingDose.resolvedMode()) {
+            case PLANTS_PER_LINEAR_METER -> "g/m linear";
+            case PIT -> "g/cova";
+            default -> null;
+        };
     }
 
     private Map<AppliedMicronutrient, RecommendationCalculationService.SoilChemicalDiagnosisItem> soilMicronutrientDiagnosis(
@@ -519,5 +580,15 @@ class AlternativeFertilizationCalculationService {
     }
 
     private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {
+    }
+
+    record AlternativeFertilizationCalculationResult(
+            List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> alternativeRows,
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRecommendationRows) {
+    }
+
+    private record MicronutrientRowsResult(
+            List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> alternativeRows,
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRecommendationRows) {
     }
 }

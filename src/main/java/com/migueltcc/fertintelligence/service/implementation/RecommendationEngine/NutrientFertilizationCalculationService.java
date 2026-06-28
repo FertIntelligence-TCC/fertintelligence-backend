@@ -122,13 +122,15 @@ class NutrientFertilizationCalculationService {
                 .build());
         List<RecommendationCalculationService.NutrientBalanceRow> nutrientBalanceRows = nutrientBalance.toRows();
 
-        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> alternativeFertilizationRows =
+        AlternativeFertilizationCalculationService.AlternativeFertilizationCalculationResult alternativeFertilizationResult =
                 alternativeFertilizationCalculationService.calculate(
-                        requiredN, requiredP2O5, requiredK2O, chemicalDiagnosis, foliarDiagnosis,
+                        requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
                         soilInterpretationTable, user, sourceOption, warnings);
 
         return new FertilizationRecommendationContext(
-                recommendationRows, fertilizerSuggestions, nutrientBalanceRows, alternativeFertilizationRows,
+                recommendationRows, fertilizerSuggestions, nutrientBalanceRows,
+                alternativeFertilizationResult.alternativeRows(),
+                alternativeFertilizationResult.directRecommendationRows(),
                 requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
     }
 

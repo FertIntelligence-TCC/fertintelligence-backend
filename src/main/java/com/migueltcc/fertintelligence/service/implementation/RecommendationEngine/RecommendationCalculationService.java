@@ -277,6 +277,7 @@ public class RecommendationCalculationService {
                 .fertilizationRecommendationRows(recommendations.recommendationRows()).fertilizerSuggestions(recommendations.fertilizerSuggestions())
                 .nutrientBalanceRows(recommendations.nutrientBalanceRows())
                 .alternativeFertilizationRows(recommendations.alternativeFertilizationRows())
+                .micronutrientFertilizerRows(recommendations.micronutrientFertilizerRows())
                 .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
                 .physicalAnalysisId(inputs.physicalAnalysis() != null ? inputs.physicalAnalysis().getId() : null)
@@ -1588,6 +1589,8 @@ public class RecommendationCalculationService {
         private List<NutrientBalanceRow> nutrientBalanceRows = new ArrayList<>();
         @Builder.Default
         private List<AlternativeFertilizationRecommendationRow> alternativeFertilizationRows = new ArrayList<>();
+        @Builder.Default
+        private List<MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows = new ArrayList<>();
     }
     @Data
     @Builder
@@ -1756,5 +1759,23 @@ public class RecommendationCalculationService {
         private String unit;
         private String justification;
         private String limitations;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MicronutrientFertilizerRecommendationRow {
+        private AppliedMicronutrient micronutrient;
+        private Double micronutrientDoseKgHa;
+        private Long fertilizerId;
+        private String fertilizerName;
+        private Double micronutrientConcentrationPercent;
+        private Double fertilizerDoseKgHa;
+        private String doseUnitMode;
+        private String doseUnitLabel;
+        private Double gramsPerLinearMeter;
+        private Double gramsPerPit;
+        private String technicalObservation;
     }
 }

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -11,7 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "DIRECT_RECOMMENDATIONS")
-@EqualsAndHashCode(exclude = "recommendation")
+@EqualsAndHashCode(exclude = {"recommendation", "micronutrientFertilizerLines"})
 public class DirectRecommendationModel {
 
     public static final String DOCUMENT_NAME = "Recomendação Direta";
@@ -37,6 +39,10 @@ public class DirectRecommendationModel {
 
     @Column(name = "UPDATED_AT", nullable = false)
     LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "directRecommendation", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines = new ArrayList<>();
 
     @PrePersist
     void onCreate() {

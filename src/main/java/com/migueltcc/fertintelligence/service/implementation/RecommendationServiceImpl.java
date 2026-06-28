@@ -3,10 +3,12 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
+import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationMicronutrientFertilizerLineResponseDto;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
@@ -15,6 +17,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.ShoppingListModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SummaryRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PropertyRepository;
@@ -23,6 +26,7 @@ import com.migueltcc.fertintelligence.repository.ShoppingListRepository;
 import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
+import com.migueltcc.fertintelligence.service.documentation.DirectRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
@@ -43,6 +47,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final GeneralRecommendationRepository generalRecommendationRepository;
     private final SummaryRecommendationRepository summaryRecommendationRepository;
     private final DirectRecommendationRepository directRecommendationRepository;
+    private final DirectRecommendationMicronutrientFertilizerLineRepository directRecommendationMicronutrientFertilizerLineRepository;
     private final ShoppingListRepository shoppingListRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
@@ -52,6 +57,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final RecommendationNarrativeService recommendationNarrativeService;
     private final DirectRecommendationReportService directRecommendationReportService;
     private final GeneralRecommendationService generalRecommendationService;
+    private final DirectRecommendationService directRecommendationService;
     private final PermissionManager permissionManager;
 
     @Override
@@ -93,6 +99,10 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         RecommendationModel savedRecommendation = recommendationRepository.save(recommendation);
         generalRecommendationService.createInitial(savedRecommendation, improvedReport);
+        directRecommendationService.createInitial(
+                savedRecommendation,
+                directRecommendationReportService.build(savedRecommendation),
+                calculationResult.getMicronutrientFertilizerRows());
 
         return toDto(savedRecommendation);
     }
@@ -239,8 +249,39 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
                 .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
                 .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
+                .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
+                .build();
+    }
+
+    private List<DirectRecommendationMicronutrientFertilizerLineResponseDto> toMicronutrientFertilizerLineDtos(
+            DirectRecommendationModel directRecommendation) {
+        List<DirectRecommendationMicronutrientFertilizerLineModel> lines =
+                directRecommendationMicronutrientFertilizerLineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation);
+        if (lines == null) {
+            return List.of();
+        }
+        return lines.stream()
+                .map(this::toMicronutrientFertilizerLineDto)
+                .toList();
+    }
+
+    private DirectRecommendationMicronutrientFertilizerLineResponseDto toMicronutrientFertilizerLineDto(
+            DirectRecommendationMicronutrientFertilizerLineModel line) {
+        return DirectRecommendationMicronutrientFertilizerLineResponseDto.builder()
+                .id(line.getId())
+                .micronutrient(line.getMicronutrient())
+                .micronutrientDoseKgHa(line.getMicronutrientDoseKgHa())
+                .fertilizerId(line.getFertilizerId())
+                .fertilizerName(line.getFertilizerName())
+                .micronutrientConcentrationPercent(line.getMicronutrientConcentrationPercent())
+                .fertilizerDoseKgHa(line.getFertilizerDoseKgHa())
+                .doseUnitMode(line.getDoseUnitMode())
+                .doseUnitLabel(line.getDoseUnitLabel())
+                .gramsPerLinearMeter(line.getGramsPerLinearMeter())
+                .gramsPerPit(line.getGramsPerPit())
+                .technicalObservation(line.getTechnicalObservation())
                 .build();
     }
 
