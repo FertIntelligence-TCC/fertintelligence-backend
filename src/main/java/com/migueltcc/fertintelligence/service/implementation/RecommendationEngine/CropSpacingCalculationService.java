@@ -41,7 +41,7 @@ public class CropSpacingCalculationService {
         }
 
         if (resolvedMode == CropSpacingMode.PLANTS_PER_LINEAR_METER) {
-            return calculateLinear(kgPerHectare, distanceBetweenLines);
+            return calculateLinear(kgPerHectare, distanceBetweenLines, plantsPerMeter);
         }
         if (resolvedMode == CropSpacingMode.PIT) {
             return calculatePit(kgPerHectare, distanceBetweenLines, distanceBetweenPits, plantsPerPit);
@@ -50,9 +50,13 @@ public class CropSpacingCalculationService {
         return insufficientData("Modo de espacamento ausente ou desconhecido; conversao por espacamento nao calculada.");
     }
 
-    private CropSpacingDoseResult calculateLinear(Double kgPerHectare, Double distanceBetweenLines) {
+    private CropSpacingDoseResult calculateLinear(Double kgPerHectare, Double distanceBetweenLines, Double plantsPerMeter) {
+        if (!isPositiveFinite(plantsPerMeter)) {
+            return insufficientData("Numero de plantas por metro linear ausente ou invalido; conversao por metro linear nao calculada.");
+        }
+
         double estimatedLinearMetersPerHectare = SQUARE_METERS_PER_HECTARE / distanceBetweenLines;
-        double gramsPerLinearMeter = kgPerHectare * GRAMS_PER_KILOGRAM / estimatedLinearMetersPerHectare;
+        double gramsPerLinearMeter = gramsPerOperationalUnit(kgPerHectare, estimatedLinearMetersPerHectare);
 
         return new CropSpacingDoseResult(
                 CropSpacingMode.PLANTS_PER_LINEAR_METER,
@@ -78,7 +82,7 @@ public class CropSpacingCalculationService {
 
         double estimatedPitsPerHectare = SQUARE_METERS_PER_HECTARE / (distanceBetweenLines * distanceBetweenPits);
         double estimatedPopulationByPits = estimatedPitsPerHectare * plantsPerPit;
-        double gramsPerPit = kgPerHectare * GRAMS_PER_KILOGRAM / estimatedPitsPerHectare;
+        double gramsPerPit = gramsPerOperationalUnit(kgPerHectare, estimatedPitsPerHectare);
 
         return new CropSpacingDoseResult(
                 CropSpacingMode.PIT,
@@ -99,6 +103,10 @@ public class CropSpacingCalculationService {
             return CropSpacingMode.PLANTS_PER_LINEAR_METER;
         }
         return CropSpacingMode.UNKNOWN;
+    }
+
+    private double gramsPerOperationalUnit(double kgPerHectare, double operationalUnitsPerHectare) {
+        return kgPerHectare * GRAMS_PER_KILOGRAM / operationalUnitsPerHectare;
     }
 
     private CropSpacingDoseResult insufficientData(String warning) {

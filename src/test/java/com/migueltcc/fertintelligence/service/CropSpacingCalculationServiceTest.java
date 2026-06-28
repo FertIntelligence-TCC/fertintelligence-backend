@@ -57,6 +57,16 @@ class CropSpacingCalculationServiceTest {
     }
 
     @Test
+    void returnsUnknownWhenPlantsPerMeterIsInvalidForLinearMode() {
+        CropSpacingCalculationService.CropSpacingDoseResult result = service.calculate(
+                100d, CropSpacingMode.PLANTS_PER_LINEAR_METER, 0.5d, null, null, null);
+
+        assertThat(result.resolvedMode()).isEqualTo(CropSpacingMode.UNKNOWN);
+        assertThat(result.gramsPerLinearMeter()).isNull();
+        assertThat(result.technicalWarning()).contains("plantas por metro linear");
+    }
+
+    @Test
     void returnsUnknownWhenDistanceBetweenPitsIsInvalid() {
         CropSpacingCalculationService.CropSpacingDoseResult result = service.calculate(
                 100d, CropSpacingMode.PIT, 0.5d, null, Double.NaN, 2d);
