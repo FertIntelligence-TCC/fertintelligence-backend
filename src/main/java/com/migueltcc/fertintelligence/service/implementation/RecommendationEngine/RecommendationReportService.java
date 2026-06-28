@@ -159,6 +159,7 @@ public class RecommendationReportService {
         report.append("- Critério aplicado: ").append(safe(liming.getCriterionJustification())).append("\n");
         report.append("- Fórmula usada: ").append(safe(liming.getFormula())).append("\n");
         report.append("- Fonte de calcário/corretivo: ").append(safe(liming.getLimestoneSource())).append("\n");
+        report.append("- Necessidade de calagem ajustada: ").append(formatDose(adjustedLimingRequirement(liming), liming.getUnit())).append("\n");
         report.append("- Dose teórica de calagem: ").append(formatDose(liming.getTheoreticalRequirement(), liming.getUnit())).append("\n");
         report.append("- PRNT utilizado: ").append(liming.getPrnt() == null ? "Não informado" : String.format(Locale.US, "%.2f%%", liming.getPrnt())).append("\n");
         report.append("- Dose corrigida por PRNT: ").append(formatDose(liming.getCorrectedRequirement(), liming.getUnit())).append("\n");
@@ -439,6 +440,13 @@ public class RecommendationReportService {
 
     private String formatDose(Double value, String unit) {
         return value == null ? "Não calculada" : String.format(Locale.US, "%.2f %s", value, safe(unit));
+    }
+
+    private Double adjustedLimingRequirement(RecommendationCalculationService.LimingRequirementResult liming) {
+        if (liming.getCalculatedRequirement() != null) {
+            return liming.getCalculatedRequirement();
+        }
+        return liming.getCorrectedRequirement();
     }
 
     private String formatSignedQuantity(Double value) {

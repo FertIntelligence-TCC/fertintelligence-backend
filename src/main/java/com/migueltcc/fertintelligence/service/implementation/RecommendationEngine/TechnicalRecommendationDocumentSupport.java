@@ -111,7 +111,10 @@ final class TechnicalRecommendationDocumentSupport {
     static List<ShoppingItem> collectShoppingItems(RecommendationModel recommendation) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
         String source = recommendation.getTechnicalReport();
-        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"), "Dose efetiva registrada pelo cálculo");
+        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"),
+                "Necessidade de calagem ajustada",
+                "Dose efetiva registrada pelo cálculo",
+                "Dose corrigida por PRNT");
         addCorrectiveItem(items, source, "Gesso", section(source, "8. Gessagem"), "Dose comercial");
         addAlternativeItems(items, subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         addFertilizationItems(items, section(source, "10. Adubação de plantio"));
@@ -168,12 +171,17 @@ final class TechnicalRecommendationDocumentSupport {
                 || normalized.contains("nao avaliad");
     }
 
-    private static void addCorrectiveItem(Map<String, ShoppingItem> items, String source, String itemName, String section, String label) {
+    private static void addCorrectiveItem(Map<String, ShoppingItem> items, String source, String itemName, String section, String... labels) {
         if (section.isBlank()) return;
-        for (String line : section.split("\\R")) {
-            if (!normalize(line).contains(normalize(label))) continue;
-            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, source));
-            return;
+        for (String label : labels) {
+            for (String line : section.split("\\R")) {
+                if (!normalize(line).contains(normalize(label))) continue;
+                Optional<Double> kgHa = extractKgHa(line);
+                if (kgHa.isPresent()) {
+                    merge(items, itemName, kgHa.get(), source);
+                    return;
+                }
+            }
         }
     }
 
