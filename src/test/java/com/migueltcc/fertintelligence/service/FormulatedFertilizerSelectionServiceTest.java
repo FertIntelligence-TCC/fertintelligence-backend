@@ -66,6 +66,20 @@ class FormulatedFertilizerSelectionServiceTest {
     }
 
     @Test
+    void acceptsFormulatedFertilizerWithZeroComponentWhenNpkSumIsValid() {
+        FormulatedMineralFertilizerModel noNitrogen = formulated(1L, 0d, 16d, 8d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCandidates(List.of(noNitrogen), 0d, 80d, 40d);
+
+        assertThat(result.fallbackUsed()).isFalse();
+        assertThat(result.candidates())
+                .extracting(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate::formulated)
+                .containsExactly(noNitrogen);
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(500d);
+    }
+
+    @Test
     void limitsTopCandidatesToTwoButKeepsCompleteSelectionAvailable() {
         FormulatedMineralFertilizerModel formula041608 = formulated(1L, 4d, 16d, 8d);
         FormulatedMineralFertilizerModel formula083216 = formulated(2L, 8d, 32d, 16d);
@@ -116,14 +130,27 @@ class FormulatedFertilizerSelectionServiceTest {
     void ordersFallbackTieByConcentrationSumBeforeDoseOrdering() {
         FormulatedMineralFertilizerModel lowerConcentration = formulated(1L, 1d, 6d, 2d);
         FormulatedMineralFertilizerModel higherConcentration = formulated(2L, 2d, 12d, 4d);
-        FormulatedMineralFertilizerModel sameDistance = formulated(3L, 1d, 5d, 3d);
+        FormulatedMineralFertilizerModel farther = formulated(3L, 1d, 8d, 1d);
 
         List<FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate> candidates =
-                service.selectAllCandidates(List.of(lowerConcentration, higherConcentration, sameDistance), 20d, 80d, 40d);
+                service.selectAllCandidates(List.of(lowerConcentration, higherConcentration, farther), 20d, 80d, 40d);
 
         assertThat(candidates)
                 .extracting(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate::formulated)
                 .containsExactly(lowerConcentration, higherConcentration);
+    }
+
+    @Test
+    void ordersFallbackTieDeterministicallyByIdWhenFormulaIsEquivalent() {
+        FormulatedMineralFertilizerModel laterId = formulated(2L, 1d, 5d, 1d);
+        FormulatedMineralFertilizerModel earlierId = formulated(1L, 1d, 5d, 1d);
+
+        List<FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate> candidates =
+                service.selectAllCandidates(List.of(laterId, earlierId), 20d, 80d, 40d);
+
+        assertThat(candidates)
+                .extracting(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate::formulated)
+                .containsExactly(earlierId, laterId);
     }
 
     @Test

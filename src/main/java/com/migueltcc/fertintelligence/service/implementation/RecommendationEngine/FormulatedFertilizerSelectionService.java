@@ -104,7 +104,7 @@ public class FormulatedFertilizerSelectionService {
         return new FormulatedFertilizerSelectionResult(
                 fallbackMatches,
                 true,
-                "Sem correspondência direta da relação N-P2O5-K2O recomendada; foi usado fallback por aproximação pelo somatório da relação normalizada.");
+                "Sem correspondência direta da relação N-P2O5-K2O recomendada; foi usado fallback por aproximação pelo somatório da relação ou das concentrações normalizadas.");
     }
 
     private FormulatedFertilizerSelectionCandidate toCandidate(FormulatedMineralFertilizerModel fertilizer,
@@ -179,17 +179,23 @@ public class FormulatedFertilizerSelectionService {
                 candidate.concentrationSum(),
                 candidate.fertilizerDoseKgHa(),
                 true,
-                "Fallback por aproximação: sem relação N-P2O5-K2O direta, seleção pelo somatório da relação normalizada mais próximo do recomendado.");
+                "Fallback por aproximação: sem relação N-P2O5-K2O direta, seleção pelo somatório da relação ou das concentrações normalizadas mais próximo do recomendado.");
     }
 
     private Comparator<FormulatedFertilizerSelectionCandidate> approximationOrdering(Double recommendedRatioSum) {
         return Comparator
-                .comparing((FormulatedFertilizerSelectionCandidate candidate) ->
-                        Math.abs(candidate.formulatedRatioSum() - recommendedRatioSum))
+                .comparing((FormulatedFertilizerSelectionCandidate candidate) -> approximationDistance(candidate, recommendedRatioSum))
                 .thenComparing(FormulatedFertilizerSelectionCandidate::concentrationSum,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(candidate -> fertilizerName(candidate.formulated()), Comparator.nullsLast(String::compareToIgnoreCase))
                 .thenComparing(candidate -> candidate.formulated().getId(), Comparator.nullsLast(Long::compareTo));
+    }
+
+    private double approximationDistance(FormulatedFertilizerSelectionCandidate candidate, Double recommendedRatioSum) {
+        if (candidate == null || candidate.formulatedRatioSum() == null || recommendedRatioSum == null) {
+            return Double.MAX_VALUE;
+        }
+        return Math.abs(candidate.formulatedRatioSum() - recommendedRatioSum);
     }
 
     private Comparator<FormulatedFertilizerSelectionCandidate> doseOrdering() {
