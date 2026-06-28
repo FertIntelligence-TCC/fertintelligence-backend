@@ -1276,7 +1276,7 @@ public class RecommendationCalculationService {
             case dag_per_kg -> "dag/kg";
             case g_per_dm3 -> "g/dm³";
             case mg_per_dm3 -> "mg/dm³";
-            case cmolc_per_dm3 -> "mmolc/dm³";
+            case cmolc_per_dm3 -> "cmolc/dm³";
             case mmolc_per_dm3 -> "mmolc/dm³";
             case percentage -> "%";
         };
