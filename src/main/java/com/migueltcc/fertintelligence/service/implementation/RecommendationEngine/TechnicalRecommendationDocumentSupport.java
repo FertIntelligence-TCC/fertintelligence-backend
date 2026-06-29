@@ -282,7 +282,7 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(line.getFertilizerName()),
                     line.getFertilizerDoseKgHa(),
                     "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
-                    null,
+                    "Plantio",
                     localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
     }

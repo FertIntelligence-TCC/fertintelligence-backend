@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
+import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -10,10 +11,12 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
+import com.migueltcc.fertintelligence.repository.MicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerRepository;
 import org.springframework.stereotype.Service;
 
@@ -34,25 +37,34 @@ class NutrientFertilizationCalculationService {
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
+    private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
     private final FormulatedFertilizerSelectionService formulatedFertilizerSelectionService;
+    private final MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService;
     private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
     private final CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService;
+    private final CropSpacingCalculationService cropSpacingCalculationService;
 
     NutrientFertilizationCalculationService(ContentRangeRepository contentRangeRepository,
                                             CoverageRepository coverageRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
+                                            MicronutrientDoseRepository micronutrientDoseRepository,
                                             AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
                                             FormulatedFertilizerSelectionService formulatedFertilizerSelectionService,
+                                            MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService,
                                             PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService,
-                                            CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService) {
+                                            CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService,
+                                            CropSpacingCalculationService cropSpacingCalculationService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
+        this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
         this.formulatedFertilizerSelectionService = formulatedFertilizerSelectionService;
+        this.micronutrientFertilizerSelectionService = micronutrientFertilizerSelectionService;
         this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
         this.coverageFormulatedFertilizerRecommendationService = coverageFormulatedFertilizerRecommendationService;
+        this.cropSpacingCalculationService = cropSpacingCalculationService;
     }
 
     FertilizationRecommendationContext calculate(CropFertilizationTableModel table,
@@ -155,14 +167,192 @@ class NutrientFertilizationCalculationService {
         List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedRows =
                 coverageFormulatedFertilizerRecommendationService.calculate(
                         user, sourceOption, coverageNpkAccumulator.toRecommendations(), crop, warnings);
+        List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows =
+                alternativeFertilizationResult.directRecommendationRows();
+        if (micronutrientFertilizerRows == null || micronutrientFertilizerRows.isEmpty()) {
+            micronutrientFertilizerRows = buildMicronutrientFertilizerRows(
+                    fertilityExtract, soilInterpretationTable, user, sourceOption, crop, warnings, chemicalDiagnosis);
+        }
 
         return new FertilizationRecommendationContext(
                 recommendationRows, fertilizerSuggestions, nutrientBalanceRows,
                 alternativeFertilizationResult.alternativeRows(),
-                alternativeFertilizationResult.directRecommendationRows(),
+                micronutrientFertilizerRows,
                 plantingFormulatedRows,
                 coverageFormulatedRows,
                 mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, nRangeId, pRangeId, kRangeId);
+    }
+
+    private List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> buildMicronutrientFertilizerRows(
+            Optional<FertilityAnalysisExtractModel> fertilityExtract,
+            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
+            CropModel crop,
+            List<String> warnings,
+            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis) {
+        if (fertilityExtract.isEmpty()) {
+            addWarning(warnings, "Micronutrientes não calculados porque não há extrato de fertilidade selecionado.");
+            return List.of();
+        }
+        Optional<MicronutrientDoseModel> micronutrientDose = micronutrientDoseRepository.findByTable(soilInterpretationTable);
+        if (micronutrientDose.isEmpty()) {
+            addWarning(warnings, "Micronutrientes não calculados porque não há tabela auxiliar Doses de Micronutrientes vinculada à tabela de interpretação selecionada.");
+            return List.of();
+        }
+
+        Map<AppliedMicronutrient, MicronutrientRecommendationInput> inputs = new LinkedHashMap<>();
+        addMicronutrientInput(inputs, AppliedMicronutrient.B, "Boro", fertilityExtract.get().getBoro(),
+                doseFor(micronutrientDose.get(), AppliedMicronutrient.B, interpretationFor(chemicalDiagnosis, "Boro")), chemicalDiagnosis, warnings);
+        addMicronutrientInput(inputs, AppliedMicronutrient.Cu, "Cobre", fertilityExtract.get().getCobre(),
+                doseFor(micronutrientDose.get(), AppliedMicronutrient.Cu, interpretationFor(chemicalDiagnosis, "Cobre")), chemicalDiagnosis, warnings);
+        addMicronutrientInput(inputs, AppliedMicronutrient.Fe, "Ferro", fertilityExtract.get().getFerro(),
+                doseFor(micronutrientDose.get(), AppliedMicronutrient.Fe, interpretationFor(chemicalDiagnosis, "Ferro")), chemicalDiagnosis, warnings);
+        addMicronutrientInput(inputs, AppliedMicronutrient.Mn, "Manganês", fertilityExtract.get().getManganes(),
+                doseFor(micronutrientDose.get(), AppliedMicronutrient.Mn, interpretationFor(chemicalDiagnosis, "Manganês")), chemicalDiagnosis, warnings);
+        addMicronutrientInput(inputs, AppliedMicronutrient.Zn, "Zinco", fertilityExtract.get().getZinco(),
+                doseFor(micronutrientDose.get(), AppliedMicronutrient.Zn, interpretationFor(chemicalDiagnosis, "Zinco")), chemicalDiagnosis, warnings);
+
+        Map<AppliedMicronutrient, Double> doses = new LinkedHashMap<>();
+        inputs.forEach((micronutrient, input) -> doses.put(micronutrient, input.doseKgHa()));
+        if (doses.isEmpty()) {
+            return List.of();
+        }
+
+        List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
+                micronutrientFertilizerSelectionService.select(user, sourceOption, doses);
+        List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> rows = new ArrayList<>();
+        for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
+            MicronutrientRecommendationInput input = inputs.get(selection.micronutrient());
+            if (input == null) continue;
+            if (selection.technicalMessage() != null) {
+                addWarning(warnings, selection.technicalMessage());
+            }
+            rows.add(toMicronutrientRow(selection, input, crop));
+        }
+        return rows;
+    }
+
+    private void addMicronutrientInput(
+            Map<AppliedMicronutrient, MicronutrientRecommendationInput> inputs,
+            AppliedMicronutrient micronutrient,
+            String label,
+            Double analyzedValue,
+            Double doseKgHa,
+            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
+            List<String> warnings) {
+        if (analyzedValue == null) {
+            return;
+        }
+        String interpretation = interpretationFor(chemicalDiagnosis, label);
+        if (interpretation == null) {
+            addWarning(warnings, "Dose de " + label + " não calculada porque o teor analisado não foi classificado pela tabela de teores diversos.");
+            return;
+        }
+        if (doseKgHa == null) {
+            addWarning(warnings, "Dose de " + label + " não calculada porque a classe " + interpretation
+                    + " não possui dose preenchida na tabela auxiliar Doses de Micronutrientes.");
+            return;
+        }
+        inputs.put(micronutrient, new MicronutrientRecommendationInput(label, analyzedValue, interpretation, doseKgHa));
+    }
+
+    private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow toMicronutrientRow(
+            MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
+            MicronutrientRecommendationInput input,
+            CropModel crop) {
+        CropSpacingCalculationService.CropSpacingDoseResult spacingDose =
+                cropSpacingCalculationService.calculate(crop, selection.fertilizerDoseKgHa());
+        CropSpacingCalculationService.DoseUnitMetadata doseUnitMetadata =
+                cropSpacingCalculationService.resolveDoseUnitMetadata(spacingDose);
+        SimpleMineralFertilizerModel fertilizer = selection.selectedFertilizer();
+        return RecommendationCalculationService.MicronutrientFertilizerRecommendationRow.builder()
+                .micronutrient(selection.micronutrient())
+                .micronutrientDoseKgHa(selection.micronutrientDoseKgHa())
+                .fertilizerId(fertilizer != null ? fertilizer.getId() : null)
+                .fertilizerName(fertilizer != null ? fertilizer.getName() : null)
+                .micronutrientConcentrationPercent(selection.selectedConcentrationPercent())
+                .fertilizerDoseKgHa(selection.fertilizerDoseKgHa())
+                .doseUnitMode(doseUnitMetadata.doseUnitMode())
+                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
+                .gramsPerLinearMeter(spacingDose.gramsPerLinearMeter())
+                .gramsPerPit(spacingDose.gramsPerPit())
+                .technicalObservation(buildMicronutrientObservation(selection, input, spacingDose))
+                .build();
+    }
+
+    private String buildMicronutrientObservation(
+            MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
+            MicronutrientRecommendationInput input,
+            CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
+        String base = String.format(Locale.US,
+                "Dose selecionada pela faixa %s do teor de %s (%.2f mg/dm³). Dose do produto = 100 * %.2f / %.2f.",
+                input.interpretation(), input.label(), input.analyzedValue(), nvl(selection.micronutrientDoseKgHa()),
+                nvl(selection.selectedConcentrationPercent()));
+        String source = selection.selectedFertilizer() != null
+                ? " Fonte mineral simples selecionada pelo maior teor cadastrado de " + selection.micronutrient() + "."
+                : " Fonte mineral simples não selecionada.";
+        String spacing = spacingDose.technicalWarning() != null
+                ? " Conversão por espaçamento não calculada: " + spacingDose.technicalWarning()
+                : " Conversão por espaçamento calculada conforme cadastro da cultura.";
+        String technicalMessage = selection.technicalMessage() != null ? " " + selection.technicalMessage() : "";
+        return base + source + spacing + technicalMessage;
+    }
+
+    private String interpretationFor(
+            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
+            String label) {
+        if (chemicalDiagnosis == null) return null;
+        String normalizedLabel = normalizeText(label);
+        return chemicalDiagnosis.stream()
+                .filter(item -> item != null && normalizeText(item.getAttribute()).equals(normalizedLabel))
+                .map(RecommendationCalculationService.SoilChemicalDiagnosisItem::getInterpretation)
+                .filter(interpretation -> interpretation != null && !interpretation.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Double doseFor(MicronutrientDoseModel doses, AppliedMicronutrient micronutrient, String interpretation) {
+        if (doses == null || micronutrient == null || interpretation == null) return null;
+        return switch (micronutrient) {
+            case B -> switch (interpretation) {
+                case "Baixo" -> doses.getBoronLowDose();
+                case "Médio" -> doses.getBoronMediumDose();
+                case "Alto" -> doses.getBoronHighDose();
+                default -> null;
+            };
+            case Cu -> switch (interpretation) {
+                case "Baixo" -> doses.getCopperLowDose();
+                case "Médio" -> doses.getCopperMediumDose();
+                case "Alto" -> doses.getCopperHighDose();
+                default -> null;
+            };
+            case Fe -> switch (interpretation) {
+                case "Baixo" -> doses.getIronLowDose();
+                case "Médio" -> doses.getIronMediumDose();
+                case "Alto" -> doses.getIronHighDose();
+                default -> null;
+            };
+            case Mn -> switch (interpretation) {
+                case "Baixo" -> doses.getManganeseLowDose();
+                case "Médio" -> doses.getManganeseMediumDose();
+                case "Alto" -> doses.getManganeseHighDose();
+                default -> null;
+            };
+            case Zn -> switch (interpretation) {
+                case "Baixo" -> doses.getZincLowDose();
+                case "Médio" -> doses.getZincMediumDose();
+                case "Alto" -> doses.getZincHighDose();
+                default -> null;
+            };
+            default -> null;
+        };
+    }
+
+    private void addWarning(List<String> warnings, String warning) {
+        if (warnings != null && warning != null && !warning.isBlank()) {
+            warnings.add(warning);
+        }
     }
 
     SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {
@@ -522,6 +712,13 @@ class NutrientFertilizationCalculationService {
         return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
+    private String normalizeText(String value) {
+        if (value == null) return "";
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+    }
+
     private <T> List<T> dedup(List<T> a, List<T> b, Function<T, Long> id) {
         Map<Long, T> m = new LinkedHashMap<>();
         a.forEach(x -> m.putIfAbsent(id.apply(x), x));
@@ -650,5 +847,12 @@ class NutrientFertilizationCalculationService {
     }
 
     private record FertilizerDoseCalculation(String nutrient, double targetNeedKgHa, double concentrationPercent, double quantityKgHa, String method) {
+    }
+
+    private record MicronutrientRecommendationInput(
+            String label,
+            Double analyzedValue,
+            String interpretation,
+            Double doseKgHa) {
     }
 }

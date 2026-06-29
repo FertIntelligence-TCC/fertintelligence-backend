@@ -5,9 +5,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class RecommendationReportService {
@@ -286,21 +288,63 @@ public class RecommendationReportService {
         report.append("13.1. Fontes orgânicas, organominerais e micronutrientes\n\n");
         report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
         report.append("|---|---|---|---:|---|---|---|\n");
-        if (result.getAlternativeFertilizationRows() == null || result.getAlternativeFertilizationRows().isEmpty()) {
+        boolean hasAlternativeRows = result.getAlternativeFertilizationRows() != null && !result.getAlternativeFertilizationRows().isEmpty();
+        boolean hasMicronutrientRows = result.getMicronutrientFertilizerRows() != null && !result.getMicronutrientFertilizerRows().isEmpty();
+        if (!hasAlternativeRows && !hasMicronutrientRows) {
             report.append("| Não calculado | Orgânicos/organominerais/micronutrientes | Não selecionada | Não calculada | Não modelada | Não há dados suficientes para recomendação suportada. | O backend não gerou recomendações genéricas sem cálculo. |\n\n");
             return;
         }
-        for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
-            report.append("| ").append(safeCell(row.getSourceType()))
-                    .append(" | ").append(safeCell(row.getNutrientOrObjective()))
-                    .append(" | ").append(safeCell(row.getSourceName()))
-                    .append(" | ").append(safeCell(row.getDose()))
-                    .append(" | ").append(safeCell(row.getUnit()))
-                    .append(" | ").append(safeCell(row.getJustification()))
-                    .append(" | ").append(safeCell(row.getLimitations()))
-                    .append(" |\n");
+        if (hasAlternativeRows) {
+            for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
+                report.append("| ").append(safeCell(row.getSourceType()))
+                        .append(" | ").append(safeCell(row.getNutrientOrObjective()))
+                        .append(" | ").append(safeCell(row.getSourceName()))
+                        .append(" | ").append(safeCell(row.getDose()))
+                        .append(" | ").append(safeCell(row.getUnit()))
+                        .append(" | ").append(safeCell(row.getJustification()))
+                        .append(" | ").append(safeCell(row.getLimitations()))
+                        .append(" |\n");
+            }
+        }
+        if (hasMicronutrientRows) {
+            Set<String> alternativeMicronutrientObjectives = alternativeMicronutrientObjectives(result.getAlternativeFertilizationRows());
+            for (RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row : result.getMicronutrientFertilizerRows()) {
+                String micronutrient = row.getMicronutrient() != null ? row.getMicronutrient().name() : null;
+                if (micronutrient != null && alternativeMicronutrientObjectives.contains(micronutrient)) {
+                    continue;
+                }
+                report.append("| MICRONUTRIENTE")
+                        .append(" | ").append(safeCell(micronutrient))
+                        .append(" | ").append(safeCell(row.getFertilizerName())).append(formatId(row.getFertilizerId()))
+                        .append(" | ").append(formatQuantity(row.getFertilizerDoseKgHa()))
+                        .append(" | kg/ha de produto")
+                        .append(" | ").append(safeCell(row.getTechnicalObservation()))
+                        .append(" | ").append(safeCell(buildMicronutrientLimitations(row)))
+                        .append(" |\n");
+            }
         }
         report.append("\n");
+    }
+
+    private Set<String> alternativeMicronutrientObjectives(
+            List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows) {
+        Set<String> objectives = new HashSet<>();
+        if (rows == null) {
+            return objectives;
+        }
+        for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : rows) {
+            if (row == null || row.getSourceType() == null || row.getNutrientOrObjective() == null) continue;
+            if (!"MICRONUTRIENTE".equalsIgnoreCase(row.getSourceType().trim())) continue;
+            objectives.add(row.getNutrientOrObjective().trim());
+        }
+        return objectives;
+    }
+
+    private String buildMicronutrientLimitations(RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row) {
+        if (row == null || row.getFertilizerDoseKgHa() == null || row.getFertilizerName() == null || row.getFertilizerName().isBlank()) {
+            return "Dose do produto não calculada por ausência de fonte mineral simples compatível.";
+        }
+        return "Aplicação sólida no plantio; validar compatibilidade operacional e mistura com os demais adubos.";
     }
 
     private void appendLimitationsAndAlerts(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
