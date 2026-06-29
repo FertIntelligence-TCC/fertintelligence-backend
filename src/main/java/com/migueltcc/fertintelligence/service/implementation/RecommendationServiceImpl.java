@@ -25,10 +25,14 @@ import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.DirectRecommendationService;
 import com.migueltcc.fertintelligence.service.documentation.RecommendationService;
+import com.migueltcc.fertintelligence.service.documentation.ShoppingListService;
+import com.migueltcc.fertintelligence.service.documentation.SummaryRecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationNarrativeService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.ShoppingListReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -53,8 +57,12 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final RecommendationNarrativeService recommendationNarrativeService;
     private final DirectRecommendationReportService directRecommendationReportService;
     private final GeneralRecommendationService generalRecommendationService;
+    private final SummaryRecommendationService summaryRecommendationService;
     private final DirectRecommendationService directRecommendationService;
+    private final ShoppingListService shoppingListService;
     private final DirectRecommendationDtoMapper directRecommendationDtoMapper;
+    private final SummaryRecommendationReportService summaryRecommendationReportService;
+    private final ShoppingListReportService shoppingListReportService;
     private final PermissionManager permissionManager;
 
     @Override
@@ -105,6 +113,8 @@ public class RecommendationServiceImpl implements RecommendationService {
                 calculationResult.getMicronutrientFertilizerRows(),
                 calculationResult.getPlantingFormulatedFertilizerRows(),
                 calculationResult.getCoverageFormulatedFertilizerRows());
+        summaryRecommendationService.createInitial(savedRecommendation, summaryRecommendationReportService.build(savedRecommendation));
+        shoppingListService.createInitial(savedRecommendation, shoppingListReportService.build(savedRecommendation));
 
         return toDto(savedRecommendation);
     }
