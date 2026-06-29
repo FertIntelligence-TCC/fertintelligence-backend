@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
@@ -81,6 +82,9 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .recommendationType(dto.getRecommendationType())
                 .cropName(resolveCropName(calculationResult))
                 .cropYear(calculationResult.getAnnualCropFolderYear())
+                .cropId(calculationResult.getCropId())
+                .cropUsedAreaInThePlot(calculationResult.getCropUsedAreaInThePlot())
+                .cropPlantingDate(copyDate(calculationResult.getCropPlantingDate()))
                 .limingCriteria(dto.getLimingCriteria())
                 .texturalClassification(resolveTexturalClassification(dto.getTexturalClassification()))
                 .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
@@ -284,6 +288,13 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     private TexturalClassification resolveTexturalClassification(TexturalClassification texturalClassification) {
         return texturalClassification != null ? texturalClassification : TexturalClassification.BRASILEIRO;
+    }
+
+    private Date copyDate(Date date) {
+        if (date == null) {
+            return null;
+        }
+        return new Date(date.getDay(), date.getMonth(), date.getYear());
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {

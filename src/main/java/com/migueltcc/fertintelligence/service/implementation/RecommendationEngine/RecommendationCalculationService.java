@@ -261,6 +261,8 @@ public class RecommendationCalculationService {
                 .plotIdentification(plot != null ? plot.getIdentification() : null)
                 .plotId(plot != null ? plot.getId() : null)
                 .cropName(resolveCropNameForResult(inputs))
+                .cropUsedAreaInThePlot(inputs.crop() != null ? inputs.crop().getUsedAreaInThePlot() : null)
+                .cropPlantingDate(inputs.crop() != null ? inputs.crop().getPlantingDate() : null)
                 .annualCropFolderYear(inputs.annualCropFolder().getCropsYear())
                 .recommendationType(dto.getRecommendationType() != null ? dto.getRecommendationType().name() : null)
                 .limingCriteria(diagnoses.limingRequirement() != null ? diagnoses.limingRequirement().getSelectedCriteria() : null)
@@ -1547,6 +1549,8 @@ public class RecommendationCalculationService {
         private String plotIdentification;
         private Long plotId;
         private String cropName;
+        private Double cropUsedAreaInThePlot;
+        private com.migueltcc.fertintelligence.composedAttributes.crop.Date cropPlantingDate;
         private Integer annualCropFolderYear;
         private String recommendationType;
         private String limingCriteria;

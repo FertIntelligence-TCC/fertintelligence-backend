@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
@@ -70,6 +71,14 @@ final class TechnicalRecommendationDocumentSupport {
     }
 
     static void appendIdentification(StringBuilder report, RecommendationModel recommendation) {
+        PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
+        appendIdentification(report, recommendation, plot != null ? plot.getArea() : null, null);
+    }
+
+    static void appendIdentification(StringBuilder report,
+                                     RecommendationModel recommendation,
+                                     Double evaluatedArea,
+                                     Date plantingDate) {
         PropertyModel property = recommendation != null ? recommendation.getProperty() : null;
         PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
         UserModel creator = recommendation != null ? recommendation.getCreator() : null;
@@ -78,10 +87,10 @@ final class TechnicalRecommendationDocumentSupport {
         report.append("- Propriedade: ").append(safe(property != null ? property.getNome() : null)).append("\n");
         report.append("- Município/UF: ").append(NOT_INFORMED).append("\n");
         report.append("- Talhão: ").append(safe(plot != null ? plot.getIdentification() : null)).append("\n");
-        report.append("- Área avaliada: ").append(formatArea(plot != null ? plot.getArea() : null)).append("\n");
+        report.append("- Área avaliada: ").append(formatArea(evaluatedArea)).append("\n");
         report.append("- Cultura prevista: ").append(safe(recommendation != null ? recommendation.getCropName() : null)).append("\n");
         report.append("- Safra/Safrinha: ").append(recommendation == null || recommendation.getCropYear() == null ? NOT_INFORMED : recommendation.getCropYear()).append("\n");
-        report.append("- Data de plantio: ").append(NOT_INFORMED).append("\n");
+        report.append("- Data de plantio: ").append(formatCropDate(plantingDate)).append("\n");
         report.append("- Responsável técnico: ").append(safe(creator != null ? creator.getName() : null)).append("\n");
         report.append("- Registro profissional: ").append(NOT_INFORMED).append("\n");
         report.append("- Data de emissão: ").append(formatDate(recommendation != null ? recommendation.getCreatedAt() : null)).append("\n\n");
@@ -187,6 +196,13 @@ final class TechnicalRecommendationDocumentSupport {
 
     static String formatArea(Double area) {
         return area == null ? NOT_INFORMED : String.format(Locale.US, "%.2f ha", area);
+    }
+
+    static String formatCropDate(Date date) {
+        if (date == null || date.getDay() <= 0 || date.getMonth() <= 0 || date.getYear() <= 0) {
+            return NOT_INFORMED;
+        }
+        return String.format(Locale.US, "%02d/%02d/%04d", date.getDay(), date.getMonth(), date.getYear());
     }
 
     static String stripHeading(String section) {

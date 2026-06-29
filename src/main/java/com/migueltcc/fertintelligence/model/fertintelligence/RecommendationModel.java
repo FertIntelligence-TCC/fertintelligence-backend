@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
@@ -49,6 +50,20 @@ public class RecommendationModel {
 
     @Column(name = "CROP_YEAR", nullable = false)
     Integer cropYear;
+
+    @Column(name = "ID_CROP")
+    Long cropId;
+
+    @Column(name = "CROP_USED_AREA_IN_THE_PLOT")
+    Double cropUsedAreaInThePlot;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "day", column = @Column(name = "CROP_PLANTING_DATE_DAY")),
+            @AttributeOverride(name = "month", column = @Column(name = "CROP_PLANTING_DATE_MONTH")),
+            @AttributeOverride(name = "year", column = @Column(name = "CROP_PLANTING_DATE_YEAR"))
+    })
+    Date cropPlantingDate;
 
     @Column(name = "LIMING_CRITERIA")
     @Enumerated(EnumType.STRING)
