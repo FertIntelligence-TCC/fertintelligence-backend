@@ -78,6 +78,7 @@ class AlternativeFertilizationCalculationService {
             FertilizerSourceOption sourceOption,
             Boolean useOrganicFertilizer,
             Nutriente organicFertilizerReferenceNutrient,
+            Boolean useOrganoMineralFertilizer,
             Boolean useGreenFertilizer,
             String greenFertilizerSpecies,
             Double greenFertilizerGreenMass,
@@ -90,7 +91,7 @@ class AlternativeFertilizationCalculationService {
                 greenFertilizerMoisturePercentage, greenFertilizerDryMass, requiredN, requiredP2O5, requiredK2O, warnings);
         addOrganicFertilizationRow(rows, user, sourceOption, useOrganicFertilizer,
                 organicFertilizerReferenceNutrient, requiredN, requiredP2O5, requiredK2O, warnings);
-        addNpkAlternativeRow(rows, "ORGANOMINERAL", selectBestOrganoMineralSource(user, sourceOption),
+        addOrganoMineralFertilizationRow(rows, user, sourceOption, useOrganoMineralFertilizer,
                 greenContribution.remainingN(), greenContribution.remainingP2O5(), greenContribution.remainingK2O(), warnings);
         rows.add(greenContribution.row());
         addBiofertilizerLimitation(rows, user, sourceOption, warnings);
@@ -103,6 +104,31 @@ class AlternativeFertilizationCalculationService {
                 greenContribution.remainingN(),
                 greenContribution.remainingP2O5(),
                 greenContribution.remainingK2O());
+    }
+
+    private void addOrganoMineralFertilizationRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
+                                                  UserModel user,
+                                                  FertilizerSourceOption sourceOption,
+                                                  Boolean useOrganoMineralFertilizer,
+                                                  Double requiredN,
+                                                  Double requiredP2O5,
+                                                  Double requiredK2O,
+                                                  List<String> warnings) {
+        if (!Boolean.TRUE.equals(useOrganoMineralFertilizer)) {
+            rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                    .sourceType("ORGANOMINERAL")
+                    .nutrientOrObjective("Não solicitado")
+                    .sourceName("Não selecionada")
+                    .dose("Não calculada")
+                    .unit("kg/ha de produto")
+                    .justification("Uso de fertilizante organomineral não habilitado no payload da recomendação.")
+                    .limitations("Seleção automática de organomineral não solicitada.")
+                    .build());
+            return;
+        }
+
+        addNpkAlternativeRow(rows, "ORGANOMINERAL", selectBestOrganoMineralSource(user, sourceOption),
+                requiredN, requiredP2O5, requiredK2O, warnings);
     }
 
     private void addOrganicFertilizationRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,

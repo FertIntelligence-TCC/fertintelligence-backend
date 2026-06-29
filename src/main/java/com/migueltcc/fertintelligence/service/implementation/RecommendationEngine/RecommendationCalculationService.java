@@ -243,7 +243,7 @@ public class RecommendationCalculationService {
         return nutrientFertilizationCalculationService.calculate(
                 inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), inputs.soilInterpretationTable(),
                 user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
-                dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
+                dto.getUseOrganoMineralFertilizer(), dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
                 warnings, chemicalDiagnosis, foliarDiagnosis);
     }

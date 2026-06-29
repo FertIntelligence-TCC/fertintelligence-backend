@@ -5,8 +5,10 @@ import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedM
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.GreenFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.OrganoMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.GreenFertilizerRepository;
+import com.migueltcc.fertintelligence.repository.OrganoMineralFertilizerRepository;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationHandler;
@@ -121,6 +123,51 @@ class AlternativeFertilizationCalculationServiceTest {
         assertThat(warnings).isEmpty();
     }
 
+    @Test
+    void keepsOrganoMineralUnselectedWhenUsageIsNotEnabled() throws Exception {
+        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        invokeAddOrganoMineralFertilizationRow(service, rows, false, 100d, 50d, 60d, warnings);
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getSourceType()).isEqualTo("ORGANOMINERAL");
+        assertThat(rows.get(0).getSourceName()).isEqualTo("Não selecionada");
+        assertThat(rows.get(0).getJustification()).contains("não habilitado");
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    void selectsBestOrganoMineralByHighestNpkSumWhenUsageIsEnabled() throws Exception {
+        OrganoMineralFertilizerRepository repository = organoMineralRepositoryReturning(List.of(
+                OrganoMineralFertilizerModel.builder()
+                        .id(1L)
+                        .name("Organomineral 04-14-08")
+                        .N(4d)
+                        .P2O5(14d)
+                        .K2O(8d)
+                        .build(),
+                OrganoMineralFertilizerModel.builder()
+                        .id(2L)
+                        .name("Organomineral 08-20-12")
+                        .N(8d)
+                        .P2O5(20d)
+                        .K2O(12d)
+                        .build()));
+        AlternativeFertilizationCalculationService service = serviceWithOrganoMineralRepository(repository);
+        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        invokeAddOrganoMineralFertilizationRow(service, rows, true, 100d, 50d, 60d, warnings);
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getSourceType()).isEqualTo("ORGANOMINERAL");
+        assertThat(rows.get(0).getSourceName()).isEqualTo("Organomineral 08-20-12");
+        assertThat(rows.get(0).getDose()).isEqualTo("1250.00");
+        assertThat(rows.get(0).getNutrientOrObjective()).isEqualTo("NPK - nutriente alvo N");
+        assertThat(warnings).containsExactly("A dose usa teor total cadastrado; o backend não possui coeficiente de eficiência agronômica, liberação gradual ou restrição específica do produto organomineral.");
+    }
+
     private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow invokeToDirectRecommendationMicronutrientRow(
             MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
             CropModel crop,
@@ -163,6 +210,28 @@ class AlternativeFertilizationCalculationServiceTest {
                 greenMass, moisture, dryMass, requiredN, requiredP2O5, requiredK2O, warnings);
     }
 
+    private void invokeAddOrganoMineralFertilizationRow(AlternativeFertilizationCalculationService service,
+                                                        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
+                                                        Boolean useOrganoMineralFertilizer,
+                                                        Double requiredN,
+                                                        Double requiredP2O5,
+                                                        Double requiredK2O,
+                                                        List<String> warnings) throws Exception {
+        Method method = AlternativeFertilizationCalculationService.class.getDeclaredMethod(
+                "addOrganoMineralFertilizationRow",
+                List.class,
+                com.migueltcc.fertintelligence.model.fertintelligence.UserModel.class,
+                FertilizerSourceOption.class,
+                Boolean.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                List.class);
+        method.setAccessible(true);
+        method.invoke(service, rows, null, FertilizerSourceOption.DEFAULT, useOrganoMineralFertilizer,
+                requiredN, requiredP2O5, requiredK2O, warnings);
+    }
+
     private Double invokeDouble(Object target, String methodName) throws Exception {
         return (Double) invokeMethod(target, methodName);
     }
@@ -179,6 +248,19 @@ class AlternativeFertilizationCalculationServiceTest {
                 null,
                 null,
                 greenFertilizerRepository,
+                null,
+                null,
+                null,
+                null,
+                new CropSpacingCalculationService());
+    }
+
+    private AlternativeFertilizationCalculationService serviceWithOrganoMineralRepository(
+            OrganoMineralFertilizerRepository organoMineralFertilizerRepository) {
+        return new AlternativeFertilizationCalculationService(
+                null,
+                organoMineralFertilizerRepository,
+                null,
                 null,
                 null,
                 null,
@@ -205,6 +287,28 @@ class AlternativeFertilizationCalculationServiceTest {
         return (GreenFertilizerRepository) Proxy.newProxyInstance(
                 GreenFertilizerRepository.class.getClassLoader(),
                 new Class<?>[]{GreenFertilizerRepository.class},
+                handler);
+    }
+
+    private OrganoMineralFertilizerRepository organoMineralRepositoryReturning(List<OrganoMineralFertilizerModel> fertilizers) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            if ("findAllByUser_CargoOrderByNameAsc".equals(method.getName())) {
+                return fertilizers;
+            }
+            if (List.class.isAssignableFrom(method.getReturnType())) {
+                return Collections.emptyList();
+            }
+            if (method.getReturnType().equals(boolean.class)) {
+                return false;
+            }
+            if (method.getReturnType().isPrimitive()) {
+                return 0;
+            }
+            return null;
+        };
+        return (OrganoMineralFertilizerRepository) Proxy.newProxyInstance(
+                OrganoMineralFertilizerRepository.class.getClassLoader(),
+                new Class<?>[]{OrganoMineralFertilizerRepository.class},
                 handler);
     }
 

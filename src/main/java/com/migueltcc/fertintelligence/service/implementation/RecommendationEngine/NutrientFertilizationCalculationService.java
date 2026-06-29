@@ -63,6 +63,7 @@ class NutrientFertilizationCalculationService {
                                                  FertilizerSourceOption sourceOption,
                                                  Boolean useOrganicFertilizer,
                                                  Nutriente organicFertilizerReferenceNutrient,
+                                                 Boolean useOrganoMineralFertilizer,
                                                  Boolean useGreenFertilizer,
                                                  String greenFertilizerSpecies,
                                                  Double greenFertilizerGreenMass,
@@ -93,7 +94,7 @@ class NutrientFertilizationCalculationService {
                 alternativeFertilizationCalculationService.calculate(
                         requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
                         soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
-                        organicFertilizerReferenceNutrient, useGreenFertilizer, greenFertilizerSpecies,
+                        organicFertilizerReferenceNutrient, useOrganoMineralFertilizer, useGreenFertilizer, greenFertilizerSpecies,
                         greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass, warnings);
         Double mineralRequiredN = alternativeFertilizationResult.remainingRequiredN();
         Double mineralRequiredP2O5 = alternativeFertilizationResult.remainingRequiredP2O5();
