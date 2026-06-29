@@ -26,6 +26,7 @@ final class TechnicalRecommendationDocumentSupport {
     static final String NOT_APPLICABLE = "Não aplicável com os dados disponíveis.";
     static final String LINEAR_CONVERSION_UNAVAILABLE = "Não calculado por falta de dados.";
     static final String STYLE_METADATA = "<!-- formato: markdown; fonte: Aptos; tamanho: 10 -->";
+    static final String DEFAULT_MICRONUTRIENT_TECHNICAL_OBSERVATION = "Misturar com os demais adubos minerais no plantio.";
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
@@ -173,6 +174,13 @@ final class TechnicalRecommendationDocumentSupport {
         return safe(value).replace("|", "/").replace("\n", " ");
     }
 
+    static String micronutrientTechnicalObservationCell(String value) {
+        String observation = missingMicronutrientTechnicalObservation(value)
+                ? DEFAULT_MICRONUTRIENT_TECHNICAL_OBSERVATION
+                : value.trim();
+        return safeCell(observation);
+    }
+
     static String formatDate(LocalDateTime date) {
         return (date == null ? LocalDateTime.now() : date).format(BR_DATE_TIME);
     }
@@ -194,6 +202,12 @@ final class TechnicalRecommendationDocumentSupport {
                 || normalized.contains("nao selecionad")
                 || normalized.contains("nao informad")
                 || normalized.contains("nao avaliad");
+    }
+
+    private static boolean missingMicronutrientTechnicalObservation(String value) {
+        if (value == null || value.isBlank()) return true;
+        String normalized = normalize(value).replace(".", "").trim();
+        return "nao informado".equals(normalized);
     }
 
     private static void addCorrectiveItem(Map<String, ShoppingItem> items, String source, String itemName, String section, String... labels) {

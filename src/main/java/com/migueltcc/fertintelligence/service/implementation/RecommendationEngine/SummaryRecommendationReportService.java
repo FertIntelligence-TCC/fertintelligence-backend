@@ -109,7 +109,7 @@ public class SummaryRecommendationReportService {
                     .append(" | ").append(formatPercent(line.getMicronutrientConcentrationPercent()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
                     .append(" | ").append(formatOperationalDose(line))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.micronutrientTechnicalObservationCell(line.getTechnicalObservation()))
                     .append(" |\n");
         }
         report.append("\n");

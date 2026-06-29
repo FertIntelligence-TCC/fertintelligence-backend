@@ -139,7 +139,7 @@ public class DirectRecommendationReportService {
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
                         .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.micronutrientTechnicalObservationCell(line.getTechnicalObservation()))
                         .append(" |\n");
             }
             report.append("\n");

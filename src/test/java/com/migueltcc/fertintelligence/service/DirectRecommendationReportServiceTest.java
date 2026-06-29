@@ -164,6 +164,78 @@ class DirectRecommendationReportServiceTest {
         assertThat(report).doesNotContain("g/cova");
     }
 
+    @Test
+    void buildUsesDefaultTechnicalObservationOnlyForMicronutrientsWithoutObservation() {
+        DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
+        DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
+                mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
+        DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
+                mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationReportService service = new DirectRecommendationReportService(
+                new CropSpacingCalculationService(),
+                null,
+                null,
+                null,
+                null,
+                micronutrientRepository,
+                plantingRepository,
+                coverageRepository
+        );
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+        recommendation.setId(1L);
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(2L)
+                .recommendation(recommendation)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(micronutrientRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of(
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.B)
+                                .fertilizerName("Borax")
+                                .micronutrientDoseKgHa(1.2)
+                                .fertilizerDoseKgHa(10.0)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.5)
+                                .technicalObservation(null)
+                                .build(),
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.Zn)
+                                .fertilizerName("Sulfato de zinco")
+                                .micronutrientDoseKgHa(2.0)
+                                .fertilizerDoseKgHa(8.0)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.4)
+                                .technicalObservation("Não informado")
+                                .build(),
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.Cu)
+                                .fertilizerName("Sulfato de cobre")
+                                .micronutrientDoseKgHa(1.0)
+                                .fertilizerDoseKgHa(5.0)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.25)
+                                .technicalObservation("Aplicar conforme análise específica.")
+                                .build()));
+        when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of());
+        when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of());
+
+        String report = service.build(recommendation);
+
+        assertThat(report).contains("| B | Borax | 1.20 kg/ha | 10.00 kg/ha | 0.50 | Misturar com os demais adubos minerais no plantio. |");
+        assertThat(report).contains("| Zn | Sulfato de zinco | 2.00 kg/ha | 8.00 kg/ha | 0.40 | Misturar com os demais adubos minerais no plantio. |");
+        assertThat(report).contains("| Cu | Sulfato de cobre | 1.00 kg/ha | 5.00 kg/ha | 0.25 | Aplicar conforme análise específica. |");
+        assertThat(report).doesNotContain("| Não informado |");
+    }
+
     private DirectRecommendationReportService newService() {
         return new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),

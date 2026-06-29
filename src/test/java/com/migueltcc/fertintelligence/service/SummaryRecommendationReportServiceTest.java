@@ -46,6 +46,61 @@ class SummaryRecommendationReportServiceTest {
     }
 
     @Test
+    void buildUsesDefaultTechnicalObservationOnlyForMicronutrientsWithoutObservation() {
+        SummaryRecommendationReportService service =
+                new SummaryRecommendationReportService(null, null);
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(10L)
+                .recommendation(recommendation)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .micronutrientFertilizerLines(List.of(
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.B)
+                                .micronutrientDoseKgHa(1.2)
+                                .fertilizerName("Borax")
+                                .micronutrientConcentrationPercent(11.0)
+                                .fertilizerDoseKgHa(10.91)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.55)
+                                .technicalObservation(" ")
+                                .build(),
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.Zn)
+                                .micronutrientDoseKgHa(2.0)
+                                .fertilizerName("Sulfato de zinco")
+                                .micronutrientConcentrationPercent(20.0)
+                                .fertilizerDoseKgHa(10.0)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.5)
+                                .technicalObservation("Não informado.")
+                                .build(),
+                        DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                                .micronutrient(AppliedMicronutrient.Cu)
+                                .micronutrientDoseKgHa(1.0)
+                                .fertilizerName("Sulfato de cobre")
+                                .micronutrientConcentrationPercent(25.0)
+                                .fertilizerDoseKgHa(4.0)
+                                .doseUnitMode("LINEAR_METER")
+                                .doseUnitLabel("g/m linear")
+                                .gramsPerLinearMeter(0.2)
+                                .technicalObservation("Aplicar conforme análise específica.")
+                                .build()))
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+
+        String report = service.build(recommendation);
+
+        assertThat(report).contains("| B | 1.20 kg/ha | Borax | 11.00% | 10.91 kg/ha | 0.55 g/m linear | Misturar com os demais adubos minerais no plantio. |");
+        assertThat(report).contains("| Zn | 2.00 kg/ha | Sulfato de zinco | 20.00% | 10.00 kg/ha | 0.50 g/m linear | Misturar com os demais adubos minerais no plantio. |");
+        assertThat(report).contains("| Cu | 1.00 kg/ha | Sulfato de cobre | 25.00% | 4.00 kg/ha | 0.20 g/m linear | Aplicar conforme análise específica. |");
+        assertThat(report).doesNotContain("| Não informado. |");
+    }
+
+    @Test
     void buildKeepsHonestFallbackWhenNoPersistedMicronutrientLinesExist() {
         SummaryRecommendationReportService service = new SummaryRecommendationReportService(null, null);
 
