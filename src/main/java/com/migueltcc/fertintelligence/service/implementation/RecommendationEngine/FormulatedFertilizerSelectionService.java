@@ -19,6 +19,7 @@ import java.util.function.Function;
 public class FormulatedFertilizerSelectionService {
 
     private static final int PRESENTATION_LIMIT = 2;
+    private static final double APPROXIMATE_SUPPLY_TOLERANCE = 0.10d;
 
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final FormulatedFertilizerRatioService ratioService;
@@ -101,12 +102,31 @@ public class FormulatedFertilizerSelectionService {
                 .toList();
 
         if (candidates.isEmpty()) {
+            String noDirectMatchMessage = appendTechnicalMessage(
+                    recommendedRatio.technicalMessage(),
+                    "Sem adubo mineral formulado com relação N-P2O5-K2O idêntica à recomendação calculada.");
+            List<FormulatedFertilizerSelectionCandidate> approximateCandidates =
+                    selectApproximateCandidates(
+                            fertilizers,
+                            recommendedRatio.ratio(),
+                            noDirectMatchMessage,
+                            requiredN,
+                            requiredP2O5,
+                            requiredK2O);
+            if (!approximateCandidates.isEmpty()) {
+                return new FormulatedFertilizerSelectionResult(
+                        approximateCandidates,
+                        true,
+                        appendTechnicalMessage(
+                                noDirectMatchMessage,
+                                "Seleção aproximada aplicada somente a formulados com fornecimento estimado dentro de +/-10% da recomendação."));
+            }
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
                     false,
                     appendTechnicalMessage(
-                            recommendedRatio.technicalMessage(),
-                            "Sem adubo mineral formulado com relação N-P2O5-K2O idêntica à recomendação calculada."));
+                            noDirectMatchMessage,
+                            "Nenhum formulado aproximado permaneceu dentro de +/-10% da recomendação para todos os nutrientes considerados."));
         }
 
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
@@ -139,6 +159,104 @@ public class FormulatedFertilizerSelectionService {
                 calculateFertilizerDoseKgHa(requiredNutrientSum(requiredN, requiredP2O5, requiredK2O), concentrationSum),
                 false,
                 appendTechnicalMessage(recommendedRatioMessage, formulatedRatio.technicalMessage()));
+    }
+
+    private List<FormulatedFertilizerSelectionCandidate> selectApproximateCandidates(
+            List<FormulatedMineralFertilizerModel> fertilizers,
+            NPKrelation recommendedRatio,
+            String baseTechnicalMessage,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O) {
+        return fertilizers.stream()
+                .map(fertilizer -> toApproximateCandidate(
+                        fertilizer,
+                        recommendedRatio,
+                        baseTechnicalMessage,
+                        requiredN,
+                        requiredP2O5,
+                        requiredK2O))
+                .filter(candidate -> candidate != null)
+                .sorted(Comparator
+                        .comparing(ApproximateCandidate::ratioDistance)
+                        .thenComparing(ApproximateCandidate::selectionCandidate, candidateComparator()))
+                .map(ApproximateCandidate::selectionCandidate)
+                .toList();
+    }
+
+    private ApproximateCandidate toApproximateCandidate(FormulatedMineralFertilizerModel fertilizer,
+                                                        NPKrelation recommendedRatio,
+                                                        String baseTechnicalMessage,
+                                                        Double requiredN,
+                                                        Double requiredP2O5,
+                                                        Double requiredK2O) {
+        FormulatedFertilizerRatioService.RatioCalculationResult formulatedRatio =
+                ratioService.calculateFormulatedRatio(fertilizer);
+        if (!formulatedRatio.calculated()) {
+            return null;
+        }
+
+        Double concentrationSum = ratioService.calculateFormulatedConcentrationSum(fertilizer);
+        if (concentrationSum == null || concentrationSum <= 0d) {
+            return null;
+        }
+
+        Double fertilizerDoseKgHa = calculateFertilizerDoseKgHa(
+                requiredNutrientSum(requiredN, requiredP2O5, requiredK2O),
+                concentrationSum);
+        if (fertilizerDoseKgHa == null
+                || !hasSupplyWithinTolerance(fertilizer, fertilizerDoseKgHa, requiredN, requiredP2O5, requiredK2O)) {
+            return null;
+        }
+
+        return new ApproximateCandidate(
+                new FormulatedFertilizerSelectionCandidate(
+                        fertilizer,
+                        formulatedRatio.ratio(),
+                        ratioService.calculateRatioSum(recommendedRatio),
+                        ratioService.calculateRatioSum(formulatedRatio.ratio()),
+                        concentrationSum,
+                        fertilizerDoseKgHa,
+                        true,
+                        appendTechnicalMessage(baseTechnicalMessage, formulatedRatio.technicalMessage())),
+                calculateRatioDistance(recommendedRatio, formulatedRatio.ratio()));
+    }
+
+    private boolean hasSupplyWithinTolerance(FormulatedMineralFertilizerModel fertilizer,
+                                             Double fertilizerDoseKgHa,
+                                             Double requiredN,
+                                             Double requiredP2O5,
+                                             Double requiredK2O) {
+        if (fertilizer == null || fertilizerDoseKgHa == null || !Double.isFinite(fertilizerDoseKgHa)) {
+            return false;
+        }
+        return isSuppliedWithinTolerance(calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getN()), requiredN)
+                && isSuppliedWithinTolerance(calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getP2O5()), requiredP2O5)
+                && isSuppliedWithinTolerance(calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getK2O()), requiredK2O);
+    }
+
+    private double calculateProvidedNutrient(Double fertilizerDoseKgHa, Double nutrientPercent) {
+        return fertilizerDoseKgHa * normalizeRequiredDose(nutrientPercent) / 100d;
+    }
+
+    private boolean isSuppliedWithinTolerance(double supplied, Double required) {
+        double normalizedRequired = normalizeRequiredDose(required);
+        if (normalizedRequired == 0d) {
+            return supplied == 0d;
+        }
+        double minimum = normalizedRequired * (1d - APPROXIMATE_SUPPLY_TOLERANCE);
+        double maximum = normalizedRequired * (1d + APPROXIMATE_SUPPLY_TOLERANCE);
+        return supplied >= minimum && supplied <= maximum;
+    }
+
+    private double calculateRatioDistance(NPKrelation recommendedRatio, NPKrelation formulatedRatio) {
+        if (recommendedRatio == null || formulatedRatio == null) {
+            return Double.MAX_VALUE;
+        }
+        double nDistance = recommendedRatio.getN() - formulatedRatio.getN();
+        double pDistance = recommendedRatio.getP() - formulatedRatio.getP();
+        double kDistance = recommendedRatio.getK() - formulatedRatio.getK();
+        return Math.sqrt(nDistance * nDistance + pDistance * pDistance + kDistance * kDistance);
     }
 
     private double requiredNutrientSum(Double requiredN, Double requiredP2O5, Double requiredK2O) {
@@ -241,5 +359,10 @@ public class FormulatedFertilizerSelectionService {
             List<FormulatedFertilizerSelectionCandidate> candidates,
             boolean fallbackUsed,
             String technicalMessage) {
+    }
+
+    private record ApproximateCandidate(
+            FormulatedFertilizerSelectionCandidate selectionCandidate,
+            double ratioDistance) {
     }
 }

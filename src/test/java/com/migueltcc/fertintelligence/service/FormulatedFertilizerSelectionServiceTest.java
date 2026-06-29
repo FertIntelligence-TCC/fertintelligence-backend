@@ -71,6 +71,43 @@ class FormulatedFertilizerSelectionServiceTest {
     }
 
     @Test
+    void returnsApproximateMatchesWhenIdenticalRatioDoesNotExistAndSupplyFitsTolerance() {
+        FormulatedMineralFertilizerModel closerFormula = formulated(1L, 5d, 19d, 10d);
+        FormulatedMineralFertilizerModel fartherFormula = formulated(2L, 5d, 18.5d, 10d);
+        FormulatedMineralFertilizerModel outsideTolerance = formulated(3L, 6d, 18d, 10d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCandidates(
+                        List.of(outsideTolerance, fartherFormula, closerFormula),
+                        20d,
+                        80d,
+                        40d);
+
+        assertThat(result.candidates()).hasSize(2);
+        assertThat(result.fallbackUsed()).isTrue();
+        assertThat(result.technicalMessage()).contains("+/-10%");
+        assertThat(result.candidates())
+                .extracting(candidate -> candidate.formulated().getId())
+                .containsExactly(1L, 2L);
+        assertThat(result.candidates().get(0).approximateFallback()).isTrue();
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(14000d / 34d);
+    }
+
+    @Test
+    void doesNotRunApproximateSelectionWhenIdenticalRatioExists() {
+        FormulatedMineralFertilizerModel directFormula = formulated(1L, 4d, 16d, 8d);
+        FormulatedMineralFertilizerModel approximateFormula = formulated(2L, 5d, 19d, 10d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCandidates(List.of(approximateFormula, directFormula), 20d, 80d, 40d);
+
+        assertThat(result.candidates()).hasSize(1);
+        assertThat(result.fallbackUsed()).isFalse();
+        assertThat(result.candidates().get(0).formulated()).isSameAs(directFormula);
+        assertThat(result.candidates().get(0).approximateFallback()).isFalse();
+    }
+
+    @Test
     void returnsWarningWhenRecommendationRatioCannotBeCalculated() {
         FormulatedMineralFertilizerModel formula041608 = formulated(1L, 4d, 16d, 8d);
 
@@ -92,6 +129,7 @@ class FormulatedFertilizerSelectionServiceTest {
         assertThat(result.candidates()).isEmpty();
         assertThat(result.fallbackUsed()).isFalse();
         assertThat(result.technicalMessage()).contains("relação N-P2O5-K2O idêntica");
+        assertThat(result.technicalMessage()).contains("+/-10%");
     }
 
     private FormulatedMineralFertilizerModel formulated(Long id, double n, double p2o5, double k2o) {
