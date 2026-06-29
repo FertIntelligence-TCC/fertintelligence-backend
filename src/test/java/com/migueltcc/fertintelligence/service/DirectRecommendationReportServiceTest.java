@@ -90,6 +90,19 @@ class DirectRecommendationReportServiceTest {
     }
 
     @Test
+    void buildDoesNotGenerateMapObservationSection() {
+        DirectRecommendationReportService service = newService();
+        RecommendationModel recommendation = recommendationWithTechnicalReportContainingMap();
+
+        String report = service.build(recommendation, null);
+
+        assertThat(report).doesNotContain("Observação sobre MAP");
+        assertThat(report).doesNotContain("Observações sobre MAP");
+        assertThat(report).doesNotContain("MAP aparece nas fontes/fertilizantes recomendados");
+        assertThat(report).contains("Observações finais");
+    }
+
+    @Test
     void buildUsesPersistedStructuredLinesWhenTheyExist() {
         DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
@@ -171,6 +184,24 @@ class DirectRecommendationReportServiceTest {
                         | Fase | Nutriente | Fertilizante | Quantidade |
                         |---|---|---|---:|
                         | Plantio | N | Ureia | 100 kg/ha |
+                        """)
+                .build();
+    }
+
+    private RecommendationModel recommendationWithTechnicalReportContainingMap() {
+        return RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .cropYear(2026)
+                .technicalReport("""
+                        ## 10. Adubação de plantio
+
+                        | Fase | Nutriente | Fertilizante | Quantidade |
+                        |---|---|---|---:|
+                        | Plantio | P2O5 | MAP | 100 kg/ha |
+
+                        ## 14. Limitações e alertas
+
+                        Dados conforme laudo técnico.
                         """)
                 .build();
     }

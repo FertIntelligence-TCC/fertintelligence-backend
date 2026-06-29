@@ -102,8 +102,6 @@ public class DirectRecommendationReportService {
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
 
-        report.append("Observação sobre MAP\n\n");
-        report.append(resolveMapObservation(source)).append("\n\n");
         report.append("Observações finais\n\n");
         report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "14. Limitações e alertas")));
         report.append("\n\n- ").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
@@ -463,13 +461,5 @@ public class DirectRecommendationReportService {
     }
 
     public record DirectDoseUnitMetadata(String doseUnitMode, String doseUnitLabel, String applicableDoseColumn) {
-    }
-
-    private String resolveMapObservation(String source) {
-        String normalized = source == null ? "" : source.toLowerCase();
-        if (normalized.contains("map")) {
-            return "MAP aparece nas fontes/fertilizantes recomendados calculados no laudo técnico persistido.";
-        }
-        return "Não aplicável com os dados disponíveis.";
     }
 }
