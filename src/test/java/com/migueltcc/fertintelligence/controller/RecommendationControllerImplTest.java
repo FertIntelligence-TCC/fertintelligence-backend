@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.controller;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
@@ -144,6 +145,84 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(
                 "TODOS",
                 new FertilizerSourceOptionConverter().convertToDatabaseColumn(dto.getOrigemAdubos()));
+    }
+
+    @Test
+    void recommendationCreateRequestDto_AcceptsOptionalOrganicFertilizerFields() throws Exception {
+        String legacyJson = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL"
+                }
+                """;
+        String organicJson = legacyJson.replace(
+                "\"origem_adubos\": \"ALL\"",
+                """
+                "origem_adubos": "ALL",
+                  "usar_adubo_organico": true,
+                  "nutriente_referencia_adubo_organico": "NITROGENIO"
+                """);
+        String camelCaseJson = organicJson
+                .replace("\"usar_adubo_organico\"", "\"useOrganicFertilizer\"")
+                .replace("\"nutriente_referencia_adubo_organico\"", "\"organicFertilizerReferenceNutrient\"");
+
+        RecommendationCreateRequestDto legacyDto = objectMapper.readValue(legacyJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto organicDto = objectMapper.readValue(organicJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto camelCaseDto = objectMapper.readValue(camelCaseJson, RecommendationCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getUseOrganicFertilizer());
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getOrganicFertilizerReferenceNutrient());
+        org.junit.jupiter.api.Assertions.assertTrue(organicDto.getUseOrganicFertilizer());
+        org.junit.jupiter.api.Assertions.assertEquals(Nutriente.NITROGENIO, organicDto.getOrganicFertilizerReferenceNutrient());
+        org.junit.jupiter.api.Assertions.assertTrue(camelCaseDto.getUseOrganicFertilizer());
+        org.junit.jupiter.api.Assertions.assertEquals(Nutriente.NITROGENIO, camelCaseDto.getOrganicFertilizerReferenceNutrient());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void generateRecommendation_RejectsOrganicReferenceNutrientWhenOrganicFertilizerIsNotEnabled() throws Exception {
+        String json = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL",
+                  "usar_adubo_organico": false,
+                  "nutriente_referencia_adubo_organico": "NITROGENIO"
+                }
+                """;
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("organicFertilizerReferenceNutrientConsistent: O nutriente de referência do adubo orgânico só pode ser informado quando o uso de adubo orgânico estiver habilitado."));
     }
 
     @Test

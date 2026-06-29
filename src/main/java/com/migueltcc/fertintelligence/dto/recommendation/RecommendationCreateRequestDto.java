@@ -1,15 +1,18 @@
 package com.migueltcc.fertintelligence.dto.recommendation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.recommendation.deserializer.NullableLimingCriteriaDeserializer;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -98,4 +101,18 @@ public class RecommendationCreateRequestDto {
     @JsonAlias({"fertilizerSourceOption", "origemAdubos"})
     @NotNull
     private FertilizerSourceOption origemAdubos;
+
+    @JsonProperty("usar_adubo_organico")
+    @JsonAlias({"useOrganicFertilizer", "usarAduboOrganico"})
+    private Boolean useOrganicFertilizer;
+
+    @JsonProperty("nutriente_referencia_adubo_organico")
+    @JsonAlias({"organicFertilizerReferenceNutrient", "nutrienteReferenciaAduboOrganico"})
+    private Nutriente organicFertilizerReferenceNutrient;
+
+    @JsonIgnore
+    @AssertTrue(message = "O nutriente de referência do adubo orgânico só pode ser informado quando o uso de adubo orgânico estiver habilitado.")
+    public boolean isOrganicFertilizerReferenceNutrientConsistent() {
+        return organicFertilizerReferenceNutrient == null || Boolean.TRUE.equals(useOrganicFertilizer);
+    }
 }
