@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
@@ -34,6 +35,7 @@ class NutrientFertilizationCalculationService {
     private final CoverageRepository coverageRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
+    private final FormulatedFertilizerSelectionService formulatedFertilizerSelectionService;
     private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
     private final CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService;
 
@@ -41,12 +43,14 @@ class NutrientFertilizationCalculationService {
                                             CoverageRepository coverageRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
+                                            FormulatedFertilizerSelectionService formulatedFertilizerSelectionService,
                                             PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService,
                                             CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
+        this.formulatedFertilizerSelectionService = formulatedFertilizerSelectionService;
         this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
         this.coverageFormulatedFertilizerRecommendationService = coverageFormulatedFertilizerRecommendationService;
     }
@@ -190,7 +194,17 @@ class NutrientFertilizationCalculationService {
     }
 
     private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String> w) {
-        w.add("Seleção de adubo formulado NPK para plantio temporariamente indisponível: a estratégia antiga foi removida e a nova estratégia ainda não foi implementada.");
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult formulatedSelection =
+                formulatedFertilizerSelectionService.selectCandidates(user, sourceOption, n, p, k);
+        if (formulatedSelection.technicalMessage() != null) {
+            w.add(formulatedSelection.technicalMessage());
+        }
+        if (formulatedSelection.candidates() != null && !formulatedSelection.candidates().isEmpty()) {
+            FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected =
+                    formulatedSelection.candidates().get(0);
+            return buildFormulatedSelection(selected, n, p, k, w);
+        }
+
         var simples = selectSimpleFertilizers(user, sourceOption);
         var bestS = simples.stream().filter(f -> f.getN() > 0 || f.getP2O5() > 0 || f.getK2O() > 0).max((a, b) -> compareScore(a.getN(), a.getP2O5(), a.getK2O(), b.getN(), b.getP2O5(), b.getK2O(), n, p, k, a.getId(), b.getId()));
         if (bestS.isPresent()) {
@@ -207,6 +221,88 @@ class NutrientFertilizationCalculationService {
         }
         w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada.");
         return new FertilizerSelection("Não encontrado", null, null, null, null, null, null, null, null, null, null, null, null, Optional.empty());
+    }
+
+    private FertilizerSelection buildFormulatedSelection(
+            FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            List<String> warnings) {
+        FormulatedMineralFertilizerModel fertilizer = selected.formulated();
+        String warning = null;
+        if (nvl(selected.balanceN()) < 0 || nvl(selected.balanceP2O5()) < 0 || nvl(selected.balanceK2O()) < 0) {
+            warning = String.format(Locale.US,
+                    "Fertilizante formulado selecionado não atende todos os nutrientes no plantio. Déficits: N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha.",
+                    nvl(selected.deficitN()), nvl(selected.deficitP2O5()), nvl(selected.deficitK2O()));
+            warnings.add(warning);
+        }
+
+        RecommendationCalculationService.FertilizerSuggestion suggestion =
+                RecommendationCalculationService.FertilizerSuggestion.builder()
+                        .fertilizerId(fertilizer != null ? fertilizer.getId() : null)
+                        .fertilizerType("FORMULADO")
+                        .fertilizerName(formatFormulatedFertilizerName(fertilizer))
+                        .n(fertilizer != null ? fertilizer.getN() : null)
+                        .p2o5(fertilizer != null ? fertilizer.getP2O5() : null)
+                        .k2o(fertilizer != null ? fertilizer.getK2O() : null)
+                        .reason("Seleção de formulado NPK por " + formulatedSelectionType(selected) + ".")
+                        .build();
+
+        return new FertilizerSelection(
+                suggestion.getFertilizerName(),
+                round2(nvl(selected.fertilizerDoseKgHa())),
+                round2(nvl(selected.providedN())),
+                round2(nvl(selected.providedP2O5())),
+                round2(nvl(selected.providedK2O())),
+                selected.balanceN(),
+                selected.balanceP2O5(),
+                selected.balanceK2O(),
+                selected.limitingNutrient(),
+                selected.maximizationFallback() ? targetNeedForLimitingNutrient(selected.limitingNutrient(), requiredN, requiredP2O5, requiredK2O) : null,
+                selected.concentrationSum(),
+                buildFormulatedCalculationMemory(selected),
+                warning,
+                Optional.of(suggestion));
+    }
+
+    private String formatFormulatedFertilizerName(FormulatedMineralFertilizerModel fertilizer) {
+        if (fertilizer == null) {
+            return "NPK formulado";
+        }
+        return String.format(Locale.US, "NPK %.2f-%.2f-%.2f", fertilizer.getN(), fertilizer.getP2O5(), fertilizer.getK2O());
+    }
+
+    private String formulatedSelectionType(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected) {
+        if (selected.maximizationFallback()) {
+            return "maximização";
+        }
+        return selected.approximateFallback() ? "relação aproximada" : "relação equivalente";
+    }
+
+    private Double targetNeedForLimitingNutrient(String nutrient, Double requiredN, Double requiredP2O5, Double requiredK2O) {
+        if ("N".equals(nutrient)) return round2(nvl(requiredN));
+        if ("P2O5".equals(nutrient)) return round2(nvl(requiredP2O5));
+        if ("K2O".equals(nutrient)) return round2(nvl(requiredK2O));
+        return null;
+    }
+
+    private String buildFormulatedCalculationMemory(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected) {
+        return String.format(Locale.US,
+                "Estratégia de seleção: %s; relação do formulado: %.2f-%.2f-%.2f; soma de concentrações NPK: %.2f%%; dose calculada: %.2f kg/ha; cobertura estimada: %.2f%%; fornecido: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; déficit/excedente: N %+.2f, P2O5 %+.2f, K2O %+.2f kg/ha.",
+                formulatedSelectionType(selected),
+                selected.relation() != null ? selected.relation().getN() : 0d,
+                selected.relation() != null ? selected.relation().getP() : 0d,
+                selected.relation() != null ? selected.relation().getK() : 0d,
+                nvl(selected.concentrationSum()),
+                nvl(selected.fertilizerDoseKgHa()),
+                nvl(selected.coveragePercent()),
+                nvl(selected.providedN()),
+                nvl(selected.providedP2O5()),
+                nvl(selected.providedK2O()),
+                nvl(selected.balanceN()),
+                nvl(selected.balanceP2O5()),
+                nvl(selected.balanceK2O()));
     }
 
     private FertilizerSelection buildSelection(String name, FertilizerDoseCalculation calc, Double rn, Double rp, Double rk, double fn, double fp, double fk, List<String> warnings, String warning, Optional<RecommendationCalculationService.FertilizerSuggestion> suggestion) {
