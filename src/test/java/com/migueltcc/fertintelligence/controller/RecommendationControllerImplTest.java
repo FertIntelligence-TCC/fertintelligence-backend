@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
@@ -20,7 +21,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SummaryRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
@@ -557,6 +560,139 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         mockMvc.perform(get("/recommendation/get").param("id", "7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7L));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getRecommendation_ReturnsCompleteValidJsonWithGeneralAndSummaryFertigramas() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+        String technicalReport = completeFertigramaTechnicalReport();
+
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .id(7L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .technicalReport(technicalReport)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        GeneralRecommendationModel generalRecommendation = GeneralRecommendationModel.builder()
+                .id(8L)
+                .recommendation(recommendation)
+                .documentName(GeneralRecommendationModel.DOCUMENT_NAME)
+                .technicalReport(technicalReport)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        SummaryRecommendationModel summaryRecommendation = SummaryRecommendationModel.builder()
+                .id(9L)
+                .recommendation(recommendation)
+                .documentName(SummaryRecommendationModel.DOCUMENT_NAME)
+                .technicalReport(technicalReport)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        recommendation.setGeneralRecommendation(generalRecommendation);
+        recommendation.setSummaryRecommendation(summaryRecommendation);
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recommendationRepository.findById(7L)).thenReturn(Optional.of(recommendation));
+
+        String json = mockMvc.perform(get("/recommendation/get").param("id", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recomendacao_geral.fertigramas.length()").value(6))
+                .andExpect(jsonPath("$.recomendacao_resumida.fertigramas.length()").value(4))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = objectMapper.readTree(json);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(
+                        "soil_chemical_macronutrients",
+                        "soil_chemical_micronutrients",
+                        "soil_chemical_parameters_1",
+                        "soil_chemical_parameters_2",
+                        "foliar_macronutrients",
+                        "foliar_micronutrients"),
+                streamGroupKeys(root.at("/recomendacao_geral/fertigramas")));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(
+                        "soil_chemical_macronutrients",
+                        "soil_chemical_micronutrients",
+                        "soil_chemical_parameters_1",
+                        "soil_chemical_parameters_2"),
+                streamGroupKeys(root.at("/recomendacao_resumida/fertigramas")));
+    }
+
+    private List<String> streamGroupKeys(JsonNode fertigramas) {
+        java.util.ArrayList<String> keys = new java.util.ArrayList<>();
+        fertigramas.forEach(node -> keys.add(node.get("chave_grupo").asText()));
+        return keys;
+    }
+
+    private String completeFertigramaTechnicalReport() {
+        return """
+                Laudo Técnico de Recomendação Agrícola
+
+                3. Diagnóstico químico
+
+                | Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |
+                |---|---:|---|---|---|---|
+                | Fósforo | 12,0 | mg/dm3 | Adequado | 8 a 18 | Dentro da faixa. |
+                | Potássio | 90,0 | mg/dm3 | Adequado | 60 a 120 | Dentro da faixa. |
+                | Cálcio | 3,0 | cmolc/dm3 | Adequado | 2 a 5 | Dentro da faixa. |
+                | Magnésio | 1,2 | cmolc/dm3 | Adequado | 0,8 a 2 | Dentro da faixa. |
+                | Alumínio | 0,1 | cmolc/dm3 | Baixo | < 0,3 | Dentro da faixa. |
+                | Enxofre | 9,0 | mg/dm3 | Adequado | 5 a 15 | Dentro da faixa. |
+                | Boro | 0,5 | mg/dm3 | Adequado | 0,3 a 0,8 | Dentro da faixa. |
+                | Cobre | 1,1 | mg/dm3 | Adequado | 0,8 a 1,8 | Dentro da faixa. |
+                | Ferro | 35,0 | mg/dm3 | Adequado | 20 a 50 | Dentro da faixa. |
+                | Manganês | 8,0 | mg/dm3 | Adequado | 5 a 12 | Dentro da faixa. |
+                | Zinco | 2,0 | mg/dm3 | Adequado | 1 a 4 | Dentro da faixa. |
+                | pH | 6,0 | pH | Adequado | 5,5 a 6,5 | Dentro da faixa. |
+                | Matéria Orgânica | 28,0 | g/dm3 | Adequado | 20 a 40 | Dentro da faixa. |
+                | H+Al | 3,5 | cmolc/dm3 | Adequado | 2 a 5 | Dentro da faixa. |
+                | Soma de bases | 6,0 | cmolc/dm3 | Adequado | 4 a 8 | Dentro da faixa. |
+                | CTC efetiva | 6,2 | cmolc/dm3 | Adequado | 4 a 8 | Dentro da faixa. |
+                | CTC pH 7 | 9,5 | cmolc/dm3 | Adequado | 7 a 12 | Dentro da faixa. |
+                | Saturação por bases | 63,0 | % | Adequado | 50 a 70 | Dentro da faixa. |
+                | Saturação por alumínio | 1,0 | % | Baixo | < 5 | Dentro da faixa. |
+
+                4. Diagnóstico físico
+
+                | Atributo | Valor analisado | Unidade | Observação técnica |
+                |---|---:|---|---|
+                | Argila | 320,0 | g/kg | Classe média. |
+
+                5. Diagnóstico de salinidade/sodicidade
+
+                | Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |
+                |---|---:|---|---|---|---|
+                | CE | 0,4 | dS/m | Baixa | < 1 | Sem restrição. |
+
+                6. Diagnóstico foliar
+
+                | Nutriente | Valor analisado | Unidade | Interpretação | Faixa adequada usada | Observação técnica |
+                |---|---:|---|---|---|---|
+                | Nitrogênio | 35,0 | g/kg | Adequado | 30 a 45 | Dentro da faixa. |
+                | Fósforo | 3,0 | g/kg | Adequado | 2 a 4 | Dentro da faixa. |
+                | Potássio | 24,0 | g/kg | Adequado | 20 a 30 | Dentro da faixa. |
+                | Cálcio | 12,0 | g/kg | Adequado | 8 a 18 | Dentro da faixa. |
+                | Magnésio | 4,0 | g/kg | Adequado | 3 a 6 | Dentro da faixa. |
+                | Enxofre | 2,0 | g/kg | Adequado | 1 a 3 | Dentro da faixa. |
+                | Boro | 45,0 | mg/kg | Adequado | 35 a 60 | Dentro da faixa. |
+                | Cobre | 8,0 | mg/kg | Adequado | 5 a 15 | Dentro da faixa. |
+                | Ferro | 120,0 | mg/kg | Adequado | 80 a 200 | Dentro da faixa. |
+                | Manganês | 80,0 | mg/kg | Adequado | 50 a 150 | Dentro da faixa. |
+                | Molibdênio | 0,2 | mg/kg | Adequado | 0,1 a 0,5 | Dentro da faixa. |
+                | Zinco | 35,0 | mg/kg | Adequado | 20 a 50 | Dentro da faixa. |
+
+                9. Adubação corretiva
+
+                | Nutriente | Necessidade | Unidade | Observação técnica |
+                |---|---:|---|---|
+                | Fósforo | 0,0 | kg/ha | Sem correção. |
+                """;
     }
 
     @Test

@@ -43,7 +43,10 @@ public class RecommendationStructuredDataAssembler {
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
 
     public List<RecommendationTableSectionDto> generalSections(RecommendationModel recommendation) {
-        String report = report(recommendation);
+        return generalSections(report(recommendation));
+    }
+
+    public List<RecommendationTableSectionDto> generalSections(String report) {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
         sections.add(section(report, "2. Dados utilizados", "Dados utilizados"));
         sections.add(section(report, "3. Diagnóstico químico", CHEMICAL_DIAGNOSIS_TITLE));
@@ -68,7 +71,11 @@ public class RecommendationStructuredDataAssembler {
     }
 
     public List<RecommendationFertigramaDto> generalFertigramas(RecommendationModel recommendation) {
-        List<RecommendationTableSectionDto> sections = generalSections(recommendation);
+        return generalFertigramas(report(recommendation));
+    }
+
+    public List<RecommendationFertigramaDto> generalFertigramas(String report) {
+        List<RecommendationTableSectionDto> sections = generalSections(report);
         List<RecommendationFertigramaDto> fertigramas = new ArrayList<>();
         fertigramas.addAll(chemicalFertigramas(sections));
         fertigramas.addAll(foliarFertigramas(sections));
