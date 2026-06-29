@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.generalRecommendation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.dto.recommendation.RecommendationFertigramaDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationTableSectionDto;
 import lombok.*;
 
@@ -32,6 +33,10 @@ public class GeneralRecommendationResponseDto {
     @Builder.Default
     @JsonProperty("tabelas_estruturadas")
     private List<RecommendationTableSectionDto> structuredTables = new ArrayList<>();
+
+    @Builder.Default
+    @JsonProperty("fertigramas")
+    private List<RecommendationFertigramaDto> fertigramas = new ArrayList<>();
 
     @Builder.Default
     @JsonProperty("observacoes_tecnicas")

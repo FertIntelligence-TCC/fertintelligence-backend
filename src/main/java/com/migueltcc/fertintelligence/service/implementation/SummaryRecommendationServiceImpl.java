@@ -121,6 +121,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
                 .structuredTables(structuredDataAssembler.summarySections(model.getRecommendation()))
+                .fertigramas(structuredDataAssembler.summaryFertigramas(model.getRecommendation()))
                 .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
