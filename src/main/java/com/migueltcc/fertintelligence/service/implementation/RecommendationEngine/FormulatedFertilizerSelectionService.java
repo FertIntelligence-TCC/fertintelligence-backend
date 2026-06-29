@@ -9,6 +9,7 @@ import com.migueltcc.fertintelligence.repository.FormulatedMineralFertilizerRepo
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,14 +19,14 @@ import java.util.function.Function;
 public class FormulatedFertilizerSelectionService {
 
     private static final int PRESENTATION_LIMIT = 2;
-    private static final String STRATEGY_PENDING_MESSAGE =
-            "Seleção de adubo formulado NPK temporariamente indisponível: a estratégia antiga foi removida e a nova estratégia ainda não foi implementada.";
 
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
+    private final FormulatedFertilizerRatioService ratioService;
 
     public FormulatedFertilizerSelectionService(FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
                                                 FormulatedFertilizerRatioService ratioService) {
         this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
+        this.ratioService = ratioService;
     }
 
     public List<FormulatedFertilizerSelectionCandidate> selectTopCandidates(UserModel user,
@@ -70,7 +71,114 @@ public class FormulatedFertilizerSelectionService {
                                                                 Double requiredN,
                                                                 Double requiredP2O5,
                                                                 Double requiredK2O) {
-        return new FormulatedFertilizerSelectionResult(List.of(), false, STRATEGY_PENDING_MESSAGE);
+        FormulatedFertilizerRatioService.RatioCalculationResult recommendedRatio =
+                ratioService.calculateRecommendedRatio(requiredN, requiredP2O5, requiredK2O);
+        if (!recommendedRatio.calculated()) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    recommendedRatio.technicalMessage());
+        }
+        if (fertilizers == null || fertilizers.isEmpty()) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    appendTechnicalMessage(
+                            recommendedRatio.technicalMessage(),
+                            "Sem adubo mineral formulado cadastrado para avaliar relação N-P2O5-K2O."));
+        }
+
+        List<FormulatedFertilizerSelectionCandidate> candidates = fertilizers.stream()
+                .map(fertilizer -> toDirectMatchCandidate(
+                        fertilizer,
+                        recommendedRatio.ratio(),
+                        recommendedRatio.technicalMessage(),
+                        requiredN,
+                        requiredP2O5,
+                        requiredK2O))
+                .filter(candidate -> candidate != null)
+                .sorted(candidateComparator())
+                .toList();
+
+        if (candidates.isEmpty()) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    appendTechnicalMessage(
+                            recommendedRatio.technicalMessage(),
+                            "Sem adubo mineral formulado com relação N-P2O5-K2O idêntica à recomendação calculada."));
+        }
+
+        return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
+    }
+
+    private FormulatedFertilizerSelectionCandidate toDirectMatchCandidate(FormulatedMineralFertilizerModel fertilizer,
+                                                                          NPKrelation recommendedRatio,
+                                                                          String recommendedRatioMessage,
+                                                                          Double requiredN,
+                                                                          Double requiredP2O5,
+                                                                          Double requiredK2O) {
+        FormulatedFertilizerRatioService.RatioCalculationResult formulatedRatio =
+                ratioService.calculateFormulatedRatio(fertilizer);
+        if (!formulatedRatio.calculated()
+                || !ratioService.hasCompleteRatioMatch(recommendedRatio, formulatedRatio.ratio())) {
+            return null;
+        }
+
+        Double concentrationSum = ratioService.calculateFormulatedConcentrationSum(fertilizer);
+        if (concentrationSum == null || concentrationSum <= 0d) {
+            return null;
+        }
+
+        return new FormulatedFertilizerSelectionCandidate(
+                fertilizer,
+                formulatedRatio.ratio(),
+                ratioService.calculateRatioSum(recommendedRatio),
+                ratioService.calculateRatioSum(formulatedRatio.ratio()),
+                concentrationSum,
+                calculateFertilizerDoseKgHa(requiredNutrientSum(requiredN, requiredP2O5, requiredK2O), concentrationSum),
+                false,
+                appendTechnicalMessage(recommendedRatioMessage, formulatedRatio.technicalMessage()));
+    }
+
+    private double requiredNutrientSum(Double requiredN, Double requiredP2O5, Double requiredK2O) {
+        return normalizeRequiredDose(requiredN)
+                + normalizeRequiredDose(requiredP2O5)
+                + normalizeRequiredDose(requiredK2O);
+    }
+
+    private Double calculateFertilizerDoseKgHa(double requiredNutrientSum, Double concentrationSum) {
+        if (concentrationSum == null || concentrationSum <= 0d) {
+            return null;
+        }
+        return 100d * requiredNutrientSum / concentrationSum;
+    }
+
+    private double normalizeRequiredDose(Double value) {
+        if (value == null || !Double.isFinite(value) || value < 0d) {
+            return 0d;
+        }
+        return value;
+    }
+
+    private Comparator<FormulatedFertilizerSelectionCandidate> candidateComparator() {
+        return Comparator
+                .comparing(FormulatedFertilizerSelectionCandidate::fertilizerDoseKgHa,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(FormulatedFertilizerSelectionCandidate::concentrationSum,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(candidate -> candidate.formulated() != null ? candidate.formulated().getId() : null,
+                        Comparator.nullsLast(Long::compareTo));
+    }
+
+    private String appendTechnicalMessage(String first, String second) {
+        if (first == null || first.isBlank()) {
+            return second;
+        }
+        if (second == null || second.isBlank()) {
+            return first;
+        }
+        return first + " " + second;
     }
 
     private List<FormulatedFertilizerSelectionCandidate> limitForPresentation(
