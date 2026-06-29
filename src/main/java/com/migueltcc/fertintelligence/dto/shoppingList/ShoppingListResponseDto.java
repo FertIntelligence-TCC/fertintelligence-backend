@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -25,6 +27,14 @@ public class ShoppingListResponseDto {
 
     @JsonProperty("conteudo")
     private String content;
+
+    @Builder.Default
+    @JsonProperty("itens")
+    private List<ShoppingListItemResponseDto> items = new ArrayList<>();
+
+    @Builder.Default
+    @JsonProperty("observacoes_tecnicas")
+    private List<String> technicalObservations = new ArrayList<>();
 
     @Builder.Default
     @JsonProperty("formato_conteudo")

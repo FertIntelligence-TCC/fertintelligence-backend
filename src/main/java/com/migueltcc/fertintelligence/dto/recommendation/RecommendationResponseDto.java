@@ -9,6 +9,9 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Technica
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
+import com.migueltcc.fertintelligence.dto.generalRecommendation.GeneralRecommendationResponseDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
+import com.migueltcc.fertintelligence.dto.summaryRecommendation.SummaryRecommendationResponseDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -66,12 +69,16 @@ public class RecommendationResponseDto {
     private Boolean generalRecommendationGenerated;
     @JsonProperty("nome_documento_recomendacao_geral")
     private String generalRecommendationDocumentName;
+    @JsonProperty("recomendacao_geral")
+    private GeneralRecommendationResponseDto generalRecommendation;
     @JsonProperty("id_recomendacao_resumida")
     private Long summaryRecommendationId;
     @JsonProperty("recomendacao_resumida_gerada")
     private Boolean summaryRecommendationGenerated;
     @JsonProperty("nome_documento_recomendacao_resumida")
     private String summaryRecommendationDocumentName;
+    @JsonProperty("recomendacao_resumida")
+    private SummaryRecommendationResponseDto summaryRecommendation;
     @JsonProperty("id_recomendacao_direta")
     private Long directRecommendationId;
     @JsonProperty("recomendacao_direta_gerada")
@@ -86,6 +93,8 @@ public class RecommendationResponseDto {
     private Boolean shoppingListGenerated;
     @JsonProperty("nome_documento_lista_compras")
     private String shoppingListDocumentName;
+    @JsonProperty("lista_compras")
+    private ShoppingListResponseDto shoppingList;
     @JsonProperty("imprimivel")
     private Boolean printable;
     @JsonProperty("criado_em")

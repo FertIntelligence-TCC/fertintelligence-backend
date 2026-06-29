@@ -1,9 +1,12 @@
 package com.migueltcc.fertintelligence.dto.generalRecommendation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.dto.recommendation.RecommendationTableSectionDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -25,6 +28,14 @@ public class GeneralRecommendationResponseDto {
 
     @JsonProperty("conteudo")
     private String content;
+
+    @Builder.Default
+    @JsonProperty("tabelas_estruturadas")
+    private List<RecommendationTableSectionDto> structuredTables = new ArrayList<>();
+
+    @Builder.Default
+    @JsonProperty("observacoes_tecnicas")
+    private List<String> technicalObservations = new ArrayList<>();
 
     @Builder.Default
     @JsonProperty("formato_conteudo")

@@ -14,6 +14,7 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrie
 import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ public class DirectRecommendationDtoMapper {
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
     private final DirectRecommendationReportService directRecommendationReportService;
     private final CropSpacingCalculationService cropSpacingCalculationService;
+    private final RecommendationStructuredDataAssembler structuredDataAssembler;
 
     public DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
         if (model == null) {
@@ -42,10 +44,13 @@ public class DirectRecommendationDtoMapper {
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
+                .structuredTables(structuredDataAssembler.directSections(recommendation, model.getTechnicalReport()))
                 .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
                 .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
                 .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
                 .fertilizationObservations(directRecommendationReportService.resolveFertilizationObservations(recommendation))
+                .technicalObservations(structuredDataAssembler.observations(
+                        directRecommendationReportService.resolveFertilizationObservations(recommendation)))
                 .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
                 .plantingFormulatedFertilizerLines(toPlantingFormulatedFertilizerLineDtos(model))
                 .coverageFormulatedFertilizerLines(toCoverageFormulatedFertilizerLineDtos(model))

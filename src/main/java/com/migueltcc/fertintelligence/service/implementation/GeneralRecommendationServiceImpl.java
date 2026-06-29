@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,6 +25,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
+    private final RecommendationStructuredDataAssembler structuredDataAssembler;
 
     @Override
     @Transactional
@@ -117,6 +119,8 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : GeneralRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
+                .structuredTables(structuredDataAssembler.generalSections(model.getRecommendation()))
+                .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
@@ -129,6 +133,8 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .documentName(GeneralRecommendationModel.DOCUMENT_NAME)
                 .technicalReport(recommendation.getTechnicalReport())
                 .content(recommendation.getTechnicalReport())
+                .structuredTables(structuredDataAssembler.generalSections(recommendation))
+                .technicalObservations(structuredDataAssembler.observations(recommendation.getTechnicalReport()))
                 .generated(recommendation.getTechnicalReport() != null && !recommendation.getTechnicalReport().isBlank())
                 .createdAt(recommendation.getCreatedAt())
                 .updatedAt(recommendation.getUpdatedAt())

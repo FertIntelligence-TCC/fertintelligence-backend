@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.ShoppingListRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.ShoppingListService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.ShoppingListReportService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
     private final ShoppingListReportService shoppingListReportService;
+    private final RecommendationStructuredDataAssembler structuredDataAssembler;
 
     @Override
     @Transactional
@@ -118,6 +120,8 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
+                .items(structuredDataAssembler.shoppingItems(model.getRecommendation()))
+                .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();

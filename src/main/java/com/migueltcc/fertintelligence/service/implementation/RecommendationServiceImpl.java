@@ -4,8 +4,11 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nom
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
+import com.migueltcc.fertintelligence.dto.generalRecommendation.GeneralRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
+import com.migueltcc.fertintelligence.dto.summaryRecommendation.SummaryRecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
@@ -31,6 +34,7 @@ import com.migueltcc.fertintelligence.service.implementation.RecommendationEngin
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationNarrativeService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.ShoppingListReportService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import jakarta.persistence.EntityNotFoundException;
@@ -63,6 +67,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final DirectRecommendationDtoMapper directRecommendationDtoMapper;
     private final SummaryRecommendationReportService summaryRecommendationReportService;
     private final ShoppingListReportService shoppingListReportService;
+    private final RecommendationStructuredDataAssembler structuredDataAssembler;
     private final PermissionManager permissionManager;
 
     @Override
@@ -229,9 +234,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .generalRecommendationId(generalRecommendation != null ? generalRecommendation.getId() : null)
                 .generalRecommendationGenerated(generalRecommendation != null || hasLegacyTechnicalReport(model))
                 .generalRecommendationDocumentName(GeneralRecommendationModel.DOCUMENT_NAME)
+                .generalRecommendation(toGeneralRecommendationDto(model, generalRecommendation))
                 .summaryRecommendationId(summaryRecommendation != null ? summaryRecommendation.getId() : null)
                 .summaryRecommendationGenerated(summaryRecommendation != null)
                 .summaryRecommendationDocumentName(SummaryRecommendationModel.DOCUMENT_NAME)
+                .summaryRecommendation(toSummaryRecommendationDto(summaryRecommendation))
                 .directRecommendationId(directRecommendation != null ? directRecommendation.getId() : null)
                 .directRecommendationGenerated(directRecommendation != null)
                 .directRecommendationDocumentName(DirectRecommendationModel.DOCUMENT_NAME)
@@ -239,9 +246,73 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .shoppingListId(shoppingList != null ? shoppingList.getId() : null)
                 .shoppingListGenerated(shoppingList != null)
                 .shoppingListDocumentName(ShoppingListModel.DOCUMENT_NAME)
+                .shoppingList(toShoppingListDto(shoppingList))
                 .printable(RecommendationResponseDto.isPrintableForRole(authenticatedUser.getCargo()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
+                .build();
+    }
+
+    private GeneralRecommendationResponseDto toGeneralRecommendationDto(
+            RecommendationModel recommendation,
+            GeneralRecommendationModel generalRecommendation) {
+        String technicalReport = generalRecommendation != null
+                ? generalRecommendation.getTechnicalReport()
+                : recommendation.getTechnicalReport();
+        if (technicalReport == null || technicalReport.isBlank()) {
+            return null;
+        }
+        return GeneralRecommendationResponseDto.builder()
+                .id(generalRecommendation != null ? generalRecommendation.getId() : null)
+                .recommendationId(recommendation.getId())
+                .documentName(generalRecommendation != null && generalRecommendation.getDocumentName() != null
+                        ? generalRecommendation.getDocumentName()
+                        : GeneralRecommendationModel.DOCUMENT_NAME)
+                .technicalReport(technicalReport)
+                .content(technicalReport)
+                .structuredTables(structuredDataAssembler.generalSections(recommendation))
+                .technicalObservations(structuredDataAssembler.observations(technicalReport))
+                .generated(true)
+                .createdAt(generalRecommendation != null ? generalRecommendation.getCreatedAt() : recommendation.getCreatedAt())
+                .updatedAt(generalRecommendation != null ? generalRecommendation.getUpdatedAt() : recommendation.getUpdatedAt())
+                .build();
+    }
+
+    private SummaryRecommendationResponseDto toSummaryRecommendationDto(SummaryRecommendationModel summaryRecommendation) {
+        if (summaryRecommendation == null) {
+            return null;
+        }
+        return SummaryRecommendationResponseDto.builder()
+                .id(summaryRecommendation.getId())
+                .recommendationId(summaryRecommendation.getRecommendation().getId())
+                .documentName(summaryRecommendation.getDocumentName() != null
+                        ? summaryRecommendation.getDocumentName()
+                        : SummaryRecommendationModel.DOCUMENT_NAME)
+                .technicalReport(summaryRecommendation.getTechnicalReport())
+                .content(summaryRecommendation.getTechnicalReport())
+                .structuredTables(structuredDataAssembler.summarySections(summaryRecommendation.getRecommendation()))
+                .technicalObservations(structuredDataAssembler.observations(summaryRecommendation.getTechnicalReport()))
+                .createdAt(summaryRecommendation.getCreatedAt())
+                .updatedAt(summaryRecommendation.getUpdatedAt())
+                .build();
+    }
+
+    private ShoppingListResponseDto toShoppingListDto(ShoppingListModel shoppingList) {
+        if (shoppingList == null) {
+            return null;
+        }
+        return ShoppingListResponseDto.builder()
+                .id(shoppingList.getId())
+                .recommendationId(shoppingList.getRecommendation().getId())
+                .documentName(shoppingList.getDocumentName() != null
+                        ? shoppingList.getDocumentName()
+                        : ShoppingListModel.DOCUMENT_NAME)
+                .technicalReport(shoppingList.getTechnicalReport())
+                .content(shoppingList.getTechnicalReport())
+                .items(structuredDataAssembler.shoppingItems(shoppingList.getRecommendation()))
+                .technicalObservations(structuredDataAssembler.observations(shoppingList.getTechnicalReport()))
+                .createdAt(shoppingList.getCreatedAt())
+                .updatedAt(shoppingList.getUpdatedAt())
                 .build();
     }
 
