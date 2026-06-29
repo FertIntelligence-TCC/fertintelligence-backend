@@ -183,6 +183,9 @@ public class DirectRecommendationReportService {
             report.append("|---|---|---|---:|---:|---|\n");
             appendPlantingFormulatedRows(report, plantingFormulatedFertilizerLines);
             appendCoverageFormulatedRows(report, coverageFormulatedFertilizerLines);
+            if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
+                appendCoverageFallbackRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
+            }
             report.append("\n");
             return;
         }
@@ -245,10 +248,7 @@ public class DirectRecommendationReportService {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
-            String phase = line.getPhase();
-            if (line.getCoverageOrder() != null) {
-                phase = (phase == null || phase.isBlank() ? "Cobertura" : phase) + " " + line.getCoverageOrder();
-            }
+            String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
@@ -257,6 +257,45 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
                     .append(" |\n");
         }
+    }
+
+    private boolean appendCoverageFallbackRowsForFormulatedTable(StringBuilder report,
+                                                                 String source,
+                                                                 CropModel crop,
+                                                                 DirectDoseUnitMetadata doseUnitMetadata,
+                                                                 List<String> spacingWarnings) {
+        boolean appended = false;
+        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(
+                TechnicalRecommendationDocumentSupport.section(source, "11. Adubação de cobertura"))) {
+            if (row.size() < 4) continue;
+            String phase = row.get(0);
+            String fertilizer = row.get(2);
+            String quantity = row.get(3);
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer)
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) {
+                continue;
+            }
+            String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
+            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
+                    .append(" | ").append(NOT_APPLICABLE)
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
+                    .append(" | ").append(spacingDose)
+                    .append(" | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |\n");
+            appended = true;
+        }
+        return appended;
+    }
+
+    private String coveragePhase(String phase, Integer coverageOrder) {
+        if (coverageOrder == null) {
+            return phase;
+        }
+        if (phase == null || phase.isBlank()) {
+            return "Cobertura " + coverageOrder;
+        }
+        String normalized = phase.toLowerCase(Locale.ROOT);
+        return normalized.contains(String.valueOf(coverageOrder)) ? phase : phase + " " + coverageOrder;
     }
 
     private String calculateSpacingDose(CropModel crop,

@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
@@ -165,6 +166,108 @@ class DirectRecommendationReportServiceTest {
     }
 
     @Test
+    void buildUsesSourceCoverageRowsWhenStructuredPlantingExistsWithoutStructuredCoverage() {
+        DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
+        DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
+                mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
+        DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
+                mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationReportService service = new DirectRecommendationReportService(
+                new CropSpacingCalculationService(),
+                null,
+                null,
+                null,
+                null,
+                micronutrientRepository,
+                plantingRepository,
+                coverageRepository
+        );
+        RecommendationModel recommendation = recommendationWithPlantingAndCoverageTechnicalReport();
+        recommendation.setId(1L);
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(2L)
+                .recommendation(recommendation)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(micronutrientRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of());
+        when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
+                        .phase("Plantio")
+                        .fertilizerName("04-14-08")
+                        .relationUsed("1-3.5-2")
+                        .doseKgHa(250.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(12.5)
+                        .technicalObservation("Formulado de plantio selecionado.")
+                        .build()));
+        when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of());
+
+        String report = service.build(recommendation);
+
+        assertThat(report).contains("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | g/m linear | Observação técnica |");
+        assertThat(report).contains("| Plantio | 04-14-08 | 1-3.5-2 | 250.00 kg/ha | 12.50 | Formulado de plantio selecionado. |");
+        assertThat(report).contains("| Cobertura 1 - N | Ureia | Não aplicável com os dados disponíveis. | 60 kg/ha | 3.00 | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |");
+        assertThat(report).contains("| Cobertura 2 - K | Cloreto de potássio | Não aplicável com os dados disponíveis. | 40 kg/ha | 2.00 | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |");
+    }
+
+    @Test
+    void buildKeepsStructuredCoveragePhaseWithoutDuplicatingCoverageOrder() {
+        DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
+        DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
+                mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
+        DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
+                mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationReportService service = new DirectRecommendationReportService(
+                new CropSpacingCalculationService(),
+                null,
+                null,
+                null,
+                null,
+                micronutrientRepository,
+                plantingRepository,
+                coverageRepository
+        );
+        RecommendationModel recommendation = recommendationWithPlantingAndCoverageTechnicalReport();
+        recommendation.setId(1L);
+        DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
+                .id(2L)
+                .recommendation(recommendation)
+                .documentName(DirectRecommendationModel.DOCUMENT_NAME)
+                .technicalReport("direta")
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(micronutrientRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of());
+        when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of());
+        when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
+                        .coverageOrder(1)
+                        .phase("COBERTURA 1ª")
+                        .fertilizerName("20-00-20")
+                        .relationUsed("1.00-0.00-1.00")
+                        .doseKgHa(180.0)
+                        .doseUnitMode("LINEAR_METER")
+                        .doseUnitLabel("g/m linear")
+                        .gramsPerLinearMeter(9.0)
+                        .technicalObservation("Formulado de cobertura selecionado.")
+                        .build()));
+
+        String report = service.build(recommendation);
+
+        assertThat(report).contains("| COBERTURA 1ª | 20-00-20 | 1.00-0.00-1.00 | 180.00 kg/ha | 9.00 | Formulado de cobertura selecionado. |");
+        assertThat(report).doesNotContain("COBERTURA 1ª 1");
+        assertThat(report).doesNotContain("Cobertura propagada do laudo técnico");
+    }
+
+    @Test
     void buildUsesDefaultTechnicalObservationOnlyForMicronutrientsWithoutObservation() {
         DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
@@ -259,6 +362,27 @@ class DirectRecommendationReportServiceTest {
                         | Fase | Nutriente | Fertilizante | Quantidade |
                         |---|---|---|---:|
                         | Plantio | N | Ureia | 100 kg/ha |
+                        """)
+                .build();
+    }
+
+    private RecommendationModel recommendationWithPlantingAndCoverageTechnicalReport() {
+        return RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .cropYear(2026)
+                .technicalReport("""
+                        ## 10. Adubação de plantio
+
+                        | Fase | Nutriente | Fertilizante | Quantidade |
+                        |---|---|---|---:|
+                        | Plantio | NPK | 04-14-08 | 250 kg/ha |
+
+                        ## 11. Adubação de cobertura
+
+                        | Fase | Nutriente | Fertilizante | Quantidade |
+                        |---|---|---|---:|
+                        | Cobertura 1 - N | N | Ureia | 60 kg/ha |
+                        | Cobertura 2 - K | K2O | Cloreto de potássio | 40 kg/ha |
                         """)
                 .build();
     }
