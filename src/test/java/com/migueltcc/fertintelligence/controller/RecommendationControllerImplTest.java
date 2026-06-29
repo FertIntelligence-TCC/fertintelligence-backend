@@ -193,6 +193,66 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    void recommendationCreateRequestDto_AcceptsOptionalGreenFertilizerFields() throws Exception {
+        String legacyJson = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL"
+                }
+                """;
+        String greenFertilizerJson = legacyJson.replace(
+                "\"origem_adubos\": \"ALL\"",
+                """
+                "origem_adubos": "ALL",
+                  "usar_adubo_verde": true,
+                  "especie_adubo_verde": "Crotalaria",
+                  "massa_verde_adubo_verde": 10000.0,
+                  "umidade_adubo_verde_percentual": 70.0,
+                  "massa_seca_adubo_verde": 3000.0
+                """);
+        String camelCaseJson = greenFertilizerJson
+                .replace("\"usar_adubo_verde\"", "\"useGreenFertilizer\"")
+                .replace("\"especie_adubo_verde\"", "\"greenFertilizerSpecies\"")
+                .replace("\"massa_verde_adubo_verde\"", "\"greenFertilizerGreenMass\"")
+                .replace("\"umidade_adubo_verde_percentual\"", "\"greenFertilizerMoisturePercentage\"")
+                .replace("\"massa_seca_adubo_verde\"", "\"greenFertilizerDryMass\"");
+
+        RecommendationCreateRequestDto legacyDto = objectMapper.readValue(legacyJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto greenFertilizerDto = objectMapper.readValue(greenFertilizerJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto camelCaseDto = objectMapper.readValue(camelCaseJson, RecommendationCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getUseGreenFertilizer());
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getGreenFertilizerSpecies());
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getGreenFertilizerGreenMass());
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getGreenFertilizerMoisturePercentage());
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getGreenFertilizerDryMass());
+        org.junit.jupiter.api.Assertions.assertTrue(greenFertilizerDto.getUseGreenFertilizer());
+        org.junit.jupiter.api.Assertions.assertEquals("Crotalaria", greenFertilizerDto.getGreenFertilizerSpecies());
+        org.junit.jupiter.api.Assertions.assertEquals(10000.0, greenFertilizerDto.getGreenFertilizerGreenMass());
+        org.junit.jupiter.api.Assertions.assertEquals(70.0, greenFertilizerDto.getGreenFertilizerMoisturePercentage());
+        org.junit.jupiter.api.Assertions.assertEquals(3000.0, greenFertilizerDto.getGreenFertilizerDryMass());
+        org.junit.jupiter.api.Assertions.assertTrue(camelCaseDto.getUseGreenFertilizer());
+        org.junit.jupiter.api.Assertions.assertEquals("Crotalaria", camelCaseDto.getGreenFertilizerSpecies());
+        org.junit.jupiter.api.Assertions.assertEquals(10000.0, camelCaseDto.getGreenFertilizerGreenMass());
+        org.junit.jupiter.api.Assertions.assertEquals(70.0, camelCaseDto.getGreenFertilizerMoisturePercentage());
+        org.junit.jupiter.api.Assertions.assertEquals(3000.0, camelCaseDto.getGreenFertilizerDryMass());
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void generateRecommendation_RejectsOrganicReferenceNutrientWhenOrganicFertilizerIsNotEnabled() throws Exception {
         String json = """
@@ -223,6 +283,74 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                         .content(json))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("organicFertilizerReferenceNutrientConsistent: O nutriente de referência do adubo orgânico só pode ser informado quando o uso de adubo orgânico estiver habilitado."));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void generateRecommendation_RejectsGreenFertilizerDataWhenGreenFertilizerIsNotEnabled() throws Exception {
+        String json = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL",
+                  "usar_adubo_verde": false,
+                  "especie_adubo_verde": "Crotalaria"
+                }
+                """;
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("greenFertilizerDataConsistentWithUsage: Os dados de adubo verde só podem ser informados quando o uso de adubo verde estiver habilitado."));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void generateRecommendation_RejectsInconsistentGreenFertilizerMassesAndMoisture() throws Exception {
+        String json = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL",
+                  "usar_adubo_verde": true,
+                  "massa_verde_adubo_verde": 10000.0,
+                  "umidade_adubo_verde_percentual": 70.0,
+                  "massa_seca_adubo_verde": 5000.0
+                }
+                """;
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("greenFertilizerMassAndMoistureConsistent: A massa seca do adubo verde deve ser consistente com massa verde e umidade informadas."));
     }
 
     @Test
