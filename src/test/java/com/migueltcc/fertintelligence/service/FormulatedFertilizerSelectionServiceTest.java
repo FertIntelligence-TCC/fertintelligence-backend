@@ -120,16 +120,28 @@ class FormulatedFertilizerSelectionServiceTest {
     }
 
     @Test
-    void returnsWarningWhenNoIdenticalRatioExistsWithoutFallback() {
+    void returnsMaximizationFallbackWhenNoIdenticalOrApproximateRatioExists() {
         FormulatedMineralFertilizerModel formula101010 = formulated(1L, 10d, 10d, 10d);
 
         FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
                 service.selectCandidates(List.of(formula101010), 20d, 80d, 40d);
 
-        assertThat(result.candidates()).isEmpty();
-        assertThat(result.fallbackUsed()).isFalse();
+        assertThat(result.candidates()).hasSize(1);
+        assertThat(result.fallbackUsed()).isTrue();
         assertThat(result.technicalMessage()).contains("relação N-P2O5-K2O idêntica");
-        assertThat(result.technicalMessage()).contains("+/-10%");
+        assertThat(result.technicalMessage()).contains("maximização");
+        assertThat(result.candidates().get(0).formulated()).isSameAs(formula101010);
+        assertThat(result.candidates().get(0).approximateFallback()).isFalse();
+        assertThat(result.candidates().get(0).maximizationFallback()).isTrue();
+        assertThat(result.candidates().get(0).limitingNutrient()).isEqualTo("N");
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(200d);
+        assertThat(result.candidates().get(0).providedN()).isEqualTo(20d);
+        assertThat(result.candidates().get(0).providedP2O5()).isEqualTo(20d);
+        assertThat(result.candidates().get(0).providedK2O()).isEqualTo(20d);
+        assertThat(result.candidates().get(0).deficitN()).isEqualTo(0d);
+        assertThat(result.candidates().get(0).deficitP2O5()).isEqualTo(60d);
+        assertThat(result.candidates().get(0).deficitK2O()).isEqualTo(20d);
+        assertThat(result.candidates().get(0).coveragePercent()).isEqualTo(42.86d);
     }
 
     private FormulatedMineralFertilizerModel formulated(Long id, double n, double p2o5, double k2o) {

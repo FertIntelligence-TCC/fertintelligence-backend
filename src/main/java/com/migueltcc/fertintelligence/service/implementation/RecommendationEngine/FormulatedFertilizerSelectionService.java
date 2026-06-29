@@ -121,12 +121,28 @@ public class FormulatedFertilizerSelectionService {
                                 noDirectMatchMessage,
                                 "Seleção aproximada aplicada somente a formulados com fornecimento estimado dentro de +/-10% da recomendação."));
             }
+            List<FormulatedFertilizerSelectionCandidate> maximizationCandidates =
+                    selectMaximizationCandidates(
+                            fertilizers,
+                            recommendedRatio.ratio(),
+                            noDirectMatchMessage,
+                            requiredN,
+                            requiredP2O5,
+                            requiredK2O);
+            if (!maximizationCandidates.isEmpty()) {
+                return new FormulatedFertilizerSelectionResult(
+                        maximizationCandidates,
+                        true,
+                        appendTechnicalMessage(
+                                noDirectMatchMessage,
+                                "Seleção por maximização aplicada após falha da seleção aproximada; déficits remanescentes calculados para futura cobertura."));
+            }
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
                     false,
                     appendTechnicalMessage(
                             noDirectMatchMessage,
-                            "Nenhum formulado aproximado permaneceu dentro de +/-10% da recomendação para todos os nutrientes considerados."));
+                            "Nenhum formulado aproximado ou aplicável à maximização permaneceu válido para os nutrientes considerados."));
         }
 
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
@@ -150,14 +166,21 @@ public class FormulatedFertilizerSelectionService {
             return null;
         }
 
-        return new FormulatedFertilizerSelectionCandidate(
+        Double fertilizerDoseKgHa = calculateFertilizerDoseKgHa(
+                requiredNutrientSum(requiredN, requiredP2O5, requiredK2O),
+                concentrationSum);
+        return buildCandidate(
                 fertilizer,
+                recommendedRatio,
                 formulatedRatio.ratio(),
-                ratioService.calculateRatioSum(recommendedRatio),
-                ratioService.calculateRatioSum(formulatedRatio.ratio()),
                 concentrationSum,
-                calculateFertilizerDoseKgHa(requiredNutrientSum(requiredN, requiredP2O5, requiredK2O), concentrationSum),
+                fertilizerDoseKgHa,
                 false,
+                false,
+                null,
+                requiredN,
+                requiredP2O5,
+                requiredK2O,
                 appendTechnicalMessage(recommendedRatioMessage, formulatedRatio.technicalMessage()));
     }
 
@@ -210,16 +233,137 @@ public class FormulatedFertilizerSelectionService {
         }
 
         return new ApproximateCandidate(
-                new FormulatedFertilizerSelectionCandidate(
+                buildCandidate(
                         fertilizer,
+                        recommendedRatio,
                         formulatedRatio.ratio(),
-                        ratioService.calculateRatioSum(recommendedRatio),
-                        ratioService.calculateRatioSum(formulatedRatio.ratio()),
                         concentrationSum,
                         fertilizerDoseKgHa,
                         true,
+                        false,
+                        null,
+                        requiredN,
+                        requiredP2O5,
+                        requiredK2O,
                         appendTechnicalMessage(baseTechnicalMessage, formulatedRatio.technicalMessage())),
                 calculateRatioDistance(recommendedRatio, formulatedRatio.ratio()));
+    }
+
+    private List<FormulatedFertilizerSelectionCandidate> selectMaximizationCandidates(
+            List<FormulatedMineralFertilizerModel> fertilizers,
+            NPKrelation recommendedRatio,
+            String baseTechnicalMessage,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O) {
+        return fertilizers.stream()
+                .map(fertilizer -> toMaximizationCandidate(
+                        fertilizer,
+                        recommendedRatio,
+                        baseTechnicalMessage,
+                        requiredN,
+                        requiredP2O5,
+                        requiredK2O))
+                .filter(candidate -> candidate != null)
+                .sorted(Comparator
+                        .comparing(FormulatedFertilizerSelectionCandidate::coveragePercent,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(candidate -> totalDeficit(candidate.deficitN(), candidate.deficitP2O5(), candidate.deficitK2O()))
+                        .thenComparing(FormulatedFertilizerSelectionCandidate::concentrationSum,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(candidate -> candidate.formulated() != null ? candidate.formulated().getId() : null,
+                                Comparator.nullsLast(Long::compareTo)))
+                .limit(1)
+                .toList();
+    }
+
+    private FormulatedFertilizerSelectionCandidate toMaximizationCandidate(FormulatedMineralFertilizerModel fertilizer,
+                                                                           NPKrelation recommendedRatio,
+                                                                           String baseTechnicalMessage,
+                                                                           Double requiredN,
+                                                                           Double requiredP2O5,
+                                                                           Double requiredK2O) {
+        FormulatedFertilizerRatioService.RatioCalculationResult formulatedRatio =
+                ratioService.calculateFormulatedRatio(fertilizer);
+        if (!formulatedRatio.calculated()) {
+            return null;
+        }
+
+        Double concentrationSum = ratioService.calculateFormulatedConcentrationSum(fertilizer);
+        if (concentrationSum == null || concentrationSum <= 0d) {
+            return null;
+        }
+
+        NutrientLimit limitingNutrient = findMostLimitingNutrient(fertilizer, requiredN, requiredP2O5, requiredK2O);
+        if (limitingNutrient == null) {
+            return null;
+        }
+
+        double fertilizerDoseKgHa = limitingNutrient.doseKgHa();
+        double providedN = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getN());
+        double providedP2O5 = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getP2O5());
+        double providedK2O = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getK2O());
+
+        return new FormulatedFertilizerSelectionCandidate(
+                fertilizer,
+                formulatedRatio.ratio(),
+                ratioService.calculateRatioSum(recommendedRatio),
+                ratioService.calculateRatioSum(formulatedRatio.ratio()),
+                concentrationSum,
+                fertilizerDoseKgHa,
+                false,
+                true,
+                limitingNutrient.nutrient(),
+                calculateCoveragePercent(providedN, providedP2O5, providedK2O, requiredN, requiredP2O5, requiredK2O),
+                providedN,
+                providedP2O5,
+                providedK2O,
+                calculateBalance(providedN, requiredN),
+                calculateBalance(providedP2O5, requiredP2O5),
+                calculateBalance(providedK2O, requiredK2O),
+                calculateDeficit(providedN, requiredN),
+                calculateDeficit(providedP2O5, requiredP2O5),
+                calculateDeficit(providedK2O, requiredK2O),
+                appendTechnicalMessage(baseTechnicalMessage, formulatedRatio.technicalMessage()));
+    }
+
+    private FormulatedFertilizerSelectionCandidate buildCandidate(
+            FormulatedMineralFertilizerModel fertilizer,
+            NPKrelation recommendedRatio,
+            NPKrelation formulatedRatio,
+            Double concentrationSum,
+            Double fertilizerDoseKgHa,
+            boolean approximateFallback,
+            boolean maximizationFallback,
+            String limitingNutrient,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            String technicalMessage) {
+        double providedN = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer != null ? fertilizer.getN() : null);
+        double providedP2O5 = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer != null ? fertilizer.getP2O5() : null);
+        double providedK2O = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer != null ? fertilizer.getK2O() : null);
+        return new FormulatedFertilizerSelectionCandidate(
+                fertilizer,
+                formulatedRatio,
+                ratioService.calculateRatioSum(recommendedRatio),
+                ratioService.calculateRatioSum(formulatedRatio),
+                concentrationSum,
+                fertilizerDoseKgHa,
+                approximateFallback,
+                maximizationFallback,
+                limitingNutrient,
+                calculateCoveragePercent(providedN, providedP2O5, providedK2O, requiredN, requiredP2O5, requiredK2O),
+                providedN,
+                providedP2O5,
+                providedK2O,
+                calculateBalance(providedN, requiredN),
+                calculateBalance(providedP2O5, requiredP2O5),
+                calculateBalance(providedK2O, requiredK2O),
+                calculateDeficit(providedN, requiredN),
+                calculateDeficit(providedP2O5, requiredP2O5),
+                calculateDeficit(providedK2O, requiredK2O),
+                technicalMessage);
     }
 
     private boolean hasSupplyWithinTolerance(FormulatedMineralFertilizerModel fertilizer,
@@ -236,7 +380,51 @@ public class FormulatedFertilizerSelectionService {
     }
 
     private double calculateProvidedNutrient(Double fertilizerDoseKgHa, Double nutrientPercent) {
+        if (fertilizerDoseKgHa == null || !Double.isFinite(fertilizerDoseKgHa)) {
+            return 0d;
+        }
         return fertilizerDoseKgHa * normalizeRequiredDose(nutrientPercent) / 100d;
+    }
+
+    private double calculateBalance(double supplied, Double required) {
+        return round2(supplied - normalizeRequiredDose(required));
+    }
+
+    private double calculateDeficit(double supplied, Double required) {
+        return round2(Math.max(0d, normalizeRequiredDose(required) - supplied));
+    }
+
+    private Double calculateCoveragePercent(FormulatedMineralFertilizerModel fertilizer,
+                                            Double fertilizerDoseKgHa,
+                                            Double requiredN,
+                                            Double requiredP2O5,
+                                            Double requiredK2O) {
+        if (fertilizer == null || fertilizerDoseKgHa == null || !Double.isFinite(fertilizerDoseKgHa)) {
+            return null;
+        }
+        return calculateCoveragePercent(
+                calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getN()),
+                calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getP2O5()),
+                calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getK2O()),
+                requiredN,
+                requiredP2O5,
+                requiredK2O);
+    }
+
+    private Double calculateCoveragePercent(double providedN,
+                                            double providedP2O5,
+                                            double providedK2O,
+                                            Double requiredN,
+                                            Double requiredP2O5,
+                                            Double requiredK2O) {
+        double requiredSum = requiredNutrientSum(requiredN, requiredP2O5, requiredK2O);
+        if (requiredSum <= 0d) {
+            return null;
+        }
+        double covered = Math.min(providedN, normalizeRequiredDose(requiredN))
+                + Math.min(providedP2O5, normalizeRequiredDose(requiredP2O5))
+                + Math.min(providedK2O, normalizeRequiredDose(requiredK2O));
+        return round2(covered / requiredSum * 100d);
     }
 
     private boolean isSuppliedWithinTolerance(double supplied, Double required) {
@@ -272,11 +460,40 @@ public class FormulatedFertilizerSelectionService {
         return 100d * requiredNutrientSum / concentrationSum;
     }
 
+    private NutrientLimit findMostLimitingNutrient(FormulatedMineralFertilizerModel fertilizer,
+                                                   Double requiredN,
+                                                   Double requiredP2O5,
+                                                   Double requiredK2O) {
+        List<NutrientLimit> limits = new ArrayList<>();
+        addNutrientLimit(limits, "N", requiredN, fertilizer != null ? fertilizer.getN() : null);
+        addNutrientLimit(limits, "P2O5", requiredP2O5, fertilizer != null ? fertilizer.getP2O5() : null);
+        addNutrientLimit(limits, "K2O", requiredK2O, fertilizer != null ? fertilizer.getK2O() : null);
+        return limits.stream()
+                .min(Comparator.comparing(NutrientLimit::doseKgHa)
+                        .thenComparing(NutrientLimit::nutrient))
+                .orElse(null);
+    }
+
+    private void addNutrientLimit(List<NutrientLimit> limits, String nutrient, Double required, Double concentration) {
+        if (normalizeRequiredDose(required) <= 0d || normalizeRequiredDose(concentration) <= 0d) {
+            return;
+        }
+        limits.add(new NutrientLimit(nutrient, normalizeRequiredDose(required) / normalizeRequiredDose(concentration) * 100d));
+    }
+
     private double normalizeRequiredDose(Double value) {
         if (value == null || !Double.isFinite(value) || value < 0d) {
             return 0d;
         }
         return value;
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100d) / 100d;
+    }
+
+    private double totalDeficit(Double deficitN, Double deficitP2O5, Double deficitK2O) {
+        return normalizeRequiredDose(deficitN) + normalizeRequiredDose(deficitP2O5) + normalizeRequiredDose(deficitK2O);
     }
 
     private Comparator<FormulatedFertilizerSelectionCandidate> candidateComparator() {
@@ -352,6 +569,18 @@ public class FormulatedFertilizerSelectionService {
             Double concentrationSum,
             Double fertilizerDoseKgHa,
             boolean approximateFallback,
+            boolean maximizationFallback,
+            String limitingNutrient,
+            Double coveragePercent,
+            Double providedN,
+            Double providedP2O5,
+            Double providedK2O,
+            Double balanceN,
+            Double balanceP2O5,
+            Double balanceK2O,
+            Double deficitN,
+            Double deficitP2O5,
+            Double deficitK2O,
             String technicalMessage) {
     }
 
@@ -364,5 +593,8 @@ public class FormulatedFertilizerSelectionService {
     private record ApproximateCandidate(
             FormulatedFertilizerSelectionCandidate selectionCandidate,
             double ratioDistance) {
+    }
+
+    private record NutrientLimit(String nutrient, double doseKgHa) {
     }
 }

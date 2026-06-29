@@ -89,8 +89,19 @@ class CoverageFormulatedFertilizerRecommendationService {
                 .requiredP2O5(round2(coverage.requiredP2O5()))
                 .requiredK2O(round2(coverage.requiredK2O()))
                 .relationUsed(formatRelation(recommendedRatio))
-                .selectionType(candidate.approximateFallback() ? "APROXIMADA" : "DIRETA")
+                .selectionType(selectionType(candidate))
                 .doseKgHa(candidate.fertilizerDoseKgHa())
+                .limitingNutrient(candidate.limitingNutrient())
+                .coveragePercent(candidate.coveragePercent())
+                .providedN(candidate.providedN())
+                .providedP2O5(candidate.providedP2O5())
+                .providedK2O(candidate.providedK2O())
+                .balanceN(candidate.balanceN())
+                .balanceP2O5(candidate.balanceP2O5())
+                .balanceK2O(candidate.balanceK2O())
+                .deficitN(candidate.deficitN())
+                .deficitP2O5(candidate.deficitP2O5())
+                .deficitK2O(candidate.deficitK2O())
                 .doseUnitMode(doseUnitMetadata.doseUnitMode())
                 .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
                 .gramsPerLinearMeter(resolvedMode == CropSpacingMode.PLANTS_PER_LINEAR_METER
@@ -132,25 +143,44 @@ class CoverageFormulatedFertilizerRecommendationService {
         return String.format(Locale.US, "%.2f-%.2f-%.2f", relation.getN(), relation.getP(), relation.getK());
     }
 
+    private String selectionType(FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate candidate) {
+        if (candidate.maximizationFallback()) {
+            return "MAXIMIZACAO";
+        }
+        return candidate.approximateFallback() ? "APROXIMADA" : "DIRETA";
+    }
+
     private String buildTechnicalObservation(
             FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate candidate,
             NPKrelation recommendedRatio,
             CoverageNpkRecommendation coverage,
             CropSpacingCalculationService.CropSpacingDoseResult spacingDose) {
-        String selectionObservation = candidate.approximateFallback()
-                ? "Seleção por aproximação: sem correspondência direta de relação N-P2O5-K2O."
-                : "Seleção direta por correspondência de relação N-P2O5-K2O.";
+        String selectionObservation;
+        if (candidate.maximizationFallback()) {
+            selectionObservation = "Seleção por maximização: sem correspondência direta nem aproximada válida de relação N-P2O5-K2O.";
+        } else if (candidate.approximateFallback()) {
+            selectionObservation = "Seleção por aproximação: sem correspondência direta de relação N-P2O5-K2O.";
+        } else {
+            selectionObservation = "Seleção direta por correspondência de relação N-P2O5-K2O.";
+        }
         String relationObservation = " Relação recomendada usada: " + formatRelation(recommendedRatio)
                 + "; relação do formulado: " + formatRelation(candidate.relation()) + ".";
         String requiredObservation = String.format(Locale.US,
                 " Cobertura %s com N %.2f kg/ha, P2O5 %.2f kg/ha e K2O %.2f kg/ha.",
                 coverageLabel(coverage.coverageOrder()), coverage.requiredN(), coverage.requiredP2O5(), coverage.requiredK2O());
-        String doseObservation = " Dose calculada por 100 * (N + P2O5 + K2O recomendados na cobertura) / (N% + P2O5% + K2O% do formulado).";
+        String doseObservation = candidate.maximizationFallback()
+                ? " Dose calculada pelo nutriente limitante " + candidate.limitingNutrient()
+                + ", maximizando o atendimento sem ultrapassar esse nutriente."
+                : " Dose calculada por 100 * (N + P2O5 + K2O recomendados na cobertura) / (N% + P2O5% + K2O% do formulado).";
+        String balanceObservation = String.format(Locale.US,
+                " Fornecimento: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; déficits remanescentes: N %.2f, P2O5 %.2f, K2O %.2f kg/ha.",
+                candidate.providedN(), candidate.providedP2O5(), candidate.providedK2O(),
+                candidate.deficitN(), candidate.deficitP2O5(), candidate.deficitK2O());
         String spacingObservation = spacingDose.technicalWarning() != null
                 ? " Conversão por espaçamento não calculada: " + spacingDose.technicalWarning()
                 : " Conversão por espaçamento calculada conforme cadastro da cultura.";
         String candidateMessage = candidate.technicalMessage() != null ? " " + candidate.technicalMessage() : "";
-        return selectionObservation + relationObservation + requiredObservation + doseObservation + spacingObservation + candidateMessage;
+        return selectionObservation + relationObservation + requiredObservation + doseObservation + balanceObservation + spacingObservation + candidateMessage;
     }
 
     private String coverageLabel(Integer coverageOrder) {
