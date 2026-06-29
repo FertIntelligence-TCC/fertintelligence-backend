@@ -28,6 +28,10 @@ final class TechnicalRecommendationDocumentSupport {
     static final String LINEAR_CONVERSION_UNAVAILABLE = "Não calculado por falta de dados.";
     static final String STYLE_METADATA = "<!-- formato: markdown; fonte: Aptos; tamanho: 10 -->";
     static final String DEFAULT_MICRONUTRIENT_TECHNICAL_OBSERVATION = "Misturar com os demais adubos minerais no plantio.";
+    private static final String LINEAR_METER_MODE = "LINEAR_METER";
+    private static final String PIT_MODE = "PIT";
+    private static final String LINEAR_METER_LABEL = "g/m linear";
+    private static final String PIT_LABEL = "g/cova";
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
@@ -243,12 +247,13 @@ final class TechnicalRecommendationDocumentSupport {
     private static void addFertilizationItems(Map<String, ShoppingItem> items, String section) {
         for (List<String> row : tableRows(section)) {
             if (row.size() < 4) continue;
+            String phase = row.get(0);
             String fertilizer = row.get(2);
             String quantity = row.get(3);
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             String itemName = removeId(fertilizer);
             if (items.containsKey(safe(itemName))) continue;
-            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, null, null, null));
+            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, null, phase, null));
         }
     }
 
@@ -262,7 +267,7 @@ final class TechnicalRecommendationDocumentSupport {
             if (!normalize(unit).contains("kg/ha")) continue;
             String itemName = removeId(sourceName);
             if (items.containsKey(safe(itemName))) continue;
-            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, null, null));
+            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, row.get(0), null));
         }
     }
 
@@ -278,7 +283,7 @@ final class TechnicalRecommendationDocumentSupport {
                     line.getFertilizerDoseKgHa(),
                     "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
                     null,
-                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+                    localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
     }
 
@@ -294,7 +299,7 @@ final class TechnicalRecommendationDocumentSupport {
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
                     line.getPhase(),
-                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+                    localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
     }
 
@@ -304,17 +309,14 @@ final class TechnicalRecommendationDocumentSupport {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
             if (line == null || looksUnavailable(line.getFertilizerName()) || line.getDoseKgHa() == null) continue;
-            String phase = line.getPhase();
-            if (line.getCoverageOrder() != null) {
-                phase = safePhase(phase) + " " + line.getCoverageOrder();
-            }
+            String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             merge(
                     items,
                     removeId(line.getFertilizerName()),
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
                     phase,
-                    localizedDose(line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
+                    localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
     }
 
@@ -331,20 +333,38 @@ final class TechnicalRecommendationDocumentSupport {
         return String.format(Locale.US, "%.2f", value);
     }
 
-    private static String localizedDose(String label, Double gramsPerLinearMeter, Double gramsPerPit) {
-        if (label == null || label.isBlank()) return null;
-        String normalizedLabel = normalize(label);
-        if (normalizedLabel.contains("cova")) {
-            return gramsPerPit == null ? null : String.format(Locale.US, "%.2f %s", gramsPerPit, label);
+    private static String localizedDose(String mode, String label, Double gramsPerLinearMeter, Double gramsPerPit) {
+        if (LINEAR_METER_MODE.equals(mode)) {
+            return gramsPerLinearMeter == null ? null : String.format(Locale.US, "%.2f %s", gramsPerLinearMeter, defaultLabel(label, LINEAR_METER_LABEL));
         }
-        if (normalizedLabel.contains("m linear")) {
-            return gramsPerLinearMeter == null ? null : String.format(Locale.US, "%.2f %s", gramsPerLinearMeter, label);
+        if (PIT_MODE.equals(mode)) {
+            return gramsPerPit == null ? null : String.format(Locale.US, "%.2f %s", gramsPerPit, defaultLabel(label, PIT_LABEL));
+        }
+        if (label != null && !label.isBlank()) {
+            String normalizedLabel = normalize(label);
+            if (normalizedLabel.contains("cova")) {
+                return gramsPerPit == null ? null : String.format(Locale.US, "%.2f %s", gramsPerPit, label);
+            }
+            if (normalizedLabel.contains("m linear")) {
+                return gramsPerLinearMeter == null ? null : String.format(Locale.US, "%.2f %s", gramsPerLinearMeter, label);
+            }
         }
         return null;
     }
 
-    private static String safePhase(String value) {
-        return value == null || value.isBlank() ? "Cobertura" : value.trim();
+    private static String coveragePhase(String phase, Integer coverageOrder) {
+        if (coverageOrder == null) {
+            return phase;
+        }
+        if (phase == null || phase.isBlank()) {
+            return "Cobertura " + coverageOrder;
+        }
+        String normalized = normalize(phase);
+        return normalized.contains(String.valueOf(coverageOrder)) ? phase : phase + " " + coverageOrder;
+    }
+
+    private static String defaultLabel(String label, String defaultLabel) {
+        return label == null || label.isBlank() ? defaultLabel : label;
     }
 
     private static void merge(Map<String, ShoppingItem> items, String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
