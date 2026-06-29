@@ -10,11 +10,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
-import com.migueltcc.fertintelligence.repository.FormulatedMineralFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerRepository;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +32,6 @@ class NutrientFertilizationCalculationService {
 
     private final ContentRangeRepository contentRangeRepository;
     private final CoverageRepository coverageRepository;
-    private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
     private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
@@ -42,14 +39,12 @@ class NutrientFertilizationCalculationService {
 
     NutrientFertilizationCalculationService(ContentRangeRepository contentRangeRepository,
                                             CoverageRepository coverageRepository,
-                                            FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
                                             PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService,
                                             CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
-        this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
         this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
@@ -195,20 +190,7 @@ class NutrientFertilizationCalculationService {
     }
 
     private FertilizerSelection selectBestPlantingFertilizer(UserModel user, FertilizerSourceOption sourceOption, Double n, Double p, Double k, List<String> w) {
-        var formulated = selectFormulatedFertilizers(user, sourceOption);
-        var bestF = formulated.stream().filter(f -> f.getN() > 0 || f.getP2O5() > 0 || f.getK2O() > 0).max((a, b) -> compareScore(a.getN(), a.getP2O5(), a.getK2O(), b.getN(), b.getP2O5(), b.getK2O(), n, p, k, a.getId(), b.getId()));
-        if (bestF.isPresent()) {
-            var f = bestF.get();
-            Optional<FertilizerDoseCalculation> calc = calculateByGreatestFactor(n, p, k, f.getN(), f.getP2O5(), f.getK2O(), "maior fator necessário entre N, P2O5 e K2O");
-            var s = RecommendationCalculationService.FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("FORMULADO").fertilizerName("NPK " + (int) f.getN() + "-" + (int) f.getP2O5() + "-" + (int) f.getK2O()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Maior cobertura dos nutrientes de plantio.").build();
-            if (calc.isEmpty()) {
-                String warning = "Fertilizante formulado selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";
-                w.add(warning);
-                return buildSelection(s.getFertilizerName(), (Double) null, n, p, k, f.getN(), f.getP2O5(), f.getK2O(), null, w, warning, Optional.of(s));
-            }
-            w.add("Quantidade de adubo formulado estimada a partir do maior fator necessário entre N, P2O5 e K2O; excedentes ficam explícitos no saldo.");
-            return buildSelection(s.getFertilizerName(), calc.get(), n, p, k, f.getN(), f.getP2O5(), f.getK2O(), w, null, Optional.of(s));
-        }
+        w.add("Seleção de adubo formulado NPK para plantio temporariamente indisponível: a estratégia antiga foi removida e a nova estratégia ainda não foi implementada.");
         var simples = selectSimpleFertilizers(user, sourceOption);
         var bestS = simples.stream().filter(f -> f.getN() > 0 || f.getP2O5() > 0 || f.getK2O() > 0).max((a, b) -> compareScore(a.getN(), a.getP2O5(), a.getK2O(), b.getN(), b.getP2O5(), b.getK2O(), n, p, k, a.getId(), b.getId()));
         if (bestS.isPresent()) {
@@ -401,15 +383,6 @@ class NutrientFertilizationCalculationService {
         if (nutrient == Nutriente.NITROGENIO) return "N";
         if (nutrient == Nutriente.POTASSIO) return "K2O";
         return "P2O5";
-    }
-
-    private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption) {
-        return switch (sourceOption) {
-            case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user);
-            case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO);
-            case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO);
-            case BOTH, ALL -> dedup(dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user), formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId), formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO), FormulatedMineralFertilizerModel::getId);
-        };
     }
 
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption) {
