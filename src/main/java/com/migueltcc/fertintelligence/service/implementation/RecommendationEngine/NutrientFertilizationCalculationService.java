@@ -63,6 +63,11 @@ class NutrientFertilizationCalculationService {
                                                  FertilizerSourceOption sourceOption,
                                                  Boolean useOrganicFertilizer,
                                                  Nutriente organicFertilizerReferenceNutrient,
+                                                 Boolean useGreenFertilizer,
+                                                 String greenFertilizerSpecies,
+                                                 Double greenFertilizerGreenMass,
+                                                 Double greenFertilizerMoisturePercentage,
+                                                 Double greenFertilizerDryMass,
                                                  List<String> warnings,
                                                  List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
                                                  List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis) {
@@ -84,15 +89,25 @@ class NutrientFertilizationCalculationService {
         if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
         if (kRange.isEmpty()) warnings.add("Não foi encontrado intervalo para POTASSIO na tabela selecionada.");
 
-        FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, requiredN, requiredP2O5, requiredK2O, warnings);
+        AlternativeFertilizationCalculationService.AlternativeFertilizationCalculationResult alternativeFertilizationResult =
+                alternativeFertilizationCalculationService.calculate(
+                        requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
+                        soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
+                        organicFertilizerReferenceNutrient, useGreenFertilizer, greenFertilizerSpecies,
+                        greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass, warnings);
+        Double mineralRequiredN = alternativeFertilizationResult.remainingRequiredN();
+        Double mineralRequiredP2O5 = alternativeFertilizationResult.remainingRequiredP2O5();
+        Double mineralRequiredK2O = alternativeFertilizationResult.remainingRequiredK2O();
+
+        FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, warnings);
         planting.suggestion().ifPresent(fertilizerSuggestions::add);
-        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(requiredN, requiredP2O5, requiredK2O);
+        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O);
         nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
         CoverageNpkAccumulator coverageNpkAccumulator = new CoverageNpkAccumulator();
 
         recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
                 .phase("Plantio")
-                .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O)))
+                .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(mineralRequiredN), nvl(mineralRequiredP2O5), nvl(mineralRequiredK2O)))
                 .suggestedFertilizer(planting.name())
                 .fertilizerQuantityKgHa(planting.quantityKgHa())
                 .providedN(planting.providedN())
@@ -131,14 +146,9 @@ class NutrientFertilizationCalculationService {
                 .build());
         List<RecommendationCalculationService.NutrientBalanceRow> nutrientBalanceRows = nutrientBalance.toRows();
 
-        AlternativeFertilizationCalculationService.AlternativeFertilizationCalculationResult alternativeFertilizationResult =
-                alternativeFertilizationCalculationService.calculate(
-                        requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
-                        soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
-                        organicFertilizerReferenceNutrient, warnings);
         List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedRows =
                 plantingFormulatedFertilizerRecommendationService.calculate(
-                        user, sourceOption, requiredN, requiredP2O5, requiredK2O, crop, warnings);
+                        user, sourceOption, mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, crop, warnings);
         List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedRows =
                 coverageFormulatedFertilizerRecommendationService.calculate(
                         user, sourceOption, coverageNpkAccumulator.toRecommendations(), crop, warnings);
@@ -149,7 +159,7 @@ class NutrientFertilizationCalculationService {
                 alternativeFertilizationResult.directRecommendationRows(),
                 plantingFormulatedRows,
                 coverageFormulatedRows,
-                requiredN, requiredP2O5, requiredK2O, nRangeId, pRangeId, kRangeId);
+                mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, nRangeId, pRangeId, kRangeId);
     }
 
     SimpleMineralFertilizerModel selectCorrectiveSource(UserModel user, FertilizerSourceOption sourceOption, String nutrientTarget) {

@@ -78,18 +78,31 @@ class AlternativeFertilizationCalculationService {
             FertilizerSourceOption sourceOption,
             Boolean useOrganicFertilizer,
             Nutriente organicFertilizerReferenceNutrient,
+            Boolean useGreenFertilizer,
+            String greenFertilizerSpecies,
+            Double greenFertilizerGreenMass,
+            Double greenFertilizerMoisturePercentage,
+            Double greenFertilizerDryMass,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        GreenFertilizerContribution greenContribution = calculateGreenFertilizerContribution(
+                user, sourceOption, useGreenFertilizer, greenFertilizerSpecies, greenFertilizerGreenMass,
+                greenFertilizerMoisturePercentage, greenFertilizerDryMass, requiredN, requiredP2O5, requiredK2O, warnings);
         addOrganicFertilizationRow(rows, user, sourceOption, useOrganicFertilizer,
                 organicFertilizerReferenceNutrient, requiredN, requiredP2O5, requiredK2O, warnings);
         addNpkAlternativeRow(rows, "ORGANOMINERAL", selectBestOrganoMineralSource(user, sourceOption),
-                requiredN, requiredP2O5, requiredK2O, warnings);
-        addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
+                greenContribution.remainingN(), greenContribution.remainingP2O5(), greenContribution.remainingK2O(), warnings);
+        rows.add(greenContribution.row());
         addBiofertilizerLimitation(rows, user, sourceOption, warnings);
         MicronutrientRowsResult micronutrientRows = buildMicronutrientRows(
                 chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption, warnings);
         rows.addAll(micronutrientRows.alternativeRows());
-        return new AlternativeFertilizationCalculationResult(rows, micronutrientRows.directRecommendationRows());
+        return new AlternativeFertilizationCalculationResult(
+                rows,
+                micronutrientRows.directRecommendationRows(),
+                greenContribution.remainingN(),
+                greenContribution.remainingP2O5(),
+                greenContribution.remainingK2O());
     }
 
     private void addOrganicFertilizationRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
@@ -255,32 +268,160 @@ class AlternativeFertilizationCalculationService {
                 .build());
     }
 
-    private void addGreenFertilizerLimitation(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
-                                              UserModel user,
-                                              FertilizerSourceOption sourceOption,
-                                              List<String> warnings) {
+    private GreenFertilizerContribution calculateGreenFertilizerContribution(UserModel user,
+                                                                             FertilizerSourceOption sourceOption,
+                                                                             Boolean useGreenFertilizer,
+                                                                             String species,
+                                                                             Double greenMassKgHa,
+                                                                             Double moisturePercentage,
+                                                                             Double dryMassKgHa,
+                                                                             Double requiredN,
+                                                                             Double requiredP2O5,
+                                                                             Double requiredK2O,
+                                                                             List<String> warnings) {
+        if (!Boolean.TRUE.equals(useGreenFertilizer)) {
+            return greenContribution(
+                    requiredN, requiredP2O5, requiredK2O,
+                    RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                            .sourceType("ADUBO VERDE")
+                            .nutrientOrObjective("Não solicitado")
+                            .sourceName("Não selecionada")
+                            .dose("Não calculada")
+                            .unit("kg/ha de massa seca")
+                            .justification("Uso de adubo verde não habilitado no payload da recomendação.")
+                            .limitations("Contribuição nutricional por adubação verde não solicitada.")
+                            .build());
+        }
+
         List<GreenFertilizerModel> sources = selectGreenFertilizers(user, sourceOption);
         if (sources.isEmpty()) {
             String limitation = "Não há adubo verde acessível para a origem de adubos selecionada.";
             warnings.add(limitation);
-            rows.add(limitationRow("ADUBO VERDE", "Matéria orgânica/NPK", limitation));
-            return;
+            return greenContribution(requiredN, requiredP2O5, requiredK2O,
+                    limitationRow("ADUBO VERDE", "N/P2O5/K2O", limitation));
         }
-        GreenFertilizerModel source = sources.stream()
-                .max(Comparator.comparing((GreenFertilizerModel f) -> nvl(f.getC()) + nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .orElse(null);
-        String limitation = "Adubo verde possui composição cadastrada, mas o backend não possui biomassa produzida/incorporada, matéria seca, época de manejo ou eficiência de liberação para converter em dose.";
-        warnings.add(limitation);
-        rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+
+        Optional<GreenFertilizerModel> selected = selectGreenFertilizerBySpecies(sources, species);
+        if (selected.isEmpty()) {
+            String limitation = "Uso de adubo verde habilitado, mas a espécie informada não foi encontrada nos adubos verdes acessíveis.";
+            warnings.add(limitation);
+            return greenContribution(requiredN, requiredP2O5, requiredK2O,
+                    RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                            .sourceType("ADUBO VERDE")
+                            .nutrientOrObjective("N/P2O5/K2O")
+                            .sourceName(species == null || species.isBlank() ? "Não informada" : species)
+                            .dose("Não calculada")
+                            .unit("kg/ha de massa seca")
+                            .justification("Fonte não selecionada porque a espécie do payload não corresponde a um cadastro acessível.")
+                            .limitations(limitation)
+                            .build());
+        }
+
+        GreenFertilizerModel source = selected.get();
+        Optional<Double> dryMass = resolveGreenFertilizerDryMass(source, greenMassKgHa, moisturePercentage, dryMassKgHa);
+        if (dryMass.isEmpty() || dryMass.get() <= 0d) {
+            String limitation = "Uso de adubo verde habilitado, mas não há massa seca positiva ou dados suficientes para calculá-la.";
+            warnings.add(limitation);
+            return greenContribution(requiredN, requiredP2O5, requiredK2O,
+                    RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                            .sourceType("ADUBO VERDE")
+                            .nutrientOrObjective("N/P2O5/K2O")
+                            .sourceName(source.getName())
+                            .dose("Não calculada")
+                            .unit("kg/ha de massa seca")
+                            .justification("A contribuição nutricional depende de massa seca informada, ou massa verde e umidade, ou produtividade esperada cadastrada.")
+                            .limitations(limitation)
+                            .build());
+        }
+
+        double mineralizationPercent = nvl(source.getTaxaMineralizacaoPrimeiroAnoPercentual());
+        if (mineralizationPercent <= 0d) {
+            String limitation = "Adubo verde selecionado sem mineralização de primeiro ano positiva cadastrada.";
+            warnings.add(limitation);
+            return greenContribution(requiredN, requiredP2O5, requiredK2O,
+                    RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                            .sourceType("ADUBO VERDE")
+                            .nutrientOrObjective("N/P2O5/K2O")
+                            .sourceName(source.getName())
+                            .dose(formatNumber(round2(dryMass.get())))
+                            .unit("kg/ha de massa seca")
+                            .justification("Composição encontrada, mas sem fator de mineralização válido para estimar disponibilidade no primeiro ano.")
+                            .limitations(limitation)
+                            .build());
+        }
+
+        double availableFraction = mineralizationPercent / PERCENT_FACTOR;
+        double contributionN = round2(dryMass.get() * nvl(source.getN()) / PERCENT_FACTOR * availableFraction);
+        double contributionP2O5 = round2(dryMass.get() * nvl(source.getP2O5()) / PERCENT_FACTOR * availableFraction);
+        double contributionK2O = round2(dryMass.get() * nvl(source.getK2O()) / PERCENT_FACTOR * availableFraction);
+        double abatedN = Math.min(nvl(requiredN), contributionN);
+        double abatedP2O5 = Math.min(nvl(requiredP2O5), contributionP2O5);
+        double abatedK2O = Math.min(nvl(requiredK2O), contributionK2O);
+        double remainingN = round2(Math.max(0d, nvl(requiredN) - abatedN));
+        double remainingP2O5 = round2(Math.max(0d, nvl(requiredP2O5) - abatedP2O5));
+        double remainingK2O = round2(Math.max(0d, nvl(requiredK2O) - abatedK2O));
+
+        return new GreenFertilizerContribution(
+                remainingN,
+                remainingP2O5,
+                remainingK2O,
+                RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
                 .sourceType("ADUBO VERDE")
-                .nutrientOrObjective("Matéria orgânica/NPK")
-                .sourceName(source != null ? source.getName() : "Não selecionada")
-                .dose("Não calculada")
-                .unit("kg/ha")
-                .justification("Fonte apresentada como opção cadastrada, sem recomendação quantitativa automática.")
-                .limitations(limitation)
+                .nutrientOrObjective("N/P2O5/K2O")
+                .sourceName(source.getName())
+                .dose(formatNumber(round2(dryMass.get())))
+                .unit("kg/ha de massa seca")
+                .justification(String.format(Locale.US,
+                        "Contribuição disponível no primeiro ano: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; abatimento aplicado na necessidade mineral: N %.2f, P2O5 %.2f, K2O %.2f kg/ha.",
+                        contributionN, contributionP2O5, contributionK2O, round2(abatedN), round2(abatedP2O5), round2(abatedK2O)))
+                .limitations(String.format(Locale.US,
+                        "Cálculo com massa seca %.2f kg/ha, teores cadastrados N %.2f%%, P2O5 %.2f%%, K2O %.2f%% e mineralização do primeiro ano %.2f%%. Excedentes da adubação verde não geram recomendação mineral negativa.",
+                        round2(dryMass.get()), round2(nvl(source.getN())), round2(nvl(source.getP2O5())), round2(nvl(source.getK2O())), round2(mineralizationPercent)))
                 .build());
+    }
+
+    private Optional<GreenFertilizerModel> selectGreenFertilizerBySpecies(List<GreenFertilizerModel> sources, String species) {
+        String normalizedSpecies = normalizeText(species);
+        if (normalizedSpecies.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<GreenFertilizerModel> exact = sources.stream()
+                .filter(source -> normalizeText(source.getName()).equals(normalizedSpecies))
+                .findFirst();
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return sources.stream()
+                .filter(source -> {
+                    String sourceName = normalizeText(source.getName());
+                    return !sourceName.isBlank()
+                            && (sourceName.contains(normalizedSpecies) || normalizedSpecies.contains(sourceName));
+                })
+                .findFirst();
+    }
+
+    private Optional<Double> resolveGreenFertilizerDryMass(GreenFertilizerModel source,
+                                                           Double greenMassKgHa,
+                                                           Double moisturePercentage,
+                                                           Double dryMassKgHa) {
+        if (dryMassKgHa != null) {
+            return Optional.of(round2(dryMassKgHa));
+        }
+        if (greenMassKgHa != null && moisturePercentage != null) {
+            return Optional.of(round2(greenMassKgHa * (PERCENT_FACTOR - moisturePercentage) / PERCENT_FACTOR));
+        }
+        if (source != null && source.getProdutividadeEsperadaKgHa() != null) {
+            return Optional.of(round2(source.getProdutividadeEsperadaKgHa()));
+        }
+        return Optional.empty();
+    }
+
+    private GreenFertilizerContribution greenContribution(
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            RecommendationCalculationService.AlternativeFertilizationRecommendationRow row) {
+        return new GreenFertilizerContribution(nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), row);
     }
 
     private void addBiofertilizerLimitation(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
@@ -702,11 +843,21 @@ class AlternativeFertilizationCalculationService {
 
     record AlternativeFertilizationCalculationResult(
             List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> alternativeRows,
-            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRecommendationRows) {
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRecommendationRows,
+            Double remainingRequiredN,
+            Double remainingRequiredP2O5,
+            Double remainingRequiredK2O) {
     }
 
     private record MicronutrientRowsResult(
             List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> alternativeRows,
             List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRecommendationRows) {
+    }
+
+    private record GreenFertilizerContribution(
+            Double remainingN,
+            Double remainingP2O5,
+            Double remainingK2O,
+            RecommendationCalculationService.AlternativeFertilizationRecommendationRow row) {
     }
 }

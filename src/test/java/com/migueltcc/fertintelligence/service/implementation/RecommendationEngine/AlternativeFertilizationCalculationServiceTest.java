@@ -2,11 +2,19 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.GreenFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
+import com.migueltcc.fertintelligence.repository.GreenFertilizerRepository;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,6 +94,33 @@ class AlternativeFertilizationCalculationServiceTest {
         assertThat(row.getTechnicalObservation()).contains("Distancia entre covas ausente ou invalida");
     }
 
+    @Test
+    void calculatesGreenFertilizerContributionAndRemainingMineralNeed() throws Exception {
+        GreenFertilizerRepository greenFertilizerRepository = greenFertilizerRepositoryReturning(List.of(
+                GreenFertilizerModel.builder()
+                        .id(7L)
+                        .name("Crotalaria")
+                        .N(3d)
+                        .P2O5(1d)
+                        .K2O(2d)
+                        .taxaMineralizacaoPrimeiroAnoPercentual(50d)
+                        .build()));
+        AlternativeFertilizationCalculationService service = serviceWithGreenFertilizerRepository(greenFertilizerRepository);
+        List<String> warnings = new ArrayList<>();
+
+        Object contribution = invokeCalculateGreenFertilizerContribution(
+                service, true, "crotalaria", 10_000d, 80d, null, 100d, 50d, 60d, warnings);
+
+        assertThat(invokeDouble(contribution, "remainingN")).isEqualTo(70d);
+        assertThat(invokeDouble(contribution, "remainingP2O5")).isEqualTo(40d);
+        assertThat(invokeDouble(contribution, "remainingK2O")).isEqualTo(40d);
+        RecommendationCalculationService.AlternativeFertilizationRecommendationRow row =
+                (RecommendationCalculationService.AlternativeFertilizationRecommendationRow) invokeMethod(contribution, "row");
+        assertThat(row.getDose()).isEqualTo("2000");
+        assertThat(row.getJustification()).contains("N 30.00, P2O5 10.00, K2O 20.00 kg/ha");
+        assertThat(warnings).isEmpty();
+    }
+
     private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow invokeToDirectRecommendationMicronutrientRow(
             MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
             CropModel crop,
@@ -98,6 +133,79 @@ class AlternativeFertilizationCalculationServiceTest {
         method.setAccessible(true);
         return (RecommendationCalculationService.MicronutrientFertilizerRecommendationRow) method.invoke(
                 service, selection, crop, technicalObservation);
+    }
+
+    private Object invokeCalculateGreenFertilizerContribution(AlternativeFertilizationCalculationService service,
+                                                              Boolean useGreenFertilizer,
+                                                              String species,
+                                                              Double greenMass,
+                                                              Double moisture,
+                                                              Double dryMass,
+                                                              Double requiredN,
+                                                              Double requiredP2O5,
+                                                              Double requiredK2O,
+                                                              List<String> warnings) throws Exception {
+        Method method = AlternativeFertilizationCalculationService.class.getDeclaredMethod(
+                "calculateGreenFertilizerContribution",
+                com.migueltcc.fertintelligence.model.fertintelligence.UserModel.class,
+                FertilizerSourceOption.class,
+                Boolean.class,
+                String.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                List.class);
+        method.setAccessible(true);
+        return method.invoke(service, null, FertilizerSourceOption.DEFAULT, useGreenFertilizer, species,
+                greenMass, moisture, dryMass, requiredN, requiredP2O5, requiredK2O, warnings);
+    }
+
+    private Double invokeDouble(Object target, String methodName) throws Exception {
+        return (Double) invokeMethod(target, methodName);
+    }
+
+    private Object invokeMethod(Object target, String methodName) throws Exception {
+        Method method = target.getClass().getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        return method.invoke(target);
+    }
+
+    private AlternativeFertilizationCalculationService serviceWithGreenFertilizerRepository(
+            GreenFertilizerRepository greenFertilizerRepository) {
+        return new AlternativeFertilizationCalculationService(
+                null,
+                null,
+                greenFertilizerRepository,
+                null,
+                null,
+                null,
+                null,
+                new CropSpacingCalculationService());
+    }
+
+    private GreenFertilizerRepository greenFertilizerRepositoryReturning(List<GreenFertilizerModel> fertilizers) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            if ("findAllByUser_CargoOrderByNameAsc".equals(method.getName())) {
+                return fertilizers;
+            }
+            if (List.class.isAssignableFrom(method.getReturnType())) {
+                return Collections.emptyList();
+            }
+            if (method.getReturnType().equals(boolean.class)) {
+                return false;
+            }
+            if (method.getReturnType().isPrimitive()) {
+                return 0;
+            }
+            return null;
+        };
+        return (GreenFertilizerRepository) Proxy.newProxyInstance(
+                GreenFertilizerRepository.class.getClassLoader(),
+                new Class<?>[]{GreenFertilizerRepository.class},
+                handler);
     }
 
     private MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult calculatedSelection(
