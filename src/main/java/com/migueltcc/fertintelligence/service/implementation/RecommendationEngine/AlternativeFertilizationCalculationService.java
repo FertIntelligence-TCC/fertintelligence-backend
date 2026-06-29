@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 
 @Service
 class AlternativeFertilizationCalculationService {
+
+    private static final double PERCENT_FACTOR = 100d;
 
     private final OrganicFertilizerRepository organicFertilizerRepository;
     private final OrganoMineralFertilizerRepository organoMineralFertilizerRepository;
@@ -73,10 +76,12 @@ class AlternativeFertilizationCalculationService {
             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
             UserModel user,
             FertilizerSourceOption sourceOption,
+            Boolean useOrganicFertilizer,
+            Nutriente organicFertilizerReferenceNutrient,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
-        addNpkAlternativeRow(rows, "ORGÂNICA", selectBestOrganicSource(user, sourceOption),
-                requiredN, requiredP2O5, requiredK2O, warnings);
+        addOrganicFertilizationRow(rows, user, sourceOption, useOrganicFertilizer,
+                organicFertilizerReferenceNutrient, requiredN, requiredP2O5, requiredK2O, warnings);
         addNpkAlternativeRow(rows, "ORGANOMINERAL", selectBestOrganoMineralSource(user, sourceOption),
                 requiredN, requiredP2O5, requiredK2O, warnings);
         addGreenFertilizerLimitation(rows, user, sourceOption, warnings);
@@ -85,6 +90,108 @@ class AlternativeFertilizationCalculationService {
                 chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption, warnings);
         rows.addAll(micronutrientRows.alternativeRows());
         return new AlternativeFertilizationCalculationResult(rows, micronutrientRows.directRecommendationRows());
+    }
+
+    private void addOrganicFertilizationRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
+                                            UserModel user,
+                                            FertilizerSourceOption sourceOption,
+                                            Boolean useOrganicFertilizer,
+                                            Nutriente referenceNutrient,
+                                            Double requiredN,
+                                            Double requiredP2O5,
+                                            Double requiredK2O,
+                                            List<String> warnings) {
+        if (!Boolean.TRUE.equals(useOrganicFertilizer)) {
+            rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                    .sourceType("ORGÂNICA")
+                    .nutrientOrObjective("Não solicitada")
+                    .sourceName("Não selecionada")
+                    .dose("Não calculada")
+                    .unit("kg/ha de produto")
+                    .justification("Uso de adubo orgânico não habilitado no payload da recomendação.")
+                    .limitations("Recomendação orgânica quantitativa não solicitada.")
+                    .build());
+            return;
+        }
+
+        if (referenceNutrient == null) {
+            String limitation = "Uso de adubo orgânico habilitado, mas o nutriente de referência não foi informado no payload.";
+            warnings.add(limitation);
+            rows.add(organicLimitationRow("Não informado", "Não selecionada",
+                    "Nutriente de referência ausente.", limitation));
+            return;
+        }
+
+        Double targetNeed = targetNeedByReferenceNutrient(referenceNutrient, requiredN, requiredP2O5, requiredK2O);
+        if (nvl(targetNeed) <= 0d) {
+            String nutrientLabel = organicReferenceNutrientLabel(referenceNutrient);
+            String limitation = "Necessidade de " + nutrientLabel + " ausente ou não positiva; dose orgânica não calculada.";
+            warnings.add(limitation);
+            rows.add(organicLimitationRow(nutrientLabel, "Não selecionada",
+                    "Não há alvo quantitativo positivo para dimensionar o adubo orgânico.", limitation));
+            return;
+        }
+
+        Optional<OrganicFertilizerModel> selectedSource = selectBestOrganicSource(user, sourceOption, referenceNutrient);
+        if (selectedSource.isEmpty()) {
+            String nutrientLabel = organicReferenceNutrientLabel(referenceNutrient);
+            String limitation = "Não há fonte orgânica acessível com teor positivo de " + nutrientLabel
+                    + " para a origem de adubos selecionada.";
+            warnings.add(limitation);
+            rows.add(organicLimitationRow(nutrientLabel, "Não selecionada",
+                    "Fonte não selecionada por ausência de produto cadastrado com composição utilizável.", limitation));
+            return;
+        }
+
+        OrganicFertilizerModel source = selectedSource.get();
+        String nutrientLabel = organicReferenceNutrientLabel(referenceNutrient);
+        double concentrationPercent = nvl(organicReferenceConcentration(source, referenceNutrient));
+        double mineralizationPercent = nvl(source.getTaxaMineralizacaoPrimeiroAnoPercentual());
+        if (mineralizationPercent <= 0d) {
+            String limitation = "A fonte orgânica selecionada não possui fator de mineralização do primeiro ano positivo cadastrado.";
+            warnings.add(limitation);
+            rows.add(organicLimitationRow(nutrientLabel, source.getName(),
+                    "Produto com composição disponível, porém sem mineralização válida para cálculo.", limitation));
+            return;
+        }
+
+        double availableFraction = (concentrationPercent / PERCENT_FACTOR) * (mineralizationPercent / PERCENT_FACTOR);
+        if (availableFraction <= 0d) {
+            String limitation = "Teor de " + nutrientLabel + " e fator de mineralização resultaram em disponibilidade nula.";
+            warnings.add(limitation);
+            rows.add(organicLimitationRow(nutrientLabel, source.getName(),
+                    "Dados cadastrados não permitem converter necessidade nutricional em dose de produto.", limitation));
+            return;
+        }
+
+        double productDoseKgHa = round2(targetNeed / availableFraction);
+        rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                .sourceType("ORGÂNICA")
+                .nutrientOrObjective(nutrientLabel)
+                .sourceName(source.getName())
+                .dose(String.format(Locale.US, "%.2f", productDoseKgHa))
+                .unit("kg/ha de produto")
+                .justification(String.format(Locale.US,
+                        "Dose calculada por %.2f kg/ha de %s, teor cadastrado de %.2f%% e mineralização do primeiro ano de %.2f%%.",
+                        round2(targetNeed), nutrientLabel, round2(concentrationPercent), round2(mineralizationPercent)))
+                .limitations("Dose dimensionada apenas pelo nutriente de referência selecionado; a recomendação mineral existente não foi abatida nesta etapa.")
+                .build());
+    }
+
+    private RecommendationCalculationService.AlternativeFertilizationRecommendationRow organicLimitationRow(
+            String nutrientOrObjective,
+            String sourceName,
+            String justification,
+            String limitation) {
+        return RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                .sourceType("ORGÂNICA")
+                .nutrientOrObjective(nutrientOrObjective)
+                .sourceName(sourceName)
+                .dose("Não calculada")
+                .unit("kg/ha de produto")
+                .justification(justification)
+                .limitations(limitation)
+                .build();
     }
 
     private void addNpkAlternativeRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
@@ -434,12 +541,11 @@ class AlternativeFertilizationCalculationService {
         return evidence;
     }
 
-    private Optional<NpkAlternativeSource> selectBestOrganicSource(UserModel user, FertilizerSourceOption sourceOption) {
+    private Optional<OrganicFertilizerModel> selectBestOrganicSource(UserModel user, FertilizerSourceOption sourceOption, Nutriente referenceNutrient) {
         return selectOrganicFertilizers(user, sourceOption).stream()
-                .filter(f -> nvl(f.getN()) > 0d || nvl(f.getP2O5()) > 0d || nvl(f.getK2O()) > 0d)
-                .max(Comparator.comparing((OrganicFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .map(f -> new NpkAlternativeSource(f.getName(), nvl(f.getN()), nvl(f.getP2O5()), nvl(f.getK2O())));
+                .filter(f -> nvl(organicReferenceConcentration(f, referenceNutrient)) > 0d)
+                .max(Comparator.comparing((OrganicFertilizerModel f) -> organicReferenceEffectiveConcentration(f, referenceNutrient))
+                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
     }
 
     private Optional<NpkAlternativeSource> selectBestOrganoMineralSource(UserModel user, FertilizerSourceOption sourceOption) {
@@ -492,6 +598,38 @@ class AlternativeFertilizationCalculationService {
         addDoseCandidate(calculations, "P2O5", rp, p, method);
         addDoseCandidate(calculations, "K2O", rk, k, method);
         return calculations.stream().max(Comparator.comparing(FertilizerDoseCalculation::quantityKgHa));
+    }
+
+    private Double targetNeedByReferenceNutrient(Nutriente nutrient, Double requiredN, Double requiredP2O5, Double requiredK2O) {
+        if (nutrient == null) return null;
+        return switch (nutrient) {
+            case NITROGENIO -> requiredN;
+            case FOSFORO -> requiredP2O5;
+            case POTASSIO -> requiredK2O;
+        };
+    }
+
+    private Double organicReferenceConcentration(OrganicFertilizerModel fertilizer, Nutriente nutrient) {
+        if (fertilizer == null || nutrient == null) return null;
+        return switch (nutrient) {
+            case NITROGENIO -> fertilizer.getN();
+            case FOSFORO -> fertilizer.getP2O5();
+            case POTASSIO -> fertilizer.getK2O();
+        };
+    }
+
+    private double organicReferenceEffectiveConcentration(OrganicFertilizerModel fertilizer, Nutriente nutrient) {
+        return nvl(organicReferenceConcentration(fertilizer, nutrient))
+                * nvl(fertilizer != null ? fertilizer.getTaxaMineralizacaoPrimeiroAnoPercentual() : null);
+    }
+
+    private String organicReferenceNutrientLabel(Nutriente nutrient) {
+        if (nutrient == null) return "Não informado";
+        return switch (nutrient) {
+            case NITROGENIO -> "N";
+            case FOSFORO -> "P2O5";
+            case POTASSIO -> "K2O";
+        };
     }
 
     private void addDoseCandidate(List<FertilizerDoseCalculation> calculations, String nutrient, Double required, double concentration, String method) {

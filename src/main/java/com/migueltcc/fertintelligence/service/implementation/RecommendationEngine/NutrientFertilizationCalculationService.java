@@ -61,6 +61,8 @@ class NutrientFertilizationCalculationService {
                                                  SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                                  UserModel user,
                                                  FertilizerSourceOption sourceOption,
+                                                 Boolean useOrganicFertilizer,
+                                                 Nutriente organicFertilizerReferenceNutrient,
                                                  List<String> warnings,
                                                  List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
                                                  List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis) {
@@ -132,7 +134,8 @@ class NutrientFertilizationCalculationService {
         AlternativeFertilizationCalculationService.AlternativeFertilizationCalculationResult alternativeFertilizationResult =
                 alternativeFertilizationCalculationService.calculate(
                         requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
-                        soilInterpretationTable, user, sourceOption, warnings);
+                        soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
+                        organicFertilizerReferenceNutrient, warnings);
         List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedRows =
                 plantingFormulatedFertilizerRecommendationService.calculate(
                         user, sourceOption, requiredN, requiredP2O5, requiredK2O, crop, warnings);

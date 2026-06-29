@@ -142,7 +142,7 @@ public class RecommendationCalculationService {
 
         DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
         FertilizationRecommendationContext recommendations = buildFertilizationRecommendations(
-                inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis());
+                dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis());
 
         warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
 
@@ -233,7 +233,8 @@ public class RecommendationCalculationService {
                 correctionMessages, limingRequirement, gypsumRequirement, chemicalDiagnosis, correctiveFertilizationRows, salinityDiagnosis);
     }
 
-    private FertilizationRecommendationContext buildFertilizationRecommendations(RecommendationInputs inputs,
+    private FertilizationRecommendationContext buildFertilizationRecommendations(RecommendationCreateRequestDto dto,
+                                                                                 RecommendationInputs inputs,
                                                                                  UserModel user,
                                                                                  FertilizerSourceOption sourceOption,
                                                                                  List<String> warnings,
@@ -241,7 +242,8 @@ public class RecommendationCalculationService {
                                                                                  List<FoliarDiagnosisItem> foliarDiagnosis) {
         return nutrientFertilizationCalculationService.calculate(
                 inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), inputs.soilInterpretationTable(),
-                user, sourceOption, warnings, chemicalDiagnosis, foliarDiagnosis);
+                user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
+                warnings, chemicalDiagnosis, foliarDiagnosis);
     }
 
     private RecommendationCalculationResult buildCalculationResult(RecommendationCreateRequestDto dto,
