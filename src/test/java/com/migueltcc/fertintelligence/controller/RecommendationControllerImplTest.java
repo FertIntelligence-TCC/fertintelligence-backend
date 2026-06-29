@@ -253,6 +253,46 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
     }
 
     @Test
+    void recommendationCreateRequestDto_AcceptsOptionalBioFertilizerField() throws Exception {
+        String legacyJson = """
+                {
+                  "tipo_recomendacao": "ACIDITY_OR_SALINITY_CORRECTION",
+                  "id_propriedade": 1,
+                  "id_talhao": 2,
+                  "id_extrato_analise_fisica": 3,
+                  "id_analise_fertilidade_solo": 3,
+                  "id_extrato_analise_extrato_saturacao": 3,
+                  "id_pasta_cultura_anual": 4,
+                  "id_cultura": 8,
+                  "id_tabela_adubacao_cultura": 5,
+                  "id_tabela_interpretacao_fertilidade_solo": 2,
+                  "id_tabela_interpretacao_analise_foliar": 18,
+                  "grupo_tabela_adubacao_cultura": "PADRAO",
+                  "grupo_tabela_interpretacao_fertilidade_solo": "PUBLICAS",
+                  "grupo_tabela_interpretacao_analise_foliar": "PADRAO",
+                  "criterio_calagem": null,
+                  "origem_adubos": "ALL"
+                }
+                """;
+        String bioFertilizerJson = legacyJson.replace(
+                "\"origem_adubos\": \"ALL\"",
+                """
+                "origem_adubos": "ALL",
+                  "usar_biofertilizante": true
+                """);
+        String camelCaseJson = bioFertilizerJson
+                .replace("\"usar_biofertilizante\"", "\"useBioFertilizer\"");
+
+        RecommendationCreateRequestDto legacyDto = objectMapper.readValue(legacyJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto bioFertilizerDto = objectMapper.readValue(bioFertilizerJson, RecommendationCreateRequestDto.class);
+        RecommendationCreateRequestDto camelCaseDto = objectMapper.readValue(camelCaseJson, RecommendationCreateRequestDto.class);
+
+        org.junit.jupiter.api.Assertions.assertNull(legacyDto.getUseBioFertilizer());
+        org.junit.jupiter.api.Assertions.assertTrue(bioFertilizerDto.getUseBioFertilizer());
+        org.junit.jupiter.api.Assertions.assertTrue(camelCaseDto.getUseBioFertilizer());
+    }
+
+    @Test
     @WithMockUser(username = "testuser")
     void generateRecommendation_RejectsOrganicReferenceNutrientWhenOrganicFertilizerIsNotEnabled() throws Exception {
         String json = """

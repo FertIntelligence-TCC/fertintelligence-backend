@@ -245,6 +245,7 @@ public class RecommendationCalculationService {
                 user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
                 dto.getUseOrganoMineralFertilizer(), dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
+                dto.getUseBioFertilizer(),
                 warnings, chemicalDiagnosis, foliarDiagnosis);
     }
 

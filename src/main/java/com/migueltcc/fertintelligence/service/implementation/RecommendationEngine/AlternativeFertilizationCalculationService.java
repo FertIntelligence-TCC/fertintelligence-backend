@@ -84,6 +84,7 @@ class AlternativeFertilizationCalculationService {
             Double greenFertilizerGreenMass,
             Double greenFertilizerMoisturePercentage,
             Double greenFertilizerDryMass,
+            Boolean useBioFertilizer,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
         GreenFertilizerContribution greenContribution = calculateGreenFertilizerContribution(
@@ -94,7 +95,7 @@ class AlternativeFertilizationCalculationService {
         addOrganoMineralFertilizationRow(rows, user, sourceOption, useOrganoMineralFertilizer,
                 greenContribution.remainingN(), greenContribution.remainingP2O5(), greenContribution.remainingK2O(), warnings);
         rows.add(greenContribution.row());
-        addBiofertilizerLimitation(rows, user, sourceOption, warnings);
+        addBiofertilizerRow(rows, user, sourceOption, useBioFertilizer, warnings);
         MicronutrientRowsResult micronutrientRows = buildMicronutrientRows(
                 chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption, warnings);
         rows.addAll(micronutrientRows.alternativeRows());
@@ -450,10 +451,24 @@ class AlternativeFertilizationCalculationService {
         return new GreenFertilizerContribution(nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), row);
     }
 
-    private void addBiofertilizerLimitation(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
-                                            UserModel user,
-                                            FertilizerSourceOption sourceOption,
-                                            List<String> warnings) {
+    private void addBiofertilizerRow(List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
+                                     UserModel user,
+                                     FertilizerSourceOption sourceOption,
+                                     Boolean useBioFertilizer,
+                                     List<String> warnings) {
+        if (!Boolean.TRUE.equals(useBioFertilizer)) {
+            rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                    .sourceType("BIOFERTILIZANTE")
+                    .nutrientOrObjective("Não solicitado")
+                    .sourceName("Não selecionada")
+                    .dose("Não calculada")
+                    .unit("L/ha ou kg/ha")
+                    .justification("Uso de biofertilizante não habilitado no payload da recomendação.")
+                    .limitations("Seleção automática de biofertilizante não solicitada.")
+                    .build());
+            return;
+        }
+
         List<BioFertilizerModel> sources = selectBioFertilizers(user, sourceOption);
         if (sources.isEmpty()) {
             String limitation = "Não há biofertilizante acessível para a origem de adubos selecionada.";
@@ -461,21 +476,53 @@ class AlternativeFertilizationCalculationService {
             rows.add(limitationRow("BIOFERTILIZANTE", "Nutrição foliar/estímulo fisiológico", limitation));
             return;
         }
-        BioFertilizerModel source = sources.stream()
-                .max(Comparator.comparing((BioFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()) + nvl(f.getB()) + nvl(f.getZn()))
+        Optional<BioFertilizerModel> selectedSource = sources.stream()
+                .filter(f -> bioFertilizerSelectionScore(f) > 0d)
+                .max(Comparator.comparing(this::bioFertilizerSelectionScore)
                         .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
-                .orElse(null);
+                ;
+        if (selectedSource.isEmpty()) {
+            String limitation = "Há biofertilizantes acessíveis, mas nenhum possui componente nutricional ou orgânico positivo cadastrado para seleção automática.";
+            warnings.add(limitation);
+            rows.add(limitationRow("BIOFERTILIZANTE", "Nutrição foliar/estímulo fisiológico", limitation));
+            return;
+        }
+
+        BioFertilizerModel source = selectedSource.get();
         String limitation = "Biofertilizante possui composição cadastrada, mas o backend não possui dose recomendada por cultura, concentração de calda, via de aplicação ou eficiência para calcular recomendação operacional.";
         warnings.add(limitation);
         rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
                 .sourceType("BIOFERTILIZANTE")
                 .nutrientOrObjective("Nutrição foliar/estímulo fisiológico")
-                .sourceName(source != null ? source.getName() : "Não selecionada")
+                .sourceName(source.getName())
                 .dose("Não calculada")
                 .unit("L/ha ou kg/ha")
-                .justification("Fonte apresentada como opção cadastrada, sem recomendação quantitativa automática.")
+                .justification(String.format(Locale.US,
+                        "Fonte selecionada automaticamente pela maior soma de componentes nutricionais e orgânicos positivos cadastrados (índice %.2f).",
+                        round2(bioFertilizerSelectionScore(source))))
                 .limitations(limitation)
                 .build());
+    }
+
+    private double bioFertilizerSelectionScore(BioFertilizerModel fertilizer) {
+        if (fertilizer == null) return 0d;
+        return positive(fertilizer.getN())
+                + positive(fertilizer.getP2O5())
+                + positive(fertilizer.getK2O())
+                + positive(fertilizer.getCa())
+                + positive(fertilizer.getMg())
+                + positive(fertilizer.getS())
+                + positive(fertilizer.getB())
+                + positive(fertilizer.getCu())
+                + positive(fertilizer.getFe())
+                + positive(fertilizer.getMn())
+                + positive(fertilizer.getMo())
+                + positive(fertilizer.getZn())
+                + positive(fertilizer.getProteinasGl())
+                + positive(fertilizer.getAminoacidosGl())
+                + positive(fertilizer.getAmidosGl())
+                + positive(fertilizer.getAcucaresGl())
+                + positive(fertilizer.getCompostosDiversosGl());
     }
 
     private RecommendationCalculationService.AlternativeFertilizationRecommendationRow limitationRow(String sourceType, String objective, String limitation) {
@@ -845,6 +892,10 @@ class AlternativeFertilizationCalculationService {
 
     private double nvl(Double v) {
         return v == null ? 0d : v;
+    }
+
+    private double positive(Double v) {
+        return v == null || v <= 0d ? 0d : v;
     }
 
     private double round2(double v) {

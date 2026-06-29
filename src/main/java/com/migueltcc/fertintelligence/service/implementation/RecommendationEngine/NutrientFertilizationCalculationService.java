@@ -69,6 +69,7 @@ class NutrientFertilizationCalculationService {
                                                  Double greenFertilizerGreenMass,
                                                  Double greenFertilizerMoisturePercentage,
                                                  Double greenFertilizerDryMass,
+                                                 Boolean useBioFertilizer,
                                                  List<String> warnings,
                                                  List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
                                                  List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis) {
@@ -95,7 +96,8 @@ class NutrientFertilizationCalculationService {
                         requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
                         soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
                         organicFertilizerReferenceNutrient, useOrganoMineralFertilizer, useGreenFertilizer, greenFertilizerSpecies,
-                        greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass, warnings);
+                        greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass,
+                        useBioFertilizer, warnings);
         Double mineralRequiredN = alternativeFertilizationResult.remainingRequiredN();
         Double mineralRequiredP2O5 = alternativeFertilizationResult.remainingRequiredP2O5();
         Double mineralRequiredK2O = alternativeFertilizationResult.remainingRequiredK2O();

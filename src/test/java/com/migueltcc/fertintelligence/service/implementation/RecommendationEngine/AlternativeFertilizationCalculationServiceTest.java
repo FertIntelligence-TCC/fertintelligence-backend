@@ -4,9 +4,11 @@ import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerModels.BioFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.GreenFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.OrganoMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
+import com.migueltcc.fertintelligence.repository.BioFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.GreenFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.OrganoMineralFertilizerRepository;
 import org.junit.jupiter.api.Test;
@@ -168,6 +170,53 @@ class AlternativeFertilizationCalculationServiceTest {
         assertThat(warnings).containsExactly("A dose usa teor total cadastrado; o backend não possui coeficiente de eficiência agronômica, liberação gradual ou restrição específica do produto organomineral.");
     }
 
+    @Test
+    void keepsBiofertilizerUnselectedWhenUsageIsNotEnabled() throws Exception {
+        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        invokeAddBiofertilizerRow(service, rows, false, warnings);
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getSourceType()).isEqualTo("BIOFERTILIZANTE");
+        assertThat(rows.get(0).getSourceName()).isEqualTo("Não selecionada");
+        assertThat(rows.get(0).getJustification()).contains("não habilitado");
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    void selectsBestBiofertilizerByHighestPositiveCompositionScoreWhenUsageIsEnabled() throws Exception {
+        BioFertilizerRepository repository = bioFertilizerRepositoryReturning(List.of(
+                BioFertilizerModel.builder()
+                        .id(1L)
+                        .name("Bio básico")
+                        .N(2d)
+                        .P2O5(1d)
+                        .K2O(1d)
+                        .build(),
+                BioFertilizerModel.builder()
+                        .id(2L)
+                        .name("Bio amino")
+                        .N(1d)
+                        .P2O5(1d)
+                        .K2O(1d)
+                        .aminoacidosGl(12d)
+                        .acucaresGl(6d)
+                        .build()));
+        AlternativeFertilizationCalculationService service = serviceWithBioFertilizerRepository(repository);
+        List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        invokeAddBiofertilizerRow(service, rows, true, warnings);
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getSourceType()).isEqualTo("BIOFERTILIZANTE");
+        assertThat(rows.get(0).getSourceName()).isEqualTo("Bio amino");
+        assertThat(rows.get(0).getDose()).isEqualTo("Não calculada");
+        assertThat(rows.get(0).getJustification()).contains("índice 21.00");
+        assertThat(warnings).containsExactly("Biofertilizante possui composição cadastrada, mas o backend não possui dose recomendada por cultura, concentração de calda, via de aplicação ou eficiência para calcular recomendação operacional.");
+    }
+
     private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow invokeToDirectRecommendationMicronutrientRow(
             MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,
             CropModel crop,
@@ -232,6 +281,21 @@ class AlternativeFertilizationCalculationServiceTest {
                 requiredN, requiredP2O5, requiredK2O, warnings);
     }
 
+    private void invokeAddBiofertilizerRow(AlternativeFertilizationCalculationService service,
+                                           List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows,
+                                           Boolean useBioFertilizer,
+                                           List<String> warnings) throws Exception {
+        Method method = AlternativeFertilizationCalculationService.class.getDeclaredMethod(
+                "addBiofertilizerRow",
+                List.class,
+                com.migueltcc.fertintelligence.model.fertintelligence.UserModel.class,
+                FertilizerSourceOption.class,
+                Boolean.class,
+                List.class);
+        method.setAccessible(true);
+        method.invoke(service, rows, null, FertilizerSourceOption.DEFAULT, useBioFertilizer, warnings);
+    }
+
     private Double invokeDouble(Object target, String methodName) throws Exception {
         return (Double) invokeMethod(target, methodName);
     }
@@ -262,6 +326,19 @@ class AlternativeFertilizationCalculationServiceTest {
                 organoMineralFertilizerRepository,
                 null,
                 null,
+                null,
+                null,
+                null,
+                new CropSpacingCalculationService());
+    }
+
+    private AlternativeFertilizationCalculationService serviceWithBioFertilizerRepository(
+            BioFertilizerRepository bioFertilizerRepository) {
+        return new AlternativeFertilizationCalculationService(
+                null,
+                null,
+                null,
+                bioFertilizerRepository,
                 null,
                 null,
                 null,
@@ -309,6 +386,28 @@ class AlternativeFertilizationCalculationServiceTest {
         return (OrganoMineralFertilizerRepository) Proxy.newProxyInstance(
                 OrganoMineralFertilizerRepository.class.getClassLoader(),
                 new Class<?>[]{OrganoMineralFertilizerRepository.class},
+                handler);
+    }
+
+    private BioFertilizerRepository bioFertilizerRepositoryReturning(List<BioFertilizerModel> fertilizers) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            if ("findAllByUser_CargoOrderByNameAsc".equals(method.getName())) {
+                return fertilizers;
+            }
+            if (List.class.isAssignableFrom(method.getReturnType())) {
+                return Collections.emptyList();
+            }
+            if (method.getReturnType().equals(boolean.class)) {
+                return false;
+            }
+            if (method.getReturnType().isPrimitive()) {
+                return 0;
+            }
+            return null;
+        };
+        return (BioFertilizerRepository) Proxy.newProxyInstance(
+                BioFertilizerRepository.class.getClassLoader(),
+                new Class<?>[]{BioFertilizerRepository.class},
                 handler);
     }
 

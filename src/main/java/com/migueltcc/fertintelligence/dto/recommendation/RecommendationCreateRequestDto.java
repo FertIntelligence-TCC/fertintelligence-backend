@@ -112,6 +112,10 @@ public class RecommendationCreateRequestDto {
     @JsonAlias({"useOrganoMineralFertilizer", "usarOrganomineral", "usarAduboOrganomineral"})
     private Boolean useOrganoMineralFertilizer;
 
+    @JsonProperty("usar_biofertilizante")
+    @JsonAlias({"useBioFertilizer", "usarBiofertilizante", "usarAduboBiologico"})
+    private Boolean useBioFertilizer;
+
     @JsonProperty("nutriente_referencia_adubo_organico")
     @JsonAlias({"organicFertilizerReferenceNutrient", "nutrienteReferenciaAduboOrganico"})
     private Nutriente organicFertilizerReferenceNutrient;
