@@ -99,7 +99,8 @@ class DirectRecommendationReportServiceTest {
         assertThat(report).doesNotContain("Observação sobre MAP");
         assertThat(report).doesNotContain("Observações sobre MAP");
         assertThat(report).doesNotContain("MAP aparece nas fontes/fertilizantes recomendados");
-        assertThat(report).contains("Observações finais");
+        assertThat(report).doesNotContain("Observações finais");
+        assertThat(report).contains("Observações sobre adubação");
     }
 
     @Test
@@ -112,6 +113,7 @@ class DirectRecommendationReportServiceTest {
                 mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
         DirectRecommendationReportService service = new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
+                null,
                 null,
                 null,
                 null,
@@ -165,6 +167,7 @@ class DirectRecommendationReportServiceTest {
     private DirectRecommendationReportService newService() {
         return new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
+                null,
                 null,
                 null,
                 null,

@@ -45,6 +45,7 @@ public class DirectRecommendationDtoMapper {
                 .doseUnitMode(doseUnitMetadata != null ? doseUnitMetadata.doseUnitMode() : "INSUFFICIENT_DATA")
                 .doseUnitLabel(doseUnitMetadata != null ? doseUnitMetadata.doseUnitLabel() : null)
                 .applicableDoseColumn(doseUnitMetadata != null ? doseUnitMetadata.applicableDoseColumn() : null)
+                .fertilizationObservations(directRecommendationReportService.resolveFertilizationObservations(recommendation))
                 .micronutrientFertilizerLines(toMicronutrientFertilizerLineDtos(model))
                 .plantingFormulatedFertilizerLines(toPlantingFormulatedFertilizerLineDtos(model))
                 .coverageFormulatedFertilizerLines(toCoverageFormulatedFertilizerLineDtos(model))

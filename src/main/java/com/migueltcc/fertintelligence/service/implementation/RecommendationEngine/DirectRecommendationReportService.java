@@ -8,7 +8,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.repository.AnnualCropFolderRepository;
+import com.migueltcc.fertintelligence.repository.CropFertilizationTableRepository;
 import com.migueltcc.fertintelligence.repository.CropRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
@@ -36,6 +38,7 @@ public class DirectRecommendationReportService {
     private final CropSpacingCalculationService cropSpacingCalculationService;
     private final AnnualCropFolderRepository annualCropFolderRepository;
     private final CropRepository cropRepository;
+    private final CropFertilizationTableRepository cropFertilizationTableRepository;
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
@@ -57,6 +60,19 @@ public class DirectRecommendationReportService {
         }
 
         return resolveDoseUnitMetadata(resolveCrop(recommendation).orElse(null));
+    }
+
+    public String resolveFertilizationObservations(RecommendationModel recommendation) {
+        if (recommendation == null
+                || recommendation.getCropFertilizationTableId() == null
+                || cropFertilizationTableRepository == null) {
+            return "";
+        }
+        return cropFertilizationTableRepository.findById(recommendation.getCropFertilizationTableId())
+                .map(CropFertilizationTableModel::getObservations)
+                .map(String::trim)
+                .filter(observations -> !observations.isBlank())
+                .orElse("");
     }
 
     private DirectDoseUnitMetadata resolveDoseUnitMetadata(CropModel crop) {
@@ -102,10 +118,8 @@ public class DirectRecommendationReportService {
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
 
-        report.append("Observações finais\n\n");
-        report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "14. Limitações e alertas")));
-        report.append("\n\n- ").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
-                .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
+        report.append("Observações sobre adubação\n\n");
+        report.append(resolveFertilizationObservations(recommendation));
         return report.toString();
     }
 

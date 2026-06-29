@@ -46,6 +46,10 @@ public class DirectRecommendationResponseDto {
     private String applicableDoseColumn;
 
     @Builder.Default
+    @JsonProperty("observacoes_adubacao")
+    private String fertilizationObservations = "";
+
+    @Builder.Default
     @JsonProperty("adubos_micronutrientes")
     private List<DirectRecommendationMicronutrientFertilizerLineResponseDto> micronutrientFertilizerLines = new ArrayList<>();
 
