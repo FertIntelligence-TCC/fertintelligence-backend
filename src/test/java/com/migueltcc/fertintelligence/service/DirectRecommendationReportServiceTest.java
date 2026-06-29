@@ -49,6 +49,9 @@ class DirectRecommendationReportServiceTest {
 
         assertThat(report).contains("| Adubação | Adubos simples/formulados | kg/ha | g/m linear |");
         assertThat(report).contains("| Plantio | Ureia | 100 kg/ha | 5.00 |");
+        assertThat(report).doesNotStartWith("#");
+        assertThat(report).doesNotContain("## ");
+        assertThat(report).doesNotContain("### ");
         assertThat(report).doesNotContain("| Adubação | Adubos simples/formulados | kg/ha | g/m linear | g/cova |");
         assertThat(report).doesNotContain("g/cova");
     }

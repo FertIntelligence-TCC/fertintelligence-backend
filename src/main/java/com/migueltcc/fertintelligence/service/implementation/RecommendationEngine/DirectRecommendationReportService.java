@@ -83,7 +83,7 @@ public class DirectRecommendationReportService {
         List<String> spacingWarnings = new ArrayList<>();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
         TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
-        report.append("# LAUDO TÉCNICO DE RECOMENDAÇÃO DE ADUBAÇÃO\n\n");
+        report.append("LAUDO TÉCNICO DE RECOMENDAÇÃO DE ADUBAÇÃO\n\n");
         TechnicalRecommendationDocumentSupport.appendIdentification(report, recommendation);
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
@@ -102,9 +102,9 @@ public class DirectRecommendationReportService {
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
 
-        report.append("## Observação sobre MAP\n\n");
+        report.append("Observação sobre MAP\n\n");
         report.append(resolveMapObservation(source)).append("\n\n");
-        report.append("## Observações finais\n\n");
+        report.append("Observações finais\n\n");
         report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "14. Limitações e alertas")));
         report.append("\n\n- ").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
                 .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
@@ -115,7 +115,7 @@ public class DirectRecommendationReportService {
                                           String source,
                                           DirectDoseUnitMetadata doseUnitMetadata,
                                           List<DirectRecommendationMicronutrientFertilizerLineModel> directLines) {
-        report.append("## Tabela de micronutrientes\n\n");
+        report.append("Tabela de micronutrientes\n\n");
         if (directLines != null && !directLines.isEmpty()) {
             report.append("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | ")
                     .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
@@ -164,7 +164,7 @@ public class DirectRecommendationReportService {
                                 List<String> spacingWarnings,
                                 List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
                                 List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
-        report.append("## Tabela de N, P2O5 e K2O\n\n");
+        report.append("Tabela de N, P2O5 e K2O\n\n");
         if (hasFormulatedLines(plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines)) {
             report.append("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | ")
                     .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");

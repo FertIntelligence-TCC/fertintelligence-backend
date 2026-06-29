@@ -37,7 +37,7 @@ public class ShoppingListReportService {
         StringBuilder report = new StringBuilder();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
         TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
-        report.append("# Lista de Compras de insumos/ha\n\n");
+        report.append("Lista de Compras de insumos/ha\n\n");
         TechnicalRecommendationDocumentSupport.appendIdentification(report, recommendation);
         report.append("- Área usada para totalização: ").append(TechnicalRecommendationDocumentSupport.formatArea(area)).append("\n\n");
 
@@ -58,7 +58,7 @@ public class ShoppingListReportService {
             report.append("\n");
         }
 
-        report.append("## Observações\n\n");
+        report.append("Observações\n\n");
         report.append("- A lista consolida insumos e doses do laudo técnico persistido e das linhas calculadas da Recomendação Direta.\n");
         report.append("- Quando a área do talhão está indisponível ou inválida, o total não é inferido.\n");
         report.append("- Itens sem dose em kg/ha não são convertidos para compra para evitar conversões não suportadas.\n");

@@ -29,6 +29,29 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
+    private static final List<String> TOP_LEVEL_HEADINGS = List.of(
+            "Laudo Técnico de Recomendação Agrícola",
+            "1. Identificação",
+            "2. Dados utilizados",
+            "3. Diagnóstico químico",
+            "4. Diagnóstico físico",
+            "5. Diagnóstico de salinidade/sodicidade",
+            "6. Diagnóstico foliar",
+            "7. Calagem",
+            "8. Gessagem",
+            "9. Adubação corretiva",
+            "10. Adubação de plantio",
+            "11. Adubação de cobertura",
+            "12. Balanço nutricional",
+            "13. Fertilizantes recomendados",
+            "14. Limitações e alertas",
+            "15. Memória de cálculo",
+            "16. Encerramento"
+    );
+    private static final List<String> SUBSECTION_HEADINGS = List.of(
+            "Entradas de calagem",
+            "Entradas de gessagem"
+    );
 
     private TechnicalRecommendationDocumentSupport() {
     }
@@ -49,7 +72,7 @@ final class TechnicalRecommendationDocumentSupport {
         PropertyModel property = recommendation != null ? recommendation.getProperty() : null;
         PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
         UserModel creator = recommendation != null ? recommendation.getCreator() : null;
-        report.append("## Identificação\n\n");
+        report.append("Identificação\n\n");
         report.append("- Cliente/Produtor: ").append(safe(property != null && property.getOwner() != null ? property.getOwner().getName() : null)).append("\n");
         report.append("- Propriedade: ").append(safe(property != null ? property.getNome() : null)).append("\n");
         report.append("- Município/UF: ").append(NOT_INFORMED).append("\n");
@@ -64,27 +87,15 @@ final class TechnicalRecommendationDocumentSupport {
     }
 
     static String section(String markdown, String heading) {
-        if (markdown == null || markdown.isBlank()) return "";
-        String marker = "## " + heading;
-        int start = markdown.indexOf(marker);
-        if (start < 0) return "";
-        int next = markdown.indexOf("\n## ", start + marker.length());
-        return markdown.substring(start, next < 0 ? markdown.length() : next).trim();
+        return headingBlock(markdown, heading, false);
     }
 
     static String subsection(String markdown, String heading) {
-        if (markdown == null || markdown.isBlank()) return "";
-        String marker = "### " + heading;
-        int start = markdown.indexOf(marker);
-        if (start < 0) return "";
-        int nextSection = markdown.indexOf("\n## ", start + marker.length());
-        int nextSubsection = markdown.indexOf("\n### ", start + marker.length());
-        int end = minPositive(nextSection, nextSubsection);
-        return markdown.substring(start, end < 0 ? markdown.length() : end).trim();
+        return headingBlock(markdown, heading, true);
     }
 
     static void appendSourceSectionOrMessage(StringBuilder report, String title, String sourceSection, String missingMessage) {
-        report.append("## ").append(title).append("\n\n");
+        report.append(title).append("\n\n");
         String content = stripHeading(sourceSection);
         report.append(content.isBlank() ? missingMessage : content).append("\n\n");
     }
@@ -342,10 +353,51 @@ final class TechnicalRecommendationDocumentSupport {
         return line.replace("|", "").replace(":", "").replace("-", "").trim().isBlank();
     }
 
-    private static int minPositive(int first, int second) {
-        if (first < 0) return second;
-        if (second < 0) return first;
-        return Math.min(first, second);
+    private static String headingBlock(String text, String heading, boolean includeSubsections) {
+        if (text == null || text.isBlank()) return "";
+        String[] lines = text.split("\\R", -1);
+        int startLine = -1;
+        for (int i = 0; i < lines.length; i++) {
+            if (matchesHeading(lines[i], heading)) {
+                startLine = i;
+                break;
+            }
+        }
+        if (startLine < 0) return "";
+
+        int endLine = lines.length;
+        for (int i = startLine + 1; i < lines.length; i++) {
+            if (isBoundaryHeading(lines[i], includeSubsections)) {
+                endLine = i;
+                break;
+            }
+        }
+
+        return joinLines(lines, startLine, endLine).trim();
+    }
+
+    private static boolean matchesHeading(String line, String heading) {
+        return plainHeading(line).equals(heading);
+    }
+
+    private static boolean isBoundaryHeading(String line, boolean includeSubsections) {
+        String heading = plainHeading(line);
+        if (TOP_LEVEL_HEADINGS.contains(heading)) return true;
+        return includeSubsections && SUBSECTION_HEADINGS.contains(heading);
+    }
+
+    private static String plainHeading(String line) {
+        if (line == null) return "";
+        return line.trim().replaceFirst("^#{1,3}\\s+", "");
+    }
+
+    private static String joinLines(String[] lines, int startLine, int endLine) {
+        StringBuilder block = new StringBuilder();
+        for (int i = startLine; i < endLine; i++) {
+            if (i > startLine) block.append("\n");
+            block.append(lines[i]);
+        }
+        return block.toString();
     }
 
     static final class ShoppingItem {

@@ -37,11 +37,11 @@ public class RecommendationReportService {
     }
 
     private void appendTitle(StringBuilder report) {
-        report.append("## Laudo Técnico de Recomendação Agrícola\n\n");
+        report.append("Laudo Técnico de Recomendação Agrícola\n\n");
     }
 
     private void appendIdentification(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 1. Identificação\n\n");
+        report.append("1. Identificação\n\n");
         report.append("- Produtor ou solicitante: ").append(safe(result.getRequesterName())).append("\n");
         report.append("- Usuário solicitante: ").append(safe(result.getRequesterUsername())).append("\n");
         report.append("- Propriedade: ").append(safe(result.getPropertyName())).append(formatId(result.getPropertyId())).append("\n");
@@ -53,7 +53,7 @@ public class RecommendationReportService {
     }
 
     private void appendUsedData(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 2. Dados utilizados\n\n");
+        report.append("2. Dados utilizados\n\n");
         report.append("| Base de dados | Identificador | Síntese técnica |\n");
         report.append("|---|---:|---|\n");
         appendDataRow(report, "Análise física", result.getPhysicalAnalysisId(), result.getPhysicalAnalysisSummary());
@@ -69,7 +69,7 @@ public class RecommendationReportService {
     }
 
     private void appendChemicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 3. Diagnóstico químico\n\n");
+        report.append("3. Diagnóstico químico\n\n");
         report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getSoilChemicalDiagnosis() == null || result.getSoilChemicalDiagnosis().isEmpty()) {
@@ -89,7 +89,7 @@ public class RecommendationReportService {
     }
 
     private void appendPhysicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 4. Diagnóstico físico\n\n");
+        report.append("4. Diagnóstico físico\n\n");
         report.append("| Atributo | Valor analisado | Unidade | Observação técnica |\n");
         report.append("|---|---:|---|---|\n");
         if (result.getSoilPhysicalDiagnosis() == null || result.getSoilPhysicalDiagnosis().isEmpty()) {
@@ -107,7 +107,7 @@ public class RecommendationReportService {
     }
 
     private void appendSalinityDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 5. Diagnóstico de salinidade/sodicidade\n\n");
+        report.append("5. Diagnóstico de salinidade/sodicidade\n\n");
         report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getSoilSalinityDiagnosis() == null || result.getSoilSalinityDiagnosis().isEmpty()) {
@@ -127,7 +127,7 @@ public class RecommendationReportService {
     }
 
     private void appendFoliarDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 6. Diagnóstico foliar\n\n");
+        report.append("6. Diagnóstico foliar\n\n");
         report.append("| Nutriente | Valor analisado | Unidade | Interpretação | Faixa adequada usada | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getFoliarDiagnosis() == null || result.getFoliarDiagnosis().isEmpty()) {
@@ -147,7 +147,7 @@ public class RecommendationReportService {
     }
 
     private void appendLimingRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 7. Calagem\n\n");
+        report.append("7. Calagem\n\n");
         RecommendationCalculationService.LimingRequirementResult liming = result.getLimingRequirement();
         if (liming == null) {
             report.append("- Necessidade de calagem: Não calculada.\n");
@@ -170,7 +170,7 @@ public class RecommendationReportService {
     }
 
     private void appendGypsumRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 8. Gessagem\n\n");
+        report.append("8. Gessagem\n\n");
         RecommendationCalculationService.GypsumRequirementResult gypsum = result.getGypsumRequirement();
         if (gypsum == null) {
             report.append("- Necessidade de gessagem: Não calculada.\n");
@@ -193,7 +193,7 @@ public class RecommendationReportService {
     }
 
     private void appendCorrectiveFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 9. Adubação corretiva\n\n");
+        report.append("9. Adubação corretiva\n\n");
         report.append("| Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |\n");
         report.append("|---|---|---|---:|---|---|\n");
         if (result.getCorrectiveFertilizationRows() == null || result.getCorrectiveFertilizationRows().isEmpty()) {
@@ -213,12 +213,12 @@ public class RecommendationReportService {
     }
 
     private void appendPlantingFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 10. Adubação de plantio\n\n");
+        report.append("10. Adubação de plantio\n\n");
         appendFertilizationRows(report, filterRows(result, "Plantio"), "Nenhuma linha de adubação de plantio foi calculada.");
     }
 
     private void appendCoverageFertilization(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 11. Adubação de cobertura\n\n");
+        report.append("11. Adubação de cobertura\n\n");
         appendFertilizationRows(report, filterCoverageRows(result), "Nenhuma linha de adubação de cobertura foi calculada.");
     }
 
@@ -243,7 +243,7 @@ public class RecommendationReportService {
     }
 
     private void appendNutrientBalance(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 12. Balanço nutricional\n\n");
+        report.append("12. Balanço nutricional\n\n");
         report.append("| Nutriente | Necessidade total | Fornecido no plantio | Recomendado em cobertura | Fornecido em cobertura | Fornecido total | Saldo final | Situação |\n");
         report.append("|---|---:|---:|---:|---:|---:|---:|---|\n");
         if (result.getNutrientBalanceRows() == null || result.getNutrientBalanceRows().isEmpty()) {
@@ -265,7 +265,7 @@ public class RecommendationReportService {
     }
 
     private void appendRecommendedFertilizers(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 13. Fertilizantes recomendados\n\n");
+        report.append("13. Fertilizantes recomendados\n\n");
         report.append("| Tipo | Fertilizante | N | P2O5 | K2O | Justificativa |\n");
         report.append("|---|---|---:|---:|---:|---|\n");
         if (result.getFertilizerSuggestions() == null || result.getFertilizerSuggestions().isEmpty()) {
@@ -304,7 +304,7 @@ public class RecommendationReportService {
     }
 
     private void appendLimitationsAndAlerts(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 14. Limitações e alertas\n\n");
+        report.append("14. Limitações e alertas\n\n");
         report.append("A) Alertas de diagnóstico\n\n");
         appendBulletList(report, result.getDiagnosticMessages(), "Nenhuma limitação diagnóstica adicional foi registrada.");
         report.append("\n");
@@ -317,7 +317,7 @@ public class RecommendationReportService {
     }
 
     private void appendCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 15. Memória de cálculo\n\n");
+        report.append("15. Memória de cálculo\n\n");
         report.append("A) Fertilizante comercial\n\n");
         report.append("| Fase | Fertilizante | Nutriente limitante/alvo | Necessidade alvo | Concentração do produto | Dose calculada | Fornecido N/P2O5/K2O | Déficit ou excedente N/P2O5/K2O |\n");
         report.append("|---|---|---|---:|---:|---:|---|---|\n");
@@ -352,7 +352,7 @@ public class RecommendationReportService {
     }
 
     private void appendClosing(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("## 16. Encerramento\n\n");
+        report.append("16. Encerramento\n\n");
         report.append("Este laudo técnico consolida os diagnósticos, doses, fontes e memórias de cálculo produzidos pelo backend a partir dos dados cadastrados. ");
         report.append("Campos ausentes foram mantidos como não informados ou não calculados para evitar inferências não suportadas pelo modelo atual.\n\n");
         report.append("Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n");
@@ -373,7 +373,7 @@ public class RecommendationReportService {
     }
 
     private void appendInputValues(StringBuilder report, String title, Map<String, Double> inputValues) {
-        report.append("### ").append(title).append("\n\n");
+        report.append(title).append("\n\n");
         report.append("| Valor de entrada | Valor |\n");
         report.append("|---|---:|\n");
         if (inputValues == null || inputValues.isEmpty()) {

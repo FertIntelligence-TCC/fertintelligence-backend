@@ -80,6 +80,9 @@ class RecommendationReportServiceTest {
         assertTrue(report.contains("mg/dm³"));
         assertTrue(report.contains("(mmolc)**0.5"));
         assertTrue(report.contains("kg/ha"));
+        assertFalse(report.startsWith("#"));
+        assertFalse(report.contains("## "));
+        assertFalse(report.contains("### "));
         assertFalse(report.contains("g/dm3"));
         assertFalse(report.contains("cmolc/dm³"));
         assertFalse(report.contains("CaCO3"));
