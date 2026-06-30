@@ -931,7 +931,7 @@ public class RecommendationCalculationService {
         }
 
         FertilityAnalysisExtractModel fertility = fertilityExtract.get();
-        Optional<DiverseContentRangeModel> diverseRange = diverseContentRangeRepository.findByTable(table);
+        Optional<DiverseContentRangeModel> diverseRange = findDiverseContentRangeByTable(table);
         Optional<KExchangeableContentModel> kRange = kExchangeableContentRepository.findByTable(table);
 
         if (diverseRange.isEmpty()) {
@@ -1045,6 +1045,17 @@ public class RecommendationCalculationService {
                     "Fósforo (P) disponível por resina classificado pelo critério específico da tabela selecionada.");
         }
         return missingValue("Fósforo (P)", "Não há valor de fósforo disponível por Mehlich-1 ou resina no extrato de fertilidade.");
+    }
+
+    private Optional<DiverseContentRangeModel> findDiverseContentRangeByTable(SoilFertilityInterpretationCriteriaTableModel table) {
+        if (table == null) {
+            return Optional.empty();
+        }
+        Optional<DiverseContentRangeModel> byEntity = diverseContentRangeRepository.findByTable(table);
+        if (byEntity.isPresent() || table.getId() == null) {
+            return byEntity;
+        }
+        return diverseContentRangeRepository.findByTable_Id(table.getId());
     }
 
     private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,

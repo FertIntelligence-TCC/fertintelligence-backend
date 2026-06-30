@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface DiverseContentRangeRepository extends JpaRepository<DiverseContentRangeModel, Long> {
 
     Optional<DiverseContentRangeModel> findByTable(SoilFertilityInterpretationCriteriaTableModel table);
+    Optional<DiverseContentRangeModel> findByTable_Id(Long tableId);
 }

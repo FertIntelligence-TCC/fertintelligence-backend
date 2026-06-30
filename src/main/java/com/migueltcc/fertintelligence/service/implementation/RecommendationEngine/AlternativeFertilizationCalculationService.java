@@ -551,9 +551,7 @@ class AlternativeFertilizationCalculationService {
         Optional<MicronutrientDoseModel> micronutrientDoses = soilInterpretationTable != null
                 ? micronutrientDoseRepository.findByTable(soilInterpretationTable)
                 : Optional.empty();
-        Optional<DiverseContentRangeModel> micronutrientRanges = soilInterpretationTable != null
-                ? diverseContentRangeRepository.findByTable(soilInterpretationTable)
-                : Optional.empty();
+        Optional<DiverseContentRangeModel> micronutrientRanges = findDiverseContentRangeByTable(soilInterpretationTable);
 
         if (micronutrientDoses.isPresent()) {
             MicronutrientDoseModel doses = micronutrientDoses.get();
@@ -630,6 +628,17 @@ class AlternativeFertilizationCalculationService {
                 .limitations(limitation)
                 .build());
         return new MicronutrientRowsResult(rows, directRows);
+    }
+
+    private Optional<DiverseContentRangeModel> findDiverseContentRangeByTable(SoilFertilityInterpretationCriteriaTableModel table) {
+        if (table == null) {
+            return Optional.empty();
+        }
+        Optional<DiverseContentRangeModel> byEntity = diverseContentRangeRepository.findByTable(table);
+        if (byEntity.isPresent() || table.getId() == null) {
+            return byEntity;
+        }
+        return diverseContentRangeRepository.findByTable_Id(table.getId());
     }
 
     private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow toDirectRecommendationMicronutrientRow(
