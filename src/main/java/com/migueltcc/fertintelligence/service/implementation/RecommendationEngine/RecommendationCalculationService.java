@@ -1051,11 +1051,13 @@ public class RecommendationCalculationService {
         if (table == null) {
             return Optional.empty();
         }
-        Optional<DiverseContentRangeModel> byEntity = diverseContentRangeRepository.findByTable(table);
-        if (byEntity.isPresent() || table.getId() == null) {
-            return byEntity;
+        if (table.getId() != null) {
+            Optional<DiverseContentRangeModel> byTableId = diverseContentRangeRepository.findByTable_Id(table.getId());
+            if (byTableId.isPresent()) {
+                return byTableId;
+            }
         }
-        return diverseContentRangeRepository.findByTable_Id(table.getId());
+        return diverseContentRangeRepository.findByTable(table);
     }
 
     private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,
