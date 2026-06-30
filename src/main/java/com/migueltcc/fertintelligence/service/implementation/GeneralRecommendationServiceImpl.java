@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.GeneralRecommendationRepository
 import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.GeneralRecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationFertigramaAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
     private final UserRepository userRepository;
     private final PermissionManager permissionManager;
     private final RecommendationStructuredDataAssembler structuredDataAssembler;
+    private final RecommendationFertigramaAssembler fertigramaAssembler;
 
     @Override
     @Transactional
@@ -120,7 +122,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
                 .structuredTables(structuredDataAssembler.generalSections(model.getTechnicalReport()))
-                .fertigramas(structuredDataAssembler.generalFertigramas(model.getTechnicalReport()))
+                .fertigramas(fertigramaAssembler.generalFertigramas(model.getTechnicalReport()))
                 .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
@@ -135,7 +137,7 @@ public class GeneralRecommendationServiceImpl implements GeneralRecommendationSe
                 .technicalReport(recommendation.getTechnicalReport())
                 .content(recommendation.getTechnicalReport())
                 .structuredTables(structuredDataAssembler.generalSections(recommendation.getTechnicalReport()))
-                .fertigramas(structuredDataAssembler.generalFertigramas(recommendation.getTechnicalReport()))
+                .fertigramas(fertigramaAssembler.generalFertigramas(recommendation.getTechnicalReport()))
                 .technicalObservations(structuredDataAssembler.observations(recommendation.getTechnicalReport()))
                 .generated(recommendation.getTechnicalReport() != null && !recommendation.getTechnicalReport().isBlank())
                 .createdAt(recommendation.getCreatedAt())

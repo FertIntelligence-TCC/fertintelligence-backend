@@ -31,6 +31,7 @@ import com.migueltcc.fertintelligence.service.documentation.RecommendationServic
 import com.migueltcc.fertintelligence.service.documentation.ShoppingListService;
 import com.migueltcc.fertintelligence.service.documentation.SummaryRecommendationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationFertigramaAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationNarrativeService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
@@ -68,6 +69,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final SummaryRecommendationReportService summaryRecommendationReportService;
     private final ShoppingListReportService shoppingListReportService;
     private final RecommendationStructuredDataAssembler structuredDataAssembler;
+    private final RecommendationFertigramaAssembler fertigramaAssembler;
     private final PermissionManager permissionManager;
 
     @Override
@@ -271,7 +273,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .technicalReport(technicalReport)
                 .content(technicalReport)
                 .structuredTables(structuredDataAssembler.generalSections(technicalReport))
-                .fertigramas(structuredDataAssembler.generalFertigramas(technicalReport))
+                .fertigramas(fertigramaAssembler.generalFertigramas(technicalReport))
                 .technicalObservations(structuredDataAssembler.observations(technicalReport))
                 .generated(true)
                 .createdAt(generalRecommendation != null ? generalRecommendation.getCreatedAt() : recommendation.getCreatedAt())
@@ -292,7 +294,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .technicalReport(summaryRecommendation.getTechnicalReport())
                 .content(summaryRecommendation.getTechnicalReport())
                 .structuredTables(structuredDataAssembler.summarySections(summaryRecommendation.getRecommendation()))
-                .fertigramas(structuredDataAssembler.summaryFertigramas(summaryRecommendation.getRecommendation()))
+                .fertigramas(fertigramaAssembler.summaryFertigramas(summaryRecommendation.getRecommendation()))
                 .technicalObservations(structuredDataAssembler.observations(summaryRecommendation.getTechnicalReport()))
                 .createdAt(summaryRecommendation.getCreatedAt())
                 .updatedAt(summaryRecommendation.getUpdatedAt())

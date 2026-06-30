@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.repository.RecommendationRepository;
 import com.migueltcc.fertintelligence.repository.SummaryRecommendationRepository;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.SummaryRecommendationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationFertigramaAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import jakarta.persistence.EntityNotFoundException;
@@ -28,6 +29,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
     private final PermissionManager permissionManager;
     private final SummaryRecommendationReportService summaryRecommendationReportService;
     private final RecommendationStructuredDataAssembler structuredDataAssembler;
+    private final RecommendationFertigramaAssembler fertigramaAssembler;
 
     @Override
     @Transactional
@@ -121,7 +123,7 @@ public class SummaryRecommendationServiceImpl implements SummaryRecommendationSe
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
                 .structuredTables(structuredDataAssembler.summarySections(model.getRecommendation()))
-                .fertigramas(structuredDataAssembler.summaryFertigramas(model.getRecommendation()))
+                .fertigramas(fertigramaAssembler.summaryFertigramas(model.getRecommendation()))
                 .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
