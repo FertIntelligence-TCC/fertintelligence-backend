@@ -37,7 +37,6 @@ public class SummaryRecommendationReportService {
         report.append("Diagnóstico da Fertilidade do Solo da Área Avaliada\n\n");
         report.append("- Classificação granulométrica: ").append(TechnicalRecommendationDocumentSupport.safe(granulometricClassification)).append("\n");
         report.append("- Critérios Muito Baixo/Baixo/Médio/Alto ou Bom/Muito Alto: ver tabela técnica calculada abaixo quando disponível.\n");
-        report.append("- Fertigrama/gráfico: ").append(NOT_CALCULATED).append("\n\n");
         report.append(TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "3. Diagnóstico químico"))).append("\n\n");
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
