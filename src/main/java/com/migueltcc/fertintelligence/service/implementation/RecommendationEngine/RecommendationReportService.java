@@ -179,6 +179,14 @@ public class RecommendationReportService {
             report.append("- Aviso técnico: resultado estruturado de gessagem não foi produzido pelo cálculo.\n\n");
             return;
         }
+        if (Boolean.FALSE.equals(gypsum.getEvaluated())) {
+            report.append("- Necessidade de gessagem: Não avaliada.\n");
+            report.append("- Aviso técnico: ").append(safe(gypsum.getJustification())).append("\n");
+            report.append("- Avisos de gessagem:\n");
+            appendBulletList(report, gypsum.getWarnings(), "Gessagem não avaliada porque as análises selecionadas não possuem camada 20-40 cm suficiente.");
+            report.append("\n");
+            return;
+        }
 
         report.append("- Necessidade de gessagem: ").append(formatGypsumNeed(gypsum.getNeeded())).append("\n");
         report.append("- Critério usado: ").append(safe(gypsum.getCriterion())).append("\n");

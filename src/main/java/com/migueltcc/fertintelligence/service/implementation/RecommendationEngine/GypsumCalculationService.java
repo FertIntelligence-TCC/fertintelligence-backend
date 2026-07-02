@@ -54,6 +54,10 @@ class GypsumCalculationService {
         List<String> gypsumWarnings = new ArrayList<>();
         FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
 
+        if (fertility == null || physicalAnalysis == null) {
+            return notEvaluatedByMissingDepth(fertility, physicalAnalysis, inputValues, gypsumWarnings, warnings);
+        }
+
         if (fertility == null) {
             gypsumWarnings.add("Nenhum extrato de fertilidade foi encontrado para avaliar necessidade de gessagem.");
             warnings.addAll(gypsumWarnings);
@@ -76,6 +80,8 @@ class GypsumCalculationService {
         inputValues.put("Enxofre (mg/dm³)", fertility.getEnxofre());
         inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
         inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
+        inputValues.put("Profundidade inicial do extrato físico (cm)", extractInitialDepth(physicalAnalysis));
+        inputValues.put("Profundidade final do extrato físico (cm)", extractFinalDepth(physicalAnalysis));
 
         if (extractInitialDepth(fertility) == null || extractFinalDepth(fertility) == null) {
             gypsumWarnings.add("Profundidade do extrato de fertilidade não disponível; o backend não inferiu camada para gessagem.");
@@ -155,6 +161,35 @@ class GypsumCalculationService {
                 .sourceJustification(sourceSelection.justification())
                 .sourceLimitations(sourceSelection.limitations())
                 .justification(justification)
+                .warnings(gypsumWarnings)
+                .build();
+    }
+
+    private RecommendationCalculationService.GypsumRequirementResult notEvaluatedByMissingDepth(FertilityAnalysisExtractModel fertility,
+                                                                                                PhysicalAnalysisExtractModel physicalAnalysis,
+                                                                                                Map<String, Double> inputValues,
+                                                                                                List<String> gypsumWarnings,
+                                                                                                List<String> warnings) {
+        String warning = "Gessagem não avaliada porque as análises selecionadas não possuem camada 20-40 cm suficiente.";
+        gypsumWarnings.add(warning);
+        if (fertility == null) {
+            gypsumWarnings.add("Análise de fertilidade selecionada sem extrato/camada que compreenda 20-40 cm.");
+        } else {
+            inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
+            inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
+        }
+        if (physicalAnalysis == null) {
+            gypsumWarnings.add("Análise física selecionada sem extrato/camada que compreenda 20-40 cm.");
+        } else {
+            inputValues.put("Profundidade inicial do extrato físico (cm)", extractInitialDepth(physicalAnalysis));
+            inputValues.put("Profundidade final do extrato físico (cm)", extractFinalDepth(physicalAnalysis));
+        }
+        warnings.addAll(gypsumWarnings);
+        return RecommendationCalculationService.GypsumRequirementResult.builder()
+                .evaluated(false)
+                .needed(null)
+                .inputValues(inputValues)
+                .justification(warning)
                 .warnings(gypsumWarnings)
                 .build();
     }
@@ -326,6 +361,20 @@ class GypsumCalculationService {
         if (fertility == null) return null;
         if (fertility.getRangeExtract() != null) return doubleFromInteger(fertility.getRangeExtract().getProfundidade_final());
         if (fertility.getLayerExtract() != null) return doubleFromInteger(fertility.getLayerExtract().getProfundidade_final());
+        return null;
+    }
+
+    private Double extractInitialDepth(PhysicalAnalysisExtractModel physical) {
+        if (physical == null) return null;
+        if (physical.getRangeExtract() != null) return doubleFromInteger(physical.getRangeExtract().getProfundidade_inicial());
+        if (physical.getLayerExtract() != null) return doubleFromInteger(physical.getLayerExtract().getProfundidade_inicial());
+        return null;
+    }
+
+    private Double extractFinalDepth(PhysicalAnalysisExtractModel physical) {
+        if (physical == null) return null;
+        if (physical.getRangeExtract() != null) return doubleFromInteger(physical.getRangeExtract().getProfundidade_final());
+        if (physical.getLayerExtract() != null) return doubleFromInteger(physical.getLayerExtract().getProfundidade_final());
         return null;
     }
 

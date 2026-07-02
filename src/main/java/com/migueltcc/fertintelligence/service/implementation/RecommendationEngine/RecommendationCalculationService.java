@@ -223,8 +223,10 @@ public class RecommendationCalculationService {
         List<String> correctionMessages = buildCorrectionMessages(inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
         LimingRequirementResult limingRequirement = limingRequirementCalculator.calculate(
                 dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
+        Optional<PhysicalAnalysisExtractModel> gypsumPhysicalExtract = selectGypsumPhysicalExtract(inputs.physicalAnalysisExtracts());
+        Optional<FertilityAnalysisExtractModel> gypsumFertilityExtract = selectGypsumFertilityExtract(inputs.fertilityAnalysisExtracts());
         GypsumRequirementResult gypsumRequirement = gypsumCalculationService.calculate(
-                inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
+                gypsumFertilityExtract, gypsumPhysicalExtract.orElse(null), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
         List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
@@ -558,6 +560,18 @@ public class RecommendationCalculationService {
         return selected;
     }
 
+    private Optional<PhysicalAnalysisExtractModel> selectGypsumPhysicalExtract(List<PhysicalAnalysisExtractModel> extracts) {
+        return (extracts != null ? extracts : List.<PhysicalAnalysisExtractModel>of()).stream()
+                .filter(this::coversTwentyToForty)
+                .findFirst();
+    }
+
+    private Optional<FertilityAnalysisExtractModel> selectGypsumFertilityExtract(List<FertilityAnalysisExtractModel> extracts) {
+        return (extracts != null ? extracts : List.<FertilityAnalysisExtractModel>of()).stream()
+                .filter(this::coversTwentyToForty)
+                .findFirst();
+    }
+
     private <T> List<T> joinWithLegacy(List<T> extracts, T legacyExtract) {
         List<T> joined = new ArrayList<>(extracts != null ? extracts : List.of());
         joined.add(legacyExtract);
@@ -612,10 +626,24 @@ public class RecommendationCalculationService {
         return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
     }
 
+    private boolean coversTwentyToForty(PhysicalAnalysisExtractModel extract) {
+        return coversTwentyToForty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversTwentyToForty(FertilityAnalysisExtractModel extract) {
+        return coversTwentyToForty(depthStart(extract), depthEnd(extract));
+    }
+
     private boolean coversZeroToTwenty(Integer initialDepth, Integer finalDepth) {
         return initialDepth != null && finalDepth != null
                 && initialDepth <= 0
                 && finalDepth >= 20;
+    }
+
+    private boolean coversTwentyToForty(Integer initialDepth, Integer finalDepth) {
+        return initialDepth != null && finalDepth != null
+                && initialDepth <= 20
+                && finalDepth >= 40;
     }
 
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -2012,6 +2040,8 @@ public class RecommendationCalculationService {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class GypsumRequirementResult {
+        @Builder.Default
+        private Boolean evaluated = true;
         private Boolean needed;
         private String criterion;
         private Map<String, Double> inputValues;
