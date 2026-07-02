@@ -91,12 +91,10 @@ public class RecommendationCreateRequestDto {
     private TechnicalTableGroup soilFertilityInterpretationCriteriaTableGroup;
 
     @JsonProperty("id_tabela_interpretacao_analise_foliar")
-    @NotNull
     private Long cropFoliarAnalysisInterpretationTableId;
 
     @JsonProperty("grupo_tabela_interpretacao_analise_foliar")
     @JsonAlias("cropFoliarAnalysisInterpretationTableGroup")
-    @NotNull
     private TechnicalTableGroup cropFoliarAnalysisInterpretationTableGroup;
 
     @JsonProperty("criterio_calagem")

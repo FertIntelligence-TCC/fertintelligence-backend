@@ -470,6 +470,64 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
+    void generateRecommendation_AllowsMissingOptionalSaturationAndFoliarTable() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+        PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
+        PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
+
+        RecommendationCreateRequestDto request = RecommendationCreateRequestDto.builder()
+                .recommendationType(RecommendationType.BOTH)
+                .propertyId(10L)
+                .plotId(20L)
+                .soilFertilityAnalysisId(2L)
+                .annualCropFolderId(6L)
+                .cropId(7L)
+                .cropFertilizationTableId(100L)
+                .cropFertilizationTableGroup(TechnicalTableGroup.PADRAO)
+                .soilFertilityInterpretationCriteriaTableId(200L)
+                .soilFertilityInterpretationCriteriaTableGroup(TechnicalTableGroup.PADRAO)
+                .origemAdubos(FertilizerSourceOption.BOTH)
+                .build();
+
+        RecommendationModel saved = RecommendationModel.builder()
+                .id(99L).creator(user).property(property).plot(plot)
+                .recommendationType(RecommendationType.BOTH)
+                .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .origemAdubos(FertilizerSourceOption.BOTH)
+                .technicalReport("laudo preliminar")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+
+        SoilAnalysisModel soilAnalysis = SoilAnalysisModel.builder().id(2L).plot(plot).analysisYear(2026).build();
+        AnnualCropFolderModel folder = AnnualCropFolderModel.builder().id(6L).plot(plot).cropsYear(2026).build();
+        CropModel crop = CropModel.builder().id(7L).folder(folder).name(NomeComum.ALGODAO).build();
+        CropFertilizationTableModel cropFertilizationTable = CropFertilizationTableModel.builder().id(100L).creator(user).crop_common_name(NomeComum.ALGODAO).build();
+        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = SoilFertilityInterpretationCriteriaTableModel.builder().id(200L).creator(user).build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(plotRepository.findById(20L)).thenReturn(Optional.of(plot));
+        when(soilAnalysisRepository.findById(2L)).thenReturn(Optional.of(soilAnalysis));
+        when(annualCropFolderRepository.findById(6L)).thenReturn(Optional.of(folder));
+        when(cropRepository.findById(7L)).thenReturn(Optional.of(crop));
+        when(cropFertilizationTableRepository.findByIdAndCreator_CargoAndPublicTableTrue(100L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(cropFertilizationTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findByIdAndCreator_Cargo(200L, Cargo.USUARIO_SUPREMO)).thenReturn(Optional.of(soilInterpretationTable));
+        when(recommendationRepository.save(any(RecommendationModel.class))).thenReturn(saved);
+
+        mockMvc.perform(post("/recommendation/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(99L));
+
+        ArgumentCaptor<RecommendationModel> recommendationCaptor = ArgumentCaptor.forClass(RecommendationModel.class);
+        verify(recommendationRepository).save(recommendationCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertNull(recommendationCaptor.getValue().getCropFoliarAnalysisInterpretationTableId());
+        org.junit.jupiter.api.Assertions.assertNull(recommendationCaptor.getValue().getCropFoliarAnalysisInterpretationTableGroup());
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
     void generateRecommendation_BlocksIncompatibleCropAndFertilizationTable() throws Exception {
         UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();

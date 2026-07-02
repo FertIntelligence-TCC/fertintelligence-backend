@@ -162,8 +162,8 @@ public class RecommendationCalculationService {
                 dto.getCropFertilizationTableId(), dto.getCropFertilizationTableGroup(), user);
         SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable = findSoilFertilityInterpretationTableBySelectionOrThrow(
                 dto.getSoilFertilityInterpretationCriteriaTableId(), dto.getSoilFertilityInterpretationCriteriaTableGroup(), user);
-        CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
-                dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user);
+        CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findOptionalCropFoliarAnalysisInterpretationTable(
+                dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user, warnings).orElse(null);
         Optional<FoliarAnalysisModel> foliarAnalysis = crop != null ? findLatestFoliarAnalysis(crop) : Optional.empty();
         Optional<FertilityAnalysisExtractModel> fertilityExtract = soilFertilitySelection.primaryExtract();
 
@@ -1522,6 +1522,10 @@ public class RecommendationCalculationService {
             warnings.add("Cultura sem nome comum cadastrado; não foi possível buscar linha de interpretação foliar.");
             return List.of();
         }
+        if (table == null) {
+            warnings.add("Tabela de interpretação foliar não informada; diagnóstico foliar não calculado.");
+            return List.of();
+        }
         Optional<CropFoliarAnalysisInterpretationTableLineModel> line =
                 cropFoliarAnalysisInterpretationTableLineRepository.findByTableAndCrop(table, crop.getName());
         if (line.isEmpty()) {
@@ -1837,6 +1841,18 @@ public class RecommendationCalculationService {
             UserModel user) {
         return findCropFoliarAnalysisInterpretationTableBySelection(id, group, user)
                 .orElseThrow(() -> new EntityNotFoundException("Tabela de interpretação de análise foliar não encontrada para o grupo " + group + " e ID: " + id));
+    }
+
+    private Optional<CropFoliarAnalysisInterpretationTableModel> findOptionalCropFoliarAnalysisInterpretationTable(
+            Long id,
+            TechnicalTableGroup group,
+            UserModel user,
+            List<String> warnings) {
+        if (id == null && group == null) {
+            warnings.add("Tabela de interpretação de análise foliar não informada; rotinas dependentes desse critério foram tratadas como indisponíveis.");
+            return Optional.empty();
+        }
+        return Optional.of(findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(id, group, user));
     }
 
     private Optional<CropFertilizationTableModel> findCropFertilizationTableBySelection(Long id,
