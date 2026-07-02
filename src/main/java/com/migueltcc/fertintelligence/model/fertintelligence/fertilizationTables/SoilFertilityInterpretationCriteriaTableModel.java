@@ -80,6 +80,18 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @ToString.Exclude
     private SalinityInterpretationModel salinityInterpretation;
 
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private CtcSaturationModel ctcSaturation;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private ExchangeableBaseRatioModel exchangeableBaseRatio;
+
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private RecommendedLimestoneTypeModel recommendedLimestoneType;
+
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()
                 .id(this.id)
