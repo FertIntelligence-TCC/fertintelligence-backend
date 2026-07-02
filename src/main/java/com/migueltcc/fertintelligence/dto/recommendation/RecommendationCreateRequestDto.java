@@ -44,8 +44,12 @@ public class RecommendationCreateRequestDto {
     @JsonAlias({"recommendationFolderName", "nomePastaRecomendacao"})
     private String recommendationFolderName;
 
+    @JsonProperty("physicalAnalysisId")
+    @JsonAlias({"id_analise_fisica"})
+    private Long physicalAnalysisId;
+
     @JsonProperty("id_extrato_analise_fisica")
-    @JsonAlias({"physicalAnalysisExtractId", "physicalAnalysisId", "id_analise_fisica", "id_extrato_fisico"})
+    @JsonAlias({"physicalAnalysisExtractId", "id_extrato_fisico"})
     private Long physicalAnalysisExtractId;
 
     @JsonProperty("id_analise_fertilidade_solo")
@@ -53,8 +57,12 @@ public class RecommendationCreateRequestDto {
     @NotNull
     private Long soilFertilityAnalysisId;
 
+    @JsonProperty("saturationExtractAnalysisId")
+    @JsonAlias({"saturationAnalysisId", "id_analise_extrato_saturacao"})
+    private Long saturationExtractAnalysisId;
+
     @JsonProperty("id_extrato_analise_extrato_saturacao")
-    @JsonAlias({"saturationExtractAnalysisExtractId", "saturationAnalysisId", "id_extrato_saturacao", "id_analise_extrato_saturacao"})
+    @JsonAlias({"saturationExtractAnalysisExtractId", "id_extrato_saturacao"})
     private Long saturationExtractAnalysisExtractId;
 
     @JsonProperty("id_pasta_cultura_anual")

@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.repository;
 
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -16,6 +17,10 @@ public interface SaturationExtractAnalysisExtractRepository extends JpaRepositor
     List<SaturationExtractAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<SaturationExtractAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    List<SaturationExtractAnalysisExtractModel> findAllByRangeExtractAnalysis(SoilAnalysisModel analysis);
+
+    List<SaturationExtractAnalysisExtractModel> findAllByLayerExtractAnalysis(SoilAnalysisModel analysis);
 
     Optional<SaturationExtractAnalysisExtractModel> findTopByRangeExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
 

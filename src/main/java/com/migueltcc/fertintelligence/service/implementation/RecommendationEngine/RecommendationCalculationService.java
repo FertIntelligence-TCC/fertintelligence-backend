@@ -150,10 +150,12 @@ public class RecommendationCalculationService {
     }
 
     private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot, List<String> warnings) {
-        PhysicalAnalysisExtractModel physicalAnalysis = findPhysicalAnalysisExtractByIdOrNull(dto.getPhysicalAnalysisExtractId());
-        FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot);
+        PhysicalAnalysisSelection physicalSelection = findPhysicalAnalysisSelection(dto.getPhysicalAnalysisId(), dto.getPhysicalAnalysisExtractId(), warnings);
+        PhysicalAnalysisExtractModel physicalAnalysis = physicalSelection.primaryExtract().orElse(null);
+        FertilityAnalysisSelection soilFertilitySelection = findSoilFertilitySelectionByIdOrThrow(dto.getSoilFertilityAnalysisId(), plot, warnings);
         SoilAnalysisModel soilFertilityAnalysis = soilFertilitySelection.soilAnalysis();
-        SaturationExtractAnalysisExtractModel saturationExtractAnalysis = findSaturationExtractAnalysisExtractByIdOrNull(dto.getSaturationExtractAnalysisExtractId());
+        SaturationAnalysisSelection saturationSelection = findSaturationAnalysisSelection(dto.getSaturationExtractAnalysisId(), dto.getSaturationExtractAnalysisExtractId(), warnings);
+        SaturationExtractAnalysisExtractModel saturationExtractAnalysis = saturationSelection.primaryExtract().orElse(null);
         AnnualCropFolderModel annualCropFolder = findAnnualCropFolderByIdOrThrow(dto.getAnnualCropFolderId());
         CropModel crop = resolveCropFromRecommendationContext(dto, annualCropFolder, warnings).orElse(null);
         CropFertilizationTableModel cropFertilizationTable = findCropFertilizationTableBySelectionOrThrow(
@@ -163,12 +165,14 @@ public class RecommendationCalculationService {
         CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable = findCropFoliarAnalysisInterpretationTableBySelectionOrThrow(
                 dto.getCropFoliarAnalysisInterpretationTableId(), dto.getCropFoliarAnalysisInterpretationTableGroup(), user);
         Optional<FoliarAnalysisModel> foliarAnalysis = crop != null ? findLatestFoliarAnalysis(crop) : Optional.empty();
-        Optional<FertilityAnalysisExtractModel> fertilityExtract = soilFertilitySelection.selectedExtract()
-                .or(() -> findLatestFertilityExtract(soilFertilityAnalysis));
+        Optional<FertilityAnalysisExtractModel> fertilityExtract = soilFertilitySelection.primaryExtract();
 
         return new RecommendationInputs(
-                physicalAnalysis, soilFertilityAnalysis, saturationExtractAnalysis, annualCropFolder, crop,
-                cropFertilizationTable, soilInterpretationTable, foliarInterpretationTable, foliarAnalysis, fertilityExtract);
+                physicalSelection.analysis().orElse(null), physicalAnalysis, physicalSelection.extracts(),
+                soilFertilityAnalysis, fertilityExtract, soilFertilitySelection.extracts(),
+                saturationSelection.analysis().orElse(null), saturationExtractAnalysis, saturationSelection.extracts(),
+                annualCropFolder, crop, cropFertilizationTable, soilInterpretationTable,
+                foliarInterpretationTable, foliarAnalysis);
     }
 
     private void validateRecommendationInputs(RecommendationInputs inputs, PlotModel plot, List<String> warnings) {
@@ -208,8 +212,8 @@ public class RecommendationCalculationService {
                 ? dto.getTexturalClassification()
                 : TexturalClassification.BRASILEIRO;
         PhysicalDiagnosis physicalDiagnosis = buildSoilPhysicalDiagnosis(inputs.physicalAnalysis(), texturalClassification, warnings);
-        String physicalSummary = physicalDiagnosis.summary();
-        String soilFertilitySummary = "Análise de fertilidade considerada na recomendação.";
+        String physicalSummary = buildPhysicalAnalysisSummary(inputs, physicalDiagnosis.summary());
+        String soilFertilitySummary = buildFertilityAnalysisSummary(inputs);
         String cropSummary = inputs.crop() != null
                 ? "Cultura considerada conforme cadastro da pasta anual."
                 : "Cultura da pasta anual não encontrada; campos dependentes da cultura foram tratados como ausentes.";
@@ -227,10 +231,12 @@ public class RecommendationCalculationService {
                 chemicalDiagnosis, inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
                 inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
+        String saturationSummary = buildSaturationAnalysisSummary(inputs, salinityDiagnosis.summary());
 
         return new DiagnosesContext(
                 physicalDiagnosis, physicalSummary, soilFertilitySummary, cropSummary, foliarDiagnosis, foliarSummary,
-                correctionMessages, limingRequirement, gypsumRequirement, chemicalDiagnosis, correctiveFertilizationRows, salinityDiagnosis);
+                correctionMessages, limingRequirement, gypsumRequirement, chemicalDiagnosis, correctiveFertilizationRows, salinityDiagnosis,
+                saturationSummary);
     }
 
     private FertilizationRecommendationContext buildFertilizationRecommendations(RecommendationCreateRequestDto dto,
@@ -289,12 +295,12 @@ public class RecommendationCalculationService {
                 .coverageFormulatedFertilizerRows(recommendations.coverageFormulatedFertilizerRows())
                 .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
-                .physicalAnalysisId(inputs.physicalAnalysis() != null ? inputs.physicalAnalysis().getId() : null)
+                .physicalAnalysisId(inputs.physicalAnalysisSourceId())
                 .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
-                .saturationExtractAnalysisId(inputs.saturationExtractAnalysis() != null ? inputs.saturationExtractAnalysis().getId() : null)
+                .saturationExtractAnalysisId(inputs.saturationAnalysisSourceId())
                 .annualCropFolderId(inputs.annualCropFolder().getId())
                 .cropId(inputs.crop() != null ? inputs.crop().getId() : null).foliarAnalysisId(inputs.foliarAnalysis().map(FoliarAnalysisModel::getId).orElse(null))
-                .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.salinityDiagnosis().summary())
+                .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.saturationSummary())
                 .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
                 .cropSummary(diagnoses.cropSummary()).foliarAnalysisSummary(diagnoses.foliarSummary()).build();
     }
@@ -310,16 +316,30 @@ public class RecommendationCalculationService {
     }
 
     private record RecommendationInputs(
+            SoilAnalysisModel physicalAnalysisSource,
             PhysicalAnalysisExtractModel physicalAnalysis,
+            List<PhysicalAnalysisExtractModel> physicalAnalysisExtracts,
             SoilAnalysisModel soilFertilityAnalysis,
+            Optional<FertilityAnalysisExtractModel> fertilityExtract,
+            List<FertilityAnalysisExtractModel> fertilityAnalysisExtracts,
+            SoilAnalysisModel saturationAnalysisSource,
             SaturationExtractAnalysisExtractModel saturationExtractAnalysis,
+            List<SaturationExtractAnalysisExtractModel> saturationAnalysisExtracts,
             AnnualCropFolderModel annualCropFolder,
             CropModel crop,
             CropFertilizationTableModel cropFertilizationTable,
             SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
             CropFoliarAnalysisInterpretationTableModel foliarInterpretationTable,
-            Optional<FoliarAnalysisModel> foliarAnalysis,
-            Optional<FertilityAnalysisExtractModel> fertilityExtract) {
+            Optional<FoliarAnalysisModel> foliarAnalysis) {
+        private Long physicalAnalysisSourceId() {
+            if (physicalAnalysisSource != null) return physicalAnalysisSource.getId();
+            return physicalAnalysis != null ? physicalAnalysis.getId() : null;
+        }
+
+        private Long saturationAnalysisSourceId() {
+            if (saturationAnalysisSource != null) return saturationAnalysisSource.getId();
+            return saturationExtractAnalysis != null ? saturationExtractAnalysis.getId() : null;
+        }
     }
 
     private record DiagnosesContext(
@@ -334,7 +354,8 @@ public class RecommendationCalculationService {
             GypsumRequirementResult gypsumRequirement,
             List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
             List<CorrectiveFertilizationRow> correctiveFertilizationRows,
-            SalinityDiagnosis salinityDiagnosis) {
+            SalinityDiagnosis salinityDiagnosis,
+            String saturationSummary) {
     }
 
     private double round2(double v) {
@@ -347,6 +368,30 @@ public class RecommendationCalculationService {
                 .max(Comparator.comparing(FertilityAnalysisExtractModel::getId));
     }
 
+    private List<FertilityAnalysisExtractModel> findFertilityExtractsByAnalysis(SoilAnalysisModel soil) {
+        if (soil == null) return List.of();
+        List<FertilityAnalysisExtractModel> extracts = new ArrayList<>();
+        extracts.addAll(fertilityAnalysisExtractRepository.findAllByRangeExtractAnalysis(soil));
+        extracts.addAll(fertilityAnalysisExtractRepository.findAllByLayerExtractAnalysis(soil));
+        return sortFertilityExtracts(extracts);
+    }
+
+    private List<PhysicalAnalysisExtractModel> findPhysicalExtractsByAnalysis(SoilAnalysisModel soil) {
+        if (soil == null) return List.of();
+        List<PhysicalAnalysisExtractModel> extracts = new ArrayList<>();
+        extracts.addAll(physicalAnalysisExtractRepository.findAllByRangeExtractAnalysis(soil));
+        extracts.addAll(physicalAnalysisExtractRepository.findAllByLayerExtractAnalysis(soil));
+        return sortPhysicalExtracts(extracts);
+    }
+
+    private List<SaturationExtractAnalysisExtractModel> findSaturationExtractsByAnalysis(SoilAnalysisModel soil) {
+        if (soil == null) return List.of();
+        List<SaturationExtractAnalysisExtractModel> extracts = new ArrayList<>();
+        extracts.addAll(saturationExtractAnalysisExtractRepository.findAllByRangeExtractAnalysis(soil));
+        extracts.addAll(saturationExtractAnalysisExtractRepository.findAllByLayerExtractAnalysis(soil));
+        return sortSaturationExtracts(extracts);
+    }
+
     private boolean belongsToSoilAnalysis(FertilityAnalysisExtractModel extract, SoilAnalysisModel soil) {
         if (extract == null || soil == null) return false;
         return (extract.getRangeExtract() != null
@@ -357,6 +402,72 @@ public class RecommendationCalculationService {
                 && Objects.equals(extract.getLayerExtract().getAnalysis().getId(), soil.getId()));
     }
 
+    private String buildPhysicalAnalysisSummary(RecommendationInputs inputs, String baseSummary) {
+        if (inputs.physicalAnalysisSource() == null && inputs.physicalAnalysis() == null) {
+            return baseSummary;
+        }
+        return buildAnalysisSummary(
+                "Análise física",
+                inputs.physicalAnalysisSource(),
+                inputs.physicalAnalysisExtracts(),
+                inputs.physicalAnalysis(),
+                baseSummary,
+                this::describePhysicalExtract);
+    }
+
+    private String buildFertilityAnalysisSummary(RecommendationInputs inputs) {
+        return buildAnalysisSummary(
+                "Análise de fertilidade",
+                inputs.soilFertilityAnalysis(),
+                inputs.fertilityAnalysisExtracts(),
+                inputs.fertilityExtract().orElse(null),
+                "Análise de fertilidade considerada na recomendação.",
+                this::describeFertilityExtract);
+    }
+
+    private String buildSaturationAnalysisSummary(RecommendationInputs inputs, String baseSummary) {
+        if (inputs.saturationAnalysisSource() == null && inputs.saturationExtractAnalysis() == null) {
+            return baseSummary;
+        }
+        return buildAnalysisSummary(
+                "Análise de extrato de saturação",
+                inputs.saturationAnalysisSource(),
+                inputs.saturationAnalysisExtracts(),
+                inputs.saturationExtractAnalysis(),
+                baseSummary,
+                this::describeSaturationExtract);
+    }
+
+    private <T> String buildAnalysisSummary(String label,
+                                            SoilAnalysisModel analysis,
+                                            List<T> extracts,
+                                            T primary,
+                                            String baseSummary,
+                                            Function<T, String> describer) {
+        List<T> safeExtracts = extracts != null ? extracts : List.of();
+        StringBuilder summary = new StringBuilder();
+        if (analysis != null) {
+            summary.append(label).append(" completa ID ").append(analysis.getId()).append(" considerada.");
+        } else {
+            summary.append(baseSummary);
+        }
+        if (safeExtracts.isEmpty()) {
+            summary.append(" Nenhum extrato/camada/intervalo associado foi encontrado.");
+            return summary.toString();
+        }
+        summary.append(" Extratos carregados: ");
+        for (int i = 0; i < safeExtracts.size(); i++) {
+            if (i > 0) summary.append("; ");
+            T extract = safeExtracts.get(i);
+            summary.append(describer.apply(extract));
+            if (extract == primary) {
+                summary.append(" (principal para regras que exigem extrato único)");
+            }
+        }
+        summary.append(". Regra backend: cálculos tabulares usam todos os extratos carregados como contexto do laudo; rotinas quantitativas legadas que aceitam apenas um extrato usam o principal, escolhido pela menor profundidade inicial, menor profundidade final e menor ID.");
+        return summary.toString();
+    }
+
     private SoilAnalysisModel resolveSoilAnalysis(FertilityAnalysisExtractModel extract) {
         if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) {
             return extract.getRangeExtract().getAnalysis();
@@ -365,6 +476,86 @@ public class RecommendationCalculationService {
             return extract.getLayerExtract().getAnalysis();
         }
         throw new IllegalArgumentException("Extrato de análise de fertilidade não possui análise de solo associada.");
+    }
+
+    private SoilAnalysisModel resolveSoilAnalysis(PhysicalAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) {
+            return extract.getRangeExtract().getAnalysis();
+        }
+        if (extract.getLayerExtract() != null && extract.getLayerExtract().getAnalysis() != null) {
+            return extract.getLayerExtract().getAnalysis();
+        }
+        throw new IllegalArgumentException("Extrato de análise física não possui análise de solo associada.");
+    }
+
+    private SoilAnalysisModel resolveSoilAnalysis(SaturationExtractAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null && extract.getRangeExtract().getAnalysis() != null) {
+            return extract.getRangeExtract().getAnalysis();
+        }
+        if (extract.getLayerExtract() != null && extract.getLayerExtract().getAnalysis() != null) {
+            return extract.getLayerExtract().getAnalysis();
+        }
+        throw new IllegalArgumentException("Extrato de análise de saturação não possui análise de solo associada.");
+    }
+
+    private List<PhysicalAnalysisExtractModel> sortPhysicalExtracts(List<PhysicalAnalysisExtractModel> extracts) {
+        return extracts.stream().sorted(Comparator.comparing((PhysicalAnalysisExtractModel extract) -> depthStart(extract))
+                .thenComparing(extract -> depthEnd(extract))
+                .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId())).toList();
+    }
+
+    private List<FertilityAnalysisExtractModel> sortFertilityExtracts(List<FertilityAnalysisExtractModel> extracts) {
+        return extracts.stream().sorted(Comparator.comparing((FertilityAnalysisExtractModel extract) -> depthStart(extract))
+                .thenComparing(extract -> depthEnd(extract))
+                .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId())).toList();
+    }
+
+    private List<SaturationExtractAnalysisExtractModel> sortSaturationExtracts(List<SaturationExtractAnalysisExtractModel> extracts) {
+        return extracts.stream().sorted(Comparator.comparing((SaturationExtractAnalysisExtractModel extract) -> depthStart(extract))
+                .thenComparing(extract -> depthEnd(extract))
+                .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId())).toList();
+    }
+
+    private <T> List<T> joinWithLegacy(List<T> extracts, T legacyExtract) {
+        List<T> joined = new ArrayList<>(extracts != null ? extracts : List.of());
+        joined.add(legacyExtract);
+        return joined;
+    }
+
+    private Integer depthStart(PhysicalAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_inicial();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_inicial();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthEnd(PhysicalAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthStart(FertilityAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_inicial();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_inicial();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthEnd(FertilityAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthStart(SaturationExtractAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_inicial();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_inicial();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthEnd(SaturationExtractAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
+        return Integer.MAX_VALUE;
     }
 
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -1369,6 +1560,30 @@ public class RecommendationCalculationService {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
+    private String describePhysicalExtract(PhysicalAnalysisExtractModel extract) {
+        return "extrato físico ID " + extract.getId() + " " + describeDepth(extract.getRangeExtract(), extract.getLayerExtract());
+    }
+
+    private String describeFertilityExtract(FertilityAnalysisExtractModel extract) {
+        return "extrato de fertilidade ID " + extract.getId() + " " + describeDepth(extract.getRangeExtract(), extract.getLayerExtract());
+    }
+
+    private String describeSaturationExtract(SaturationExtractAnalysisExtractModel extract) {
+        return "extrato de saturação ID " + extract.getId() + " " + describeDepth(extract.getRangeExtract(), extract.getLayerExtract());
+    }
+
+    private String describeDepth(com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel range,
+                                 com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel layer) {
+        if (range != null) {
+            return "(intervalo " + range.getProfundidade_inicial() + "-" + range.getProfundidade_final() + " cm)";
+        }
+        if (layer != null) {
+            return "(camada " + layer.getLayer() + "/" + layer.getSub_layer()
+                    + ", " + layer.getProfundidade_inicial() + "-" + layer.getProfundidade_final() + " cm)";
+        }
+        return "(sem intervalo/camada informado)";
+    }
+
     private String normalizeText(String value) {
         if (value == null) return "";
         return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
@@ -1383,40 +1598,102 @@ public class RecommendationCalculationService {
     private record ThreeLevelCriterion(Double lowLimit, Double mediumStart, Double mediumEnd, Double highLimit) {}
     private record SodiumRangeCriterion(Double veryLowEnd, Double lowStart, Double lowEnd, Double mediumStart,
                                         Double mediumEnd, Double highStart, Double highEnd, Double veryHighStart) {}
-    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrNull(Long id) {
-        return id == null ? null : findPhysicalAnalysisExtractByIdOrThrow(id);
+    private PhysicalAnalysisSelection findPhysicalAnalysisSelection(Long analysisId,
+                                                                    Long legacyExtractId,
+                                                                    List<String> warnings) {
+        if (analysisId != null) {
+            SoilAnalysisModel analysis = soilAnalysisRepository.findById(analysisId)
+                    .orElseThrow(() -> new EntityNotFoundException("Análise física não encontrada com o ID: " + analysisId));
+            List<PhysicalAnalysisExtractModel> extracts = findPhysicalExtractsByAnalysis(analysis);
+            if (extracts.isEmpty()) {
+                warnings.add("Análise física ID " + analysisId + " não possui extratos/camadas/intervalos cadastrados.");
+            }
+            return new PhysicalAnalysisSelection(Optional.of(analysis), extracts, extracts.stream().findFirst());
+        }
+        if (legacyExtractId == null) {
+            return new PhysicalAnalysisSelection(Optional.empty(), List.of(), Optional.empty());
+        }
+        PhysicalAnalysisExtractModel extract = physicalAnalysisExtractRepository.findById(legacyExtractId)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + legacyExtractId));
+        SoilAnalysisModel analysis = resolveSoilAnalysis(extract);
+        List<PhysicalAnalysisExtractModel> extracts = findPhysicalExtractsByAnalysis(analysis);
+        if (extracts.stream().noneMatch(item -> Objects.equals(item.getId(), extract.getId()))) {
+            extracts = sortPhysicalExtracts(joinWithLegacy(extracts, extract));
+        }
+        warnings.add("Compatibilidade temporária: foi recebido ID de extrato físico legado; a análise completa associada foi carregada no backend.");
+        return new PhysicalAnalysisSelection(Optional.ofNullable(analysis), extracts, Optional.of(extract));
     }
 
-    private PhysicalAnalysisExtractModel findPhysicalAnalysisExtractByIdOrThrow(Long id) {
-        return physicalAnalysisExtractRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise física não encontrado com o ID: " + id));
-    }
+    private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot, List<String> warnings) {
+        Optional<SoilAnalysisModel> soilAnalysis = soilAnalysisRepository.findById(id);
+        if (soilAnalysis.isPresent()
+                && (requestPlot == null
+                || soilAnalysis.get().getPlot() == null
+                || Objects.equals(soilAnalysis.get().getPlot().getId(), requestPlot.getId()))) {
+            List<FertilityAnalysisExtractModel> extracts = findFertilityExtractsByAnalysis(soilAnalysis.get());
+            if (extracts.isEmpty()) {
+                warnings.add("Análise de fertilidade ID " + id + " não possui extratos/camadas/intervalos cadastrados.");
+            }
+            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, extracts.stream().findFirst());
+        }
 
-    private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot) {
         Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id);
         if (extract.isPresent()) {
             SoilAnalysisModel soil = resolveSoilAnalysis(extract.get());
             if (soil.getPlot() != null && requestPlot != null && Objects.equals(soil.getPlot().getId(), requestPlot.getId())) {
-                return new FertilityAnalysisSelection(soil, extract);
+                List<FertilityAnalysisExtractModel> extracts = findFertilityExtractsByAnalysis(soil);
+                if (extracts.stream().noneMatch(item -> Objects.equals(item.getId(), extract.get().getId()))) {
+                    extracts = sortFertilityExtracts(joinWithLegacy(extracts, extract.get()));
+                }
+                warnings.add("Compatibilidade temporária: o ID de fertilidade recebido corresponde a um extrato legado; a análise completa associada foi carregada no backend.");
+                return new FertilityAnalysisSelection(soil, extracts, extract);
             }
         }
 
-        Optional<SoilAnalysisModel> soil = soilAnalysisRepository.findById(id);
-        if (soil.isPresent()) {
-            return new FertilityAnalysisSelection(soil.get(), Optional.empty());
+        if (soilAnalysis.isPresent()) {
+            List<FertilityAnalysisExtractModel> extracts = findFertilityExtractsByAnalysis(soilAnalysis.get());
+            if (extracts.isEmpty()) {
+                warnings.add("Análise de fertilidade ID " + id + " não possui extratos/camadas/intervalos cadastrados.");
+            }
+            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, extracts.stream().findFirst());
         }
 
-        return extract.map(value -> new FertilityAnalysisSelection(resolveSoilAnalysis(value), Optional.of(value)))
+        return extract.map(value -> {
+                    SoilAnalysisModel resolvedSoil = resolveSoilAnalysis(value);
+                    List<FertilityAnalysisExtractModel> extracts = findFertilityExtractsByAnalysis(resolvedSoil);
+                    if (extracts.stream().noneMatch(item -> Objects.equals(item.getId(), value.getId()))) {
+                        extracts = sortFertilityExtracts(joinWithLegacy(extracts, value));
+                    }
+                    warnings.add("Compatibilidade temporária: o ID de fertilidade recebido corresponde a um extrato legado; a análise completa associada foi carregada no backend.");
+                    return new FertilityAnalysisSelection(resolvedSoil, extracts, Optional.of(value));
+                })
                 .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));
     }
 
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrNull(Long id) {
-        return id == null ? null : findSaturationExtractAnalysisExtractByIdOrThrow(id);
-    }
-
-    private SaturationExtractAnalysisExtractModel findSaturationExtractAnalysisExtractByIdOrThrow(Long id) {
-        return saturationExtractAnalysisExtractRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + id));
+    private SaturationAnalysisSelection findSaturationAnalysisSelection(Long analysisId,
+                                                                        Long legacyExtractId,
+                                                                        List<String> warnings) {
+        if (analysisId != null) {
+            SoilAnalysisModel analysis = soilAnalysisRepository.findById(analysisId)
+                    .orElseThrow(() -> new EntityNotFoundException("Análise de extrato de saturação não encontrada com o ID: " + analysisId));
+            List<SaturationExtractAnalysisExtractModel> extracts = findSaturationExtractsByAnalysis(analysis);
+            if (extracts.isEmpty()) {
+                warnings.add("Análise de extrato de saturação ID " + analysisId + " não possui extratos/camadas/intervalos cadastrados.");
+            }
+            return new SaturationAnalysisSelection(Optional.of(analysis), extracts, extracts.stream().findFirst());
+        }
+        if (legacyExtractId == null) {
+            return new SaturationAnalysisSelection(Optional.empty(), List.of(), Optional.empty());
+        }
+        SaturationExtractAnalysisExtractModel extract = saturationExtractAnalysisExtractRepository.findById(legacyExtractId)
+                .orElseThrow(() -> new EntityNotFoundException("Extrato de análise de saturação não encontrado com o ID: " + legacyExtractId));
+        SoilAnalysisModel analysis = resolveSoilAnalysis(extract);
+        List<SaturationExtractAnalysisExtractModel> extracts = findSaturationExtractsByAnalysis(analysis);
+        if (extracts.stream().noneMatch(item -> Objects.equals(item.getId(), extract.getId()))) {
+            extracts = sortSaturationExtracts(joinWithLegacy(extracts, extract));
+        }
+        warnings.add("Compatibilidade temporária: foi recebido ID de extrato de saturação legado; a análise completa associada foi carregada no backend.");
+        return new SaturationAnalysisSelection(Optional.ofNullable(analysis), extracts, Optional.of(extract));
     }
 
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {
@@ -1548,11 +1825,23 @@ public class RecommendationCalculationService {
         return foliarAnalysisRepository.findTopByCropOrderByIdDesc(crop);
     }
 
+    private record PhysicalAnalysisSelection(
+            Optional<SoilAnalysisModel> analysis,
+            List<PhysicalAnalysisExtractModel> extracts,
+            Optional<PhysicalAnalysisExtractModel> primaryExtract
+    ) {}
+
     private record FertilityAnalysisSelection(
             SoilAnalysisModel soilAnalysis,
-            Optional<FertilityAnalysisExtractModel> selectedExtract
-    ) {
-    }
+            List<FertilityAnalysisExtractModel> extracts,
+            Optional<FertilityAnalysisExtractModel> primaryExtract
+    ) {}
+
+    private record SaturationAnalysisSelection(
+            Optional<SoilAnalysisModel> analysis,
+            List<SaturationExtractAnalysisExtractModel> extracts,
+            Optional<SaturationExtractAnalysisExtractModel> primaryExtract
+    ) {}
 
     @Getter
     @Builder

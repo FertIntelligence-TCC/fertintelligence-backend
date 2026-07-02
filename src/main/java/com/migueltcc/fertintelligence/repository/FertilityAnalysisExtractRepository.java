@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.repository;
 
+import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -14,6 +15,10 @@ public interface FertilityAnalysisExtractRepository extends JpaRepository<Fertil
     List<FertilityAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<FertilityAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    List<FertilityAnalysisExtractModel> findAllByRangeExtractAnalysis(SoilAnalysisModel analysis);
+
+    List<FertilityAnalysisExtractModel> findAllByLayerExtractAnalysis(SoilAnalysisModel analysis);
 
     boolean existsByRangeExtract(RangeExtractModel rangeExtract);
 

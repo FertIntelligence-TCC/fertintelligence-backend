@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.repository;
 
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.LayerExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -16,6 +17,10 @@ public interface PhysicalAnalysisExtractRepository extends JpaRepository<Physica
     List<PhysicalAnalysisExtractModel> findAllByRangeExtract(RangeExtractModel rangeExtract);
 
     List<PhysicalAnalysisExtractModel> findAllByLayerExtract(LayerExtractModel layerExtract);
+
+    List<PhysicalAnalysisExtractModel> findAllByRangeExtractAnalysis(SoilAnalysisModel analysis);
+
+    List<PhysicalAnalysisExtractModel> findAllByLayerExtractAnalysis(SoilAnalysisModel analysis);
 
     Optional<PhysicalAnalysisExtractModel> findTopByRangeExtractAnalysisPlotOrderByIdDesc(PlotModel plot);
 
