@@ -19,7 +19,7 @@ public class CropDeficiencyToxicityModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CULTURA", nullable = false)
     CropModel crop;
 

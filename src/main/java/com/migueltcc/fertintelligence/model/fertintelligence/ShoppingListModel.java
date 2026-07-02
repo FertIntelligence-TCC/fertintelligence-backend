@@ -21,7 +21,7 @@ public class ShoppingListModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @OneToOne(optional = false)
+    @OneToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_RECOMMENDATION", nullable = false, unique = true)
     RecommendationModel recommendation;
 

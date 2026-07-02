@@ -72,7 +72,7 @@ public class FoliarAnalysisModel {
     })
     BeneficialElementsContent elements;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CULTURA", nullable = false)
     CropModel crop;
 

@@ -21,7 +21,7 @@ public class CoverageModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_INTERVALO_TEORES", nullable = false)
     ContentRangeModel range;
 

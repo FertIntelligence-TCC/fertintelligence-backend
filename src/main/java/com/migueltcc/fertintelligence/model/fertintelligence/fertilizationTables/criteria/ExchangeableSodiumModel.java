@@ -21,7 +21,7 @@ public class ExchangeableSodiumModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TABELA", nullable = false)
     private SoilFertilityInterpretationCriteriaTableModel table;
 

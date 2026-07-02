@@ -18,7 +18,7 @@ public class RangeExtractModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_ANALISE", nullable = false)
     SoilAnalysisModel analysis;
 

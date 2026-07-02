@@ -20,11 +20,11 @@ public class PropertyAccessRequestModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "PROPERTY_ID", nullable = false)
     private PropertyModel property;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "REQUESTER_ID", nullable = false)
     private UserModel requester;
 

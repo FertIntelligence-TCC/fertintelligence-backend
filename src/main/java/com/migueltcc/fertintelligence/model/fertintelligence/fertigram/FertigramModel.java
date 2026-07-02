@@ -17,11 +17,11 @@ public class FertigramModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_ANALISE_FOLIAR", nullable = false)
     FoliarAnalysisModel foliarAnalysis;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TABELA_INTERPRETACAO_FOLIAR", nullable = false)
     CropFoliarAnalysisInterpretationTableModel table;
 

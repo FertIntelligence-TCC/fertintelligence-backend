@@ -5,7 +5,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor
@@ -29,10 +28,6 @@ public class SimpleMineralFertilizerModel {
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
-
-    @Transient
-    @Builder.Default
-    private List<String> idsFotos = new ArrayList<>();
 
     @Column(name = "OBSERVACAO", columnDefinition = "TEXT")
     private String observation;
@@ -88,14 +83,6 @@ public class SimpleMineralFertilizerModel {
 
     @Column(name = "INDICE_ACIDEZ")
     private double indiceAcidez;
-
-    public List<String> getIdsFotos() {
-        return new ArrayList<>(this.idsFotos);
-    }
-
-    public void setIdsFotos(List<String> idsFotos) {
-        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
-    }
 
     public SimpleMineralFertilizerResponseDto toDto() {
         return SimpleMineralFertilizerResponseDto.builder()

@@ -24,16 +24,16 @@ public class PlotAccessRequestModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_PROPRIEDADE", nullable = false)
     private PropertyModel property;
 
     // null => scope PROPERTY (todos os talhões)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TALHAO")
     private PlotModel plot;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_SOLICITANTE", nullable = false)
     private UserModel requester;
 

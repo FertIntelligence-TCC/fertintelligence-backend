@@ -22,7 +22,7 @@ public class PlotModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_PROPRIEDADE", nullable = false)
     PropertyModel property;
 

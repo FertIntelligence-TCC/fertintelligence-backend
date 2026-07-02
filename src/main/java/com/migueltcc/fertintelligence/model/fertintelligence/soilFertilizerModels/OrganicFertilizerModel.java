@@ -5,7 +5,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor
@@ -28,10 +27,6 @@ public class OrganicFertilizerModel {
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
-
-    @Transient
-    @Builder.Default
-    private List<String> idsFotos = new ArrayList<>();
 
     @Column(name = "OBSERVACAO", columnDefinition = "TEXT")
     private String observation;
@@ -100,14 +95,6 @@ public class OrganicFertilizerModel {
 
     @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
-
-    public List<String> getIdsFotos() {
-        return new ArrayList<>(this.idsFotos);
-    }
-
-    public void setIdsFotos(List<String> idsFotos) {
-        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
-    }
 
     public OrganicFertilizerResponseDto toDto() {
         return OrganicFertilizerResponseDto.builder()

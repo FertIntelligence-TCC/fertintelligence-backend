@@ -25,15 +25,15 @@ public class RecommendationModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CREATOR", nullable = false)
     UserModel creator;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_PROPERTY", nullable = false)
     PropertyModel property;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_PLOT", nullable = false)
     PlotModel plot;
 

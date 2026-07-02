@@ -22,7 +22,7 @@ public class AvailablePAnionExchangeResinExtractorModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TABELA", nullable = false)
     SoilFertilityInterpretationCriteriaTableModel table;
 

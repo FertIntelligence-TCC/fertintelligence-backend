@@ -20,7 +20,7 @@ public class LiquidSourceModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CULTURA", nullable = false)
     CropModel crop;
 

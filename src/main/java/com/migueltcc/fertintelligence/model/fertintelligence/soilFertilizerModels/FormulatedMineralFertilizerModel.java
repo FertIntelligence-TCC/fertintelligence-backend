@@ -9,7 +9,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import java.math.BigDecimal;
@@ -36,10 +35,6 @@ public class FormulatedMineralFertilizerModel {
 
     @Column(name = "PUBLICO", nullable = false)
     private Boolean publico = false;
-
-    @Transient
-    @Builder.Default
-    private List<String> idsFotos = new ArrayList<>();
 
     @Column(name = "OBSERVACAO", columnDefinition = "TEXT")
     private String observation;
@@ -105,14 +100,6 @@ public class FormulatedMineralFertilizerModel {
     // Identificação da Fórmula
     @Column(name = "NUMERO_FORMULA_INDICADA")
     private Integer indicatedFormulaNumber;
-
-    public List<String> getIdsFotos() {
-        return new ArrayList<>(this.idsFotos);
-    }
-
-    public void setIdsFotos(List<String> idsFotos) {
-        this.idsFotos = idsFotos != null ? new ArrayList<>(idsFotos) : new ArrayList<>();
-    }
 
     public FormulatedMineralFertilizerResponseDto toDto() {
         return FormulatedMineralFertilizerResponseDto.builder()

@@ -25,7 +25,7 @@ public class CropFertilizationTableModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 
@@ -68,19 +68,19 @@ public class CropFertilizationTableModel {
     @Column(name = "CRITERIO_DE_CALAGEM", nullable = false)
     private CriterioCalagem criteria;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_PROPRIEDADE")
     private PropertyModel property;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TALHAO")
     private PlotModel plot;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_EXTRATO_ANALISE_FISICA")
     private PhysicalAnalysisExtractModel physicalAnalysis;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_EXTRATO_ANALISE_FERTILIDADE")
     private FertilityAnalysisExtractModel fertilityAnalysis;
 

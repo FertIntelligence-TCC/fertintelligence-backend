@@ -19,7 +19,7 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_CRIADOR", nullable = false)
     private UserModel creator;
 

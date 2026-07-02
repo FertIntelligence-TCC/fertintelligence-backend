@@ -19,7 +19,7 @@ public class CropFoliarAnalysisInterpretationTableLineModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_TABELA_INTERPRETACAO", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
