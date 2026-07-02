@@ -8,7 +8,7 @@ import lombok.*;
 @Builder
 @Entity
 @Data
-@Table(name = "DIRECT_RECOMMENDATION_COVERAGE_FORMULATED_FERTILIZER_LINES")
+@Table(name = "LINHAS_ADUBACAO_COBERTURA_RECOMENDACAO_DIRETA")
 @EqualsAndHashCode(exclude = "directRecommendation")
 public class DirectRecommendationCoverageFormulatedFertilizerLineModel {
 

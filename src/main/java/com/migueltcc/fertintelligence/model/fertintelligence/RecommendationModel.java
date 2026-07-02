@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Data
-@Table(name = "RECOMMENDATIONS")
+@Table(name = "RECOMENDACOES")
 @EqualsAndHashCode(exclude = {"generalRecommendation", "summaryRecommendation", "directRecommendation", "shoppingList"})
 public class RecommendationModel {
 

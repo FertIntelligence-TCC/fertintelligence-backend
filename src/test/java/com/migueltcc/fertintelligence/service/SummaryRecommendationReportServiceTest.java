@@ -4,26 +4,34 @@ import com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedM
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
+import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SummaryRecommendationReportServiceTest {
 
     @Test
     void buildUsesPersistedMicronutrientLinesFromDirectRecommendation() {
+        DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, null);
+                new SummaryRecommendationReportService(null, lineRepository);
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
                 .recommendation(recommendation)
                 .documentName(DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport("direta")
-                .micronutrientFertilizerLines(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(lineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
                         .micronutrient(AppliedMicronutrient.B)
                         .micronutrientDoseKgHa(1.2)
                         .fertilizerName("Borax")
@@ -33,9 +41,7 @@ class SummaryRecommendationReportServiceTest {
                         .doseUnitLabel("g/m linear")
                         .gramsPerLinearMeter(0.55)
                         .technicalObservation("Dose calculada pela recomendação direta.")
-                        .build()))
-                .build();
-        recommendation.setDirectRecommendation(directRecommendation);
+                        .build()));
 
         String report = service.build(recommendation);
 
@@ -47,15 +53,20 @@ class SummaryRecommendationReportServiceTest {
 
     @Test
     void buildUsesDefaultTechnicalObservationOnlyForMicronutrientsWithoutObservation() {
+        DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
+                mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, null);
+                new SummaryRecommendationReportService(null, lineRepository);
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
                 .recommendation(recommendation)
                 .documentName(DirectRecommendationModel.DOCUMENT_NAME)
                 .technicalReport("direta")
-                .micronutrientFertilizerLines(List.of(
+                .build();
+        recommendation.setDirectRecommendation(directRecommendation);
+        when(lineRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
+                .thenReturn(List.of(
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.B)
                                 .micronutrientDoseKgHa(1.2)
@@ -88,9 +99,7 @@ class SummaryRecommendationReportServiceTest {
                                 .doseUnitLabel("g/m linear")
                                 .gramsPerLinearMeter(0.2)
                                 .technicalObservation("Aplicar conforme análise específica.")
-                                .build()))
-                .build();
-        recommendation.setDirectRecommendation(directRecommendation);
+                                .build()));
 
         String report = service.build(recommendation);
 
