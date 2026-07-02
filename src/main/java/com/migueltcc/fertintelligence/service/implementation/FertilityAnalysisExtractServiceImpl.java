@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -87,7 +88,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
         recalculateExchangeComplex(analysisExtract);
 
-        return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
+        return toResponseDto(fertilityAnalysisExtractRepository.save(analysisExtract));
     }
 
     @Override
@@ -103,7 +104,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
         // READ
         permissionManager.assertCanReadPlot(plot, requester);
 
-        return analysisExtract.toDto();
+        return toResponseDto(analysisExtract);
     }
 
     @Override
@@ -119,7 +120,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
         return fertilityAnalysisExtractRepository.findAllByRangeExtract(rangeExtract)
                 .stream()
-                .map(FertilityAnalysisExtractModel::toDto)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -136,7 +137,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
         return fertilityAnalysisExtractRepository.findAllByLayerExtract(layerExtract)
                 .stream()
-                .map(FertilityAnalysisExtractModel::toDto)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -187,7 +188,7 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
         recalculateExchangeComplex(analysisExtract);
 
-        return fertilityAnalysisExtractRepository.save(analysisExtract).toDto();
+        return toResponseDto(fertilityAnalysisExtractRepository.save(analysisExtract));
     }
 
     @Override
@@ -213,6 +214,170 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
 
     private void updateIfNotNull(FertilityAnalysisUnit value, Consumer<FertilityAnalysisUnit> setter) {
         if (value != null) setter.accept(value);
+    }
+
+    private FertilityAnalysisExtractResponseDto toResponseDto(FertilityAnalysisExtractModel analysisExtract) {
+        ExchangeComplexCalculatedValues calculatedValues = calculateExchangeComplexValues(analysisExtract);
+        FertilityAnalysisExtractResponseDto dto = analysisExtract.toDto();
+
+        dto.setSaturacaoCtcPotassioPercentual(calculatedValues.saturacaoCtcPotassioPercentual());
+        dto.setSaturacaoCtcSodioPercentual(calculatedValues.saturacaoCtcSodioPercentual());
+        dto.setSaturacaoCtcCalcioPercentual(calculatedValues.saturacaoCtcCalcioPercentual());
+        dto.setSaturacaoCtcMagnesioPercentual(calculatedValues.saturacaoCtcMagnesioPercentual());
+        dto.setSaturacaoCtcHidrogenioPercentual(calculatedValues.saturacaoCtcHidrogenioPercentual());
+        dto.setSaturacaoCtcAluminioPercentual(calculatedValues.saturacaoCtcAluminioPercentual());
+        dto.setRelacaoCalcioMagnesio(calculatedValues.relacaoCalcioMagnesio());
+        dto.setRelacaoCalcioPotassio(calculatedValues.relacaoCalcioPotassio());
+        dto.setRelacaoMagnesioPotassio(calculatedValues.relacaoMagnesioPotassio());
+        dto.setRelacaoCalcioMagnesioPotassio(calculatedValues.relacaoCalcioMagnesioPotassio());
+        dto.setAvisoTecnicoCalculosFertilidade(calculatedValues.avisoTecnicoCalculosFertilidade());
+
+        return dto;
+    }
+
+    private ExchangeComplexCalculatedValues calculateExchangeComplexValues(FertilityAnalysisExtractModel analysisExtract) {
+        List<String> warnings = new ArrayList<>();
+
+        boolean canCalculateSaturation = hasPositiveValue(analysisExtract.getCtcPh7())
+                && hasValidUnit(analysisExtract.getUnidadeCtcPh7());
+        if (!canCalculateSaturation) {
+            warnings.add("Saturação da CTC(T) não calculada: CTC pH 7,0/CTC(T) ausente, zerada ou com unidade diferente de mmolc/dm³.");
+        }
+
+        Double saturacaoPotassio = calculateCtcSaturation(
+                "K", analysisExtract.getPotassio(), analysisExtract.getUnidadePotassio(), analysisExtract.getCtcPh7(), canCalculateSaturation, warnings);
+        Double saturacaoSodio = calculateCtcSaturation(
+                "Na", analysisExtract.getSodio(), analysisExtract.getUnidadeSodio(), analysisExtract.getCtcPh7(), canCalculateSaturation, warnings);
+        Double saturacaoCalcio = calculateCtcSaturation(
+                "Ca", analysisExtract.getCalcio(), analysisExtract.getUnidadeCalcio(), analysisExtract.getCtcPh7(), canCalculateSaturation, warnings);
+        Double saturacaoMagnesio = calculateCtcSaturation(
+                "Mg", analysisExtract.getMagnesio(), analysisExtract.getUnidadeMagnesio(), analysisExtract.getCtcPh7(), canCalculateSaturation, warnings);
+        Double saturacaoAluminio = calculateCtcSaturation(
+                "Al", analysisExtract.getAluminio(), analysisExtract.getUnidadeAluminio(), analysisExtract.getCtcPh7(), canCalculateSaturation, warnings);
+        Double saturacaoHidrogenio = calculateHydrogenCtcSaturation(analysisExtract, canCalculateSaturation, warnings);
+
+        Double relacaoCalcioMagnesio = calculateCationRatio(
+                "Ca/Mg", analysisExtract.getCalcio(), analysisExtract.getUnidadeCalcio(),
+                analysisExtract.getMagnesio(), analysisExtract.getUnidadeMagnesio(), warnings);
+        Double relacaoCalcioPotassio = calculateCationRatio(
+                "Ca/K", analysisExtract.getCalcio(), analysisExtract.getUnidadeCalcio(),
+                analysisExtract.getPotassio(), analysisExtract.getUnidadePotassio(), warnings);
+        Double relacaoMagnesioPotassio = calculateCationRatio(
+                "Mg/K", analysisExtract.getMagnesio(), analysisExtract.getUnidadeMagnesio(),
+                analysisExtract.getPotassio(), analysisExtract.getUnidadePotassio(), warnings);
+        Double relacaoCalcioMagnesioPotassio = calculateSumCationRatio(
+                analysisExtract.getCalcio(), analysisExtract.getUnidadeCalcio(),
+                analysisExtract.getMagnesio(), analysisExtract.getUnidadeMagnesio(),
+                analysisExtract.getPotassio(), analysisExtract.getUnidadePotassio(), warnings);
+
+        return new ExchangeComplexCalculatedValues(
+                saturacaoPotassio,
+                saturacaoSodio,
+                saturacaoCalcio,
+                saturacaoMagnesio,
+                saturacaoHidrogenio,
+                saturacaoAluminio,
+                relacaoCalcioMagnesio,
+                relacaoCalcioPotassio,
+                relacaoMagnesioPotassio,
+                relacaoCalcioMagnesioPotassio,
+                warnings.isEmpty() ? null : String.join(" ", warnings)
+        );
+    }
+
+    private Double calculateCtcSaturation(
+            String nutrient,
+            Double value,
+            FertilityAnalysisUnit unit,
+            Double ctcPh7,
+            boolean canCalculateSaturation,
+            List<String> warnings
+    ) {
+        if (!canCalculateSaturation) {
+            return null;
+        }
+        if (!hasNonNegativeValue(value) || !hasValidUnit(unit)) {
+            warnings.add("Saturação da CTC(T) para " + nutrient + " não calculada: valor ausente, negativo ou unidade diferente de mmolc/dm³.");
+            return null;
+        }
+        return percentage(value, ctcPh7);
+    }
+
+    private Double calculateHydrogenCtcSaturation(
+            FertilityAnalysisExtractModel analysisExtract,
+            boolean canCalculateSaturation,
+            List<String> warnings
+    ) {
+        if (!canCalculateSaturation) {
+            return null;
+        }
+        if (!hasNonNegativeValue(analysisExtract.getAluminioMaisHidrogenio())
+                || !hasNonNegativeValue(analysisExtract.getAluminio())
+                || !hasValidUnit(analysisExtract.getUnidadeAluminioMaisHidrogenio())
+                || !hasValidUnit(analysisExtract.getUnidadeAluminio())) {
+            warnings.add("Saturação da CTC(T) para H não calculada: H+Al, Al3+ ausente, negativo ou unidade diferente de mmolc/dm³.");
+            return null;
+        }
+
+        double hydrogen = analysisExtract.getAluminioMaisHidrogenio() - analysisExtract.getAluminio();
+        if (hydrogen < 0.0) {
+            warnings.add("Saturação da CTC(T) para H não calculada: H+Al menor que Al3+.");
+            return null;
+        }
+
+        return percentage(hydrogen, analysisExtract.getCtcPh7());
+    }
+
+    private Double calculateCationRatio(
+            String ratioName,
+            Double numerator,
+            FertilityAnalysisUnit numeratorUnit,
+            Double denominator,
+            FertilityAnalysisUnit denominatorUnit,
+            List<String> warnings
+    ) {
+        if (!hasNonNegativeValue(numerator) || !hasValidUnit(numeratorUnit)) {
+            warnings.add("Relação " + ratioName + " não calculada: numerador ausente, negativo ou unidade diferente de mmolc/dm³.");
+            return null;
+        }
+        if (!hasPositiveValue(denominator) || !hasValidUnit(denominatorUnit)) {
+            warnings.add("Relação " + ratioName + " não calculada: denominador ausente, zerado ou com unidade diferente de mmolc/dm³.");
+            return null;
+        }
+        return roundToTwoDecimalPlaces(numerator / denominator);
+    }
+
+    private Double calculateSumCationRatio(
+            Double calcio,
+            FertilityAnalysisUnit unidadeCalcio,
+            Double magnesio,
+            FertilityAnalysisUnit unidadeMagnesio,
+            Double potassio,
+            FertilityAnalysisUnit unidadePotassio,
+            List<String> warnings
+    ) {
+        if (!hasNonNegativeValue(calcio) || !hasValidUnit(unidadeCalcio)
+                || !hasNonNegativeValue(magnesio) || !hasValidUnit(unidadeMagnesio)) {
+            warnings.add("Relação (Ca+Mg)/K não calculada: Ca, Mg ausente, negativo ou unidade diferente de mmolc/dm³.");
+            return null;
+        }
+        if (!hasPositiveValue(potassio) || !hasValidUnit(unidadePotassio)) {
+            warnings.add("Relação (Ca+Mg)/K não calculada: K ausente, zerado ou com unidade diferente de mmolc/dm³.");
+            return null;
+        }
+        return roundToTwoDecimalPlaces((calcio + magnesio) / potassio);
+    }
+
+    private boolean hasNonNegativeValue(Double value) {
+        return value != null && Double.isFinite(value) && value >= 0.0;
+    }
+
+    private boolean hasPositiveValue(Double value) {
+        return value != null && Double.isFinite(value) && value > 0.0;
+    }
+
+    private boolean hasValidUnit(FertilityAnalysisUnit unit) {
+        return unit == FertilityAnalysisUnit.MMOLC_PER_DM3;
     }
 
     private FertilityAnalysisUnit normalizeFertilityUnit(FertilityAnalysisUnit unit) {
@@ -247,6 +412,12 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     private Double roundToOneDecimalPlace(double value) {
         return BigDecimal.valueOf(value)
                 .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    private Double roundToTwoDecimalPlaces(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
                 .doubleValue();
     }
 
@@ -302,4 +473,18 @@ public class FertilityAnalysisExtractServiceImpl implements FertilityAnalysisExt
     }
 
     private record ExtractContext(RangeExtractModel rangeExtract, LayerExtractModel layerExtract, PlotModel plot) {}
+
+    private record ExchangeComplexCalculatedValues(
+            Double saturacaoCtcPotassioPercentual,
+            Double saturacaoCtcSodioPercentual,
+            Double saturacaoCtcCalcioPercentual,
+            Double saturacaoCtcMagnesioPercentual,
+            Double saturacaoCtcHidrogenioPercentual,
+            Double saturacaoCtcAluminioPercentual,
+            Double relacaoCalcioMagnesio,
+            Double relacaoCalcioPotassio,
+            Double relacaoMagnesioPotassio,
+            Double relacaoCalcioMagnesioPotassio,
+            String avisoTecnicoCalculosFertilidade
+    ) {}
 }

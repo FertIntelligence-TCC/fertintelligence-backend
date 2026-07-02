@@ -174,4 +174,48 @@ public class FertilityAnalysisExtractResponseDto {
     @Schema(example = "3.4")
     @JsonProperty("zinco")
     Double zinco;
+
+    @Schema(example = "5.0")
+    @JsonProperty("saturacao_ctc_potassio_percentual")
+    Double saturacaoCtcPotassioPercentual;
+
+    @Schema(example = "3.4")
+    @JsonProperty("saturacao_ctc_sodio_percentual")
+    Double saturacaoCtcSodioPercentual;
+
+    @Schema(example = "57.1")
+    @JsonProperty("saturacao_ctc_calcio_percentual")
+    Double saturacaoCtcCalcioPercentual;
+
+    @Schema(example = "28.5")
+    @JsonProperty("saturacao_ctc_magnesio_percentual")
+    Double saturacaoCtcMagnesioPercentual;
+
+    @Schema(example = "5.3")
+    @JsonProperty("saturacao_ctc_hidrogenio_percentual")
+    Double saturacaoCtcHidrogenioPercentual;
+
+    @Schema(example = "0.7")
+    @JsonProperty("saturacao_ctc_aluminio_percentual")
+    Double saturacaoCtcAluminioPercentual;
+
+    @Schema(example = "2.0")
+    @JsonProperty("relacao_calcio_magnesio")
+    Double relacaoCalcioMagnesio;
+
+    @Schema(example = "11.43")
+    @JsonProperty("relacao_calcio_potassio")
+    Double relacaoCalcioPotassio;
+
+    @Schema(example = "5.71")
+    @JsonProperty("relacao_magnesio_potassio")
+    Double relacaoMagnesioPotassio;
+
+    @Schema(example = "17.14")
+    @JsonProperty("relacao_calcio_magnesio_potassio")
+    Double relacaoCalcioMagnesioPotassio;
+
+    @Schema(example = "Cálculos derivados de saturação da CTC(T) não calculados: CTC pH 7 ausente.")
+    @JsonProperty("aviso_tecnico_calculos_fertilidade")
+    String avisoTecnicoCalculosFertilidade;
 }

@@ -267,7 +267,17 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.ctc_ph7").value(70.1))
                 .andExpect(jsonPath("$.saturacao_bases_v").value(94.0))
                 .andExpect(jsonPath("$.saturacao_aluminio_m").value(0.8))
-                .andExpect(jsonPath("$.pst").value(3.4));
+                .andExpect(jsonPath("$.pst").value(3.4))
+                .andExpect(jsonPath("$.saturacao_ctc_potassio_percentual").value(5.0))
+                .andExpect(jsonPath("$.saturacao_ctc_sodio_percentual").value(3.4))
+                .andExpect(jsonPath("$.saturacao_ctc_calcio_percentual").value(57.1))
+                .andExpect(jsonPath("$.saturacao_ctc_magnesio_percentual").value(28.5))
+                .andExpect(jsonPath("$.saturacao_ctc_hidrogenio_percentual").value(5.3))
+                .andExpect(jsonPath("$.saturacao_ctc_aluminio_percentual").value(0.7))
+                .andExpect(jsonPath("$.relacao_calcio_magnesio").value(2.0))
+                .andExpect(jsonPath("$.relacao_calcio_potassio").value(11.43))
+                .andExpect(jsonPath("$.relacao_magnesio_potassio").value(5.71))
+                .andExpect(jsonPath("$.relacao_calcio_magnesio_potassio").value(17.14));
     }
 
     @Test
@@ -302,7 +312,17 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.ph_agua").value(5.6))
                 .andExpect(jsonPath("$.unidade_calcio").value("mmolc/dm³"))
-                .andExpect(jsonPath("$.pst").value(3.4));
+                .andExpect(jsonPath("$.pst").value(3.4))
+                .andExpect(jsonPath("$.saturacao_ctc_potassio_percentual").value(4.4))
+                .andExpect(jsonPath("$.saturacao_ctc_sodio_percentual").value(3.0))
+                .andExpect(jsonPath("$.saturacao_ctc_calcio_percentual").value(50.0))
+                .andExpect(jsonPath("$.saturacao_ctc_magnesio_percentual").value(25.0))
+                .andExpect(jsonPath("$.saturacao_ctc_hidrogenio_percentual").value(4.6))
+                .andExpect(jsonPath("$.saturacao_ctc_aluminio_percentual").value(0.6))
+                .andExpect(jsonPath("$.relacao_calcio_magnesio").value(2.0))
+                .andExpect(jsonPath("$.relacao_calcio_potassio").value(11.43))
+                .andExpect(jsonPath("$.relacao_magnesio_potassio").value(5.71))
+                .andExpect(jsonPath("$.relacao_calcio_magnesio_potassio").value(17.14));
     }
 
     @Test
