@@ -464,7 +464,10 @@ public class RecommendationCalculationService {
                 summary.append(" (principal para regras que exigem extrato único)");
             }
         }
-        summary.append(". Regra backend: cálculos tabulares usam todos os extratos carregados como contexto do laudo; rotinas quantitativas legadas que aceitam apenas um extrato usam o principal, escolhido pela menor profundidade inicial, menor profundidade final e menor ID.");
+        if (primary == null) {
+            summary.append(". Nenhum extrato/camada que compreenda 0-20 cm foi encontrado para uso como referência principal.");
+        }
+        summary.append(". Regra backend: cálculos tabulares usam todos os extratos carregados como contexto do laudo; calagem, diagnóstico principal e rotinas quantitativas que aceitam apenas um extrato usam somente a referência 0-20 cm, quando disponível.");
         return summary.toString();
     }
 
@@ -516,6 +519,45 @@ public class RecommendationCalculationService {
                 .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId())).toList();
     }
 
+    private Optional<PhysicalAnalysisExtractModel> selectPrimaryPhysicalExtract(List<PhysicalAnalysisExtractModel> extracts,
+                                                                                Long analysisId,
+                                                                                List<String> warnings) {
+        Optional<PhysicalAnalysisExtractModel> selected = extracts.stream()
+                .filter(this::coversZeroToTwenty)
+                .findFirst();
+        if (selected.isEmpty() && !extracts.isEmpty()) {
+            warnings.add("Análise física ID " + analysisId
+                    + " não possui extrato/camada que compreenda 0-20 cm; diagnóstico físico principal e regras de calagem dependentes da análise física foram tratados como indisponíveis.");
+        }
+        return selected;
+    }
+
+    private Optional<FertilityAnalysisExtractModel> selectPrimaryFertilityExtract(List<FertilityAnalysisExtractModel> extracts,
+                                                                                  Long analysisId,
+                                                                                  List<String> warnings) {
+        Optional<FertilityAnalysisExtractModel> selected = extracts.stream()
+                .filter(this::coversZeroToTwenty)
+                .findFirst();
+        if (selected.isEmpty() && !extracts.isEmpty()) {
+            warnings.add("Análise de fertilidade ID " + analysisId
+                    + " não possui extrato/camada que compreenda 0-20 cm; calagem, diagnóstico químico principal e adubação principal foram tratados como indisponíveis.");
+        }
+        return selected;
+    }
+
+    private Optional<SaturationExtractAnalysisExtractModel> selectPrimarySaturationExtract(List<SaturationExtractAnalysisExtractModel> extracts,
+                                                                                           Long analysisId,
+                                                                                           List<String> warnings) {
+        Optional<SaturationExtractAnalysisExtractModel> selected = extracts.stream()
+                .filter(this::coversZeroToTwenty)
+                .findFirst();
+        if (selected.isEmpty() && !extracts.isEmpty()) {
+            warnings.add("Análise de extrato de saturação ID " + analysisId
+                    + " não possui extrato/camada que compreenda 0-20 cm; diagnóstico principal de salinidade/sodicidade foi tratado como indisponível.");
+        }
+        return selected;
+    }
+
     private <T> List<T> joinWithLegacy(List<T> extracts, T legacyExtract) {
         List<T> joined = new ArrayList<>(extracts != null ? extracts : List.of());
         joined.add(legacyExtract);
@@ -556,6 +598,24 @@ public class RecommendationCalculationService {
         if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
         if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
         return Integer.MAX_VALUE;
+    }
+
+    private boolean coversZeroToTwenty(PhysicalAnalysisExtractModel extract) {
+        return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversZeroToTwenty(FertilityAnalysisExtractModel extract) {
+        return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversZeroToTwenty(SaturationExtractAnalysisExtractModel extract) {
+        return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversZeroToTwenty(Integer initialDepth, Integer finalDepth) {
+        return initialDepth != null && finalDepth != null
+                && initialDepth <= 0
+                && finalDepth >= 20;
     }
 
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -1608,7 +1668,7 @@ public class RecommendationCalculationService {
             if (extracts.isEmpty()) {
                 warnings.add("Análise física ID " + analysisId + " não possui extratos/camadas/intervalos cadastrados.");
             }
-            return new PhysicalAnalysisSelection(Optional.of(analysis), extracts, extracts.stream().findFirst());
+            return new PhysicalAnalysisSelection(Optional.of(analysis), extracts, selectPrimaryPhysicalExtract(extracts, analysisId, warnings));
         }
         if (legacyExtractId == null) {
             return new PhysicalAnalysisSelection(Optional.empty(), List.of(), Optional.empty());
@@ -1621,7 +1681,7 @@ public class RecommendationCalculationService {
             extracts = sortPhysicalExtracts(joinWithLegacy(extracts, extract));
         }
         warnings.add("Compatibilidade temporária: foi recebido ID de extrato físico legado; a análise completa associada foi carregada no backend.");
-        return new PhysicalAnalysisSelection(Optional.ofNullable(analysis), extracts, Optional.of(extract));
+        return new PhysicalAnalysisSelection(Optional.ofNullable(analysis), extracts, selectPrimaryPhysicalExtract(extracts, analysis.getId(), warnings));
     }
 
     private FertilityAnalysisSelection findSoilFertilitySelectionByIdOrThrow(Long id, PlotModel requestPlot, List<String> warnings) {
@@ -1634,7 +1694,7 @@ public class RecommendationCalculationService {
             if (extracts.isEmpty()) {
                 warnings.add("Análise de fertilidade ID " + id + " não possui extratos/camadas/intervalos cadastrados.");
             }
-            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, extracts.stream().findFirst());
+            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, selectPrimaryFertilityExtract(extracts, soilAnalysis.get().getId(), warnings));
         }
 
         Optional<FertilityAnalysisExtractModel> extract = fertilityAnalysisExtractRepository.findById(id);
@@ -1646,7 +1706,7 @@ public class RecommendationCalculationService {
                     extracts = sortFertilityExtracts(joinWithLegacy(extracts, extract.get()));
                 }
                 warnings.add("Compatibilidade temporária: o ID de fertilidade recebido corresponde a um extrato legado; a análise completa associada foi carregada no backend.");
-                return new FertilityAnalysisSelection(soil, extracts, extract);
+                return new FertilityAnalysisSelection(soil, extracts, selectPrimaryFertilityExtract(extracts, soil.getId(), warnings));
             }
         }
 
@@ -1655,7 +1715,7 @@ public class RecommendationCalculationService {
             if (extracts.isEmpty()) {
                 warnings.add("Análise de fertilidade ID " + id + " não possui extratos/camadas/intervalos cadastrados.");
             }
-            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, extracts.stream().findFirst());
+            return new FertilityAnalysisSelection(soilAnalysis.get(), extracts, selectPrimaryFertilityExtract(extracts, soilAnalysis.get().getId(), warnings));
         }
 
         return extract.map(value -> {
@@ -1665,7 +1725,7 @@ public class RecommendationCalculationService {
                         extracts = sortFertilityExtracts(joinWithLegacy(extracts, value));
                     }
                     warnings.add("Compatibilidade temporária: o ID de fertilidade recebido corresponde a um extrato legado; a análise completa associada foi carregada no backend.");
-                    return new FertilityAnalysisSelection(resolvedSoil, extracts, Optional.of(value));
+                    return new FertilityAnalysisSelection(resolvedSoil, extracts, selectPrimaryFertilityExtract(extracts, resolvedSoil.getId(), warnings));
                 })
                 .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade do solo não encontrada com o ID: " + id));
     }
@@ -1680,7 +1740,7 @@ public class RecommendationCalculationService {
             if (extracts.isEmpty()) {
                 warnings.add("Análise de extrato de saturação ID " + analysisId + " não possui extratos/camadas/intervalos cadastrados.");
             }
-            return new SaturationAnalysisSelection(Optional.of(analysis), extracts, extracts.stream().findFirst());
+            return new SaturationAnalysisSelection(Optional.of(analysis), extracts, selectPrimarySaturationExtract(extracts, analysisId, warnings));
         }
         if (legacyExtractId == null) {
             return new SaturationAnalysisSelection(Optional.empty(), List.of(), Optional.empty());
@@ -1693,7 +1753,7 @@ public class RecommendationCalculationService {
             extracts = sortSaturationExtracts(joinWithLegacy(extracts, extract));
         }
         warnings.add("Compatibilidade temporária: foi recebido ID de extrato de saturação legado; a análise completa associada foi carregada no backend.");
-        return new SaturationAnalysisSelection(Optional.ofNullable(analysis), extracts, Optional.of(extract));
+        return new SaturationAnalysisSelection(Optional.ofNullable(analysis), extracts, selectPrimarySaturationExtract(extracts, analysis.getId(), warnings));
     }
 
     private AnnualCropFolderModel findAnnualCropFolderByIdOrThrow(Long id) {

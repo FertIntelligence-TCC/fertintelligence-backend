@@ -15,6 +15,7 @@ import com.migueltcc.fertintelligence.dto.tables.cropFertilization.CropFertiliza
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
@@ -29,6 +30,7 @@ import com.migueltcc.fertintelligence.repository.PlotRepository;
 import com.migueltcc.fertintelligence.repository.PhysicalAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.FertilityAnalysisExtractRepository;
 import com.migueltcc.fertintelligence.repository.PropertyAccessRequestRepository;
+import com.migueltcc.fertintelligence.repository.SoilAnalysisRepository;
 import com.migueltcc.fertintelligence.service.documentation.CropFertilizationTableService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,6 +41,8 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Comparator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,6 +60,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
     private final PlotRepository plotRepository;
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository;
+    private final SoilAnalysisRepository soilAnalysisRepository;
     private final PermissionManager permissionManager;
     private final PropertyAccessRequestRepository propertyAccessRequestRepository;
 
@@ -68,6 +73,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             PlotRepository plotRepository,
             PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
             FertilityAnalysisExtractRepository fertilityAnalysisExtractRepository,
+            SoilAnalysisRepository soilAnalysisRepository,
             PermissionManager permissionManager,
             PropertyAccessRequestRepository propertyAccessRequestRepository) {
         this.cropFertilizationTableRepository = cropFertilizationTableRepository;
@@ -78,6 +84,7 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         this.plotRepository = plotRepository;
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.fertilityAnalysisExtractRepository = fertilityAnalysisExtractRepository;
+        this.soilAnalysisRepository = soilAnalysisRepository;
         this.permissionManager = permissionManager;
         this.propertyAccessRequestRepository = propertyAccessRequestRepository;
     }
@@ -259,14 +266,14 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
             throw new AccessDeniedException("Tabela pública/padrão não encontrada ou indisponível para visualização.");
         }
         assertCanView(table, requester);
-        Selection selection = resolveSelection(
+        Selection selection = resolveLimingCriterionSelection(
                 requestDto.getPropertyId(),
                 requestDto.getPlotId(),
                 requestDto.getPhysicalAnalysisId(),
                 requestDto.getFertilityAnalysisId(),
                 requester);
         return CropFertilizationTableResolveLimingCriterionResponseDto.builder()
-                .indicatedLimingCriterion(resolveIndicatedLimingCriterion(selection.physicalAnalysis(), selection.fertilityAnalysis()))
+                .indicatedLimingCriterion(resolveIndicatedLimingCriterionForRequest(requestDto, selection))
                 .build();
     }
 
@@ -398,8 +405,81 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         return new Selection(property, plot, physical, fertility);
     }
 
+    private Selection resolveLimingCriterionSelection(Long propertyId, Long plotId, Long physicalAnalysisId, Long fertilityAnalysisId, UserModel user) {
+        if (plotId == null) {
+            throw new IllegalArgumentException("Informe o talhão para resolver o critério de calagem.");
+        }
+
+        PropertyModel property = propertyId == null ? null : propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com ID: " + propertyId));
+        PlotModel plot = plotRepository.findById(plotId)
+                .orElseThrow(() -> new EntityNotFoundException("Talhão não encontrado com ID: " + plotId));
+
+        if (property != null && !plot.getProperty().getId().equals(property.getId())) {
+            throw new IllegalArgumentException("Talhão informado não pertence à propriedade selecionada.");
+        }
+        property = plot.getProperty();
+        permissionManager.assertCanReadPlot(plot, user);
+
+        PhysicalAnalysisExtractModel physical = physicalAnalysisId == null
+                ? null
+                : resolvePhysicalReferenceExtract(physicalAnalysisId, plot);
+        FertilityAnalysisExtractModel fertility = resolveFertilityReferenceExtract(fertilityAnalysisId, plot);
+
+        return new Selection(property, plot, physical, fertility);
+    }
+
+    private PhysicalAnalysisExtractModel resolvePhysicalReferenceExtract(Long id, PlotModel plot) {
+        Optional<SoilAnalysisModel> analysis = findAnalysisByIdAndPlot(id, plot);
+        if (analysis.isPresent()) {
+            return selectPhysicalZeroToTwenty(analysis.get()).orElse(null);
+        }
+
+        PhysicalAnalysisExtractModel extract = physicalAnalysisExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Análise física ou extrato físico não encontrado com ID: " + id));
+        validateSamePlot(resolvePlot(extract), plot, "Análise física informada não pertence ao talhão selecionado.");
+        SoilAnalysisModel sourceAnalysis = resolveSoilAnalysis(extract);
+        return selectPhysicalZeroToTwenty(sourceAnalysis).orElse(null);
+    }
+
+    private FertilityAnalysisExtractModel resolveFertilityReferenceExtract(Long id, PlotModel plot) {
+        Optional<SoilAnalysisModel> analysis = findAnalysisByIdAndPlot(id, plot);
+        if (analysis.isPresent()) {
+            return selectFertilityZeroToTwenty(analysis.get()).orElse(null);
+        }
+
+        FertilityAnalysisExtractModel extract = fertilityAnalysisExtractRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Análise de fertilidade ou extrato de fertilidade não encontrado com ID: " + id));
+        validateSamePlot(resolvePlot(extract), plot, "Análise de fertilidade informada não pertence ao talhão selecionado.");
+        SoilAnalysisModel sourceAnalysis = resolveSoilAnalysis(extract);
+        return selectFertilityZeroToTwenty(sourceAnalysis).orElse(null);
+    }
+
+    private Optional<SoilAnalysisModel> findAnalysisByIdAndPlot(Long id, PlotModel plot) {
+        return soilAnalysisRepository.findById(id)
+                .filter(analysis -> analysis.getPlot() != null && Objects.equals(analysis.getPlot().getId(), plot.getId()));
+    }
+
+    private Optional<PhysicalAnalysisExtractModel> selectPhysicalZeroToTwenty(SoilAnalysisModel analysis) {
+        List<PhysicalAnalysisExtractModel> extracts = Stream.concat(
+                        physicalAnalysisExtractRepository.findAllByRangeExtractAnalysis(analysis).stream(),
+                        physicalAnalysisExtractRepository.findAllByLayerExtractAnalysis(analysis).stream())
+                .sorted(physicalDepthComparator())
+                .toList();
+        return extracts.stream().filter(this::coversZeroToTwenty).findFirst();
+    }
+
+    private Optional<FertilityAnalysisExtractModel> selectFertilityZeroToTwenty(SoilAnalysisModel analysis) {
+        List<FertilityAnalysisExtractModel> extracts = Stream.concat(
+                        fertilityAnalysisExtractRepository.findAllByRangeExtractAnalysis(analysis).stream(),
+                        fertilityAnalysisExtractRepository.findAllByLayerExtractAnalysis(analysis).stream())
+                .sorted(fertilityDepthComparator())
+                .toList();
+        return extracts.stream().filter(this::coversZeroToTwenty).findFirst();
+    }
+
     public String resolveIndicatedLimingCriterion(PhysicalAnalysisExtractModel physical, FertilityAnalysisExtractModel fertility) {
-        if (fertility == null) return "Não é possível definir um critério de calagem";
+        if (fertility == null) return "Não é possível definir um critério de calagem: a análise de fertilidade selecionada não possui camada/extrato que compreenda 0-20 cm.";
         if (physical == null) return "SATURAÇÃO POR BASES TROCÁVEIS";
         double factor = limingFactor(physical.getTeorArgila());
         double i = factor * zeroIfNull(fertility.getAluminio());
@@ -407,10 +487,22 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         return i >= ii ? "Neutralização do Al trocável" : "Elevação dos teores de Ca + Mg";
     }
 
+    private String resolveIndicatedLimingCriterionForRequest(CropFertilizationTableResolveLimingCriterionRequestDto requestDto,
+                                                             Selection selection) {
+        if (selection.fertilityAnalysis() == null) {
+            return resolveIndicatedLimingCriterion(selection.physicalAnalysis(), null);
+        }
+        if (requestDto.getPhysicalAnalysisId() != null && selection.physicalAnalysis() == null) {
+            return "Não é possível definir um critério de calagem: a análise física selecionada não possui camada/extrato que compreenda 0-20 cm.";
+        }
+        return resolveIndicatedLimingCriterion(selection.physicalAnalysis(), selection.fertilityAnalysis());
+    }
+
     private CriterioCalagem resolveCriteria(PhysicalAnalysisExtractModel physical, FertilityAnalysisExtractModel fertility) {
         String text = resolveIndicatedLimingCriterion(physical, fertility);
         if ("SATURAÇÃO POR BASES TROCÁVEIS".equals(text)) return CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS;
         if ("Elevação dos teores de Ca + Mg".equals(text)) return CriterioCalagem.ELEVACAO_DO_TEOR_DE_CALCIO_MAIS_MAGNESIO;
+        if (!"Neutralização do Al trocável".equals(text)) return null;
         return CriterioCalagem.NEUTRALIZACAO_POR_ALUMINIO_TROCAVEL;
     }
 
@@ -421,7 +513,63 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         return 2.5;
     }
 
+    private boolean coversZeroToTwenty(PhysicalAnalysisExtractModel extract) {
+        return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversZeroToTwenty(FertilityAnalysisExtractModel extract) {
+        return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversZeroToTwenty(Integer initialDepth, Integer finalDepth) {
+        return initialDepth != null && finalDepth != null
+                && initialDepth <= 0
+                && finalDepth >= 20;
+    }
+
+    private Comparator<PhysicalAnalysisExtractModel> physicalDepthComparator() {
+        return Comparator.comparing((PhysicalAnalysisExtractModel extract) -> depthStart(extract))
+                .thenComparing(this::depthEnd)
+                .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId());
+    }
+
+    private Comparator<FertilityAnalysisExtractModel> fertilityDepthComparator() {
+        return Comparator.comparing((FertilityAnalysisExtractModel extract) -> depthStart(extract))
+                .thenComparing(this::depthEnd)
+                .thenComparing(extract -> extract.getId() == null ? Long.MAX_VALUE : extract.getId());
+    }
+
+    private Integer depthStart(PhysicalAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_inicial();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_inicial();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthEnd(PhysicalAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthStart(FertilityAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_inicial();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_inicial();
+        return Integer.MAX_VALUE;
+    }
+
+    private Integer depthEnd(FertilityAnalysisExtractModel extract) {
+        if (extract.getRangeExtract() != null) return extract.getRangeExtract().getProfundidade_final();
+        if (extract.getLayerExtract() != null) return extract.getLayerExtract().getProfundidade_final();
+        return Integer.MAX_VALUE;
+    }
+
     private double zeroIfNull(Double value) { return value != null ? value : 0.0; }
+
+    private void validateSamePlot(PlotModel selectedPlot, PlotModel requestPlot, String message) {
+        if (selectedPlot == null || requestPlot == null || !Objects.equals(selectedPlot.getId(), requestPlot.getId())) {
+            throw new IllegalArgumentException(message);
+        }
+    }
 
     private void assertCanReadProperty(PropertyModel property, UserModel user) {
         if (property.getOwner() != null && property.getOwner().getId().equals(user.getId())) return;
@@ -440,6 +588,18 @@ public class CropFertilizationTableServiceImpl implements CropFertilizationTable
         if (analysis.getRangeExtract() != null && analysis.getRangeExtract().getAnalysis() != null) return analysis.getRangeExtract().getAnalysis().getPlot();
         if (analysis.getLayerExtract() != null && analysis.getLayerExtract().getAnalysis() != null) return analysis.getLayerExtract().getAnalysis().getPlot();
         throw new IllegalArgumentException("Análise de fertilidade não possui talhão associado.");
+    }
+
+    private SoilAnalysisModel resolveSoilAnalysis(PhysicalAnalysisExtractModel analysis) {
+        if (analysis.getRangeExtract() != null && analysis.getRangeExtract().getAnalysis() != null) return analysis.getRangeExtract().getAnalysis();
+        if (analysis.getLayerExtract() != null && analysis.getLayerExtract().getAnalysis() != null) return analysis.getLayerExtract().getAnalysis();
+        throw new IllegalArgumentException("Análise física não possui análise de solo associada.");
+    }
+
+    private SoilAnalysisModel resolveSoilAnalysis(FertilityAnalysisExtractModel analysis) {
+        if (analysis.getRangeExtract() != null && analysis.getRangeExtract().getAnalysis() != null) return analysis.getRangeExtract().getAnalysis();
+        if (analysis.getLayerExtract() != null && analysis.getLayerExtract().getAnalysis() != null) return analysis.getLayerExtract().getAnalysis();
+        throw new IllegalArgumentException("Análise de fertilidade não possui análise de solo associada.");
     }
 
     private Long idOf(Object entity) {
