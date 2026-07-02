@@ -132,10 +132,6 @@ public class SummaryRecommendationReportService {
         if (directRecommendation == null) {
             return List.of();
         }
-        if (directRecommendation.getMicronutrientFertilizerLines() != null
-                && !directRecommendation.getMicronutrientFertilizerLines().isEmpty()) {
-            return directRecommendation.getMicronutrientFertilizerLines();
-        }
         if (micronutrientFertilizerLineRepository == null) {
             return List.of();
         }

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Data
-@Table(name = "SHOPPING_LISTS")
+@Table(name = "LISTAS_DE_COMPRAS")
 @EqualsAndHashCode(exclude = "recommendation")
 public class ShoppingListModel {
 

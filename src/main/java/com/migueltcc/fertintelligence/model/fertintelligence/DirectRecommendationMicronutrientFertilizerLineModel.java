@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 @Entity
 @Data
-@Table(name = "DIRECT_RECOMMENDATION_MICRONUTRIENT_FERTILIZER_LINES")
+@Table(name = "LINHAS_MICRONUTRIENTES_RECOMENDACAO_DIRETA")
 @EqualsAndHashCode(exclude = "directRecommendation")
 public class DirectRecommendationMicronutrientFertilizerLineModel {
 
