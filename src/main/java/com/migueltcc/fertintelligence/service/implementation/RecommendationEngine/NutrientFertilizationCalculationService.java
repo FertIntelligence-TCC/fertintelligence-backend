@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -129,6 +130,10 @@ class NutrientFertilizationCalculationService {
             planting.suggestion().ifPresent(fertilizerSuggestions::add);
         }
         sulfurPlan.suggestions().forEach(fertilizerSuggestions::add);
+        SimplePlantingPackageResult simplePlantingPackage = buildSimplePlantingPackage(
+                sulfurRequirement, mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, crop, user, sourceOption, warnings);
+        recommendationRows.addAll(simplePlantingPackage.rows());
+        simplePlantingPackage.suggestions().forEach(fertilizerSuggestions::add);
         NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, sulfurRequirement.requiredS());
         nutrientBalance.addPlanting(
                 (sulfurPlan.replacesPlanting() ? 0d : planting.providedN()) + sulfurPlan.providedN(),
@@ -511,7 +516,75 @@ class NutrientFertilizationCalculationService {
             }
             rows.add(toMicronutrientRow(selection, input, crop));
         }
+        addFteZincRows(rows, inputs.get(AppliedMicronutrient.Zn), user, sourceOption, crop, warnings);
         return rows;
+    }
+
+    private void addFteZincRows(
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> rows,
+            MicronutrientRecommendationInput zincInput,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
+            CropModel crop,
+            List<String> warnings) {
+        if (zincInput == null || nvl(zincInput.doseKgHa()) <= 0d) {
+            return;
+        }
+        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
+        SimpleMineralFertilizerModel fteBr12 = fertilizers.stream()
+                .filter(f -> nvl(f.getZn()) > 0d && normalizeText(f.getName()).contains("fte br 12"))
+                .findFirst()
+                .orElse(null);
+        SimpleMineralFertilizerModel concentratedFte = fertilizers.stream()
+                .filter(f -> nvl(f.getZn()) > 0d && normalizeText(f.getName()).contains("fte"))
+                .filter(f -> fteBr12 == null || !Objects.equals(f.getId(), fteBr12.getId()))
+                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> nvl(f.getZn()))
+                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
+                .orElse(null);
+        if (fteBr12 == null) {
+            addWarning(warnings, "FTE BR 12 não encontrado entre adubos minerais simples sólidos cadastrados; opção FTE padrão para Zn não foi calculada.");
+        } else {
+            rows.add(toFteZincRow(fteBr12, zincInput, crop, "FTE BR 12 calculado por Zn recomendado."));
+        }
+        if (concentratedFte == null) {
+            addWarning(warnings, "FTE alternativo mais concentrado em Zn não encontrado entre fontes cadastradas.");
+        } else {
+            rows.add(toFteZincRow(concentratedFte, zincInput, crop, "FTE alternativo selecionado pelo maior teor de Zn cadastrado."));
+        }
+    }
+
+    private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow toFteZincRow(
+            SimpleMineralFertilizerModel fertilizer,
+            MicronutrientRecommendationInput zincInput,
+            CropModel crop,
+            String justification) {
+        double dose = round2(100d * nvl(zincInput.doseKgHa()) / nvl(fertilizer.getZn()));
+        CropSpacingCalculationService.CropSpacingDoseResult spacingDose =
+                cropSpacingCalculationService.calculate(crop, dose);
+        CropSpacingCalculationService.DoseUnitMetadata doseUnitMetadata =
+                cropSpacingCalculationService.resolveDoseUnitMetadata(spacingDose);
+        String balance = String.format(Locale.US,
+                " Balanço fornecido pelo FTE: B %.2f, Cu %.2f, Fe %.2f, Mn %.2f, Mo %.2f, Zn %.2f kg/ha; saldo de Zn %.2f kg/ha.",
+                dose * nvl(fertilizer.getB()) / 100d,
+                dose * nvl(fertilizer.getCu()) / 100d,
+                dose * nvl(fertilizer.getFe()) / 100d,
+                dose * nvl(fertilizer.getMn()) / 100d,
+                dose * nvl(fertilizer.getMo()) / 100d,
+                dose * nvl(fertilizer.getZn()) / 100d,
+                dose * nvl(fertilizer.getZn()) / 100d - nvl(zincInput.doseKgHa()));
+        return RecommendationCalculationService.MicronutrientFertilizerRecommendationRow.builder()
+                .micronutrient(AppliedMicronutrient.Zn)
+                .micronutrientDoseKgHa(round2(nvl(zincInput.doseKgHa())))
+                .fertilizerId(fertilizer.getId())
+                .fertilizerName(fertilizer.getName())
+                .micronutrientConcentrationPercent(round2(nvl(fertilizer.getZn())))
+                .fertilizerDoseKgHa(dose)
+                .doseUnitMode(doseUnitMetadata.doseUnitMode())
+                .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
+                .gramsPerLinearMeter(spacingDose.gramsPerLinearMeter())
+                .gramsPerPit(spacingDose.gramsPerPit())
+                .technicalObservation(justification + " Dose FTE = 100 * Zn recomendado / %Zn do FTE." + balance)
+                .build();
     }
 
     private void addMicronutrientInput(
@@ -720,8 +793,8 @@ class NutrientFertilizationCalculationService {
         String warning = null;
         if (nvl(selected.balanceN()) < 0 || nvl(selected.balanceP2O5()) < 0 || nvl(selected.balanceK2O()) < 0) {
             warning = String.format(Locale.US,
-                    "Fertilizante formulado selecionado não atende todos os nutrientes no plantio. Déficits: N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha.",
-                    nvl(selected.deficitN()), nvl(selected.deficitP2O5()), nvl(selected.deficitK2O()));
+                    "Fertilizante formulado selecionado não atende todos os nutrientes no plantio. Déficits de N %.2f kg/ha e K2O %.2f kg/ha serão repassados para cobertura; déficit de P2O5 %.2f kg/ha exige ajuste técnico no plantio.",
+                    nvl(selected.deficitN()), nvl(selected.deficitK2O()), nvl(selected.deficitP2O5()));
             warnings.add(warning);
         }
 
@@ -1026,6 +1099,136 @@ class NutrientFertilizationCalculationService {
         return rows;
     }
 
+    private SimplePlantingPackageResult buildSimplePlantingPackage(
+            SulfurPlantingRequirement sulfurRequirement,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            CropModel crop,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
+            List<String> warnings) {
+        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
+        SimplePlantingPackage best = chooseBestSimplePlantingPackage(
+                buildSimplePlantingPackageByNitrogenFirst(fertilizers, sulfurRequirement, requiredN, requiredP2O5, requiredK2O),
+                buildSimplePlantingPackageByPhosphorusSulfurFirst(fertilizers, sulfurRequirement, requiredN, requiredP2O5, requiredK2O),
+                nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), sulfurRequirement.requiredS());
+
+        if (best == null || best.rows.isEmpty()) {
+            addWarning(warnings, "Opção 2 - Plantio com adubos simples não calculada: fontes cadastradas insuficientes para N, P2O5, K2O, S e micronutrientes.");
+            return new SimplePlantingPackageResult(List.of(), List.of(), 0d, 0d);
+        }
+
+        if (!withinTolerance(best.n, nvl(requiredN)) || !withinTolerance(best.p2o5, nvl(requiredP2O5))
+                || !withinTolerance(best.k2o, nvl(requiredK2O))
+                || !withinTolerance(best.s, sulfurRequirement.requiredS())) {
+            String warning = String.format(Locale.US,
+                    "Opção 2 - Plantio com adubos simples não fechou dentro da tolerância de 10%%. Saldos: N %+.2f, P2O5 %+.2f, K2O %+.2f, S %+.2f kg/ha.",
+                    best.n - nvl(requiredN), best.p2o5 - nvl(requiredP2O5), best.k2o - nvl(requiredK2O), best.s - sulfurRequirement.requiredS());
+            addWarning(warnings, warning);
+            best.warning = warning;
+        }
+
+        double transferredN = Math.max(0d, round2(nvl(requiredN) - best.n));
+        List<RecommendationCalculationService.FertilizationRecommendationRow> rows = best.toRows(
+                crop, nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), sulfurRequirement.requiredS(), transferredN);
+        return new SimplePlantingPackageResult(rows, best.suggestions, transferredN, 0d);
+    }
+
+    private SimplePlantingPackage chooseBestSimplePlantingPackage(
+            SimplePlantingPackage first,
+            SimplePlantingPackage second,
+            double requiredN,
+            double requiredP2O5,
+            double requiredK2O,
+            double requiredS) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return simplePlantingScore(first, requiredN, requiredP2O5, requiredK2O, requiredS)
+                <= simplePlantingScore(second, requiredN, requiredP2O5, requiredK2O, requiredS) ? first : second;
+    }
+
+    private double simplePlantingScore(SimplePlantingPackage pkg, double requiredN, double requiredP2O5, double requiredK2O, double requiredS) {
+        if (pkg == null || pkg.rows.isEmpty()) return Double.MAX_VALUE;
+        return Math.abs(pkg.n - requiredN)
+                + Math.abs(pkg.p2o5 - requiredP2O5)
+                + Math.abs(pkg.k2o - requiredK2O)
+                + Math.abs(pkg.s - requiredS)
+                + Math.max(0, pkg.rows.size() - 3) * 5d;
+    }
+
+    private SimplePlantingPackage buildSimplePlantingPackageByNitrogenFirst(
+            List<SimpleMineralFertilizerModel> fertilizers,
+            SulfurPlantingRequirement sulfurRequirement,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O) {
+        SimplePlantingPackage pkg = new SimplePlantingPackage("prioridade N via sulfato de amônio");
+        SimpleMineralFertilizerModel ammoniumSulfate = namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d);
+        SimpleMineralFertilizerModel simpleSuper = namedSource(fertilizers, "superfosfato simples", f -> nvl(f.getP2O5()) > 0d && nvl(f.getS()) > 0d);
+        SimpleMineralFertilizerModel map = namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel urea = namedSource(fertilizers, "ureia", f -> nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel kcl = namedSource(fertilizers, "cloreto de potassio", f -> nvl(f.getK2O()) > 0d);
+
+        addByNutrient(pkg, ammoniumSulfate, nvl(requiredN), "N", "Todo o N possível como sulfato de amônio para iniciar o atendimento de S.");
+        addByNutrient(pkg, simpleSuper, Math.max(0d, Math.min(nvl(requiredP2O5) - pkg.p2o5, sulfurRequirement.requiredS() - pkg.s)), "S",
+                "Complemento de S com superfosfato simples usando P2O5 demandado no plantio.");
+        addByNutrient(pkg, map, Math.max(0d, nvl(requiredP2O5) - pkg.p2o5), "P2O5",
+                "Complemento de P2O5 remanescente com MAP.");
+        addByNutrient(pkg, urea, Math.max(0d, nvl(requiredN) - pkg.n), "N",
+                "Complemento de N remanescente com ureia.");
+        addByNutrient(pkg, kcl, nvl(requiredK2O), "K2O", "Todo K2O aplicado como cloreto de potássio.");
+        return pkg;
+    }
+
+    private SimplePlantingPackage buildSimplePlantingPackageByPhosphorusSulfurFirst(
+            List<SimpleMineralFertilizerModel> fertilizers,
+            SulfurPlantingRequirement sulfurRequirement,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O) {
+        SimplePlantingPackage pkg = new SimplePlantingPackage("prioridade S/P2O5 via superfosfato simples");
+        SimpleMineralFertilizerModel simpleSuper = namedSource(fertilizers, "superfosfato simples", f -> nvl(f.getP2O5()) > 0d && nvl(f.getS()) > 0d);
+        SimpleMineralFertilizerModel ammoniumSulfate = namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d);
+        SimpleMineralFertilizerModel map = namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel urea = namedSource(fertilizers, "ureia", f -> nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel kcl = namedSource(fertilizers, "cloreto de potassio", f -> nvl(f.getK2O()) > 0d);
+
+        addByNutrient(pkg, simpleSuper, Math.max(nvl(requiredP2O5), sulfurRequirement.requiredS()), "S",
+                "Tentativa inversa: maior parte do S via superfosfato simples, limitada pelo balanço de P2O5.");
+        addByNutrient(pkg, ammoniumSulfate, Math.max(0d, Math.min(nvl(requiredN) - pkg.n, sulfurRequirement.requiredS() - pkg.s)), "S",
+                "Complemento de S com sulfato de amônio.");
+        addByNutrient(pkg, map, Math.max(0d, nvl(requiredP2O5) - pkg.p2o5), "P2O5",
+                "Complemento de P2O5 remanescente com MAP.");
+        addByNutrient(pkg, urea, Math.max(0d, nvl(requiredN) - pkg.n), "N",
+                "Complemento de N remanescente com ureia.");
+        addByNutrient(pkg, kcl, nvl(requiredK2O), "K2O", "Todo K2O aplicado como cloreto de potássio.");
+        return pkg;
+    }
+
+    private void addByNutrient(SimplePlantingPackage pkg,
+                               SimpleMineralFertilizerModel fertilizer,
+                               double targetKgHa,
+                               String nutrient,
+                               String memory) {
+        if (pkg == null || fertilizer == null || targetKgHa <= 0d) return;
+        double percent = fertilizerPercent(fertilizer, nutrient);
+        if (percent <= 0d) return;
+        double dose = round2(100d * targetKgHa / percent);
+        pkg.add(fertilizer, dose, nutrient, memory);
+    }
+
+    private double fertilizerPercent(SimpleMineralFertilizerModel fertilizer, String nutrient) {
+        if (fertilizer == null || nutrient == null) return 0d;
+        return switch (nutrient) {
+            case "N" -> nvl(fertilizer.getN());
+            case "P2O5" -> nvl(fertilizer.getP2O5());
+            case "K2O" -> nvl(fertilizer.getK2O());
+            case "S" -> nvl(fertilizer.getS());
+            default -> 0d;
+        };
+    }
+
     private void addSuggestion(List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
                                SimpleMineralFertilizerModel fertilizer,
                                String type,
@@ -1053,6 +1256,22 @@ class NutrientFertilizationCalculationService {
                 .filter(f -> normalizeText(f.getName()).contains(normalizedName))
                 .max(comparator);
         return named.orElseGet(() -> fertilizers.stream().filter(predicate).max(comparator).orElse(null));
+    }
+
+    private SimpleMineralFertilizerModel namedSource(
+            List<SimpleMineralFertilizerModel> fertilizers,
+            String normalizedName,
+            java.util.function.Predicate<SimpleMineralFertilizerModel> predicate) {
+        if (fertilizers == null) return null;
+        Optional<SimpleMineralFertilizerModel> named = fertilizers.stream()
+                .filter(predicate)
+                .filter(f -> normalizeText(f.getName()).contains(normalizedName))
+                .findFirst();
+        return named.orElseGet(() -> fertilizers.stream()
+                .filter(predicate)
+                .max(Comparator.comparing((SimpleMineralFertilizerModel f) -> nvl(f.getN()) + nvl(f.getP2O5()) + nvl(f.getK2O()) + nvl(f.getS()))
+                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()))
+                .orElse(null));
     }
 
     private String buildConsolidatedCoverageApplicationMode(CropModel crop) {
@@ -1542,6 +1761,90 @@ class NutrientFertilizationCalculationService {
             boolean replacesPlanting) {
         static SulfurPlantingPlan empty() {
             return new SulfurPlantingPlan(List.of(), List.of(), 0d, 0d, 0d, 0d, false);
+        }
+    }
+
+    private record SimplePlantingPackageResult(
+            List<RecommendationCalculationService.FertilizationRecommendationRow> rows,
+            List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
+            double transferredN,
+            double transferredK2O) {
+    }
+
+    private class SimplePlantingPackage {
+        private final String strategy;
+        private final List<RecommendationCalculationService.FertilizationRecommendationRow> rows = new ArrayList<>();
+        private final List<RecommendationCalculationService.FertilizerSuggestion> suggestions = new ArrayList<>();
+        private double n;
+        private double p2o5;
+        private double k2o;
+        private double s;
+        private String warning;
+
+        SimplePlantingPackage(String strategy) {
+            this.strategy = strategy;
+        }
+
+        void add(SimpleMineralFertilizerModel fertilizer, double dose, String targetNutrient, String memory) {
+            if (fertilizer == null || dose <= 0d) return;
+            double providedN = round2(dose * nvl(fertilizer.getN()) / 100d);
+            double providedP = round2(dose * nvl(fertilizer.getP2O5()) / 100d);
+            double providedK = round2(dose * nvl(fertilizer.getK2O()) / 100d);
+            double providedS = round2(dose * nvl(fertilizer.getS()) / 100d);
+            n = round2(n + providedN);
+            p2o5 = round2(p2o5 + providedP);
+            k2o = round2(k2o + providedK);
+            s = round2(s + providedS);
+            rows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                    .phase("Opção 2 - Plantio com adubos simples - " + targetNutrient)
+                    .nutrients(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                            providedN, providedP, providedK, providedS))
+                    .suggestedFertilizer(fertilizer.getName())
+                    .fertilizerQuantityKgHa(round2(dose))
+                    .applicationMode("Aplicação no plantio com adubo mineral simples.")
+                    .source("Balanço estruturado de adubos simples para N-P2O5-K2O-S no plantio.")
+                    .providedN(providedN)
+                    .providedP2O5(providedP)
+                    .providedK2O(providedK)
+                    .providedS(providedS)
+                    .limitingNutrient(targetNutrient)
+                    .targetNeedKgHa(targetNeedForRow(targetNutrient, providedN, providedP, providedK, providedS))
+                    .productConcentrationPercent(fertilizerPercent(fertilizer, targetNutrient))
+                    .calculationMemory(memory + " Estratégia: " + strategy + ". Dose = 100 * nutriente recomendado / teor % da fonte cadastrada.")
+                    .build());
+            addSuggestion(suggestions, fertilizer, "SIMPLES", "Opção 2 - plantio com adubos simples; " + memory);
+        }
+
+        List<RecommendationCalculationService.FertilizationRecommendationRow> toRows(
+                CropModel crop,
+                double requiredN,
+                double requiredP2O5,
+                double requiredK2O,
+                double requiredS,
+                double transferredN) {
+            String transfer = transferredN > tolerance(requiredN)
+                    ? String.format(Locale.US, " Saldo de N transferido para a segunda opção de cobertura: %.2f kg/ha.", transferredN)
+                    : "";
+            return rows.stream()
+                    .map(row -> row.toBuilder()
+                            .balanceN(round2(n - requiredN))
+                            .balanceP2O5(round2(p2o5 - requiredP2O5))
+                            .balanceK2O(round2(k2o - requiredK2O))
+                            .balanceS(round2(s - requiredS))
+                            .applicationMode(row.getApplicationMode() + " " + buildCropPhenologyReference(crop) + transfer)
+                            .warning(warning)
+                            .build())
+                    .toList();
+        }
+
+        private double targetNeedForRow(String targetNutrient, double providedN, double providedP, double providedK, double providedS) {
+            return switch (targetNutrient) {
+                case "N" -> providedN;
+                case "P2O5" -> providedP;
+                case "K2O" -> providedK;
+                case "S" -> providedS;
+                default -> 0d;
+            };
         }
     }
 

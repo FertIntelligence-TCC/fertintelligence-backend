@@ -135,7 +135,7 @@ public class FormulatedFertilizerSelectionService {
                         true,
                         appendTechnicalMessage(
                                 noDirectMatchMessage,
-                                "Seleção por maximização aplicada após falha da seleção aproximada; déficits remanescentes calculados para futura cobertura."));
+                                "Seleção por maximização aplicada após falha da seleção aproximada; quando possível a dose prioriza P2O5 exato e os déficits de N/K2O seguem para cobertura."));
             }
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
@@ -294,7 +294,8 @@ public class FormulatedFertilizerSelectionService {
             return null;
         }
 
-        NutrientLimit limitingNutrient = findMostLimitingNutrient(fertilizer, requiredN, requiredP2O5, requiredK2O);
+        NutrientLimit limitingNutrient = findPhosphorusLimit(fertilizer, requiredP2O5)
+                .orElseGet(() -> findMostLimitingNutrient(fertilizer, requiredN, requiredP2O5, requiredK2O));
         if (limitingNutrient == null) {
             return null;
         }
@@ -472,6 +473,15 @@ public class FormulatedFertilizerSelectionService {
                 .min(Comparator.comparing(NutrientLimit::doseKgHa)
                         .thenComparing(NutrientLimit::nutrient))
                 .orElse(null);
+    }
+
+    private java.util.Optional<NutrientLimit> findPhosphorusLimit(FormulatedMineralFertilizerModel fertilizer, Double requiredP2O5) {
+        double required = normalizeRequiredDose(requiredP2O5);
+        double concentration = normalizeRequiredDose(fertilizer != null ? fertilizer.getP2O5() : null);
+        if (required <= 0d || concentration <= 0d) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(new NutrientLimit("P2O5", required / concentration * 100d));
     }
 
     private void addNutrientLimit(List<NutrientLimit> limits, String nutrient, Double required, Double concentration) {
