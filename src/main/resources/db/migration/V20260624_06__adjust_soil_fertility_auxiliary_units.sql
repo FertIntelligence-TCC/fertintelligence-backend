@@ -6,6 +6,14 @@ SET unidade = 'mg/dm³'
 WHERE unidade IS NULL
    OR LOWER(REPLACE(unidade, '³', '3')) IN ('g/dm3', 'mg/dm3', 'mg_per_dm3');
 
+ALTER TABLE IF EXISTS teores_trocaveis_de_potassio
+    ADD COLUMN IF NOT EXISTS unidade VARCHAR(20) NOT NULL DEFAULT 'mmolc/dm³';
+
+UPDATE teores_trocaveis_de_potassio
+SET unidade = 'mmolc/dm³'
+WHERE unidade IS NULL
+   OR LOWER(REPLACE(unidade, '³', '3')) IN ('mg/dm3', 'cmolc/dm3', 'mmolc/dm3', 'mmolc_per_dm3');
+
 ALTER TABLE IF EXISTS criterios_de_interpretacao_da_salinidade_do_solo
     ADD COLUMN IF NOT EXISTS unidade_ras VARCHAR(30) NOT NULL DEFAULT '(mmolc)**0.5';
 

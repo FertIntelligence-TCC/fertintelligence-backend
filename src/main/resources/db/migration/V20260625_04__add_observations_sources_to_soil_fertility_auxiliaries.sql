@@ -10,6 +10,10 @@ ALTER TABLE IF EXISTS fosforo_disponivel_com_extrator_mehlich_1
     ADD COLUMN IF NOT EXISTS observacoes VARCHAR(1000),
     ADD COLUMN IF NOT EXISTS fontes VARCHAR(1000);
 
+ALTER TABLE IF EXISTS teores_trocaveis_de_potassio
+    ADD COLUMN IF NOT EXISTS observacoes VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS fontes VARCHAR(1000);
+
 ALTER TABLE IF EXISTS sodio_trocavel
     ADD COLUMN IF NOT EXISTS observacoes VARCHAR(1000),
     ADD COLUMN IF NOT EXISTS fontes VARCHAR(1000);
