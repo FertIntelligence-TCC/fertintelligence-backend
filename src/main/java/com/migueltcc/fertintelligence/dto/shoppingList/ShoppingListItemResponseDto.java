@@ -29,4 +29,7 @@ public class ShoppingListItemResponseDto {
 
     @JsonProperty("total_area")
     private String totalForArea;
+
+    @JsonProperty("decisao_custo_oportunidade")
+    private String opportunityCostDecision;
 }

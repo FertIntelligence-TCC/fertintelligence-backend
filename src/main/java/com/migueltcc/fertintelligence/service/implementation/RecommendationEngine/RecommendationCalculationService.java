@@ -62,6 +62,7 @@ public class RecommendationCalculationService {
     private final GypsumCalculationService gypsumCalculationService;
     private final SoilTextureClassificationService soilTextureClassificationService;
     private final NutrientFertilizationCalculationService nutrientFertilizationCalculationService;
+    private final FertilizerOpportunityCostService fertilizerOpportunityCostService;
 
     private final PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository;
     private final SoilAnalysisRepository soilAnalysisRepository;
@@ -103,7 +104,8 @@ public class RecommendationCalculationService {
                                             LimingRequirementCalculator limingRequirementCalculator,
                                             GypsumCalculationService gypsumCalculationService,
                                             SoilTextureClassificationService soilTextureClassificationService,
-                                            NutrientFertilizationCalculationService nutrientFertilizationCalculationService) {
+                                            NutrientFertilizationCalculationService nutrientFertilizationCalculationService,
+                                            FertilizerOpportunityCostService fertilizerOpportunityCostService) {
         this.physicalAnalysisExtractRepository = physicalAnalysisExtractRepository;
         this.soilAnalysisRepository = soilAnalysisRepository;
         this.saturationExtractAnalysisExtractRepository = saturationExtractAnalysisExtractRepository;
@@ -126,6 +128,7 @@ public class RecommendationCalculationService {
         this.gypsumCalculationService = gypsumCalculationService;
         this.soilTextureClassificationService = soilTextureClassificationService;
         this.nutrientFertilizationCalculationService = nutrientFertilizationCalculationService;
+        this.fertilizerOpportunityCostService = fertilizerOpportunityCostService;
     }
 
     public RecommendationCalculationResult calculate(RecommendationCreateRequestDto dto, UserModel user, PropertyModel property, PlotModel plot) {
@@ -139,10 +142,12 @@ public class RecommendationCalculationService {
         DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
         FertilizationRecommendationContext recommendations = buildFertilizationRecommendations(
                 dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis());
+        FertilizerOpportunityCostService.OpportunityCostResult opportunityCost =
+                fertilizerOpportunityCostService.calculate(user, sourceOption, formulatedFertilizerIds(recommendations), warnings);
 
         warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
 
-        return buildCalculationResult(dto, user, property, plot, diagnostics, warnings, inputs, diagnoses, recommendations);
+        return buildCalculationResult(dto, user, property, plot, diagnostics, warnings, inputs, diagnoses, recommendations, opportunityCost);
     }
 
     private RecommendationInputs loadRecommendationInputs(RecommendationCreateRequestDto dto, UserModel user, PlotModel plot, List<String> warnings) {
@@ -263,7 +268,8 @@ public class RecommendationCalculationService {
                                                                    List<String> warnings,
                                                                    RecommendationInputs inputs,
                                                                    DiagnosesContext diagnoses,
-                                                                   FertilizationRecommendationContext recommendations) {
+                                                                   FertilizationRecommendationContext recommendations,
+                                                                   FertilizerOpportunityCostService.OpportunityCostResult opportunityCost) {
         return RecommendationCalculationResult.builder()
                 .requesterName(user != null ? user.getName() : null)
                 .requesterUsername(user != null ? user.getUsername() : null)
@@ -293,6 +299,8 @@ public class RecommendationCalculationService {
                 .micronutrientFertilizerRows(recommendations.micronutrientFertilizerRows())
                 .plantingFormulatedFertilizerRows(recommendations.plantingFormulatedFertilizerRows())
                 .coverageFormulatedFertilizerRows(recommendations.coverageFormulatedFertilizerRows())
+                .opportunityCostNutrientPrices(toNutrientPriceRows(opportunityCost))
+                .opportunityCostDecisionRows(toOpportunityCostDecisionRows(opportunityCost))
                 .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O()).requiredS(recommendations.requiredS())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
                 .physicalAnalysisId(inputs.physicalAnalysisSourceId())
@@ -303,6 +311,61 @@ public class RecommendationCalculationService {
                 .physicalAnalysisSummary(diagnoses.physicalSummary()).soilFertilityAnalysisSummary(diagnoses.soilFertilitySummary()).saturationExtractAnalysisSummary(diagnoses.saturationSummary())
                 .annualCropFolderSummary("Pasta de cultura anual considerada na recomendação.")
                 .cropSummary(diagnoses.cropSummary()).foliarAnalysisSummary(diagnoses.foliarSummary()).build();
+    }
+
+    private List<Long> formulatedFertilizerIds(FertilizationRecommendationContext recommendations) {
+        List<Long> ids = new ArrayList<>();
+        if (recommendations != null && recommendations.plantingFormulatedFertilizerRows() != null) {
+            recommendations.plantingFormulatedFertilizerRows().stream()
+                    .map(PlantingFormulatedFertilizerRecommendationRow::getFertilizerId)
+                    .filter(Objects::nonNull)
+                    .forEach(ids::add);
+        }
+        if (recommendations != null && recommendations.coverageFormulatedFertilizerRows() != null) {
+            recommendations.coverageFormulatedFertilizerRows().stream()
+                    .map(CoverageFormulatedFertilizerRecommendationRow::getFertilizerId)
+                    .filter(Objects::nonNull)
+                    .forEach(ids::add);
+        }
+        return ids;
+    }
+
+    private List<OpportunityCostNutrientPriceRow> toNutrientPriceRows(FertilizerOpportunityCostService.OpportunityCostResult result) {
+        if (result == null || result.nutrientPrices() == null || result.nutrientPrices().isEmpty()) {
+            return List.of();
+        }
+        return result.nutrientPrices().values().stream()
+                .map(price -> OpportunityCostNutrientPriceRow.builder()
+                        .nutrient(price.nutrient().name())
+                        .pricePerKg(price.pricePerKg())
+                        .sourceName(price.fertilizerName())
+                        .sourceType(price.fertilizerType())
+                        .commercialWeightKg(price.commercialWeightKg())
+                        .commercialPrice(price.commercialPrice())
+                        .build())
+                .toList();
+    }
+
+    private List<OpportunityCostDecisionRow> toOpportunityCostDecisionRows(FertilizerOpportunityCostService.OpportunityCostResult result) {
+        if (result == null || result.decisions() == null || result.decisions().isEmpty()) {
+            return List.of();
+        }
+        return result.decisions().stream()
+                .map(decision -> OpportunityCostDecisionRow.builder()
+                        .fertilizerName(decision.fertilizerName())
+                        .category(decision.category())
+                        .commercialPriceLabel(decision.commercialPriceLabel())
+                        .commercialPrice(decision.commercialPrice())
+                        .opportunityPriceLabel(decision.opportunityPriceLabel())
+                        .opportunityPrice(decision.opportunityPrice())
+                        .commercialWeightKg(decision.commercialWeightKg())
+                        .ratio(decision.ratio())
+                        .decision(decision.decision())
+                        .indeterminate(decision.indeterminate())
+                        .justification(decision.justification())
+                        .contributionSummary(decision.contributionSummary())
+                        .build())
+                .toList();
     }
 
     private String resolveCropNameForResult(RecommendationInputs inputs) {
@@ -2030,6 +2093,10 @@ public class RecommendationCalculationService {
         private List<PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows = new ArrayList<>();
         @Builder.Default
         private List<CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows = new ArrayList<>();
+        @Builder.Default
+        private List<OpportunityCostNutrientPriceRow> opportunityCostNutrientPrices = new ArrayList<>();
+        @Builder.Default
+        private List<OpportunityCostDecisionRow> opportunityCostDecisionRows = new ArrayList<>();
     }
     @Data
     @Builder
@@ -2295,5 +2362,37 @@ public class RecommendationCalculationService {
         private Double gramsPerLinearMeter;
         private Double gramsPerPit;
         private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OpportunityCostNutrientPriceRow {
+        private String nutrient;
+        private BigDecimal pricePerKg;
+        private String sourceName;
+        private String sourceType;
+        private BigDecimal commercialWeightKg;
+        private BigDecimal commercialPrice;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OpportunityCostDecisionRow {
+        private String fertilizerName;
+        private String category;
+        private String commercialPriceLabel;
+        private BigDecimal commercialPrice;
+        private String opportunityPriceLabel;
+        private BigDecimal opportunityPrice;
+        private BigDecimal commercialWeightKg;
+        private BigDecimal ratio;
+        private String decision;
+        private boolean indeterminate;
+        private String justification;
+        private String contributionSummary;
     }
 }

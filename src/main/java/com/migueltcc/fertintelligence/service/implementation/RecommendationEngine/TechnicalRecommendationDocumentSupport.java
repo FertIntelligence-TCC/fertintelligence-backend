@@ -160,6 +160,7 @@ final class TechnicalRecommendationDocumentSupport {
         addAlternativeItems(items, subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         addFertilizationItems(items, section(source, "10. Adubação de plantio"));
         addFertilizationItems(items, section(source, "11. Adubação de cobertura"));
+        annotateOpportunityCostDecisions(items, source);
         return new ArrayList<>(items.values());
     }
 
@@ -440,6 +441,75 @@ final class TechnicalRecommendationDocumentSupport {
         existing.addLocalizedDose(localizedDose);
     }
 
+    private static void annotateOpportunityCostDecisions(Map<String, ShoppingItem> items, String source) {
+        if (items.isEmpty() || source == null || source.isBlank()) return;
+        String opportunitySection = section(source, "13.2. Comparativo de custo de oportunidade");
+        if (opportunitySection.isBlank()) return;
+        for (List<String> row : tableRows(opportunitySection)) {
+            if (row.size() < 8 || normalize(row.get(0)).contains("categoria")) continue;
+            String category = row.get(0);
+            String fertilizer = row.get(1);
+            String decision = row.get(6);
+            String ratio = row.get(5);
+            if (!isLowerOpportunityCostDecision(category, decision)) continue;
+            String marker = "Escolha guiada por menor custo de oportunidade"
+                    + (ratio == null || looksUnavailable(ratio) ? "" : " (razão PC/PO " + ratio + ")")
+                    + ": " + decision + ".";
+            for (ShoppingItem item : items.values()) {
+                if (matchesOpportunityDecision(item, fertilizer)) {
+                    item.addOpportunityCostDecision(marker);
+                }
+            }
+        }
+    }
+
+    private static boolean isLowerOpportunityCostDecision(String category, String decision) {
+        if (decision == null || decision.isBlank()) return false;
+        String normalizedDecision = normalize(decision);
+        if (normalizedDecision.contains("indeterminada") || normalizedDecision.contains("adubos simples")) return false;
+        String normalizedCategory = normalize(category);
+        return normalizedDecision.contains("composto")
+                || normalizedDecision.contains("formulado")
+                || normalizedDecision.contains("fte")
+                || normalizedCategory.contains("composto")
+                || normalizedCategory.contains("formulado")
+                || normalizedCategory.contains("fte");
+    }
+
+    private static boolean matchesOpportunityDecision(ShoppingItem item, String fertilizer) {
+        if (item == null || fertilizer == null || fertilizer.isBlank()) return false;
+        String normalizedFertilizer = normalize(fertilizer);
+        String normalizedName = normalize(item.getName());
+        String normalizedGroup = normalize(item.getTypeGroup());
+        if (normalizedName.contains(normalizedFertilizer) || normalizedFertilizer.contains(normalizedName)) {
+            return true;
+        }
+        String fertilizerFormula = formulaKey(normalizedFertilizer);
+        if (fertilizerFormula == null) {
+            return false;
+        }
+        return normalizedName.contains(fertilizerFormula) || normalizedGroup.contains(fertilizerFormula);
+    }
+
+    private static String formulaKey(String value) {
+        if (value == null || value.isBlank()) return null;
+        Matcher matcher = Pattern.compile("(\\d+(?:[\\.,]\\d+)?)\\D+(\\d+(?:[\\.,]\\d+)?)\\D+(\\d+(?:[\\.,]\\d+)?)").matcher(value);
+        if (!matcher.find()) return null;
+        return formulaNumber(matcher.group(1)) + "-" + formulaNumber(matcher.group(2)) + "-" + formulaNumber(matcher.group(3));
+    }
+
+    private static String formulaNumber(String value) {
+        try {
+            double parsed = Double.parseDouble(value.replace(",", "."));
+            if (Math.rint(parsed) == parsed) {
+                return String.format(Locale.US, "%.0f", parsed);
+            }
+            return String.format(Locale.US, "%.2f", parsed);
+        } catch (NumberFormatException ex) {
+            return value;
+        }
+    }
+
     private static Optional<Double> parseDecimal(String value) {
         if (value == null || value.isBlank()) return Optional.empty();
         try {
@@ -516,6 +586,7 @@ final class TechnicalRecommendationDocumentSupport {
         private String typeGroup;
         private String phase;
         private String localizedDose;
+        private String opportunityCostDecision;
 
         ShoppingItem(String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
             this.name = name;
@@ -545,6 +616,10 @@ final class TechnicalRecommendationDocumentSupport {
             return localizedDose == null || localizedDose.isBlank() ? NOT_APPLICABLE : localizedDose;
         }
 
+        String getOpportunityCostDecision() {
+            return opportunityCostDecision == null || opportunityCostDecision.isBlank() ? NOT_APPLICABLE : opportunityCostDecision;
+        }
+
         void addKgHa(Double value) {
             if (value == null) return;
             this.kgHa = this.kgHa == null ? value : this.kgHa + value;
@@ -560,6 +635,10 @@ final class TechnicalRecommendationDocumentSupport {
 
         void addLocalizedDose(String value) {
             this.localizedDose = appendDistinct(this.localizedDose, value);
+        }
+
+        void addOpportunityCostDecision(String value) {
+            this.opportunityCostDecision = appendDistinct(this.opportunityCostDecision, value);
         }
 
         private String appendDistinct(String current, String value) {

@@ -45,10 +45,10 @@ public class ShoppingListReportService {
                 recommendation != null ? recommendation.getCropPlantingDate() : null);
         report.append("- Área usada para totalização: ").append(TechnicalRecommendationDocumentSupport.formatArea(area)).append("\n\n");
 
-        report.append("| Insumo | Tipo/grupo | Fase | Quantidade por hectare | Unidade localizada | Total para a área |\n");
-        report.append("|---|---|---|---:|---|---:|\n");
+        report.append("| Insumo | Tipo/grupo | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
+        report.append("|---|---|---|---:|---|---:|---|\n");
         if (items.isEmpty()) {
-            report.append("| Não calculado | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. |\n\n");
+            report.append("| Não calculado | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. |\n\n");
         } else {
             for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
                 report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getName()))
@@ -57,6 +57,7 @@ public class ShoppingListReportService {
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getLocalizedDose()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getOpportunityCostDecision()))
                         .append(" |\n");
             }
             report.append("\n");

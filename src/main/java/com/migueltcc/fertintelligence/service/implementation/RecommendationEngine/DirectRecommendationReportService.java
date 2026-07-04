@@ -117,10 +117,21 @@ public class DirectRecommendationReportService {
         appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
+        appendOpportunityCostComparison(report, source);
 
         report.append("Observações sobre adubação\n\n");
         report.append(resolveFertilizationObservations(recommendation));
         return report.toString();
+    }
+
+    private void appendOpportunityCostComparison(StringBuilder report, String source) {
+        String section = TechnicalRecommendationDocumentSupport.stripHeading(
+                TechnicalRecommendationDocumentSupport.section(source, "13.2. Comparativo de custo de oportunidade"));
+        if (section.isBlank()) {
+            return;
+        }
+        report.append("Comparativo de custo de oportunidade\n\n");
+        report.append(section).append("\n\n");
     }
 
     private void appendMicronutrientTable(StringBuilder report,

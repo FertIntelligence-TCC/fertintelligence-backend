@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -86,6 +87,47 @@ public class RecommendationReportService {
                     .append(" | ").append(safeCell(item.getInterpretation()))
                     .append(" | ").append(safeCell(item.getUsedCriterion()))
                     .append(" | ").append(safeCell(item.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
+    }
+
+    private void appendOpportunityCostComparison(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        report.append("13.2. Comparativo de custo de oportunidade\n\n");
+        report.append("Menores preços unitários dos nutrientes em fontes simples/concentradas\n\n");
+        report.append("| Nutriente | R$/kg nutriente | Fonte | Tipo | Unidade comercial | Preço comercial |\n");
+        report.append("|---|---:|---|---|---:|---:|\n");
+        if (result.getOpportunityCostNutrientPrices() == null || result.getOpportunityCostNutrientPrices().isEmpty()) {
+            report.append("| Não calculado | Não calculado | Não encontrada | Não informado | Não informado | Não informado |\n");
+        } else {
+            for (RecommendationCalculationService.OpportunityCostNutrientPriceRow row : result.getOpportunityCostNutrientPrices()) {
+                report.append("| ").append(safeCell(row.getNutrient()))
+                        .append(" | ").append(formatMoney(row.getPricePerKg()))
+                        .append(" | ").append(safeCell(row.getSourceName()))
+                        .append(" | ").append(safeCell(row.getSourceType()))
+                        .append(" | ").append(formatWeight(row.getCommercialWeightKg()))
+                        .append(" | ").append(formatMoney(row.getCommercialPrice()))
+                        .append(" |\n");
+            }
+        }
+        report.append("\n");
+
+        report.append("Decisão econômica por unidade comercial\n\n");
+        report.append("| Categoria | Adubo | PC | PO | Unidade | Razão PC/PO | Decisão | Justificativa |\n");
+        report.append("|---|---|---:|---:|---:|---:|---|---|\n");
+        if (result.getOpportunityCostDecisionRows() == null || result.getOpportunityCostDecisionRows().isEmpty()) {
+            report.append("| Não calculado | Não avaliado | Não calculado | Não calculado | Não informada | Não calculada | indeterminada por ausência de preço | Nenhum composto, formulado ou FTE com preço e composição suficientes foi avaliado. |\n\n");
+            return;
+        }
+        for (RecommendationCalculationService.OpportunityCostDecisionRow row : result.getOpportunityCostDecisionRows()) {
+            report.append("| ").append(safeCell(row.getCategory()))
+                    .append(" | ").append(safeCell(row.getFertilizerName()))
+                    .append(" | ").append(formatLabeledMoney(row.getCommercialPriceLabel(), row.getCommercialPrice()))
+                    .append(" | ").append(formatLabeledMoney(row.getOpportunityPriceLabel(), row.getOpportunityPrice()))
+                    .append(" | ").append(formatWeight(row.getCommercialWeightKg()))
+                    .append(" | ").append(formatRatio(row.getRatio()))
+                    .append(" | ").append(safeCell(row.getDecision()))
+                    .append(" | ").append(safeCell(opportunityJustification(row)))
                     .append(" |\n");
         }
         report.append("\n");
@@ -308,9 +350,7 @@ public class RecommendationReportService {
         boolean hasMicronutrientRows = result.getMicronutrientFertilizerRows() != null && !result.getMicronutrientFertilizerRows().isEmpty();
         if (!hasAlternativeRows && !hasMicronutrientRows) {
             report.append("| Não calculado | Orgânicos/organominerais/micronutrientes | Não selecionada | Não calculada | Não modelada | Não há dados suficientes para recomendação suportada. | O backend não gerou recomendações genéricas sem cálculo. |\n\n");
-            return;
-        }
-        if (hasAlternativeRows) {
+        } else if (hasAlternativeRows) {
             for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
                 report.append("| ").append(safeCell(row.getSourceType()))
                         .append(" | ").append(safeCell(row.getNutrientOrObjective()))
@@ -340,6 +380,7 @@ public class RecommendationReportService {
             }
         }
         report.append("\n");
+        appendOpportunityCostComparison(report, result);
     }
 
     private Set<String> alternativeMicronutrientObjectives(
@@ -524,6 +565,35 @@ public class RecommendationReportService {
 
     private String formatPercentValue(Double value) {
         return value == null ? "Não informado" : String.format(Locale.US, "%.2f%%", value);
+    }
+
+    private String formatMoney(BigDecimal value) {
+        return value == null ? "Não calculado" : "R$ " + value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private String formatLabeledMoney(String label, BigDecimal value) {
+        if (value == null) {
+            return "Não calculado";
+        }
+        return safe(label) + " " + formatMoney(value);
+    }
+
+    private String formatWeight(BigDecimal value) {
+        return value == null ? "Não informada" : value.stripTrailingZeros().toPlainString() + " kg";
+    }
+
+    private String formatRatio(BigDecimal value) {
+        return value == null ? "Não calculada" : value.setScale(4, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private String opportunityJustification(RecommendationCalculationService.OpportunityCostDecisionRow row) {
+        if (row == null) {
+            return "Não calculado";
+        }
+        if (row.isIndeterminate()) {
+            return row.getJustification();
+        }
+        return row.getContributionSummary();
     }
 
     private String formatGypsumNeed(Boolean needed) {

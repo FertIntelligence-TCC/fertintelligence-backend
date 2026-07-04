@@ -45,6 +45,7 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "5. Diagnóstico de salinidade/sodicidade", "Diagnóstico de salinidade/sodicidade"));
         sections.add(section(report, "6. Diagnóstico foliar", FOLIAR_DIAGNOSIS_TITLE));
         sections.add(section(report, "9. Adubação corretiva", "Adubação corretiva"));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
         return nonEmpty(sections);
     }
 
@@ -54,6 +55,7 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "10. Adubação de plantio", "Recomendações de N, P2O5 e K2O - plantio"));
         sections.add(section(report, "11. Adubação de cobertura", "Recomendações de N, P2O5 e K2O - cobertura"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados"));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
         sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes orgânicas, organominerais e micronutrientes"),
                 null,
                 "Fontes orgânicas, organominerais e micronutrientes"));
@@ -65,6 +67,7 @@ public class RecommendationStructuredDataAssembler {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
         sections.add(micronutrientLineSection(recommendation));
         sections.add(directLineSection(recommendation));
+        sections.add(section(directReport, "Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
         return nonEmpty(sections);
     }
 
@@ -84,6 +87,7 @@ public class RecommendationStructuredDataAssembler {
                         .quantityPerHectare(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
                         .localizedUnit(item.getLocalizedDose())
                         .totalForArea(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
+                        .opportunityCostDecision(item.getOpportunityCostDecision())
                         .build())
                 .toList();
     }
