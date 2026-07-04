@@ -13,6 +13,7 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFor
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationFertilizerResolver;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationStructuredDataAssembler;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class DirectRecommendationDtoMapper {
     private final DirectRecommendationReportService directRecommendationReportService;
     private final CropSpacingCalculationService cropSpacingCalculationService;
     private final RecommendationStructuredDataAssembler structuredDataAssembler;
+    private final DirectRecommendationFertilizerResolver fertilizerResolver;
 
     public DirectRecommendationResponseDto toDto(DirectRecommendationModel model) {
         if (model == null) {
@@ -75,13 +77,15 @@ public class DirectRecommendationDtoMapper {
             DirectRecommendationMicronutrientFertilizerLineModel line) {
         ApplicableDose applicableDose = applicableDose(line.getDoseUnitMode(), line.getDoseUnitLabel(),
                 line.getGramsPerLinearMeter(), line.getGramsPerPit());
+        DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
+                fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
         return DirectRecommendationMicronutrientFertilizerLineResponseDto.builder()
                 .id(line.getId())
                 .micronutrient(line.getMicronutrient())
                 .micronutrientDoseKgHa(line.getMicronutrientDoseKgHa())
                 .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .micronutrientConcentrationPercent(line.getMicronutrientConcentrationPercent())
+                .fertilizerName(fertilizer.name())
+                .micronutrientConcentrationPercent(fertilizer.micronutrientConcentrationPercent())
                 .fertilizerDoseKgHa(line.getFertilizerDoseKgHa())
                 .doseUnitMode(line.getDoseUnitMode())
                 .doseUnitLabel(line.getDoseUnitLabel())
@@ -110,14 +114,16 @@ public class DirectRecommendationDtoMapper {
             DirectRecommendationPlantingFormulatedFertilizerLineModel line) {
         ApplicableDose applicableDose = applicableDose(line.getDoseUnitMode(), line.getDoseUnitLabel(),
                 line.getGramsPerLinearMeter(), line.getGramsPerPit());
+        DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                fertilizerResolver.formulated(line.getFertilizerId());
         return DirectRecommendationPlantingFormulatedFertilizerLineResponseDto.builder()
                 .id(line.getId())
                 .phase(line.getPhase())
                 .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .nitrogenPercent(line.getNitrogenPercent())
-                .p2o5Percent(line.getP2o5Percent())
-                .k2oPercent(line.getK2oPercent())
+                .fertilizerName(fertilizer.name())
+                .nitrogenPercent(fertilizer.nitrogenPercent())
+                .p2o5Percent(fertilizer.p2o5Percent())
+                .k2oPercent(fertilizer.k2oPercent())
                 .relationUsed(line.getRelationUsed())
                 .selectionType(line.getSelectionType())
                 .doseKgHa(line.getDoseKgHa())
@@ -148,15 +154,17 @@ public class DirectRecommendationDtoMapper {
             DirectRecommendationCoverageFormulatedFertilizerLineModel line) {
         ApplicableDose applicableDose = applicableDose(line.getDoseUnitMode(), line.getDoseUnitLabel(),
                 line.getGramsPerLinearMeter(), line.getGramsPerPit());
+        DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                fertilizerResolver.formulated(line.getFertilizerId());
         return DirectRecommendationCoverageFormulatedFertilizerLineResponseDto.builder()
                 .id(line.getId())
                 .coverageOrder(line.getCoverageOrder())
                 .phase(line.getPhase())
                 .fertilizerId(line.getFertilizerId())
-                .fertilizerName(line.getFertilizerName())
-                .nitrogenPercent(line.getNitrogenPercent())
-                .p2o5Percent(line.getP2o5Percent())
-                .k2oPercent(line.getK2oPercent())
+                .fertilizerName(fertilizer.name())
+                .nitrogenPercent(fertilizer.nitrogenPercent())
+                .p2o5Percent(fertilizer.p2o5Percent())
+                .k2oPercent(fertilizer.k2oPercent())
                 .requiredN(line.getRequiredN())
                 .requiredP2O5(line.getRequiredP2O5())
                 .requiredK2O(line.getRequiredK2O())

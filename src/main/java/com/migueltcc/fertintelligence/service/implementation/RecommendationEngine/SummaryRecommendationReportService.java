@@ -21,6 +21,7 @@ public class SummaryRecommendationReportService {
 
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
+    private final DirectRecommendationFertilizerResolver fertilizerResolver;
 
     public String build(RecommendationModel recommendation) {
         String source = recommendation.getTechnicalReport();
@@ -106,12 +107,14 @@ public class SummaryRecommendationReportService {
         boolean appended = false;
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrientLines) {
             if (line == null) continue;
-            if (TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())
+            DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
+                    fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())
                     || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
-                    .append(" | ").append(formatPercent(line.getMicronutrientConcentrationPercent()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
+                    .append(" | ").append(formatPercent(fertilizer.micronutrientConcentrationPercent()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
                     .append(" | ").append(formatOperationalDose(line))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.micronutrientTechnicalObservationCell(line.getTechnicalObservation()))

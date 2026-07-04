@@ -149,14 +149,15 @@ final class TechnicalRecommendationDocumentSupport {
     }
 
     static List<ShoppingItem> collectShoppingItems(RecommendationModel recommendation) {
-        return collectShoppingItems(recommendation, List.of(), List.of(), List.of());
+        return collectShoppingItems(recommendation, List.of(), List.of(), List.of(), null);
     }
 
     static List<ShoppingItem> collectShoppingItems(
             RecommendationModel recommendation,
             List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
             List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
-            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines,
+            DirectRecommendationFertilizerResolver fertilizerResolver) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
         String source = recommendation.getTechnicalReport();
         addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"), "calagem", "calagem", FLAG_REQUIRED,
@@ -168,9 +169,9 @@ final class TechnicalRecommendationDocumentSupport {
                 "Dose comercial", "Dose de gesso");
         addGypsumSulfurAlternativeItems(items, gypsumSection);
         addSoilCorrectiveFertilizationItems(items, section(source, "9. Adubação corretiva"));
-        addDirectMicronutrientItems(items, micronutrientFertilizerLines);
-        addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines);
-        addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines);
+        addDirectMicronutrientItems(items, micronutrientFertilizerLines, fertilizerResolver);
+        addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines, fertilizerResolver);
+        addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines, fertilizerResolver);
         addAlternativeItems(items, subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         addFertilizationItems(items, section(source, "10. Adubação de plantio"));
         addFertilizationItems(items, section(source, "11. Adubação de cobertura"));
@@ -390,13 +391,17 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static void addDirectMicronutrientItems(
             Map<String, ShoppingItem> items,
-            List<DirectRecommendationMicronutrientFertilizerLineModel> lines) {
+            List<DirectRecommendationMicronutrientFertilizerLineModel> lines,
+            DirectRecommendationFertilizerResolver fertilizerResolver) {
         if (lines == null) return;
         for (DirectRecommendationMicronutrientFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
+            DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
+                    fertilizerResolver == null ? DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData.unresolved()
+                            : fertilizerResolver.simple(line != null ? line.getFertilizerId() : null, line != null ? line.getMicronutrient() : null);
+            if (line == null || looksUnavailable(fertilizer.name()) || !hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
             merge(
                     items,
-                    removeId(line.getFertilizerName()),
+                    removeId(fertilizer.name()),
                     line.getFertilizerDoseKgHa(),
                     "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
                     "micronutrientes",
@@ -409,15 +414,19 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static void addDirectPlantingFormulatedItems(
             Map<String, ShoppingItem> items,
-            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines) {
+            List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines,
+            DirectRecommendationFertilizerResolver fertilizerResolver) {
         if (lines == null) return;
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver == null ? DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData.unresolved()
+                            : fertilizerResolver.formulated(line != null ? line.getFertilizerId() : null);
+            if (line == null || looksUnavailable(fertilizer.name()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
             merge(
                     items,
-                    removeId(line.getFertilizerName()),
+                    removeId(fertilizer.name()),
                     line.getDoseKgHa(),
-                    formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    formattedFormulatedGroup(fertilizer.nitrogenPercent(), fertilizer.p2o5Percent(), fertilizer.k2oPercent()),
                     "plantio_opcao_1",
                     OPTION_FORMULATED,
                     FLAG_ALTERNATIVE,
@@ -428,16 +437,20 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static void addDirectCoverageFormulatedItems(
             Map<String, ShoppingItem> items,
-            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines) {
+            List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines,
+            DirectRecommendationFertilizerResolver fertilizerResolver) {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver == null ? DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData.unresolved()
+                            : fertilizerResolver.formulated(line != null ? line.getFertilizerId() : null);
+            if (line == null || looksUnavailable(fertilizer.name()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
             String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             merge(
                     items,
-                    removeId(line.getFertilizerName()),
+                    removeId(fertilizer.name()),
                     line.getDoseKgHa(),
-                    formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    formattedFormulatedGroup(fertilizer.nitrogenPercent(), fertilizer.p2o5Percent(), fertilizer.k2oPercent()),
                     "cobertura_opcao_1",
                     OPTION_COVERAGE_FORMULATED,
                     FLAG_ALTERNATIVE,

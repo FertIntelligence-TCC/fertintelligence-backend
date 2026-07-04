@@ -34,6 +34,7 @@ public class RecommendationStructuredDataAssembler {
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
+    private final DirectRecommendationFertilizerResolver fertilizerResolver;
 
     public List<RecommendationTableSectionDto> generalSections(RecommendationModel recommendation) {
         return generalSections(report(recommendation));
@@ -86,7 +87,8 @@ public class RecommendationStructuredDataAssembler {
                         recommendation,
                         micronutrientFertilizerLines(recommendation),
                         plantingFormulatedFertilizerLines(recommendation),
-                        coverageFormulatedFertilizerLines(recommendation))
+                        coverageFormulatedFertilizerLines(recommendation),
+                        fertilizerResolver)
                 .stream()
                 .map(item -> ShoppingListItemResponseDto.builder()
                         .inputName(item.getName())
@@ -127,17 +129,21 @@ public class RecommendationStructuredDataAssembler {
 
         List<List<String>> rows = new ArrayList<>();
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : planting) {
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver.formulated(line.getFertilizerId());
             rows.add(List.of(
                     value(line.getPhase()),
-                    value(line.getFertilizerName()),
+                    value(fertilizer.name()),
                     value(line.getRelationUsed()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()),
                     displayText(shortText(line.getTechnicalObservation()))));
         }
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : coverage) {
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver.formulated(line.getFertilizerId());
             rows.add(List.of(
                     value(line.getPhase()),
-                    value(line.getFertilizerName()),
+                    value(fertilizer.name()),
                     value(line.getRelationUsed()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()),
                     displayText(shortText(line.getTechnicalObservation()))));
@@ -164,9 +170,11 @@ public class RecommendationStructuredDataAssembler {
 
         List<List<String>> rows = new ArrayList<>();
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrients) {
+            DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
+                    fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
             rows.add(List.of(
                     value(line.getMicronutrient()),
-                    value(line.getFertilizerName()),
+                    value(fertilizer.name()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()),
                     displayText(shortText(line.getTechnicalObservation()))));

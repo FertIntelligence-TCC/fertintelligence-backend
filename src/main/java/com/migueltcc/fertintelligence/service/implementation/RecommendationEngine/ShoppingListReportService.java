@@ -25,6 +25,7 @@ public class ShoppingListReportService {
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
+    private final DirectRecommendationFertilizerResolver fertilizerResolver;
 
     public String build(RecommendationModel recommendation) {
         AreaResolution areaResolution = resolveArea(recommendation);
@@ -34,7 +35,8 @@ public class ShoppingListReportService {
                         recommendation,
                         micronutrientFertilizerLines(recommendation),
                         plantingFormulatedFertilizerLines(recommendation),
-                        coverageFormulatedFertilizerLines(recommendation));
+                        coverageFormulatedFertilizerLines(recommendation),
+                        fertilizerResolver);
 
         StringBuilder report = new StringBuilder();
         TechnicalRecommendationDocumentSupport.appendStyle(report);

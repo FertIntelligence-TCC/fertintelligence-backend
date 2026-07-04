@@ -26,7 +26,6 @@ class TechnicalRecommendationDocumentSupportTest {
                         recommendation,
                         List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.B)
-                                .fertilizerName("Borax")
                                 .fertilizerDoseKgHa(10.0)
                                 .doseUnitMode("LINEAR_METER")
                                 .doseUnitLabel(null)
@@ -34,10 +33,6 @@ class TechnicalRecommendationDocumentSupportTest {
                                 .build()),
                         List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
                                 .phase("Plantio")
-                                .fertilizerName("04-14-08")
-                                .nitrogenPercent(4.0)
-                                .p2o5Percent(14.0)
-                                .k2oPercent(8.0)
                                 .doseKgHa(250.0)
                                 .doseUnitMode("LINEAR_METER")
                                 .doseUnitLabel("g/m linear")
@@ -46,15 +41,12 @@ class TechnicalRecommendationDocumentSupportTest {
                         List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
                                 .coverageOrder(1)
                                 .phase("COBERTURA 1ª")
-                                .fertilizerName("20-00-20")
-                                .nitrogenPercent(20.0)
-                                .p2o5Percent(0.0)
-                                .k2oPercent(20.0)
                                 .doseKgHa(180.0)
                                 .doseUnitMode("PIT")
                                 .doseUnitLabel(null)
                                 .gramsPerPit(9.0)
-                                .build()));
+                                .build()),
+                        null);
 
         assertThat(item(items, "Borax").getTypeGroup()).isEqualTo("Micronutriente - B");
         assertThat(item(items, "Borax").getPhase()).isEqualTo("Plantio");
@@ -131,11 +123,10 @@ class TechnicalRecommendationDocumentSupportTest {
                         List.of(),
                         List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
                                 .phase("Plantio")
-                                .fertilizerName("Ureia")
-                                .nitrogenPercent(45.0)
                                 .doseKgHa(120.0)
                                 .build()),
-                        List.of());
+                        List.of(),
+                        null);
 
         assertThat(items.stream().filter(item -> "Ureia".equals(item.getName()))).hasSize(3);
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getOption))

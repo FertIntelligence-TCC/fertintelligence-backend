@@ -77,7 +77,6 @@ class DirectRecommendationControllerImplTest extends AbstractControllerTest {
                         .micronutrient(AppliedMicronutrient.Zn)
                         .micronutrientDoseKgHa(2.0)
                         .fertilizerId(801L)
-                        .fertilizerName("Sulfato de zinco")
                         .fertilizerDoseKgHa(8.0)
                         .doseUnitMode("PIT")
                         .doseUnitLabel("g/cova")

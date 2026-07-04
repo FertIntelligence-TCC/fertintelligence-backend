@@ -21,7 +21,7 @@ class SummaryRecommendationReportServiceTest {
         DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, lineRepository);
+                new SummaryRecommendationReportService(null, lineRepository, null);
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
@@ -34,8 +34,6 @@ class SummaryRecommendationReportServiceTest {
                 .thenReturn(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
                         .micronutrient(AppliedMicronutrient.B)
                         .micronutrientDoseKgHa(1.2)
-                        .fertilizerName("Borax")
-                        .micronutrientConcentrationPercent(11.0)
                         .fertilizerDoseKgHa(10.91)
                         .doseUnitMode("LINEAR_METER")
                         .doseUnitLabel("g/m linear")
@@ -56,7 +54,7 @@ class SummaryRecommendationReportServiceTest {
         DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, lineRepository);
+                new SummaryRecommendationReportService(null, lineRepository, null);
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
@@ -70,8 +68,6 @@ class SummaryRecommendationReportServiceTest {
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.B)
                                 .micronutrientDoseKgHa(1.2)
-                                .fertilizerName("Borax")
-                                .micronutrientConcentrationPercent(11.0)
                                 .fertilizerDoseKgHa(10.91)
                                 .doseUnitMode("LINEAR_METER")
                                 .doseUnitLabel("g/m linear")
@@ -81,8 +77,6 @@ class SummaryRecommendationReportServiceTest {
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.Zn)
                                 .micronutrientDoseKgHa(2.0)
-                                .fertilizerName("Sulfato de zinco")
-                                .micronutrientConcentrationPercent(20.0)
                                 .fertilizerDoseKgHa(10.0)
                                 .doseUnitMode("LINEAR_METER")
                                 .doseUnitLabel("g/m linear")
@@ -92,8 +86,6 @@ class SummaryRecommendationReportServiceTest {
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.Cu)
                                 .micronutrientDoseKgHa(1.0)
-                                .fertilizerName("Sulfato de cobre")
-                                .micronutrientConcentrationPercent(25.0)
                                 .fertilizerDoseKgHa(4.0)
                                 .doseUnitMode("LINEAR_METER")
                                 .doseUnitLabel("g/m linear")
@@ -111,7 +103,7 @@ class SummaryRecommendationReportServiceTest {
 
     @Test
     void buildKeepsHonestFallbackWhenNoPersistedMicronutrientLinesExist() {
-        SummaryRecommendationReportService service = new SummaryRecommendationReportService(null, null);
+        SummaryRecommendationReportService service = new SummaryRecommendationReportService(null, null, null);
 
         String report = service.build(recommendationWithTechnicalReport());
 

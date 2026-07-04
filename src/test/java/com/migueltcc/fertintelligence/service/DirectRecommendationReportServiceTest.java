@@ -120,7 +120,8 @@ class DirectRecommendationReportServiceTest {
                 null,
                 micronutrientRepository,
                 plantingRepository,
-                coverageRepository
+                coverageRepository,
+                null
         );
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         recommendation.setId(1L);
@@ -134,7 +135,6 @@ class DirectRecommendationReportServiceTest {
         when(micronutrientRepository.findAllByDirectRecommendationOrderByIdAsc(directRecommendation))
                 .thenReturn(List.of(DirectRecommendationMicronutrientFertilizerLineModel.builder()
                         .micronutrient(AppliedMicronutrient.B)
-                        .fertilizerName("Borax")
                         .micronutrientDoseKgHa(1.2)
                         .fertilizerDoseKgHa(10.0)
                         .doseUnitMode("LINEAR_METER")
@@ -145,7 +145,6 @@ class DirectRecommendationReportServiceTest {
         when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
                 .thenReturn(List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
                         .phase("Plantio")
-                        .fertilizerName("04-14-08")
                         .relationUsed("1-3.5-2")
                         .doseKgHa(250.0)
                         .doseUnitMode("LINEAR_METER")
@@ -181,7 +180,8 @@ class DirectRecommendationReportServiceTest {
                 null,
                 micronutrientRepository,
                 plantingRepository,
-                coverageRepository
+                coverageRepository,
+                null
         );
         RecommendationModel recommendation = recommendationWithPlantingAndCoverageTechnicalReport();
         recommendation.setId(1L);
@@ -197,7 +197,6 @@ class DirectRecommendationReportServiceTest {
         when(plantingRepository.findAllByDirectRecommendationOrderByDoseKgHaDescIdAsc(directRecommendation))
                 .thenReturn(List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
                         .phase("Plantio")
-                        .fertilizerName("04-14-08")
                         .relationUsed("1-3.5-2")
                         .doseKgHa(250.0)
                         .doseUnitMode("LINEAR_METER")
@@ -232,7 +231,8 @@ class DirectRecommendationReportServiceTest {
                 null,
                 micronutrientRepository,
                 plantingRepository,
-                coverageRepository
+                coverageRepository,
+                null
         );
         RecommendationModel recommendation = recommendationWithPlantingAndCoverageTechnicalReport();
         recommendation.setId(1L);
@@ -251,7 +251,6 @@ class DirectRecommendationReportServiceTest {
                 .thenReturn(List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
                         .coverageOrder(1)
                         .phase("COBERTURA 1ª")
-                        .fertilizerName("20-00-20")
                         .relationUsed("1.00-0.00-1.00")
                         .doseKgHa(180.0)
                         .doseUnitMode("LINEAR_METER")
@@ -283,7 +282,8 @@ class DirectRecommendationReportServiceTest {
                 null,
                 micronutrientRepository,
                 plantingRepository,
-                coverageRepository
+                coverageRepository,
+                null
         );
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         recommendation.setId(1L);
@@ -298,7 +298,6 @@ class DirectRecommendationReportServiceTest {
                 .thenReturn(List.of(
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.B)
-                                .fertilizerName("Borax")
                                 .micronutrientDoseKgHa(1.2)
                                 .fertilizerDoseKgHa(10.0)
                                 .doseUnitMode("LINEAR_METER")
@@ -308,7 +307,6 @@ class DirectRecommendationReportServiceTest {
                                 .build(),
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.Zn)
-                                .fertilizerName("Sulfato de zinco")
                                 .micronutrientDoseKgHa(2.0)
                                 .fertilizerDoseKgHa(8.0)
                                 .doseUnitMode("LINEAR_METER")
@@ -318,7 +316,6 @@ class DirectRecommendationReportServiceTest {
                                 .build(),
                         DirectRecommendationMicronutrientFertilizerLineModel.builder()
                                 .micronutrient(AppliedMicronutrient.Cu)
-                                .fertilizerName("Sulfato de cobre")
                                 .micronutrientDoseKgHa(1.0)
                                 .fertilizerDoseKgHa(5.0)
                                 .doseUnitMode("LINEAR_METER")
@@ -342,6 +339,7 @@ class DirectRecommendationReportServiceTest {
     private DirectRecommendationReportService newService() {
         return new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
+                null,
                 null,
                 null,
                 null,

@@ -42,6 +42,7 @@ public class DirectRecommendationReportService {
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
+    private final DirectRecommendationFertilizerResolver fertilizerResolver;
 
     public String build(RecommendationModel recommendation) {
         DirectRecommendationModel directRecommendation = resolveDirectRecommendation(recommendation).orElse(null);
@@ -160,10 +161,12 @@ public class DirectRecommendationReportService {
             boolean appended = false;
             for (DirectRecommendationMicronutrientFertilizerLineModel line : directLines) {
                 if (line == null) continue;
+                DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
+                        fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
                 if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())
-                        || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
+                        || TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())) continue;
                 report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
                         .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
@@ -270,10 +273,12 @@ public class DirectRecommendationReportService {
         if (lines == null) return;
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver.formulated(line.getFertilizerId());
             if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getDoseKgHa())
-                    || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getPhase()))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()))
                     .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
@@ -313,11 +318,13 @@ public class DirectRecommendationReportService {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
+            DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
+                    fertilizerResolver.formulated(line.getFertilizerId());
             if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getDoseKgHa())
-                    || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())) continue;
             String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()))
                     .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))

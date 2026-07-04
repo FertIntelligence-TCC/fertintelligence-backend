@@ -26,18 +26,6 @@ public class DirectRecommendationPlantingFormulatedFertilizerLineModel {
     @Column(name = "FERTILIZER_ID")
     Long fertilizerId;
 
-    @Column(name = "FERTILIZER_NAME")
-    String fertilizerName;
-
-    @Column(name = "N_PERCENT")
-    Double nitrogenPercent;
-
-    @Column(name = "P2O5_PERCENT")
-    Double p2o5Percent;
-
-    @Column(name = "K2O_PERCENT")
-    Double k2oPercent;
-
     @Column(name = "RELATION_USED")
     String relationUsed;
 

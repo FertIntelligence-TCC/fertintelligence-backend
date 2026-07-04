@@ -31,12 +31,6 @@ public class DirectRecommendationMicronutrientFertilizerLineModel {
     @Column(name = "FERTILIZER_ID")
     Long fertilizerId;
 
-    @Column(name = "FERTILIZER_NAME")
-    String fertilizerName;
-
-    @Column(name = "MICRONUTRIENT_CONCENTRATION_PERCENT")
-    Double micronutrientConcentrationPercent;
-
     @Column(name = "FERTILIZER_DOSE_KG_HA")
     Double fertilizerDoseKgHa;
 
