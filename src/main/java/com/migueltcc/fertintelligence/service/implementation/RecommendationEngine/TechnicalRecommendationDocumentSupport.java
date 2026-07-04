@@ -122,7 +122,7 @@ final class TechnicalRecommendationDocumentSupport {
 
     static void appendSourceSectionOrMessage(StringBuilder report, String title, String sourceSection, String missingMessage) {
         report.append(title).append("\n\n");
-        String content = stripHeading(sourceSection);
+        String content = cleanSectionForFinalReport(stripHeading(sourceSection));
         report.append(content.isBlank() ? missingMessage : content).append("\n\n");
     }
 
@@ -241,6 +241,35 @@ final class TechnicalRecommendationDocumentSupport {
                 || normalized.contains("nao avaliad");
     }
 
+    static boolean hasPositiveKgHa(Double value) {
+        return value != null && Double.isFinite(value) && value > 0d;
+    }
+
+    static boolean hasPositiveKgHa(String value) {
+        return extractKgHa(value)
+                .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
+                .isPresent();
+    }
+
+    static String cleanSectionForFinalReport(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        StringBuilder cleaned = new StringBuilder();
+        for (String line : content.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isBlank()) {
+                appendCleanedLine(cleaned, "");
+                continue;
+            }
+            if (isDiscardableUnavailableLine(trimmed) || isZeroDoseLine(trimmed)) {
+                continue;
+            }
+            appendCleanedLine(cleaned, line);
+        }
+        return collapseBlankLines(cleaned.toString().trim());
+    }
+
     private static boolean missingMicronutrientTechnicalObservation(String value) {
         if (value == null || value.isBlank()) return true;
         String normalized = normalize(value).replace(".", "").trim();
@@ -321,7 +350,9 @@ final class TechnicalRecommendationDocumentSupport {
             if (items.containsKey(safe(itemName))) continue;
             String sectionKey = normalize(phase).contains("cobertura") ? "cobertura_opcao_2" : "plantio_opcao_2";
             String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_SIMPLE_SOURCES;
-            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), sectionKey, option, FLAG_ALTERNATIVE, phase, null));
+            extractKgHa(quantity)
+                    .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
+                    .ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), sectionKey, option, FLAG_ALTERNATIVE, phase, null));
         }
     }
 
@@ -351,7 +382,9 @@ final class TechnicalRecommendationDocumentSupport {
             if (!normalize(unit).contains("kg/ha")) continue;
             String itemName = removeId(sourceName);
             if (items.containsKey(safe(itemName))) continue;
-            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, "fontes_alternativas", OPTION_COMPLEMENT, FLAG_COMPLEMENT, row.get(0), null));
+            parseDecimal(dose)
+                    .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
+                    .ifPresent(kgHa -> merge(items, itemName, kgHa, null, "fontes_alternativas", OPTION_COMPLEMENT, FLAG_COMPLEMENT, row.get(0), null));
         }
     }
 
@@ -360,7 +393,7 @@ final class TechnicalRecommendationDocumentSupport {
             List<DirectRecommendationMicronutrientFertilizerLineModel> lines) {
         if (lines == null) return;
         for (DirectRecommendationMicronutrientFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getFertilizerDoseKgHa() == null) continue;
+            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
             merge(
                     items,
                     removeId(line.getFertilizerName()),
@@ -379,7 +412,7 @@ final class TechnicalRecommendationDocumentSupport {
             List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines) {
         if (lines == null) return;
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getDoseKgHa() == null) continue;
+            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
             merge(
                     items,
                     removeId(line.getFertilizerName()),
@@ -398,7 +431,7 @@ final class TechnicalRecommendationDocumentSupport {
             List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines) {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
-            if (line == null || looksUnavailable(line.getFertilizerName()) || line.getDoseKgHa() == null) continue;
+            if (line == null || looksUnavailable(line.getFertilizerName()) || !hasPositiveKgHa(line.getDoseKgHa())) continue;
             String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             merge(
                     items,
@@ -495,7 +528,7 @@ final class TechnicalRecommendationDocumentSupport {
         if (itemName == null) {
             return;
         }
-        String key = normalize(itemName) + "|" + normalize(section) + "|" + normalize(option) + "|" + normalize(itemFlag);
+        String key = normalize(itemName) + "|" + normalize(section) + "|" + normalize(option) + "|" + normalize(itemFlag) + "|" + normalize(phase);
         ShoppingItem existing = items.get(key);
         if (existing == null) {
             items.put(key, new ShoppingItem(itemName, kgHa, typeGroup, section, option, itemFlag, phase, localizedDose));
@@ -600,6 +633,46 @@ final class TechnicalRecommendationDocumentSupport {
         if (value == null) return "";
         String noAccent = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return noAccent.toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isDiscardableUnavailableLine(String line) {
+        if (line == null || line.isBlank()) return false;
+        String normalized = normalize(line);
+        boolean unavailable = normalized.contains("nao calculad")
+                || normalized.contains("nao se aplica")
+                || normalized.contains("nao aplicavel")
+                || normalized.contains("nao informado");
+        if (!unavailable) {
+            return false;
+        }
+        boolean conclusion = normalized.contains("aviso tecnico")
+                || normalized.contains("justificativa")
+                || normalized.contains("bloqueado")
+                || normalized.contains("nao recomendad");
+        return !conclusion;
+    }
+
+    private static boolean isZeroDoseLine(String line) {
+        if (line == null || line.isBlank()) return false;
+        Matcher matcher = QUANTITY_KG_HA.matcher(line);
+        while (matcher.find()) {
+            Optional<Double> parsed = parseDecimal(matcher.group(1));
+            if (parsed.isPresent() && parsed.get() == 0d) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void appendCleanedLine(StringBuilder target, String line) {
+        if (target.length() > 0) {
+            target.append("\n");
+        }
+        target.append(line);
+    }
+
+    private static String collapseBlankLines(String value) {
+        return value.replaceAll("(\\R\\s*){3,}", "\n\n");
     }
 
     private static boolean isSeparatorRow(String line) {

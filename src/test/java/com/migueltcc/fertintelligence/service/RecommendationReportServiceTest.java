@@ -71,6 +71,14 @@ class RecommendationReportServiceTest {
                                         .finalBalanceKgHa(0.0)
                                         .status("Atendido")
                                         .build()))
+                        .fertilizationRecommendationRows(List.of(
+                                RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                                        .phase("Plantio")
+                                        .nutrients("N")
+                                        .suggestedFertilizer("Ureia")
+                                        .fertilizerQuantityKgHa(100.0)
+                                        .applicationMode("Aplicar no sulco.")
+                                        .build()))
                         .build();
 
         String report = reportService.buildTechnicalReport(result);
@@ -86,5 +94,62 @@ class RecommendationReportServiceTest {
         assertFalse(report.contains("g/dm3"));
         assertFalse(report.contains("cmolc/dm³"));
         assertFalse(report.contains("CaCO3"));
+        assertFalse(report.contains("15. Memória de cálculo"));
+        assertFalse(report.contains("12. Balanço nutricional"));
+    }
+
+    @Test
+    void buildTechnicalReport_NormalizesCoverageCorrectiveAndWarnings() {
+        RecommendationCalculationService.RecommendationCalculationResult result =
+                RecommendationCalculationService.RecommendationCalculationResult.builder()
+                        .requesterName("Produtor")
+                        .propertyName("Fazenda")
+                        .plotIdentification("Talhao 1")
+                        .cropName("MILHO")
+                        .issuedAt(LocalDateTime.of(2026, 7, 4, 10, 0))
+                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
+                                .evaluated(false)
+                                .justification("Camada subsuperficial 20-40 cm ausente.")
+                                .warnings(List.of("Aviso duplicado que não deve aparecer."))
+                                .build())
+                        .correctiveFertilizationRows(List.of(
+                                RecommendationCalculationService.CorrectiveFertilizationRow.builder()
+                                        .correctedAttribute("P2O5 corretivo")
+                                        .suggestedSource("Superfosfato Simples")
+                                        .dose(0.0)
+                                        .doseUnit("kg/ha")
+                                        .technicalWarning("Dose zero.")
+                                        .build(),
+                                RecommendationCalculationService.CorrectiveFertilizationRow.builder()
+                                        .correctedAttribute("Micronutrientes corretivos")
+                                        .need("Bloqueado por pH em água > 7,0")
+                                        .suggestedSource("Não recomendada no solo")
+                                        .technicalWarning("Solos com reação alcalina.")
+                                        .build()))
+                        .fertilizationRecommendationRows(List.of(
+                                RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                                        .phase("Cobertura 1")
+                                        .nutrients("N 60 kg/ha / P2O5 20 kg/ha / K2O 40 kg/ha")
+                                        .suggestedFertilizer("20-00-20")
+                                        .fertilizerQuantityKgHa(300.0)
+                                        .providedN(60.0)
+                                        .providedP2O5(0.0)
+                                        .providedK2O(60.0)
+                                        .build()))
+                        .warnings(List.of("Aviso único."))
+                        .diagnosticMessages(List.of("Aviso secundário."))
+                        .build();
+
+        String report = reportService.buildTechnicalReport(result);
+
+        assertTrue(report.contains("Camada subsuperficial 20-40 cm ausente."));
+        assertFalse(report.contains("Aviso duplicado que não deve aparecer."));
+        assertFalse(report.contains("P2O5 20 kg/ha"));
+        assertFalse(report.contains("Fornecido: N 60.00, P2O5"));
+        assertFalse(report.contains("Dose zero."));
+        assertFalse(report.contains("Superfosfato Simples"));
+        assertTrue(report.contains("Bloqueado por pH em água > 7,0"));
+        assertTrue(report.contains("Aviso único."));
+        assertFalse(report.contains("Aviso secundário."));
     }
 }

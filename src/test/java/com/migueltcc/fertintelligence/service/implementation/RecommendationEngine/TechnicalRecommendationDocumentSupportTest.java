@@ -105,6 +105,47 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(item(items, "Superfosfato simples 11% S").getKgHa()).isEqualTo(409.09);
     }
 
+    @Test
+    void collectShoppingItemsDoesNotMergeOptionsPhasesOrZeroDoses() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 10. Adubação de plantio
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Plantio | N | Ureia | 100 kg/ha |
+                        | Plantio | N | Sulfato de amônio | 0 kg/ha |
+
+                        ## 11. Adubação de cobertura
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Cobertura 1 | N | Ureia | 50 kg/ha |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(
+                        recommendation,
+                        List.of(),
+                        List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
+                                .phase("Plantio")
+                                .fertilizerName("Ureia")
+                                .nitrogenPercent(45.0)
+                                .doseKgHa(120.0)
+                                .build()),
+                        List.of());
+
+        assertThat(items.stream().filter(item -> "Ureia".equals(item.getName()))).hasSize(3);
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getOption))
+                .contains("opcao_1_formulados", "opcao_2_fontes_simples", "cobertura_opcao_2");
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getPhase))
+                .contains("Plantio", "Cobertura 1");
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getName))
+                .doesNotContain("Sulfato de amônio");
+    }
+
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(
             List<TechnicalRecommendationDocumentSupport.ShoppingItem> items,
             String name) {

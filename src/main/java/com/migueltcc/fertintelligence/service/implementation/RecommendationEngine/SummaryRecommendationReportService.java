@@ -103,8 +103,11 @@ public class SummaryRecommendationReportService {
 
         report.append("| Micronutriente | Dose micronutriente | Adubo sólido | Concentração | Dose adubo | Dose operacional | Observação técnica |\n");
         report.append("|---|---:|---|---:|---:|---:|---|\n");
+        boolean appended = false;
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrientLines) {
             if (line == null) continue;
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())
+                    || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
@@ -113,6 +116,10 @@ public class SummaryRecommendationReportService {
                     .append(" | ").append(formatOperationalDose(line))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.micronutrientTechnicalObservationCell(line.getTechnicalObservation()))
                     .append(" |\n");
+            appended = true;
+        }
+        if (!appended) {
+            report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
         }
         report.append("\n");
     }
@@ -189,12 +196,14 @@ public class SummaryRecommendationReportService {
     }
 
     private void appendWithoutHeading(StringBuilder report, String source, String heading, String fallback) {
-        String section = TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, heading));
+        String section = TechnicalRecommendationDocumentSupport.cleanSectionForFinalReport(
+                TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, heading)));
         report.append(section.isBlank() ? fallback : section).append("\n\n");
     }
 
     private void appendOptionalSourceSection(StringBuilder report, String title, String sourceSection) {
-        String content = TechnicalRecommendationDocumentSupport.stripHeading(sourceSection);
+        String content = TechnicalRecommendationDocumentSupport.cleanSectionForFinalReport(
+                TechnicalRecommendationDocumentSupport.stripHeading(sourceSection));
         if (content.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(content)) {
             return;
         }

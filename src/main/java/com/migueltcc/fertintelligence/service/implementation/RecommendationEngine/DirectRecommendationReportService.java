@@ -139,7 +139,8 @@ public class DirectRecommendationReportService {
     }
 
     private void appendOptionalSourceSection(StringBuilder report, String title, String sourceSection) {
-        String content = TechnicalRecommendationDocumentSupport.stripHeading(sourceSection);
+        String content = TechnicalRecommendationDocumentSupport.cleanSectionForFinalReport(
+                TechnicalRecommendationDocumentSupport.stripHeading(sourceSection));
         if (content.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(content)) {
             return;
         }
@@ -156,8 +157,11 @@ public class DirectRecommendationReportService {
             report.append("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | ")
                     .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
             report.append("|---|---|---:|---:|---:|---|\n");
+            boolean appended = false;
             for (DirectRecommendationMicronutrientFertilizerLineModel line : directLines) {
                 if (line == null) continue;
+                if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())
+                        || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
                 report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
@@ -165,6 +169,10 @@ public class DirectRecommendationReportService {
                         .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.micronutrientTechnicalObservationCell(line.getTechnicalObservation()))
                         .append(" |\n");
+                appended = true;
+            }
+            if (!appended) {
+                report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
             }
             report.append("\n");
             return;
@@ -181,6 +189,7 @@ public class DirectRecommendationReportService {
             String dose = row.get(3);
             String unit = row.get(4);
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(sourceName)) continue;
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(dose + " " + unit)) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(sourceName))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(dose + " " + unit))
                     .append(" | ").append(spacingUnavailableCell())
@@ -188,7 +197,7 @@ public class DirectRecommendationReportService {
             appended = true;
         }
         if (!appended) {
-            report.append("| Não calculado | Não calculado | ").append(spacingUnavailableCell()).append(" |\n");
+            report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
         }
         report.append("\n");
     }
@@ -211,6 +220,8 @@ public class DirectRecommendationReportService {
             if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
                 appendCoverageFallbackRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
             }
+            report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
+                    .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
             report.append("\n");
             return;
         }
@@ -221,9 +232,10 @@ public class DirectRecommendationReportService {
         boolean appended = appendFertilizationRows(report, source, "10. Adubação de plantio", crop, doseUnitMetadata, spacingWarnings);
         appended = appendFertilizationRows(report, source, "11. Adubação de cobertura", crop, doseUnitMetadata, spacingWarnings) || appended;
         if (!appended) {
-            report.append("| Não calculado | Não calculado | Não calculado | ")
-                    .append(spacingUnavailableCell()).append(" |\n");
+            report.append("Aviso técnico: NPK não gerou dose operacional com os dados persistidos.\n");
         }
+        report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
+                .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
         report.append("\n");
     }
 
@@ -240,6 +252,7 @@ public class DirectRecommendationReportService {
             String fertilizer = row.get(2);
             String quantity = row.get(3);
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer) || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) continue;
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(quantity)) continue;
             String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
@@ -257,6 +270,8 @@ public class DirectRecommendationReportService {
         if (lines == null) return;
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getDoseKgHa())
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getPhase()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getRelationUsed()))
@@ -282,6 +297,7 @@ public class DirectRecommendationReportService {
             if (phase == null || "Plantio".equalsIgnoreCase(phase.trim())) continue;
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer)
                     || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) continue;
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(quantity)) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
                     .append(" | ")
@@ -297,6 +313,8 @@ public class DirectRecommendationReportService {
         if (lines == null) return;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getDoseKgHa())
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(line.getFertilizerName())) continue;
             String phase = coveragePhase(line.getPhase(), line.getCoverageOrder());
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getFertilizerName()))
@@ -324,6 +342,7 @@ public class DirectRecommendationReportService {
                     || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) {
                 continue;
             }
+            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(quantity)) continue;
             String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))

@@ -21,7 +21,6 @@ public class RecommendationReportService {
         StringBuilder report = new StringBuilder();
         appendTitle(report);
         appendIdentification(report, result);
-        appendUsedData(report, result);
         appendChemicalDiagnosis(report, result);
         appendPhysicalDiagnosis(report, result);
         appendSalinityDiagnosis(report, result);
@@ -31,11 +30,8 @@ public class RecommendationReportService {
         appendCorrectiveFertilization(report, result);
         appendPlantingFertilization(report, result);
         appendCoverageFertilization(report, result);
-        appendNutrientBalance(report, result);
         appendRecommendedFertilizers(report, result);
-        appendLimitationsAndAlerts(report, result);
-        appendCalculationMemory(report, result);
-        appendClosing(report, result);
+        appendSingleTechnicalWarning(report, result);
         return report.toString();
     }
 
@@ -45,13 +41,15 @@ public class RecommendationReportService {
 
     private void appendIdentification(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("1. Identificação\n\n");
-        report.append("- Produtor ou solicitante: ").append(safe(result.getRequesterName())).append("\n");
-        report.append("- Usuário solicitante: ").append(safe(result.getRequesterUsername())).append("\n");
-        report.append("- Propriedade: ").append(safe(result.getPropertyName())).append(formatId(result.getPropertyId())).append("\n");
-        report.append("- Talhão: ").append(safe(result.getPlotIdentification())).append(formatId(result.getPlotId())).append("\n");
-        report.append("- Cultura: ").append(safe(result.getCropName())).append(formatId(result.getCropId())).append("\n");
-        report.append("- Ano agrícola da pasta: ").append(result.getAnnualCropFolderYear() == null ? "Não informado" : result.getAnnualCropFolderYear()).append("\n");
-        report.append("- Tipo de recomendação: ").append(safe(result.getRecommendationType())).append("\n");
+        appendPresentBullet(report, "Produtor ou solicitante", result.getRequesterName(), null);
+        appendPresentBullet(report, "Usuário solicitante", result.getRequesterUsername(), null);
+        appendPresentBullet(report, "Propriedade", result.getPropertyName(), formatId(result.getPropertyId()));
+        appendPresentBullet(report, "Talhão", result.getPlotIdentification(), formatId(result.getPlotId()));
+        appendPresentBullet(report, "Cultura", result.getCropName(), formatId(result.getCropId()));
+        if (result.getAnnualCropFolderYear() != null) {
+            report.append("- Ano agrícola da pasta: ").append(result.getAnnualCropFolderYear()).append("\n");
+        }
+        appendPresentBullet(report, "Tipo de recomendação", result.getRecommendationType(), null);
         report.append("- Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n\n");
     }
 
@@ -77,10 +75,11 @@ public class RecommendationReportService {
         report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getSoilChemicalDiagnosis() == null || result.getSoilChemicalDiagnosis().isEmpty()) {
-            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Diagnóstico químico não foi produzido com os dados disponíveis. |\n\n");
+            report.append("Aviso técnico: diagnóstico químico não foi produzido com os dados disponíveis.\n\n");
             return;
         }
         for (RecommendationCalculationService.SoilChemicalDiagnosisItem item : result.getSoilChemicalDiagnosis()) {
+            if (item == null || TechnicalRecommendationDocumentSupport.looksUnavailable(item.getAttribute())) continue;
             report.append("| ").append(safeCell(item.getAttribute()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))
@@ -138,10 +137,11 @@ public class RecommendationReportService {
         report.append("| Atributo | Valor analisado | Unidade | Observação técnica |\n");
         report.append("|---|---:|---|---|\n");
         if (result.getSoilPhysicalDiagnosis() == null || result.getSoilPhysicalDiagnosis().isEmpty()) {
-            report.append("| Não calculado | Não informado | Não informado | Dados físicos insuficientes ou ausentes no extrato selecionado. |\n\n");
+            report.append("Aviso técnico: dados físicos insuficientes ou ausentes no extrato selecionado.\n\n");
             return;
         }
         for (RecommendationCalculationService.SoilPhysicalDiagnosisItem item : result.getSoilPhysicalDiagnosis()) {
+            if (item == null || TechnicalRecommendationDocumentSupport.looksUnavailable(item.getAttribute())) continue;
             report.append("| ").append(safeCell(item.getAttribute()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))
@@ -156,10 +156,11 @@ public class RecommendationReportService {
         report.append("| Atributo | Valor analisado | Unidade | Interpretação | Faixa ou critério usado | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getSoilSalinityDiagnosis() == null || result.getSoilSalinityDiagnosis().isEmpty()) {
-            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Dados de extrato de saturação e/ou sodicidade insuficientes para diagnóstico. |\n\n");
+            report.append("Aviso técnico: dados de extrato de saturação e/ou sodicidade insuficientes para diagnóstico.\n\n");
             return;
         }
         for (RecommendationCalculationService.SoilSalinityDiagnosisItem item : result.getSoilSalinityDiagnosis()) {
+            if (item == null || TechnicalRecommendationDocumentSupport.looksUnavailable(item.getAttribute())) continue;
             report.append("| ").append(safeCell(item.getAttribute()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))
@@ -176,10 +177,11 @@ public class RecommendationReportService {
         report.append("| Nutriente | Valor analisado | Unidade | Interpretação | Faixa adequada usada | Observação técnica |\n");
         report.append("|---|---:|---|---|---|---|\n");
         if (result.getFoliarDiagnosis() == null || result.getFoliarDiagnosis().isEmpty()) {
-            report.append("| Não calculado | Não informado | Não informado | Não classificado | Não informado | Análise foliar não informada ou critérios insuficientes para diagnóstico. |\n\n");
+            report.append("Aviso técnico: análise foliar ausente ou critérios insuficientes para diagnóstico.\n\n");
             return;
         }
         for (RecommendationCalculationService.FoliarDiagnosisItem item : result.getFoliarDiagnosis()) {
+            if (item == null || TechnicalRecommendationDocumentSupport.looksUnavailable(item.getNutrient())) continue;
             report.append("| ").append(safeCell(item.getNutrient()))
                     .append(" | ").append(formatAnalyzedValue(item.getAnalyzedValue()))
                     .append(" | ").append(safeCell(item.getUnit()))
@@ -195,8 +197,7 @@ public class RecommendationReportService {
         report.append("7. Calagem\n\n");
         RecommendationCalculationService.LimingRequirementResult liming = result.getLimingRequirement();
         if (liming == null) {
-            report.append("- Necessidade de calagem: Não calculada.\n");
-            report.append("- Aviso técnico: resultado estruturado de calagem não foi produzido pelo cálculo.\n\n");
+            report.append("Aviso técnico: resultado estruturado de calagem não foi produzido pelo cálculo.\n\n");
             return;
         }
 
@@ -209,8 +210,7 @@ public class RecommendationReportService {
         report.append("- PRNT utilizado: ").append(liming.getPrnt() == null ? "Não informado" : String.format(Locale.US, "%.2f%%", liming.getPrnt())).append("\n");
         report.append("- Dose corrigida por PRNT: ").append(formatDose(liming.getCorrectedRequirement(), liming.getUnit())).append("\n");
         report.append("- Dose efetiva registrada pelo cálculo: ").append(formatDose(liming.getCalculatedRequirement(), liming.getUnit())).append("\n");
-        report.append("- Avisos de calagem:\n");
-        appendBulletList(report, liming.getWarnings(), "Nenhum aviso específico de calagem foi registrado.");
+        appendFirstWarning(report, "Aviso técnico de calagem", liming.getWarnings());
         report.append("\n");
     }
 
@@ -218,15 +218,15 @@ public class RecommendationReportService {
         report.append("8. Gessagem\n\n");
         RecommendationCalculationService.GypsumRequirementResult gypsum = result.getGypsumRequirement();
         if (gypsum == null) {
-            report.append("- Necessidade de gessagem: Não calculada.\n");
-            report.append("- Aviso técnico: resultado estruturado de gessagem não foi produzido pelo cálculo.\n\n");
+            report.append("Aviso técnico: resultado estruturado de gessagem não foi produzido pelo cálculo.\n\n");
             return;
         }
         if (Boolean.FALSE.equals(gypsum.getEvaluated())) {
-            report.append("- Necessidade de gessagem: Não avaliada.\n");
-            report.append("- Aviso técnico: ").append(safe(gypsum.getJustification())).append("\n");
-            report.append("- Avisos de gessagem:\n");
-            appendBulletList(report, gypsum.getWarnings(), "Gessagem não avaliada porque as análises selecionadas não possuem camada 20-40 cm suficiente.");
+            report.append("- Gessagem: não calculada.\n");
+            report.append("- Aviso técnico: ").append(firstNonBlank(
+                    gypsum.getJustification(),
+                    firstWarning(gypsum.getWarnings()),
+                    "Gessagem não avaliada porque as análises selecionadas não possuem camada subsuperficial suficiente.")).append("\n");
             report.append("\n");
             return;
         }
@@ -245,9 +245,8 @@ public class RecommendationReportService {
         }
         report.append("- Justificativa: ").append(safe(gypsum.getJustification())).append("\n");
         report.append("- Justificativa da fonte: ").append(safe(gypsum.getSourceJustification())).append("\n");
-        report.append("- Limitações da fonte: ").append(safe(gypsum.getSourceLimitations())).append("\n");
-        report.append("- Avisos de gessagem:\n");
-        appendBulletList(report, gypsum.getWarnings(), "Nenhum aviso específico de gessagem foi registrado.");
+        appendPresentBullet(report, "Limitações da fonte", gypsum.getSourceLimitations(), null);
+        appendFirstWarning(report, "Aviso técnico de gessagem", gypsum.getWarnings());
         report.append("\n");
     }
 
@@ -255,11 +254,12 @@ public class RecommendationReportService {
         report.append("9. Adubação corretiva\n\n");
         report.append("| Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |\n");
         report.append("|---|---|---|---:|---|---|\n");
-        if (result.getCorrectiveFertilizationRows() == null || result.getCorrectiveFertilizationRows().isEmpty()) {
-            report.append("| P/K/S corretivos | Não avaliada | Não sugerida | Não calculada | Não há regra quantitativa corretiva separada nos modelos atuais. | Adubação corretiva não foi calculada para evitar misturar dose de plantio/cobertura com correção. |\n\n");
+        List<RecommendationCalculationService.CorrectiveFertilizationRow> rows = relevantCorrectiveRows(result);
+        if (rows.isEmpty()) {
+            report.append("Aviso técnico: adubação corretiva não gerou dose operacional com os dados persistidos.\n\n");
             return;
         }
-        for (RecommendationCalculationService.CorrectiveFertilizationRow row : result.getCorrectiveFertilizationRows()) {
+        for (RecommendationCalculationService.CorrectiveFertilizationRow row : rows) {
             report.append("| ").append(safeCell(row.getCorrectedAttribute()))
                     .append(" | ").append(safeCell(row.getNeed()))
                     .append(" | ").append(safeCell(row.getSuggestedSource()))
@@ -287,12 +287,15 @@ public class RecommendationReportService {
         report.append("| Fase da Cultura | Nutrientes Necessários | Sugestão de Adubo | Quantidade do Adubo | Época e Modo de Aplicação |\n");
         report.append("|---|---|---|---:|---|\n");
         if (rows.isEmpty()) {
-            report.append("| Não calculado | Não calculado | Não calculado | Não calculado | ").append(safeCell(emptyMessage)).append(" |\n\n");
+            report.append("Aviso técnico: ").append(emptyMessage).append("\n\n");
             return;
         }
         for (RecommendationCalculationService.FertilizationRecommendationRow row : rows) {
+            if (!hasRenderableFertilizationDose(row)) {
+                continue;
+            }
             report.append("| ").append(safeCell(row.getPhase()))
-                    .append(" | ").append(safeCell(row.getNutrients()))
+                    .append(" | ").append(safeCell(displayNutrients(row)))
                     .append(" | ").append(safeCell(row.getSuggestedFertilizer()))
                     .append(" | ").append(formatQuantity(row.getFertilizerQuantityKgHa()))
                     .append(" | ").append(safeCell(joinApplicationDetails(row)))
@@ -328,9 +331,10 @@ public class RecommendationReportService {
         report.append("| Tipo | Fertilizante | N | P2O5 | K2O | S | Justificativa |\n");
         report.append("|---|---|---:|---:|---:|---:|---|\n");
         if (result.getFertilizerSuggestions() == null || result.getFertilizerSuggestions().isEmpty()) {
-            report.append("| Não calculado | Não selecionado | Não informado | Não informado | Não informado | Não informado | Nenhum fertilizante comercial foi selecionado com os dados disponíveis. |\n\n");
+            report.append("Aviso técnico: nenhum fertilizante comercial foi selecionado com os dados disponíveis.\n\n");
         } else {
             for (RecommendationCalculationService.FertilizerSuggestion suggestion : result.getFertilizerSuggestions()) {
+                if (suggestion == null || TechnicalRecommendationDocumentSupport.looksUnavailable(suggestion.getFertilizerName())) continue;
                 report.append("| ").append(safeCell(suggestion.getFertilizerType()))
                         .append(" | ").append(safeCell(suggestion.getFertilizerName())).append(formatId(suggestion.getFertilizerId()))
                         .append(" | ").append(formatPercentValue(suggestion.getN()))
@@ -349,9 +353,12 @@ public class RecommendationReportService {
         boolean hasAlternativeRows = result.getAlternativeFertilizationRows() != null && !result.getAlternativeFertilizationRows().isEmpty();
         boolean hasMicronutrientRows = result.getMicronutrientFertilizerRows() != null && !result.getMicronutrientFertilizerRows().isEmpty();
         if (!hasAlternativeRows && !hasMicronutrientRows) {
-            report.append("| Não calculado | Orgânicos/organominerais/micronutrientes | Não selecionada | Não calculada | Não modelada | Não há dados suficientes para recomendação suportada. | O backend não gerou recomendações genéricas sem cálculo. |\n\n");
+            report.append("Aviso técnico: fontes orgânicas, organominerais e micronutrientes não geraram dose operacional com os dados persistidos.\n\n");
         } else if (hasAlternativeRows) {
             for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
+                if (row == null
+                        || TechnicalRecommendationDocumentSupport.looksUnavailable(row.getSourceName())
+                        || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(row.getDose() + " " + row.getUnit())) continue;
                 report.append("| ").append(safeCell(row.getSourceType()))
                         .append(" | ").append(safeCell(row.getNutrientOrObjective()))
                         .append(" | ").append(safeCell(row.getSourceName()))
@@ -369,6 +376,8 @@ public class RecommendationReportService {
                 if (micronutrient != null && alternativeMicronutrientObjectives.contains(micronutrient)) {
                     continue;
                 }
+                if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(row.getFertilizerDoseKgHa())
+                        || TechnicalRecommendationDocumentSupport.looksUnavailable(row.getFertilizerName())) continue;
                 report.append("| MICRONUTRIENTE")
                         .append(" | ").append(safeCell(micronutrient))
                         .append(" | ").append(safeCell(row.getFertilizerName())).append(formatId(row.getFertilizerId()))
@@ -380,7 +389,9 @@ public class RecommendationReportService {
             }
         }
         report.append("\n");
-        appendOpportunityCostComparison(report, result);
+        if (result.getOpportunityCostDecisionRows() != null && !result.getOpportunityCostDecisionRows().isEmpty()) {
+            appendOpportunityCostComparison(report, result);
+        }
     }
 
     private Set<String> alternativeMicronutrientObjectives(
@@ -415,6 +426,15 @@ public class RecommendationReportService {
         report.append("C) Alertas gerais\n\n");
         appendBulletList(report, result.getWarnings(), "Nenhum alerta adicional foi registrado.");
         report.append("\n");
+    }
+
+    private void appendSingleTechnicalWarning(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
+        String warning = firstNonBlank(firstWarning(result.getWarnings()), firstWarning(result.getDiagnosticMessages()), firstWarning(result.getCorrectionMessages()));
+        if (warning == null) {
+            return;
+        }
+        report.append("14. Aviso técnico\n\n");
+        report.append("- ").append(warning).append("\n\n");
     }
 
     private void appendCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -497,6 +517,7 @@ public class RecommendationReportService {
                 .filter(row -> row.getPhase() != null)
                 .filter(row -> phase.equalsIgnoreCase(row.getPhase())
                         || row.getPhase().toLowerCase(Locale.ROOT).contains(phase.toLowerCase(Locale.ROOT)))
+                .filter(this::hasRenderableFertilizationDose)
                 .toList();
     }
 
@@ -507,6 +528,32 @@ public class RecommendationReportService {
                 .filter(row -> row.getPhase() != null)
                 .filter(row -> !GLOBAL_BALANCE_PHASE.equals(row.getPhase()))
                 .filter(row -> row.getPhase().toLowerCase(Locale.ROOT).contains("cobertura"))
+                .filter(this::hasRenderableFertilizationDose)
+                .toList();
+    }
+
+    private boolean hasRenderableFertilizationDose(RecommendationCalculationService.FertilizationRecommendationRow row) {
+        return row != null
+                && TechnicalRecommendationDocumentSupport.hasPositiveKgHa(row.getFertilizerQuantityKgHa())
+                && !TechnicalRecommendationDocumentSupport.looksUnavailable(row.getSuggestedFertilizer());
+    }
+
+    private List<RecommendationCalculationService.CorrectiveFertilizationRow> relevantCorrectiveRows(
+            RecommendationCalculationService.RecommendationCalculationResult result) {
+        if (result.getCorrectiveFertilizationRows() == null) return List.of();
+        List<RecommendationCalculationService.CorrectiveFertilizationRow> positiveRows = result.getCorrectiveFertilizationRows().stream()
+                .filter(row -> row != null)
+                .filter(row -> TechnicalRecommendationDocumentSupport.hasPositiveKgHa(row.getDose()))
+                .filter(row -> !TechnicalRecommendationDocumentSupport.looksUnavailable(row.getSuggestedSource()))
+                .toList();
+        if (!positiveRows.isEmpty()) {
+            return positiveRows;
+        }
+        return result.getCorrectiveFertilizationRows().stream()
+                .filter(row -> row != null)
+                .filter(row -> row.getTechnicalWarning() != null && !row.getTechnicalWarning().isBlank())
+                .filter(row -> row.getNeed() != null && row.getNeed().toLowerCase(Locale.ROOT).contains("bloqueado"))
+                .limit(1)
                 .toList();
     }
 
@@ -526,6 +573,13 @@ public class RecommendationReportService {
 
     private String safeCell(String value) {
         return safe(value).replace("|", "/").replace("\n", " ");
+    }
+
+    private void appendPresentBullet(StringBuilder report, String label, Object value, String suffix) {
+        if (value == null) return;
+        String asText = String.valueOf(value).trim();
+        if (asText.isBlank()) return;
+        report.append("- ").append(label).append(": ").append(asText).append(suffix == null ? "" : suffix).append("\n");
     }
 
     private String formatId(Long id) {
@@ -617,12 +671,24 @@ public class RecommendationReportService {
             details.add(row.getApplicationMode());
         }
         if (row.getProvidedN() != null || row.getProvidedP2O5() != null || row.getProvidedK2O() != null) {
-            details.add(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
-                    nvl(row.getProvidedN()), nvl(row.getProvidedP2O5()), nvl(row.getProvidedK2O()), nvl(row.getProvidedS())));
+            if (isCoverage(row)) {
+                String provided = positiveNutrientSummary(row.getProvidedN(), null, row.getProvidedK2O(), row.getProvidedS());
+                if (!provided.isBlank()) {
+                    details.add("Fornecido: " + provided);
+                }
+            } else {
+                details.add(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                        nvl(row.getProvidedN()), nvl(row.getProvidedP2O5()), nvl(row.getProvidedK2O()), nvl(row.getProvidedS())));
+            }
         }
         if (row.getBalanceN() != null || row.getBalanceP2O5() != null || row.getBalanceK2O() != null || row.getBalanceS() != null) {
-            details.add(String.format(Locale.US, "Saldo: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
-                    nvl(row.getBalanceN()), nvl(row.getBalanceP2O5()), nvl(row.getBalanceK2O()), nvl(row.getBalanceS())));
+            if (isCoverage(row)) {
+                details.add(String.format(Locale.US, "Saldo: N %.2f, K2O %.2f, S %.2f kg/ha",
+                        nvl(row.getBalanceN()), nvl(row.getBalanceK2O()), nvl(row.getBalanceS())));
+            } else {
+                details.add(String.format(Locale.US, "Saldo: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                        nvl(row.getBalanceN()), nvl(row.getBalanceP2O5()), nvl(row.getBalanceK2O()), nvl(row.getBalanceS())));
+            }
         }
         if (row.getCalculationMemory() != null && !row.getCalculationMemory().isBlank()) {
             details.add("Memória de cálculo: " + row.getCalculationMemory());
@@ -631,6 +697,61 @@ public class RecommendationReportService {
             details.add("Alerta: " + row.getWarning());
         }
         return details.isEmpty() ? "Não informado" : String.join("; ", details);
+    }
+
+    private String displayNutrients(RecommendationCalculationService.FertilizationRecommendationRow row) {
+        String nutrients = row.getNutrients();
+        if (!isCoverage(row) || nutrients == null) {
+            return nutrients;
+        }
+        return nutrients
+                .replaceAll("(?i)\\s*/?\\s*P2O5\\s*[-+]?\\d*(?:[\\.,]\\d+)?\\s*kg/ha", "")
+                .replaceAll("(?i)P2O5\\s*[,;/]?\\s*", "")
+                .replaceAll("\\s{2,}", " ")
+                .trim();
+    }
+
+    private String positiveNutrientSummary(Double n, Double p2o5, Double k2o, Double s) {
+        List<String> parts = new ArrayList<>();
+        addPositiveNutrient(parts, "N", n);
+        addPositiveNutrient(parts, "P2O5", p2o5);
+        addPositiveNutrient(parts, "K2O", k2o);
+        addPositiveNutrient(parts, "S", s);
+        return String.join(", ", parts);
+    }
+
+    private void addPositiveNutrient(List<String> parts, String nutrient, Double value) {
+        if (value != null && value > 0d) {
+            parts.add(String.format(Locale.US, "%s %.2f kg/ha", nutrient, value));
+        }
+    }
+
+    private boolean isCoverage(RecommendationCalculationService.FertilizationRecommendationRow row) {
+        return row != null && row.getPhase() != null && row.getPhase().toLowerCase(Locale.ROOT).contains("cobertura");
+    }
+
+    private void appendFirstWarning(StringBuilder report, String label, List<String> warnings) {
+        String warning = firstWarning(warnings);
+        if (warning != null) {
+            report.append("- ").append(label).append(": ").append(warning).append("\n");
+        }
+    }
+
+    private String firstWarning(List<String> warnings) {
+        if (warnings == null) return null;
+        return warnings.stream()
+                .filter(message -> message != null && !message.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String firstNonBlank(String first, String second, String third) {
+        for (String value : new String[]{first, second, third}) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private double nvl(Double value) {

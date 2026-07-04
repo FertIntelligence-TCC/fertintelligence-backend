@@ -13,7 +13,9 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -45,25 +47,28 @@ public class ShoppingListReportService {
                 recommendation != null ? recommendation.getCropPlantingDate() : null);
         report.append("- Área usada para totalização: ").append(TechnicalRecommendationDocumentSupport.formatArea(area)).append("\n\n");
 
-        report.append("| Insumo | Tipo/grupo | Seção | Opção | Flag | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
-        report.append("|---|---|---|---|---|---|---:|---|---:|---|\n");
         if (items.isEmpty()) {
-            report.append("| Não calculado | | | | | | | | | Não calculado por falta de dados. |\n\n");
+            report.append("Aviso técnico: lista de compras não gerou itens com dose operacional persistida.\n\n");
         } else {
-            for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
-                report.append("| ").append(cell(item.getName()))
-                        .append(" | ").append(cell(item.getTypeGroup()))
-                        .append(" | ").append(cell(item.getSection()))
-                        .append(" | ").append(cell(item.getOption()))
-                        .append(" | ").append(cell(item.getItemFlag()))
-                        .append(" | ").append(cell(item.getPhase()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
-                        .append(" | ").append(cell(item.getLocalizedDose()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
-                        .append(" | ").append(cell(item.getOpportunityCostDecision()))
-                        .append(" |\n");
+            for (Map.Entry<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> group : groupedByOptionAndPhase(items).entrySet()) {
+                report.append("Grupo: ").append(group.getKey()).append("\n\n");
+                report.append("| Insumo | Tipo/grupo | Seção | Opção | Flag | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
+                report.append("|---|---|---|---|---|---|---:|---|---:|---|\n");
+                for (TechnicalRecommendationDocumentSupport.ShoppingItem item : group.getValue()) {
+                    report.append("| ").append(cell(item.getName()))
+                            .append(" | ").append(cell(item.getTypeGroup()))
+                            .append(" | ").append(cell(item.getSection()))
+                            .append(" | ").append(cell(item.getOption()))
+                            .append(" | ").append(cell(item.getItemFlag()))
+                            .append(" | ").append(cell(item.getPhase()))
+                            .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
+                            .append(" | ").append(cell(item.getLocalizedDose()))
+                            .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
+                            .append(" | ").append(cell(item.getOpportunityCostDecision()))
+                            .append(" |\n");
+                }
+                report.append("\n");
             }
-            report.append("\n");
         }
 
         report.append("Observações\n\n");
@@ -105,6 +110,26 @@ public class ShoppingListReportService {
         return recommendation.getCropPlantingDate().getDay() > 0
                 && recommendation.getCropPlantingDate().getMonth() > 0
                 && recommendation.getCropPlantingDate().getYear() > 0;
+    }
+
+    private Map<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> groupedByOptionAndPhase(
+            List<TechnicalRecommendationDocumentSupport.ShoppingItem> items) {
+        Map<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> grouped = new LinkedHashMap<>();
+        for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
+            String key = cell(item.getOption());
+            if (key.isBlank()) {
+                key = cell(item.getSection());
+            }
+            String phase = cell(item.getPhase());
+            if (!phase.isBlank()) {
+                key = key.isBlank() ? phase : key + " / " + phase;
+            }
+            if (key.isBlank()) {
+                key = "sem_opcao";
+            }
+            grouped.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(item);
+        }
+        return grouped;
     }
 
     private String cell(String value) {
