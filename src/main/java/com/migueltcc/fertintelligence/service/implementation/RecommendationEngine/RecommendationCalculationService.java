@@ -31,6 +31,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.foliarFertilizerMod
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePAnionExchangeResinExtractorModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailablePMehlich1ExtractorModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailableSModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.CorrectiveK2OFertilizationModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.CorrectiveP2O5FertilizationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KContentAndDoseModel;
@@ -84,6 +86,8 @@ public class RecommendationCalculationService {
     private final SulfurDoseRepository sulfurDoseRepository;
     private final KContentAndDoseRepository kContentAndDoseRepository;
     private final PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository;
+    private final CorrectiveP2O5FertilizationRepository correctiveP2O5FertilizationRepository;
+    private final CorrectiveK2OFertilizationRepository correctiveK2OFertilizationRepository;
     private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final ExchangeableSodiumRepository exchangeableSodiumRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
@@ -109,6 +113,8 @@ public class RecommendationCalculationService {
                                             SulfurDoseRepository sulfurDoseRepository,
                                             KContentAndDoseRepository kContentAndDoseRepository,
                                             PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository,
+                                            CorrectiveP2O5FertilizationRepository correctiveP2O5FertilizationRepository,
+                                            CorrectiveK2OFertilizationRepository correctiveK2OFertilizationRepository,
                                             MicronutrientDoseRepository micronutrientDoseRepository,
                                             ExchangeableSodiumRepository exchangeableSodiumRepository,
                                             SalinityInterpretationRepository salinityInterpretationRepository,
@@ -138,6 +144,8 @@ public class RecommendationCalculationService {
         this.sulfurDoseRepository = sulfurDoseRepository;
         this.kContentAndDoseRepository = kContentAndDoseRepository;
         this.phosphorusClayPhosphateDoseRepository = phosphorusClayPhosphateDoseRepository;
+        this.correctiveP2O5FertilizationRepository = correctiveP2O5FertilizationRepository;
+        this.correctiveK2OFertilizationRepository = correctiveK2OFertilizationRepository;
         this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.exchangeableSodiumRepository = exchangeableSodiumRepository;
         this.salinityInterpretationRepository = salinityInterpretationRepository;
@@ -890,14 +898,16 @@ public class RecommendationCalculationService {
             addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "P disponível por Mehlich-1 e teor de argila são obrigatórios para calcular P2O5 corretivo.");
             return null;
         }
-        Optional<PhosphorusClayPhosphateDoseModel> table = phosphorusClayPhosphateDoseRepository.findByTable(soilInterpretationTable);
+        List<CorrectiveP2O5FertilizationModel> table = correctiveP2O5FertilizationRepository
+                .findAllByTableOrderByClayContentMinimumAscAvailablePMehlich1MinimumAsc(soilInterpretationTable);
         if (table.isEmpty()) {
             addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "Tabela auxiliar de adubação corretiva de P2O5 não encontrada para a tabela de interpretação selecionada.");
             return null;
         }
-        String interpretation = diagnosis != null ? diagnosis.getInterpretation() : null;
-        Double dose = selectPhosphorusCorrectiveDose(table.get(), clay, interpretation);
+        CorrectiveP2O5FertilizationModel selectedLine = selectPhosphorusCorrectiveLine(table, clay, p).orElse(null);
+        Double dose = selectedLine != null ? selectedLine.getRecommendedP2O5Dose() : null;
         if (dose == null || dose <= 0d) {
+            String interpretation = diagnosis != null ? diagnosis.getInterpretation() : null;
             addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "Dose de P2O5 não calculada para a faixa " + safeText(interpretation) + " e argila " + formatNumber(clay) + " g/kg.");
             return null;
         }
@@ -905,15 +915,13 @@ public class RecommendationCalculationService {
         addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Simples", "P2O5", dose,
                 selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"), "Superfosfato Simples",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo. P Mehlich-1 = " + formatNumber(p)
-                        + " mg/dm³; argila = " + formatNumber(clay) + " g/kg; tabela P/argila ID " + table.get().getId()
-                        + ". Seção usada: sequeiro; o contrato atual não informa irrigado/sequeiro na recomendação.", warnings);
+                        + " mg/dm³; argila = " + formatNumber(clay) + " g/kg; linha de adubação corretiva P2O5 ID " + selectedLine.getId() + ".", warnings);
         addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Triplo", "P2O5", dose,
                 selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), "Superfosfato Triplo",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
         addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Termofosfato Magnesiano", "P2O5", dose,
                 selectSimpleByNameOrNutrient(user, sourceOption, "termofosfato", "P2O5"), "Termofosfato Magnesiano",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
-        warnings.add("Adubação corretiva de P2O5 calculada pela seção sequeiro da tabela P/argila porque a entrada atual não informa regime irrigado/sequeiro.");
         return round2(dose);
     }
 
@@ -930,23 +938,24 @@ public class RecommendationCalculationService {
             addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "K+ e CTC pH 7,0 são obrigatórios para calcular K2O corretivo.");
             return null;
         }
-        Optional<KContentAndDoseModel> table = kContentAndDoseRepository.findByTable(soilInterpretationTable);
+        List<CorrectiveK2OFertilizationModel> table = correctiveK2OFertilizationRepository
+                .findAllByTableOrderByCtcMinimumAscExchangeableKMinimumAsc(soilInterpretationTable);
         if (table.isEmpty()) {
             addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "Tabela auxiliar de adubação corretiva de K2O não encontrada para a tabela de interpretação selecionada.");
             return null;
         }
-        String range = selectPotassiumContentRange(table.get(), ctc, k);
-        Double dose = selectPotassiumCorrectiveDose(table.get(), ctc, range);
+        CorrectiveK2OFertilizationModel selectedLine = selectPotassiumCorrectiveLine(table, ctc, k).orElse(null);
+        Double dose = selectedLine != null ? selectedLine.getRecommendedK2ODose() : null;
         if (dose == null || dose <= 0d) {
             String diagnosisRange = diagnosis != null ? diagnosis.getInterpretation() : null;
             addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "Dose de K2O não calculada para K+ " + formatNumber(k)
-                    + " mmolc/dm³, CTC pH 7,0 " + formatNumber(ctc) + " e faixa " + safeText(range != null ? range : diagnosisRange) + ".");
+                    + " mmolc/dm³, CTC pH 7,0 " + formatNumber(ctc) + " e faixa " + safeText(diagnosisRange) + ".");
             return null;
         }
         addSimpleCorrectiveProductRow(rows, "K2O corretivo - Cloreto de Potássio", "K2O", dose,
                 selectSimpleByNameOrNutrient(user, sourceOption, "cloreto de potassio", "K2O"), "Cloreto de Potássio",
                 "100 * dose recomendada K2O / teor % K2O do KCl. K+ = " + formatNumber(k)
-                        + " mmolc/dm³; CTC pH 7,0 = " + formatNumber(ctc) + "; tabela K ID " + table.get().getId() + ".",
+                        + " mmolc/dm³; CTC pH 7,0 = " + formatNumber(ctc) + "; linha de adubação corretiva K2O ID " + selectedLine.getId() + ".",
                 warnings);
         return round2(dose);
     }
@@ -1025,59 +1034,25 @@ public class RecommendationCalculationService {
         }
     }
 
-    private Double selectPhosphorusCorrectiveDose(PhosphorusClayPhosphateDoseModel table, Double clay, String interpretation) {
-        if (table == null || clay == null || interpretation == null) return null;
-        if (clay < table.getDrylandLowerClayContent()) {
-            return phosphorusDoseByInterpretation(interpretation, table.getDrylandLowerClayVeryLowPDose(), table.getDrylandLowerClayLowPDose(), table.getDrylandLowerClayMediumPDose());
-        }
-        if (betweenInclusive(clay, table.getDrylandInterval1LowerClayContent(), table.getDrylandInterval1HigherClayContent())) {
-            return phosphorusDoseByInterpretation(interpretation, table.getDrylandInterval1VeryLowPDose(), table.getDrylandInterval1LowPDose(), table.getDrylandInterval1MediumPDose());
-        }
-        if (betweenInclusive(clay, table.getDrylandInterval2LowerClayContent(), table.getDrylandInterval2HigherClayContent())) {
-            return phosphorusDoseByInterpretation(interpretation, table.getDrylandInterval2VeryLowPDose(), table.getDrylandInterval2LowPDose(), table.getDrylandInterval2MediumPDose());
-        }
-        if (clay > table.getDrylandHigherClayContent()) {
-            return phosphorusDoseByInterpretation(interpretation, table.getDrylandHigherClayVeryLowPDose(), table.getDrylandHigherClayLowPDose(), table.getDrylandHigherClayMediumPDose());
-        }
-        return null;
+    private Optional<CorrectiveP2O5FertilizationModel> selectPhosphorusCorrectiveLine(List<CorrectiveP2O5FertilizationModel> table, Double clay, Double p) {
+        if (table == null || clay == null || p == null) return Optional.empty();
+        return table.stream()
+                .filter(line -> containsValue(line.getClayContentMinimum(), line.getClayContentMaximum(), clay))
+                .filter(line -> containsValue(line.getAvailablePMehlich1Minimum(), line.getAvailablePMehlich1Maximum(), p))
+                .findFirst();
     }
 
-    private Double phosphorusDoseByInterpretation(String interpretation, Double veryLow, Double low, Double medium) {
-        return switch (interpretation) {
-            case "Muito baixo" -> veryLow;
-            case "Baixo" -> low;
-            case "Médio" -> medium;
-            default -> null;
-        };
+    private Optional<CorrectiveK2OFertilizationModel> selectPotassiumCorrectiveLine(List<CorrectiveK2OFertilizationModel> table, Double ctc, Double k) {
+        if (table == null || ctc == null || k == null) return Optional.empty();
+        return table.stream()
+                .filter(line -> containsValue(line.getCtcMinimum(), line.getCtcMaximum(), ctc))
+                .filter(line -> containsValue(line.getExchangeableKMinimum(), line.getExchangeableKMaximum(), k))
+                .findFirst();
     }
 
-    private String selectPotassiumContentRange(KContentAndDoseModel table, Double ctc, Double k) {
-        if (table == null || ctc == null || k == null) return null;
-        boolean lessThan40 = ctc < 40d;
-        if (lessThan40) {
-            if (k < table.getLessThan40LowContentLessThan()) return "Baixo";
-            if (betweenInclusive(k, table.getLessThan40MediumLowerContent(), table.getLessThan40MediumHigherContent())) return "Médio";
-            if (betweenInclusive(k, table.getLessThan40AdequateLowerContent(), table.getLessThan40AdequateHigherContent())) return "Adequado";
-            if (k > table.getLessThan40HighContentGreaterThan()) return "Alto";
-            return null;
-        }
-        if (k < table.getGreaterOrEqual40LowContentLessThan()) return "Baixo";
-        if (betweenInclusive(k, table.getGreaterOrEqual40MediumLowerContent(), table.getGreaterOrEqual40MediumHigherContent())) return "Médio";
-        if (betweenInclusive(k, table.getGreaterOrEqual40AdequateLowerContent(), table.getGreaterOrEqual40AdequateHigherContent())) return "Adequado";
-        if (k > table.getGreaterOrEqual40HighContentGreaterThan()) return "Alto";
-        return null;
-    }
-
-    private Double selectPotassiumCorrectiveDose(KContentAndDoseModel table, Double ctc, String range) {
-        if (table == null || ctc == null || range == null) return null;
-        boolean lessThan40 = ctc < 40d;
-        return switch (range) {
-            case "Baixo" -> lessThan40 ? table.getLessThan40DoseForLowContent() : table.getGreaterOrEqual40DoseForLowContent();
-            case "Médio" -> lessThan40 ? table.getLessThan40DoseForMediumContent() : table.getGreaterOrEqual40DoseForMediumContent();
-            case "Adequado" -> lessThan40 ? table.getLessThan40DoseForAdequateContent() : table.getGreaterOrEqual40DoseForAdequateContent();
-            case "Alto" -> lessThan40 ? table.getLessThan40DoseForHighContent() : table.getGreaterOrEqual40DoseForHighContent();
-            default -> null;
-        };
+    private boolean containsValue(Double minimum, Double maximum, Double value) {
+        if (value == null) return false;
+        return (minimum == null || value >= minimum) && (maximum == null || value <= maximum);
     }
 
     private void addSimpleCorrectiveProductRow(List<CorrectiveFertilizationRow> rows,

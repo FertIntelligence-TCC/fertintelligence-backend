@@ -7,6 +7,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
@@ -95,6 +98,16 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @ToString.Exclude
     private PhosphorusClayPhosphateDoseModel phosphorusClayPhosphateDose;
 
+    @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @Builder.Default
+    private List<CorrectiveP2O5FertilizationModel> correctiveP2O5Fertilization = new ArrayList<>();
+
+    @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @Builder.Default
+    private List<CorrectiveK2OFertilizationModel> correctiveK2OFertilization = new ArrayList<>();
+
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()
                 .id(this.id)
@@ -106,6 +119,44 @@ public class SoilFertilityInterpretationCriteriaTableModel {
                 .observations(this.observations)
                 .sources(this.sources)
                 .public_table(this.publicTable)
+                .correctiveP2O5Fertilization(this.correctiveP2O5Fertilization != null
+                        ? this.correctiveP2O5Fertilization.stream()
+                        .map(model -> com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.correctiveP2O5Fertilization.CorrectiveP2O5FertilizationResponseDto.builder()
+                                .id(model.getId())
+                                .tableId(this.id)
+                                .displayName(CorrectiveP2O5FertilizationModel.DISPLAY_NAME)
+                                .clayContentUnit(CorrectiveP2O5FertilizationModel.CLAY_CONTENT_UNIT)
+                                .availablePMehlich1Unit(CorrectiveP2O5FertilizationModel.AVAILABLE_P_MEHLICH_1_UNIT)
+                                .doseUnit(CorrectiveP2O5FertilizationModel.DOSE_UNIT)
+                                .clayContentMinimum(model.getClayContentMinimum())
+                                .clayContentMaximum(model.getClayContentMaximum())
+                                .availablePMehlich1Minimum(model.getAvailablePMehlich1Minimum())
+                                .availablePMehlich1Maximum(model.getAvailablePMehlich1Maximum())
+                                .recommendedP2O5Dose(model.getRecommendedP2O5Dose())
+                                .observations(model.getObservations())
+                                .sources(model.getSources())
+                                .build())
+                        .toList()
+                        : List.of())
+                .correctiveK2OFertilization(this.correctiveK2OFertilization != null
+                        ? this.correctiveK2OFertilization.stream()
+                        .map(model -> com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.correctiveK2OFertilization.CorrectiveK2OFertilizationResponseDto.builder()
+                                .id(model.getId())
+                                .tableId(this.id)
+                                .displayName(CorrectiveK2OFertilizationModel.DISPLAY_NAME)
+                                .ctcUnit(CorrectiveK2OFertilizationModel.CTC_UNIT)
+                                .exchangeableKUnit(CorrectiveK2OFertilizationModel.EXCHANGEABLE_K_UNIT)
+                                .doseUnit(CorrectiveK2OFertilizationModel.DOSE_UNIT)
+                                .ctcMinimum(model.getCtcMinimum())
+                                .ctcMaximum(model.getCtcMaximum())
+                                .exchangeableKMinimum(model.getExchangeableKMinimum())
+                                .exchangeableKMaximum(model.getExchangeableKMaximum())
+                                .recommendedK2ODose(model.getRecommendedK2ODose())
+                                .observations(model.getObservations())
+                                .sources(model.getSources())
+                                .build())
+                        .toList()
+                        : List.of())
                 .build();
     }
 }

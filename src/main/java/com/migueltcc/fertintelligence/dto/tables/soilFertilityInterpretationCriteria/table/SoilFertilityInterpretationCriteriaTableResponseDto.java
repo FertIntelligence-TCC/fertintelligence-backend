@@ -1,12 +1,16 @@
 package com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.table;
 
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Regiao;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.correctiveK2OFertilization.CorrectiveK2OFertilizationResponseDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.correctiveP2O5Fertilization.CorrectiveP2O5FertilizationResponseDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -49,4 +53,10 @@ public class SoilFertilityInterpretationCriteriaTableResponseDto {
     @Schema(example = "false")
     @JsonProperty("tabela_publica")
     private boolean public_table;
+
+    @JsonProperty("adubacao_corretiva_p2o5")
+    private List<CorrectiveP2O5FertilizationResponseDto> correctiveP2O5Fertilization;
+
+    @JsonProperty("adubacao_corretiva_k2o")
+    private List<CorrectiveK2OFertilizationResponseDto> correctiveK2OFertilization;
 }
