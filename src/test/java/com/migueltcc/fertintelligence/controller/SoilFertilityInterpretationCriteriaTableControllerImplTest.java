@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -259,6 +260,36 @@ public class SoilFertilityInterpretationCriteriaTableControllerImplTest extends 
                 .andExpect(jsonPath("$[0].regiao").value("NORDESTE"))
                 .andExpect(jsonPath("$[1].id").value(11L))
                 .andExpect(jsonPath("$[1].regiao").value("SUL"));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void listGroupedMinhasSoilFertilityInterpretationCriteriaTablesWithoutAuxiliarySuccessfully() throws Exception {
+        UserModel supremeUser = UserModel.builder()
+                .id(99L)
+                .username("supreme")
+                .name("Usuário Supremo")
+                .cargo(Cargo.USUARIO_SUPREMO)
+                .build();
+        SoilFertilityInterpretationCriteriaTableModel supremeTable = ownerTable.toBuilder()
+                .id(12L)
+                .creator(supremeUser)
+                .publicTable(false)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByCreator(proprietarioUser))
+                .thenReturn(List.of(ownerTable));
+        when(soilFertilityInterpretationCriteriaTableRepository.findAllByCreator_Cargo(Cargo.USUARIO_SUPREMO))
+                .thenReturn(List.of(supremeTable));
+
+        mockMvc.perform(get("/soil-fertility-interpretation-criteria-table/get-all")
+                        .param("grupo", "MINHAS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(ownerTable.getId()))
+                .andExpect(jsonPath("$[1].id").value(12L));
+
+        verifyNoInteractions(diverseContentRangeRepository);
     }
 
     @Test

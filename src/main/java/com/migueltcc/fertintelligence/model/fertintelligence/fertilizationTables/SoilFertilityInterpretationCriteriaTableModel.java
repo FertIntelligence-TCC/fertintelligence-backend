@@ -56,55 +56,68 @@ public class SoilFertilityInterpretationCriteriaTableModel {
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private AvailablePAnionExchangeResinExtractorModel availablePAnionExchangeResinExtractor;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private AvailablePMehlich1ExtractorModel availablePMehlich1Extractor;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private AvailableSModel availableS;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private SulfurDoseModel sulfurDose;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private DiverseContentRangeModel diverseContentRange;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private SalinityInterpretationModel salinityInterpretation;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private CtcSaturationModel ctcSaturation;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ExchangeableBaseRatioModel exchangeableBaseRatio;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private RecommendedLimestoneTypeModel recommendedLimestoneType;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private KContentAndDoseModel kContentAndDose;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private PhosphorusClayPhosphateDoseModel phosphorusClayPhosphateDose;
 
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @Builder.Default
     private List<CorrectiveP2O5FertilizationModel> correctiveP2O5Fertilization = new ArrayList<>();
 
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @Builder.Default
     private List<CorrectiveK2OFertilizationModel> correctiveK2OFertilization = new ArrayList<>();
 
