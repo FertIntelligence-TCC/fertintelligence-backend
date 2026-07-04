@@ -114,6 +114,12 @@ public class DirectRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
                 NOT_APPLICABLE);
 
+        TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
+                report,
+                "Adubação corretiva do solo",
+                TechnicalRecommendationDocumentSupport.section(source, "9. Adubação corretiva"),
+                NOT_CALCULATED);
+
         appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);

@@ -154,6 +154,7 @@ final class TechnicalRecommendationDocumentSupport {
         String gypsumSection = section(source, "8. Gessagem");
         addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, "Dose comercial", "Dose de gesso");
         addGypsumSulfurAlternativeItems(items, gypsumSection);
+        addSoilCorrectiveFertilizationItems(items, section(source, "9. Adubação corretiva"));
         addDirectMicronutrientItems(items, micronutrientFertilizerLines);
         addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines);
         addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines);
@@ -293,6 +294,22 @@ final class TechnicalRecommendationDocumentSupport {
             String itemName = removeId(fertilizer);
             if (items.containsKey(safe(itemName))) continue;
             extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), phase, null));
+        }
+    }
+
+    private static void addSoilCorrectiveFertilizationItems(Map<String, ShoppingItem> items, String section) {
+        for (List<String> row : tableRows(section)) {
+            if (row.size() < 4) continue;
+            String attribute = row.get(0);
+            String sourceName = row.get(2);
+            String dose = row.get(3);
+            if (looksUnavailable(sourceName) || looksUnavailable(dose)) continue;
+            String itemName = removeId(sourceName);
+            extractKgHa(dose).ifPresent(kgHa -> {
+                if (kgHa > 0d) {
+                    merge(items, itemName, kgHa, "Adubação corretiva do solo", attribute, null);
+                }
+            });
         }
     }
 

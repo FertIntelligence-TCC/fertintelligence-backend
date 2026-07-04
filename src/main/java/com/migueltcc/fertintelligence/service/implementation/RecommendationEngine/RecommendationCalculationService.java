@@ -33,7 +33,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailableSModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KContentAndDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.PhosphorusClayPhosphateDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
@@ -80,8 +82,14 @@ public class RecommendationCalculationService {
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
     private final SulfurDoseRepository sulfurDoseRepository;
+    private final KContentAndDoseRepository kContentAndDoseRepository;
+    private final PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository;
+    private final MicronutrientDoseRepository micronutrientDoseRepository;
     private final ExchangeableSodiumRepository exchangeableSodiumRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
+    private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
+    private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
+    private final MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService;
 
     public RecommendationCalculationService(PhysicalAnalysisExtractRepository physicalAnalysisExtractRepository,
                                             SoilAnalysisRepository soilAnalysisRepository,
@@ -99,8 +107,14 @@ public class RecommendationCalculationService {
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
                                             SulfurDoseRepository sulfurDoseRepository,
+                                            KContentAndDoseRepository kContentAndDoseRepository,
+                                            PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository,
+                                            MicronutrientDoseRepository micronutrientDoseRepository,
                                             ExchangeableSodiumRepository exchangeableSodiumRepository,
                                             SalinityInterpretationRepository salinityInterpretationRepository,
+                                            SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
+                                            FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository,
+                                            MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService,
                                             LimingRequirementCalculator limingRequirementCalculator,
                                             GypsumCalculationService gypsumCalculationService,
                                             SoilTextureClassificationService soilTextureClassificationService,
@@ -122,8 +136,14 @@ public class RecommendationCalculationService {
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
         this.sulfurDoseRepository = sulfurDoseRepository;
+        this.kContentAndDoseRepository = kContentAndDoseRepository;
+        this.phosphorusClayPhosphateDoseRepository = phosphorusClayPhosphateDoseRepository;
+        this.micronutrientDoseRepository = micronutrientDoseRepository;
         this.exchangeableSodiumRepository = exchangeableSodiumRepository;
         this.salinityInterpretationRepository = salinityInterpretationRepository;
+        this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
+        this.formulatedMineralFertilizerRepository = formulatedMineralFertilizerRepository;
+        this.micronutrientFertilizerSelectionService = micronutrientFertilizerSelectionService;
         this.limingRequirementCalculator = limingRequirementCalculator;
         this.gypsumCalculationService = gypsumCalculationService;
         this.soilTextureClassificationService = soilTextureClassificationService;
@@ -233,7 +253,8 @@ public class RecommendationCalculationService {
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
         List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
-                chemicalDiagnosis, inputs.physicalAnalysis(), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
+                dto, chemicalDiagnosis, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(),
+                inputs.soilInterpretationTable(), user, sourceOption, warnings);
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
                 inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
         String saturationSummary = buildSaturationAnalysisSummary(inputs, salinityDiagnosis.summary());
@@ -761,7 +782,9 @@ public class RecommendationCalculationService {
         return Arrays.asList(expected).contains(item.getInterpretation());
     }
 
-    private List<CorrectiveFertilizationRow> buildCorrectiveFertilizationRows(List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+    private List<CorrectiveFertilizationRow> buildCorrectiveFertilizationRows(RecommendationCreateRequestDto dto,
+                                                                              List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
+                                                                              Optional<FertilityAnalysisExtractModel> fertilityExtract,
                                                                               PhysicalAnalysisExtractModel physicalAnalysis,
                                                                               CropFertilizationTableModel cropFertilizationTable,
                                                                               SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
@@ -769,6 +792,43 @@ public class RecommendationCalculationService {
                                                                               FertilizerSourceOption sourceOption,
                                                                               List<String> warnings) {
         List<CorrectiveFertilizationRow> rows = new ArrayList<>();
+        if (!Boolean.TRUE.equals(dto.getSoilCorrectiveFertilization())) {
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute("Adubação Corretiva do Solo")
+                    .need("Não habilitada pelo usuário")
+                    .suggestedSource("Não sugerida")
+                    .dose(null)
+                    .doseUnit("kg/ha")
+                    .calculationMemory("Campo adubacaoCorretivaSolo diferente de Sim; rotina corretiva de P, K e micronutrientes não executada.")
+                    .technicalWarning("Adubação corretiva do solo não foi calculada porque a opção não foi habilitada na entrada da recomendação.")
+                    .build());
+            return rows;
+        }
+
+        Optional<String> justification = soilCorrectiveJustification(dto);
+        if (justification.isEmpty()) {
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute("Adubação Corretiva do Solo")
+                    .need("Não aplicável")
+                    .suggestedSource("Não sugerida")
+                    .dose(null)
+                    .doseUnit("kg/ha")
+                    .calculationMemory("Todas as quatro justificativas de adubação corretiva foram informadas como Não.")
+                    .technicalWarning("A Recomendação de Adubação Corretiva não se aplica, pois trata-se de agricultura familiar de baixa/média tecnologia de cultivo.")
+                    .build());
+            return rows;
+        }
+
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute("Contexto da Adubação Corretiva do Solo")
+                .need(justification.get())
+                .suggestedSource("Critério de elegibilidade")
+                .dose(null)
+                .doseUnit("kg/ha")
+                .calculationMemory("Rotina corretiva executada porque adubacaoCorretivaSolo = Sim e ao menos uma justificativa foi Sim.")
+                .technicalWarning("Essa adubação corretiva tem efeito residual mínimo de 5 anos. Entretanto, fique atento para culturas que têm altas demandas em boro (Algodão, Amendoim, outras) e em zinco (Milho, Cana-de-açúcar, Algodão, etc). Complementar esses micronutrientes na adubação anual.")
+                .build());
+
         Map<String, SoilChemicalDiagnosisItem> byAttribute = new LinkedHashMap<>();
         if (chemicalDiagnosis != null) {
             for (SoilChemicalDiagnosisItem item : chemicalDiagnosis) {
@@ -778,25 +838,605 @@ public class RecommendationCalculationService {
             }
         }
 
-        addCorrectiveRowIfRelevant(rows, "Fósforo corretivo", findFirstDiagnosis(byAttribute, "fosforo"),
-                "P2O5", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
-        addCorrectiveRowIfRelevant(rows, "Potássio corretivo", findFirstDiagnosis(byAttribute, "potassio"),
-                "K2O", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
-        addCorrectiveRowIfRelevant(rows, "Enxofre corretivo", findFirstDiagnosis(byAttribute, "enxofre"),
-                "S", physicalAnalysis, cropFertilizationTable, soilInterpretationTable, user, sourceOption, warnings);
+        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+        Double p2o5Dose = addCorrectivePhosphorusRows(rows, findFirstDiagnosis(byAttribute, "fosforo"), fertility,
+                physicalAnalysis, soilInterpretationTable, user, sourceOption, warnings);
+        Double k2oDose = addCorrectivePotassiumRows(rows, findFirstDiagnosis(byAttribute, "potassio"), fertility,
+                soilInterpretationTable, user, sourceOption, warnings);
+        addCorrectiveFormulatedRows(rows, p2o5Dose, k2oDose, user, sourceOption, warnings);
+        addCorrectiveMicronutrientRows(rows, byAttribute, fertility, soilInterpretationTable, user, sourceOption, warnings);
 
-        if (rows.isEmpty()) {
+        if (rows.size() == 1) {
             rows.add(CorrectiveFertilizationRow.builder()
-                    .correctedAttribute("P/K/S corretivos")
+                    .correctedAttribute("P/K/micronutrientes corretivos")
                     .need("Não avaliada")
                     .suggestedSource("Não sugerida")
                     .dose(null)
                     .doseUnit("kg/ha")
-                    .calculationMemory("Não há diagnóstico classificável de fósforo, potássio ou enxofre com os dados e critérios disponíveis.")
-                    .technicalWarning("Adubação corretiva não foi calculada por ausência de diagnóstico classificável e/ou critério quantitativo corretivo separado.")
+                    .calculationMemory("Não há dados analíticos e/ou tabelas auxiliares suficientes para calcular P2O5, K2O ou micronutrientes corretivos.")
+                    .technicalWarning("Adubação corretiva habilitada, mas sem doses calculáveis com os dados cadastrados.")
                     .build());
         }
         return rows;
+    }
+
+    private Optional<String> soilCorrectiveJustification(RecommendationCreateRequestDto dto) {
+        if (Boolean.TRUE.equals(dto.getRecentNativeOrPastureConversionArea())) {
+            return Optional.of("Área de Incorporação / Conversão recente (1 a 2 anos) à agricultura de uso de mata nativa ou pastagem anterior.");
+        }
+        if (Boolean.TRUE.equals(dto.getDegradedAreaMoreThanFiveYearsWithoutFertilization())) {
+            return Optional.of("Área degradada em recuperação para a agricultura moderna.");
+        }
+        if (Boolean.TRUE.equals(dto.getErosionRecoveryArea())) {
+            return Optional.of("Área em recuperação após cuidados de Manejo de Conservação do Solo.");
+        }
+        if (Boolean.TRUE.equals(dto.getHighTechnologyHighProductivityArea())) {
+            return Optional.of("Área para cultivos de alta tecnologia e altas produtividades.");
+        }
+        return Optional.empty();
+    }
+
+    private Double addCorrectivePhosphorusRows(List<CorrectiveFertilizationRow> rows,
+                                               SoilChemicalDiagnosisItem diagnosis,
+                                               FertilityAnalysisExtractModel fertility,
+                                               PhysicalAnalysisExtractModel physicalAnalysis,
+                                               SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                               UserModel user,
+                                               FertilizerSourceOption sourceOption,
+                                               List<String> warnings) {
+        Double p = fertility != null ? fertility.getFosforoMehlich1() : null;
+        Double clay = physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null;
+        if (p == null || clay == null) {
+            addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "P disponível por Mehlich-1 e teor de argila são obrigatórios para calcular P2O5 corretivo.");
+            return null;
+        }
+        Optional<PhosphorusClayPhosphateDoseModel> table = phosphorusClayPhosphateDoseRepository.findByTable(soilInterpretationTable);
+        if (table.isEmpty()) {
+            addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "Tabela auxiliar de adubação corretiva de P2O5 não encontrada para a tabela de interpretação selecionada.");
+            return null;
+        }
+        String interpretation = diagnosis != null ? diagnosis.getInterpretation() : null;
+        Double dose = selectPhosphorusCorrectiveDose(table.get(), clay, interpretation);
+        if (dose == null || dose <= 0d) {
+            addNotCalculatedCorrectiveRow(rows, "P2O5 corretivo", "Dose de P2O5 não calculada para a faixa " + safeText(interpretation) + " e argila " + formatNumber(clay) + " g/kg.");
+            return null;
+        }
+
+        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Simples", "P2O5", dose,
+                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"), "Superfosfato Simples",
+                "100 * dose recomendada P2O5 / teor % P2O5 do adubo. P Mehlich-1 = " + formatNumber(p)
+                        + " mg/dm³; argila = " + formatNumber(clay) + " g/kg; tabela P/argila ID " + table.get().getId()
+                        + ". Seção usada: sequeiro; o contrato atual não informa irrigado/sequeiro na recomendação.", warnings);
+        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Triplo", "P2O5", dose,
+                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), "Superfosfato Triplo",
+                "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
+        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Termofosfato Magnesiano", "P2O5", dose,
+                selectSimpleByNameOrNutrient(user, sourceOption, "termofosfato", "P2O5"), "Termofosfato Magnesiano",
+                "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
+        warnings.add("Adubação corretiva de P2O5 calculada pela seção sequeiro da tabela P/argila porque a entrada atual não informa regime irrigado/sequeiro.");
+        return round2(dose);
+    }
+
+    private Double addCorrectivePotassiumRows(List<CorrectiveFertilizationRow> rows,
+                                              SoilChemicalDiagnosisItem diagnosis,
+                                              FertilityAnalysisExtractModel fertility,
+                                              SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                              UserModel user,
+                                              FertilizerSourceOption sourceOption,
+                                              List<String> warnings) {
+        Double k = fertility != null ? fertility.getPotassio() : null;
+        Double ctc = fertility != null ? fertility.getCtcPh7() : null;
+        if (k == null || ctc == null) {
+            addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "K+ e CTC pH 7,0 são obrigatórios para calcular K2O corretivo.");
+            return null;
+        }
+        Optional<KContentAndDoseModel> table = kContentAndDoseRepository.findByTable(soilInterpretationTable);
+        if (table.isEmpty()) {
+            addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "Tabela auxiliar de adubação corretiva de K2O não encontrada para a tabela de interpretação selecionada.");
+            return null;
+        }
+        String range = selectPotassiumContentRange(table.get(), ctc, k);
+        Double dose = selectPotassiumCorrectiveDose(table.get(), ctc, range);
+        if (dose == null || dose <= 0d) {
+            String diagnosisRange = diagnosis != null ? diagnosis.getInterpretation() : null;
+            addNotCalculatedCorrectiveRow(rows, "K2O corretivo", "Dose de K2O não calculada para K+ " + formatNumber(k)
+                    + " mmolc/dm³, CTC pH 7,0 " + formatNumber(ctc) + " e faixa " + safeText(range != null ? range : diagnosisRange) + ".");
+            return null;
+        }
+        addSimpleCorrectiveProductRow(rows, "K2O corretivo - Cloreto de Potássio", "K2O", dose,
+                selectSimpleByNameOrNutrient(user, sourceOption, "cloreto de potassio", "K2O"), "Cloreto de Potássio",
+                "100 * dose recomendada K2O / teor % K2O do KCl. K+ = " + formatNumber(k)
+                        + " mmolc/dm³; CTC pH 7,0 = " + formatNumber(ctc) + "; tabela K ID " + table.get().getId() + ".",
+                warnings);
+        return round2(dose);
+    }
+
+    private void addCorrectiveFormulatedRows(List<CorrectiveFertilizationRow> rows,
+                                             Double recommendedP2O5,
+                                             Double recommendedK2O,
+                                             UserModel user,
+                                             FertilizerSourceOption sourceOption,
+                                             List<String> warnings) {
+        if (!positive(recommendedP2O5) || !positive(recommendedK2O)) {
+            addNotCalculatedCorrectiveRow(rows, "Formulado 00-P2O5-K2O corretivo", "Formulado não calculado porque P2O5 e K2O corretivos precisam estar ambos calculados.");
+            return;
+        }
+        FormulatedMineralFertilizerModel formulated = selectClosestZeroNFormulated(user, sourceOption, recommendedP2O5, recommendedK2O).orElse(null);
+        if (formulated == null) {
+            addNotCalculatedCorrectiveRow(rows, "Formulado 00-P2O5-K2O corretivo", "Não há formulado mineral cadastrado sem N e com P2O5/K2O positivos.");
+            return;
+        }
+        double dose = round2(Math.min(100d * recommendedP2O5 / formulated.getP2O5(), 100d * recommendedK2O / formulated.getK2O()));
+        double providedP = dose * formulated.getP2O5() / 100d;
+        double providedK = dose * formulated.getK2O() / 100d;
+        double pBalance = round2(providedP - recommendedP2O5);
+        double kBalance = round2(providedK - recommendedK2O);
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute("Formulado 00-P2O5-K2O corretivo")
+                .need("P2O5 " + formatNumber(recommendedP2O5) + " kg/ha; K2O " + formatNumber(recommendedK2O) + " kg/ha")
+                .suggestedSource(formatFormulatedName(formulated))
+                .dose(dose)
+                .doseUnit("kg/ha de produto")
+                .calculationMemory("Formulado sem N com relação P2O5:K2O mais próxima da recomendação. Fornece P2O5 "
+                        + formatNumber(providedP) + " kg/ha e K2O " + formatNumber(providedK) + " kg/ha.")
+                .technicalWarning(balanceWarning(recommendedP2O5, recommendedK2O, pBalance, kBalance))
+                .build());
+        addComplementRow(rows, "Complemento P2O5 após formulado", "P2O5", recommendedP2O5 - providedP,
+                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"),
+                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), warnings);
+        addComplementRow(rows, "Complemento K2O após formulado", "K2O", recommendedK2O - providedK,
+                selectSimpleByNameOrNutrient(user, sourceOption, "cloreto de potassio", "K2O"),
+                null, warnings);
+    }
+
+    private void addCorrectiveMicronutrientRows(List<CorrectiveFertilizationRow> rows,
+                                                Map<String, SoilChemicalDiagnosisItem> byAttribute,
+                                                FertilityAnalysisExtractModel fertility,
+                                                SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+                                                UserModel user,
+                                                FertilizerSourceOption sourceOption,
+                                                List<String> warnings) {
+        Double ph = fertility != null ? fertility.getPhAgua() : null;
+        if (ph != null && ph > 7.0d) {
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute("Micronutrientes corretivos")
+                    .need("Bloqueado por pH em água > 7,0")
+                    .suggestedSource("Não recomendada no solo")
+                    .dose(null)
+                    .doseUnit("kg/ha")
+                    .calculationMemory("pH em água = " + formatNumber(ph) + ".")
+                    .technicalWarning("Solos com reação alcalina. Adubação corretiva com micronutrientes não recomendada. Faça adubação foliar com os micronutrientes, de acordo com a necessidade da cultura.")
+                    .build());
+            return;
+        }
+        Optional<MicronutrientDoseModel> doses = micronutrientDoseRepository.findByTable(soilInterpretationTable);
+        if (doses.isEmpty()) {
+            addNotCalculatedCorrectiveRow(rows, "Micronutrientes corretivos", "Tabela de dosagens de micronutrientes não encontrada para a tabela selecionada.");
+            return;
+        }
+        Optional<DiverseContentRangeModel> diverseRange = findDiverseContentRangeByTable(soilInterpretationTable);
+        Map<AppliedMicronutrient, Double> recommended = recommendedMicronutrientDoses(doses.get(), byAttribute, diverseRange, warnings);
+        Double znDose = recommended.get(AppliedMicronutrient.Zn);
+        if (!positive(znDose)) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "Dose recomendada de Zn ausente ou igual a zero; FTE por nutriente-base Zn não calculado.");
+            addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
+        } else {
+            addFteRows(rows, recommended, znDose, user, sourceOption);
+        }
+    }
+
+    private Double selectPhosphorusCorrectiveDose(PhosphorusClayPhosphateDoseModel table, Double clay, String interpretation) {
+        if (table == null || clay == null || interpretation == null) return null;
+        if (clay < table.getDrylandLowerClayContent()) {
+            return phosphorusDoseByInterpretation(interpretation, table.getDrylandLowerClayVeryLowPDose(), table.getDrylandLowerClayLowPDose(), table.getDrylandLowerClayMediumPDose());
+        }
+        if (betweenInclusive(clay, table.getDrylandInterval1LowerClayContent(), table.getDrylandInterval1HigherClayContent())) {
+            return phosphorusDoseByInterpretation(interpretation, table.getDrylandInterval1VeryLowPDose(), table.getDrylandInterval1LowPDose(), table.getDrylandInterval1MediumPDose());
+        }
+        if (betweenInclusive(clay, table.getDrylandInterval2LowerClayContent(), table.getDrylandInterval2HigherClayContent())) {
+            return phosphorusDoseByInterpretation(interpretation, table.getDrylandInterval2VeryLowPDose(), table.getDrylandInterval2LowPDose(), table.getDrylandInterval2MediumPDose());
+        }
+        if (clay > table.getDrylandHigherClayContent()) {
+            return phosphorusDoseByInterpretation(interpretation, table.getDrylandHigherClayVeryLowPDose(), table.getDrylandHigherClayLowPDose(), table.getDrylandHigherClayMediumPDose());
+        }
+        return null;
+    }
+
+    private Double phosphorusDoseByInterpretation(String interpretation, Double veryLow, Double low, Double medium) {
+        return switch (interpretation) {
+            case "Muito baixo" -> veryLow;
+            case "Baixo" -> low;
+            case "Médio" -> medium;
+            default -> null;
+        };
+    }
+
+    private String selectPotassiumContentRange(KContentAndDoseModel table, Double ctc, Double k) {
+        if (table == null || ctc == null || k == null) return null;
+        boolean lessThan40 = ctc < 40d;
+        if (lessThan40) {
+            if (k < table.getLessThan40LowContentLessThan()) return "Baixo";
+            if (betweenInclusive(k, table.getLessThan40MediumLowerContent(), table.getLessThan40MediumHigherContent())) return "Médio";
+            if (betweenInclusive(k, table.getLessThan40AdequateLowerContent(), table.getLessThan40AdequateHigherContent())) return "Adequado";
+            if (k > table.getLessThan40HighContentGreaterThan()) return "Alto";
+            return null;
+        }
+        if (k < table.getGreaterOrEqual40LowContentLessThan()) return "Baixo";
+        if (betweenInclusive(k, table.getGreaterOrEqual40MediumLowerContent(), table.getGreaterOrEqual40MediumHigherContent())) return "Médio";
+        if (betweenInclusive(k, table.getGreaterOrEqual40AdequateLowerContent(), table.getGreaterOrEqual40AdequateHigherContent())) return "Adequado";
+        if (k > table.getGreaterOrEqual40HighContentGreaterThan()) return "Alto";
+        return null;
+    }
+
+    private Double selectPotassiumCorrectiveDose(KContentAndDoseModel table, Double ctc, String range) {
+        if (table == null || ctc == null || range == null) return null;
+        boolean lessThan40 = ctc < 40d;
+        return switch (range) {
+            case "Baixo" -> lessThan40 ? table.getLessThan40DoseForLowContent() : table.getGreaterOrEqual40DoseForLowContent();
+            case "Médio" -> lessThan40 ? table.getLessThan40DoseForMediumContent() : table.getGreaterOrEqual40DoseForMediumContent();
+            case "Adequado" -> lessThan40 ? table.getLessThan40DoseForAdequateContent() : table.getGreaterOrEqual40DoseForAdequateContent();
+            case "Alto" -> lessThan40 ? table.getLessThan40DoseForHighContent() : table.getGreaterOrEqual40DoseForHighContent();
+            default -> null;
+        };
+    }
+
+    private void addSimpleCorrectiveProductRow(List<CorrectiveFertilizationRow> rows,
+                                               String correctedAttribute,
+                                               String nutrient,
+                                               Double recommendedDose,
+                                               SimpleMineralFertilizerModel source,
+                                               String fallbackSourceName,
+                                               String memory,
+                                               List<String> warnings) {
+        Double concentration = source != null ? concentration(source, nutrient) : null;
+        if (!positive(concentration)) {
+            String warning = fallbackSourceName + " não encontrado com teor positivo de " + nutrient + " na origem de adubos selecionada.";
+            warnings.add(warning);
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute(correctedAttribute)
+                    .need(formatNumber(recommendedDose) + " kg/ha de " + nutrient)
+                    .suggestedSource(fallbackSourceName)
+                    .dose(null)
+                    .doseUnit("kg/ha de produto")
+                    .calculationMemory(memory)
+                    .technicalWarning(warning)
+                    .build());
+            return;
+        }
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute(correctedAttribute)
+                .need(formatNumber(recommendedDose) + " kg/ha de " + nutrient)
+                .suggestedSource(source.getName())
+                .dose(round2(100d * recommendedDose / concentration))
+                .doseUnit("kg/ha de produto")
+                .calculationMemory(memory + " Teor usado: " + formatNumber(concentration) + "%.")
+                .technicalWarning(null)
+                .build());
+    }
+
+    private void addComplementRow(List<CorrectiveFertilizationRow> rows,
+                                  String correctedAttribute,
+                                  String nutrient,
+                                  Double deficit,
+                                  SimpleMineralFertilizerModel preferred,
+                                  SimpleMineralFertilizerModel fallback,
+                                  List<String> warnings) {
+        if (deficit == null || deficit <= 0d) return;
+        SimpleMineralFertilizerModel source = positive(concentration(preferred, nutrient)) ? preferred : fallback;
+        addSimpleCorrectiveProductRow(rows, correctedAttribute, nutrient, deficit, source,
+                nutrient.equals("K2O") ? "Cloreto de Potássio" : "Superfosfato Simples ou Triplo",
+                "Complemento calculado para zerar saldo negativo após uso do formulado 00-P2O5-K2O.", warnings);
+    }
+
+    private void addFteRows(List<CorrectiveFertilizationRow> rows,
+                            Map<AppliedMicronutrient, Double> recommended,
+                            Double znDose,
+                            UserModel user,
+                            FertilizerSourceOption sourceOption) {
+        List<SimpleMineralFertilizerModel> simple = selectSimpleFertilizers(user, sourceOption);
+        List<SimpleMineralFertilizerModel> ftes = simple.stream()
+                .filter(f -> positive(f.getZn()) && normalizeText(f.getName()).contains("fte"))
+                .toList();
+        selectFteBr12(ftes).ifPresent(fte -> addFteRow(rows, "FTE BR 12 corretivo", fte, recommended, znDose, user, sourceOption));
+        ftes.stream()
+                .max(Comparator.comparing(SimpleMineralFertilizerModel::getZn))
+                .ifPresent(fte -> addFteRow(rows, "FTE mais concentrado em Zn corretivo", fte, recommended, znDose, user, sourceOption));
+        if (ftes.isEmpty()) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "Nenhum FTE com teor positivo de Zn foi encontrado em adubos minerais simples.");
+            addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
+        }
+    }
+
+    private Optional<SimpleMineralFertilizerModel> selectFteBr12(List<SimpleMineralFertilizerModel> ftes) {
+        if (ftes == null) return Optional.empty();
+        return ftes.stream()
+                .filter(f -> normalizeText(f.getName()).contains("br 12") || normalizeText(f.getName()).contains("br-12"))
+                .findFirst();
+    }
+
+    private void addFteRow(List<CorrectiveFertilizationRow> rows,
+                           String correctedAttribute,
+                           SimpleMineralFertilizerModel fte,
+                           Map<AppliedMicronutrient, Double> recommended,
+                           Double znDose,
+                           UserModel user,
+                           FertilizerSourceOption sourceOption) {
+        double dose = round2(100d * znDose / fte.getZn());
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute(correctedAttribute)
+                .need("Zn como nutriente-base: " + formatNumber(znDose) + " kg/ha")
+                .suggestedSource(fte.getName())
+                .dose(dose)
+                .doseUnit("kg/ha de produto")
+                .calculationMemory("Dose FTE = 100 * dose recomendada Zn / teor % Zn do FTE. Balanço B/Cu/Fe/Mn/Zn: "
+                        + micronutrientBalanceSummary(recommended, fte, dose) + ".")
+                .technicalWarning(null)
+                .build());
+        addMicronutrientSimpleComplements(rows, "Complemento após " + fte.getName(),
+                micronutrientDeficitsAfterFte(recommended, fte, dose), user, sourceOption);
+    }
+
+    private void addMicronutrientSimpleComplements(List<CorrectiveFertilizationRow> rows,
+                                                   String prefix,
+                                                   Map<AppliedMicronutrient, Double> recommended,
+                                                   UserModel user,
+                                                   FertilizerSourceOption sourceOption) {
+        Map<AppliedMicronutrient, Double> complementDoses = new LinkedHashMap<>();
+        addPositiveDose(complementDoses, AppliedMicronutrient.B, recommended.get(AppliedMicronutrient.B));
+        addPositiveDose(complementDoses, AppliedMicronutrient.Cu, recommended.get(AppliedMicronutrient.Cu));
+        addPositiveDose(complementDoses, AppliedMicronutrient.Fe, recommended.get(AppliedMicronutrient.Fe));
+        addPositiveDose(complementDoses, AppliedMicronutrient.Mn, recommended.get(AppliedMicronutrient.Mn));
+        List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
+                micronutrientFertilizerSelectionService.select(user, sourceOption, complementDoses);
+        for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
+            rows.add(CorrectiveFertilizationRow.builder()
+                    .correctedAttribute(prefix + " de " + selection.micronutrient().name())
+                    .need(formatNumber(selection.micronutrientDoseKgHa()) + " kg/ha de " + selection.micronutrient().name())
+                    .suggestedSource(selection.selectedFertilizer() != null ? selection.selectedFertilizer().getName() : "Não selecionada")
+                    .dose(selection.fertilizerDoseKgHa())
+                    .doseUnit("kg/ha de produto")
+                    .calculationMemory("Fonte simples escolhida pelo maior teor cadastrado do micronutriente para zerar saldo negativo.")
+                    .technicalWarning(selection.technicalMessage())
+                    .build());
+        }
+    }
+
+    private Map<AppliedMicronutrient, Double> micronutrientDeficitsAfterFte(Map<AppliedMicronutrient, Double> recommended,
+                                                                            SimpleMineralFertilizerModel fte,
+                                                                            Double fteDoseKgHa) {
+        Map<AppliedMicronutrient, Double> deficits = new LinkedHashMap<>();
+        for (AppliedMicronutrient micronutrient : List.of(AppliedMicronutrient.B, AppliedMicronutrient.Cu, AppliedMicronutrient.Fe, AppliedMicronutrient.Mn)) {
+            double required = nvl(recommended.get(micronutrient));
+            double applied = fteDoseKgHa * micronutrientConcentration(fte, micronutrient) / 100d;
+            double deficit = round2(required - applied);
+            if (deficit > 0d) {
+                deficits.put(micronutrient, deficit);
+            }
+        }
+        return deficits;
+    }
+
+    private Map<AppliedMicronutrient, Double> recommendedMicronutrientDoses(MicronutrientDoseModel doses,
+                                                                            Map<String, SoilChemicalDiagnosisItem> byAttribute,
+                                                                            Optional<DiverseContentRangeModel> diverseRange,
+                                                                            List<String> warnings) {
+        Map<AppliedMicronutrient, Double> result = new LinkedHashMap<>();
+        addMicronutrientDose(result, AppliedMicronutrient.B, doses.getBoronLowDose(), doses.getBoronMediumDose(), doses.getBoronHighDose(), byAttribute, "boro", diverseRange, warnings);
+        addMicronutrientDose(result, AppliedMicronutrient.Cu, doses.getCopperLowDose(), doses.getCopperMediumDose(), doses.getCopperHighDose(), byAttribute, "cobre", diverseRange, warnings);
+        addMicronutrientDose(result, AppliedMicronutrient.Fe, doses.getIronLowDose(), doses.getIronMediumDose(), doses.getIronHighDose(), byAttribute, "ferro", diverseRange, warnings);
+        addMicronutrientDose(result, AppliedMicronutrient.Mn, doses.getManganeseLowDose(), doses.getManganeseMediumDose(), doses.getManganeseHighDose(), byAttribute, "manganes", diverseRange, warnings);
+        addMicronutrientDose(result, AppliedMicronutrient.Zn, doses.getZincLowDose(), doses.getZincMediumDose(), doses.getZincHighDose(), byAttribute, "zinco", diverseRange, warnings);
+        return result;
+    }
+
+    private void addMicronutrientDose(Map<AppliedMicronutrient, Double> result,
+                                      AppliedMicronutrient micronutrient,
+                                      Double low,
+                                      Double medium,
+                                      Double high,
+                                      Map<String, SoilChemicalDiagnosisItem> byAttribute,
+                                      String token,
+                                      Optional<DiverseContentRangeModel> diverseRange,
+                                      List<String> warnings) {
+        SoilChemicalDiagnosisItem item = findFirstDiagnosis(byAttribute, token);
+        if (item == null || item.getAnalyzedValue() == null) return;
+        String range = classifyCorrectiveMicronutrientRange(micronutrient, item.getAnalyzedValue(), diverseRange).orElse(item.getInterpretation());
+        if (range == null) {
+            warnings.add("Dose corretiva de " + micronutrient.name() + " não calculada por ausência de faixa interpretada.");
+            return;
+        }
+        Double dose = switch (range) {
+            case "Baixo", "Muito baixo" -> low;
+            case "Médio" -> medium;
+            case "Alto", "Muito alto" -> high;
+            default -> null;
+        };
+        if (dose == null) {
+            warnings.add("Dose corretiva de " + micronutrient.name() + " não calculada para faixa " + safeText(range) + ".");
+            return;
+        }
+        result.put(micronutrient, round2(dose));
+    }
+
+    private Optional<String> classifyCorrectiveMicronutrientRange(AppliedMicronutrient micronutrient,
+                                                                  Double value,
+                                                                  Optional<DiverseContentRangeModel> diverseRange) {
+        if (micronutrient == null || value == null || diverseRange.isEmpty()) return Optional.empty();
+        DiverseContentRangeModel r = diverseRange.get();
+        ThreeLevelCriterion criterion = switch (micronutrient) {
+            case B -> new ThreeLevelCriterion(r.getBoron_low_f(), r.getBoron_medium_i(), r.getBoron_medium_f(), r.getBoron_hight_i());
+            case Cu -> new ThreeLevelCriterion(r.getCopper_low_f(), r.getCopper_medium_i(), r.getCopper_medium_f(), r.getCopper_hight_i());
+            case Fe -> new ThreeLevelCriterion(r.getIron_low_f(), r.getIron_medium_i(), r.getIron_medium_f(), r.getIron_hight_i());
+            case Mn -> new ThreeLevelCriterion(r.getManganese_low_f(), r.getManganese_medium_i(), r.getManganese_medium_f(), r.getManganese_hight_i());
+            case Zn -> new ThreeLevelCriterion(r.getZinc_low_f(), r.getZinc_medium_i(), r.getZinc_medium_f(), r.getZinc_hight_i());
+            default -> null;
+        };
+        return Optional.ofNullable(classifyThreeLevelRangeName(value, criterion));
+    }
+
+    private void addNotCalculatedCorrectiveRow(List<CorrectiveFertilizationRow> rows, String attribute, String warning) {
+        rows.add(CorrectiveFertilizationRow.builder()
+                .correctedAttribute(attribute)
+                .need("Não calculada")
+                .suggestedSource("Não sugerida")
+                .dose(null)
+                .doseUnit("kg/ha")
+                .calculationMemory("Dados insuficientes ou critério não encontrado para cálculo corretivo.")
+                .technicalWarning(warning)
+                .build());
+    }
+
+    private Optional<FormulatedMineralFertilizerModel> selectClosestZeroNFormulated(UserModel user,
+                                                                                    FertilizerSourceOption sourceOption,
+                                                                                    Double recommendedP2O5,
+                                                                                    Double recommendedK2O) {
+        double targetRatio = recommendedP2O5 / recommendedK2O;
+        return selectFormulatedFertilizers(user, sourceOption).stream()
+                .filter(f -> f != null && !positive(f.getN()) && positive(f.getP2O5()) && positive(f.getK2O()))
+                .min(Comparator.comparing(f -> Math.abs((f.getP2O5() / f.getK2O()) - targetRatio)));
+    }
+
+    private SimpleMineralFertilizerModel selectSimpleByNameOrNutrient(UserModel user,
+                                                                      FertilizerSourceOption sourceOption,
+                                                                      String nameToken,
+                                                                      String nutrient) {
+        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
+        String normalizedToken = normalizeText(nameToken);
+        return fertilizers.stream()
+                .filter(f -> normalizeText(f.getName()).contains(normalizedToken) && positive(concentration(f, nutrient)))
+                .findFirst()
+                .orElseGet(() -> fertilizers.stream()
+                        .filter(f -> positive(concentration(f, nutrient)))
+                        .max(Comparator.comparing(f -> concentration(f, nutrient)))
+                        .orElse(null));
+    }
+
+    private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption) {
+        FertilizerSourceOption resolvedOption = sourceOption != null ? sourceOption : FertilizerSourceOption.BOTH;
+        return switch (resolvedOption) {
+            case PRIVATE -> simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user);
+            case PUBLIC -> simpleMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO);
+            case DEFAULT -> simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO);
+            case BOTH, ALL -> dedup(
+                    dedup(simpleMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByNameAsc(user),
+                            simpleMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByNameAsc(Cargo.USUARIO_SUPREMO),
+                            SimpleMineralFertilizerModel::getId),
+                    simpleMineralFertilizerRepository.findAllByUser_CargoOrderByNameAsc(Cargo.USUARIO_SUPREMO),
+                    SimpleMineralFertilizerModel::getId);
+        };
+    }
+
+    private List<FormulatedMineralFertilizerModel> selectFormulatedFertilizers(UserModel user, FertilizerSourceOption sourceOption) {
+        FertilizerSourceOption resolvedOption = sourceOption != null ? sourceOption : FertilizerSourceOption.BOTH;
+        return switch (resolvedOption) {
+            case PRIVATE -> formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user);
+            case PUBLIC -> formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO);
+            case DEFAULT -> formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO);
+            case BOTH, ALL -> dedup(
+                    dedup(formulatedMineralFertilizerRepository.findAllByUserAndPublicoFalseOrderByIdAsc(user),
+                            formulatedMineralFertilizerRepository.findAllByPublicoTrueAndUser_CargoNotOrderByIdAsc(Cargo.USUARIO_SUPREMO),
+                            FormulatedMineralFertilizerModel::getId),
+                    formulatedMineralFertilizerRepository.findAllByUser_CargoOrderByIdAsc(Cargo.USUARIO_SUPREMO),
+                    FormulatedMineralFertilizerModel::getId);
+        };
+    }
+
+    private Double concentration(SimpleMineralFertilizerModel source, String nutrient) {
+        if (source == null || nutrient == null) return null;
+        return switch (nutrient) {
+            case "P2O5" -> source.getP2O5();
+            case "K2O" -> source.getK2O();
+            case "B" -> source.getB();
+            case "Cu" -> source.getCu();
+            case "Fe" -> source.getFe();
+            case "Mn" -> source.getMn();
+            case "Zn" -> source.getZn();
+            default -> null;
+        };
+    }
+
+    private Double micronutrientConcentration(SimpleMineralFertilizerModel source, AppliedMicronutrient micronutrient) {
+        if (source == null || micronutrient == null) return 0d;
+        return switch (micronutrient) {
+            case B -> source.getB();
+            case Cu -> source.getCu();
+            case Fe -> source.getFe();
+            case Mn -> source.getMn();
+            case Zn -> source.getZn();
+            default -> 0d;
+        };
+    }
+
+    private String micronutrientBalanceSummary(Map<AppliedMicronutrient, Double> recommended,
+                                               SimpleMineralFertilizerModel fte,
+                                               Double fteDoseKgHa) {
+        List<String> parts = new ArrayList<>();
+        for (AppliedMicronutrient micronutrient : List.of(AppliedMicronutrient.B, AppliedMicronutrient.Cu, AppliedMicronutrient.Fe, AppliedMicronutrient.Mn, AppliedMicronutrient.Zn)) {
+            double required = nvl(recommended.get(micronutrient));
+            double applied = fteDoseKgHa * micronutrientConcentration(fte, micronutrient) / 100d;
+            parts.add(micronutrient.name() + " recomendado " + formatNumber(required) + ", aplicado " + formatNumber(applied)
+                    + ", saldo " + formatNumber(applied - required) + " kg/ha");
+        }
+        return String.join("; ", parts);
+    }
+
+    private String balanceWarning(Double recommendedP, Double recommendedK, Double balanceP, Double balanceK) {
+        boolean pOutside = Math.abs(balanceP) > Math.abs(recommendedP) * 0.10d;
+        boolean kOutside = Math.abs(balanceK) > Math.abs(recommendedK) * 0.10d;
+        if (pOutside || kOutside) {
+            return "Saldo final do formulado ultrapassa +/-10%: P2O5 " + formatNumber(balanceP)
+                    + " kg/ha; K2O " + formatNumber(balanceK) + " kg/ha. Complementos foram calculados para saldos negativos; excedentes exigem validação técnica.";
+        }
+        return "Saldo final do formulado dentro de +/-10%: P2O5 " + formatNumber(balanceP)
+                + " kg/ha; K2O " + formatNumber(balanceK) + " kg/ha.";
+    }
+
+    private String formatFormulatedName(FormulatedMineralFertilizerModel fertilizer) {
+        if (fertilizer == null) return "Formulado 00-P2O5-K2O";
+        return String.format(Locale.US, "NPK %.2f-%.2f-%.2f", fertilizer.getN(), fertilizer.getP2O5(), fertilizer.getK2O());
+    }
+
+    private void addPositiveDose(Map<AppliedMicronutrient, Double> doses, AppliedMicronutrient micronutrient, Double dose) {
+        if (positive(dose)) {
+            doses.put(micronutrient, dose);
+        }
+    }
+
+    private boolean betweenInclusive(Double value, Double lower, Double upper) {
+        return value != null && lower != null && upper != null && value >= lower && value <= upper;
+    }
+
+    private boolean positive(Double value) {
+        return value != null && Double.isFinite(value) && value > 0d;
+    }
+
+    private String safeText(String value) {
+        return value == null || value.isBlank() ? "não informada" : value;
+    }
+
+    private double nvl(Double value) {
+        return value == null ? 0d : value;
+    }
+
+    private <T> List<T> dedup(List<T> first, List<T> second, Function<T, Long> id) {
+        Map<Long, T> byId = new LinkedHashMap<>();
+        List<T> withoutId = new ArrayList<>();
+        addDedupItems(byId, withoutId, first, id);
+        addDedupItems(byId, withoutId, second, id);
+        withoutId.addAll(byId.values());
+        return withoutId;
+    }
+
+    private <T> void addDedupItems(Map<Long, T> byId, List<T> withoutId, List<T> items, Function<T, Long> id) {
+        if (items == null) return;
+        for (T item : items) {
+            Long itemId = id.apply(item);
+            if (itemId == null) {
+                withoutId.add(item);
+            } else {
+                byId.putIfAbsent(itemId, item);
+            }
+        }
     }
 
     private SoilChemicalDiagnosisItem findFirstDiagnosis(Map<String, SoilChemicalDiagnosisItem> byAttribute, String token) {

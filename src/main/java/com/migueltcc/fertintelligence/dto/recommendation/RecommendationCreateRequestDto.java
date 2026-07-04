@@ -122,6 +122,26 @@ public class RecommendationCreateRequestDto {
     @JsonAlias({"useBioFertilizer", "usarBiofertilizante", "usarAduboBiologico"})
     private Boolean useBioFertilizer;
 
+    @JsonProperty("adubacaoCorretivaSolo")
+    @JsonAlias({"adubacao_corretiva_solo", "soilCorrectiveFertilization"})
+    private Boolean soilCorrectiveFertilization;
+
+    @JsonProperty("areaIncorporacaoConversaoRecente")
+    @JsonAlias({"area_incorporacao_conversao_recente", "recentNativeOrPastureConversionArea"})
+    private Boolean recentNativeOrPastureConversionArea;
+
+    @JsonProperty("areaDegradadaMaisCincoAnosSemAdubacao")
+    @JsonAlias({"area_degradada_mais_5_anos_sem_adubacao", "degradedAreaMoreThanFiveYearsWithoutFertilization"})
+    private Boolean degradedAreaMoreThanFiveYearsWithoutFertilization;
+
+    @JsonProperty("areaRecuperacaoErosao")
+    @JsonAlias({"area_recuperacao_erosao", "erosionRecoveryArea"})
+    private Boolean erosionRecoveryArea;
+
+    @JsonProperty("areaAltaTecnologiaAltasProdutividades")
+    @JsonAlias({"area_alta_tecnologia_altas_produtividades", "highTechnologyHighProductivityArea"})
+    private Boolean highTechnologyHighProductivityArea;
+
     @JsonProperty("nutriente_referencia_adubo_organico")
     @JsonAlias({"organicFertilizerReferenceNutrient", "nutrienteReferenciaAduboOrganico"})
     private Nutriente organicFertilizerReferenceNutrient;

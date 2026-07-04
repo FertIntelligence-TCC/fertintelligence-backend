@@ -58,6 +58,12 @@ public class SummaryRecommendationReportService {
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
                 report,
+                "Adubação corretiva do solo",
+                TechnicalRecommendationDocumentSupport.section(source, "9. Adubação corretiva"),
+                NOT_CALCULATED);
+
+        TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
+                report,
                 "Recomendação de adubação orgânica",
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
                 "Não aplicável com os dados disponíveis.");

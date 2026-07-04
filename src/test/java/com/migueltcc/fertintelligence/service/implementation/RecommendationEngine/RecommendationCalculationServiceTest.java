@@ -106,6 +106,12 @@ class RecommendationCalculationServiceTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 null);
     }
 
