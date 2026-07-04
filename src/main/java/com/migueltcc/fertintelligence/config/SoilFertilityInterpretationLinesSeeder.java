@@ -33,7 +33,6 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     private final AvailableSRepository availableSRepository;
-    private final KExchangeableContentRepository kExchangeableContentRepository;
     private final SalinityInterpretationRepository salinityInterpretationRepository;
     private final DiverseContentRangeRepository diverseContentRangeRepository;
 
@@ -53,7 +52,6 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
             seedAvailablePResin(table);
             seedAvailablePMehlich(table);
             seedAvailableS(table);
-            seedExchangeableK(table);
             seedSalinity(table);
             seedDiverseRanges(table);
         }
@@ -69,10 +67,6 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
 
     private void seedAvailableS(SoilFertilityInterpretationCriteriaTableModel table) {
         createAvailableSIfNotExists(table);
-    }
-
-    private void seedExchangeableK(SoilFertilityInterpretationCriteriaTableModel table) {
-        createKIfNotExists(table);
     }
 
     private void seedSalinity(SoilFertilityInterpretationCriteriaTableModel table) {
@@ -148,28 +142,6 @@ public class SoilFertilityInterpretationLinesSeeder implements CommandLineRunner
                 .build();
         availableSRepository.save(model);
         log.info("✅ Linha S criada: tabela={} faixa={}-{}", table.getId(), 0.0, 12.0);
-    }
-
-    private void createKIfNotExists(SoilFertilityInterpretationCriteriaTableModel table) {
-        if (table == null) return;
-        if (kExchangeableContentRepository.findByTable(table).isPresent()) {
-            log.info("↩️ Linha já existe: K tabela={}", table.getId());
-            return;
-        }
-
-        KExchangeableContentModel model = KExchangeableContentModel.builder()
-                .table(table)
-                .kContentTooLow(0.0)
-                .kContentLowI(0.0)
-                .kContentLowF(30.0)
-                .kContentMediumI(30.0)
-                .kContentMediumF(60.0)
-                .kContentHighI(60.0)
-                .kContentHighF(90.0)
-                .kContentTooHigh(90.0)
-                .build();
-        kExchangeableContentRepository.save(model);
-        log.info("✅ Linha K criada: tabela={} faixa={}-{}", table.getId(), 0.0, 90.0);
     }
 
     private void createSalinityIfNotExists(SoilFertilityInterpretationCriteriaTableModel table) {

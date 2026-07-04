@@ -4,7 +4,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.repository.DiverseContentRangeRepository;
-import com.migueltcc.fertintelligence.repository.KExchangeableContentRepository;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -24,8 +23,7 @@ class RecommendationCalculationServiceTest {
                 .build();
         DiverseContentRangeModel range = micronutrientRange(table);
         DiverseContentRangeRepository diverseContentRangeRepository = diverseContentRangeRepositoryReturningByTableId(range);
-        KExchangeableContentRepository kExchangeableContentRepository = emptyKExchangeableContentRepository();
-        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepository, kExchangeableContentRepository);
+        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepository);
         FertilityAnalysisExtractModel fertility = FertilityAnalysisExtractModel.builder()
                 .boro(0.4d)
                 .cobre(0.8d)
@@ -49,8 +47,7 @@ class RecommendationCalculationServiceTest {
                 .build();
         DiverseContentRangeModel range = micronutrientRange(table);
         DiverseContentRangeRepository diverseContentRangeRepository = diverseContentRangeRepositoryReturningByEntity(range);
-        KExchangeableContentRepository kExchangeableContentRepository = emptyKExchangeableContentRepository();
-        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepository, kExchangeableContentRepository);
+        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepository);
         FertilityAnalysisExtractModel fertility = FertilityAnalysisExtractModel.builder()
                 .boro(0.4d)
                 .cobre(0.8d)
@@ -85,8 +82,7 @@ class RecommendationCalculationServiceTest {
     }
 
     private RecommendationCalculationService serviceWithRepositories(
-            DiverseContentRangeRepository diverseContentRangeRepository,
-            KExchangeableContentRepository kExchangeableContentRepository) {
+            DiverseContentRangeRepository diverseContentRangeRepository) {
         return new RecommendationCalculationService(
                 null,
                 null,
@@ -100,7 +96,6 @@ class RecommendationCalculationServiceTest {
                 null,
                 null,
                 diverseContentRangeRepository,
-                kExchangeableContentRepository,
                 null,
                 null,
                 null,
@@ -193,24 +188,4 @@ class RecommendationCalculationServiceTest {
                 });
     }
 
-    private KExchangeableContentRepository emptyKExchangeableContentRepository() {
-        return (KExchangeableContentRepository) Proxy.newProxyInstance(
-                KExchangeableContentRepository.class.getClassLoader(),
-                new Class<?>[]{KExchangeableContentRepository.class},
-                (proxy, method, args) -> {
-                    if (Optional.class.equals(method.getReturnType())) {
-                        return Optional.empty();
-                    }
-                    if (List.class.isAssignableFrom(method.getReturnType())) {
-                        return List.of();
-                    }
-                    if (boolean.class.equals(method.getReturnType())) {
-                        return false;
-                    }
-                    if (method.getReturnType().isPrimitive()) {
-                        return 0;
-                    }
-                    return null;
-                });
-    }
 }

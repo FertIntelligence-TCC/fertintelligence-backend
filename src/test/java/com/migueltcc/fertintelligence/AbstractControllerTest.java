@@ -109,9 +109,6 @@ public abstract class AbstractControllerTest {
     protected DiverseContentRangeRepository diverseContentRangeRepository;
 
     @MockitoBean
-    protected KExchangeableContentRepository kExchangeableContentRepository;
-
-    @MockitoBean
     protected SalinityInterpretationRepository salinityInterpretationRepository;
 
     @MockitoBean

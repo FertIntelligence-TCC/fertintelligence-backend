@@ -47,7 +47,6 @@ public class SoilFertilityInterpretationCriteriaTableModel {
      * - Critérios para interpretar salinidade do solo;
      * - Critério para interpretar fertilidade do solo (P disponível com extrator Mehlich-1);
      * - Critério para interpretar fertilidade do solo (P disponivel com extrator Resina);
-     * - Critério para interpretar fertilidade do solo (K);
      * - Critério para interpretar fertilidade do solo (S);
      * - Faixas de interpretação para diversos teores.
      */
@@ -71,10 +70,6 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
     private DiverseContentRangeModel diverseContentRange;
-
-    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private KExchangeableContentModel kExchangeableContent;
 
     @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude

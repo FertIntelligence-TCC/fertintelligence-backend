@@ -96,24 +96,6 @@ public class DiverseContentRangeResponseDto {
     @JsonProperty("maior_teor_magnesio")
     private Double magnesium_too_hight;
 
-    // --- POTÁSSIO ---
-    @JsonProperty("menor_teor_potassio")
-    private Double potassium_too_low;
-    @JsonProperty("teor_inicial_baixo_potassio")
-    private Double potassium_low_i;
-    @JsonProperty("teor_final_baixo_potassio")
-    private Double potassium_low_f;
-    @JsonProperty("teor_inicial_medio_potassio")
-    private Double potassium_medium_i;
-    @JsonProperty("teor_final_medio_potassio")
-    private Double potassium_medium_f;
-    @JsonProperty("teor_inicial_alto_potassio")
-    private Double potassium_hight_i;
-    @JsonProperty("teor_final_alto_potassio")
-    private Double potassium_hight_f;
-    @JsonProperty("maior_teor_potassio")
-    private Double potassium_too_hight;
-
     // --- SÓDIO ---
     @JsonProperty("menor_teor_sodio")
     private Double sodium_too_low;

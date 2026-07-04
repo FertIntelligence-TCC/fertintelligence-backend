@@ -290,22 +290,6 @@ BEGIN
             ALTER COLUMN unidade SET NOT NULL;
     END IF;
 
-    IF to_regclass('public.teores_trocaveis_de_potassio') IS NOT NULL THEN
-        ALTER TABLE teores_trocaveis_de_potassio
-            ADD COLUMN IF NOT EXISTS unidade VARCHAR(20);
-
-        ALTER TABLE teores_trocaveis_de_potassio
-            ALTER COLUMN unidade SET DEFAULT 'mmolc/dm³';
-
-        UPDATE teores_trocaveis_de_potassio
-        SET unidade = 'mmolc/dm³'
-        WHERE unidade IS NULL
-           OR LOWER(REPLACE(unidade, '³', '3')) IN ('mg/dm3', 'cmolc/dm3', 'mmolc/dm3', 'mmolc_per_dm3');
-
-        ALTER TABLE teores_trocaveis_de_potassio
-            ALTER COLUMN unidade SET NOT NULL;
-    END IF;
-
     IF to_regclass('public.criterios_de_interpretacao_da_salinidade_do_solo') IS NOT NULL THEN
         ALTER TABLE criterios_de_interpretacao_da_salinidade_do_solo
             ADD COLUMN IF NOT EXISTS unidade_ras VARCHAR(30);

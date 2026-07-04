@@ -33,7 +33,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.AvailableSModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KExchangeableContentModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
@@ -76,7 +75,6 @@ public class RecommendationCalculationService {
     private final CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository;
     private final CropFoliarAnalysisInterpretationTableLineRepository cropFoliarAnalysisInterpretationTableLineRepository;
     private final DiverseContentRangeRepository diverseContentRangeRepository;
-    private final KExchangeableContentRepository kExchangeableContentRepository;
     private final AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository;
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
@@ -96,7 +94,6 @@ public class RecommendationCalculationService {
                                             CropFoliarAnalysisInterpretationTableRepository cropFoliarAnalysisInterpretationTableRepository,
                                             CropFoliarAnalysisInterpretationTableLineRepository cropFoliarAnalysisInterpretationTableLineRepository,
                                             DiverseContentRangeRepository diverseContentRangeRepository,
-                                            KExchangeableContentRepository kExchangeableContentRepository,
                                             AvailablePMehlich1ExtractorRepository availablePMehlich1ExtractorRepository,
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
@@ -119,7 +116,6 @@ public class RecommendationCalculationService {
         this.cropFoliarAnalysisInterpretationTableRepository = cropFoliarAnalysisInterpretationTableRepository;
         this.cropFoliarAnalysisInterpretationTableLineRepository = cropFoliarAnalysisInterpretationTableLineRepository;
         this.diverseContentRangeRepository = diverseContentRangeRepository;
-        this.kExchangeableContentRepository = kExchangeableContentRepository;
         this.availablePMehlich1ExtractorRepository = availablePMehlich1ExtractorRepository;
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
@@ -1211,7 +1207,6 @@ public class RecommendationCalculationService {
 
         FertilityAnalysisExtractModel fertility = fertilityExtract.get();
         Optional<DiverseContentRangeModel> diverseRange = findDiverseContentRangeByTable(table);
-        Optional<KExchangeableContentModel> kRange = kExchangeableContentRepository.findByTable(table);
 
         if (diverseRange.isEmpty()) {
             warnings.add("Não foi encontrada linha de faixas diversas na tabela de interpretação da fertilidade do solo selecionada.");
@@ -1230,7 +1225,7 @@ public class RecommendationCalculationService {
         }
 
         diagnosis.add(classifyPhosphorus(fertility, physicalAnalysis, table, warnings));
-        diagnosis.add(classifyPotassium(fertility, kRange, diverseRange, warnings));
+        diagnosis.add(classifyPotassium(fertility, warnings));
         diagnosis.add(classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
                 r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
                 "Cálcio trocável classificado pelas faixas diversas da tabela selecionada."));
@@ -1340,22 +1335,13 @@ public class RecommendationCalculationService {
     }
 
     private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,
-                                                       Optional<KExchangeableContentModel> kRange,
-                                                       Optional<DiverseContentRangeModel> diverseRange,
                                                        List<String> warnings) {
         if (fertility.getPotassio() == null) {
             return missingValue("Potássio (K) trocável", "Não há valor de potássio trocável no extrato de fertilidade.");
         }
-        if (kRange.isPresent()) {
-            KExchangeableContentModel k = kRange.get();
-            return classifyRange("Potássio (K) trocável", fertility.getPotassio(), normalizeUnit(k.getUnit(), fertilityUnit(fertility.getUnidadePotassio())),
-                    new RangeCriterion(k.getKContentTooLow(), k.getKContentLowI(), k.getKContentLowF(), k.getKContentMediumI(), k.getKContentMediumF(), k.getKContentHighI(), k.getKContentHighF(), k.getKContentTooHigh()),
-                    "Potássio (K) trocável classificado em mmolc/dm³ pelo critério específico de K da tabela selecionada.");
-        }
-        warnings.add("Não foi encontrada linha específica de potássio; foi tentada a faixa diversa de potássio.");
-        return classifyDiverseRange("Potássio (K) trocável", fertility.getPotassio(), fertilityUnit(fertility.getUnidadePotassio()), diverseRange,
-                r -> new RangeCriterion(r.getPotassium_too_low(), r.getPotassium_low_i(), r.getPotassium_low_f(), r.getPotassium_medium_i(), r.getPotassium_medium_f(), r.getPotassium_hight_i(), r.getPotassium_hight_f(), r.getPotassium_too_hight()),
-                "Potássio (K) trocável classificado em mmolc/dm³ pelas faixas diversas da tabela selecionada.");
+        String observation = "Não há critério auxiliar ativo para classificar potássio trocável na tabela selecionada.";
+        warnings.add(observation);
+        return notClassified("Potássio (K) trocável", fertility.getPotassio(), fertilityUnit(fertility.getUnidadePotassio()), observation);
     }
 
     private SoilChemicalDiagnosisItem classifySulfur(FertilityAnalysisExtractModel fertility,
