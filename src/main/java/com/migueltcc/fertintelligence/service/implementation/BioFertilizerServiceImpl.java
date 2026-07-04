@@ -78,6 +78,11 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
+                .dataTomadaPreco(dto.getDataTomadaPreco())
+                .precoSaco5Kg(dto.getPrecoSaco5Kg())
+                .precoSaco25Kg(dto.getPrecoSaco25Kg())
+                .precoSaco50Kg(dto.getPrecoSaco50Kg())
+                .precoSaco1000Kg(dto.getPrecoSaco1000Kg())
                 .build();
         List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
@@ -181,6 +186,11 @@ public class BioFertilizerServiceImpl implements BioFertilizerService {
         }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
+        if (dto.getDataTomadaPreco() != null) fertilizer.setDataTomadaPreco(dto.getDataTomadaPreco());
+        if (dto.getPrecoSaco5Kg() != null) fertilizer.setPrecoSaco5Kg(dto.getPrecoSaco5Kg());
+        if (dto.getPrecoSaco25Kg() != null) fertilizer.setPrecoSaco25Kg(dto.getPrecoSaco25Kg());
+        if (dto.getPrecoSaco50Kg() != null) fertilizer.setPrecoSaco50Kg(dto.getPrecoSaco50Kg());
+        if (dto.getPrecoSaco1000Kg() != null) fertilizer.setPrecoSaco1000Kg(dto.getPrecoSaco1000Kg());
 
         BioFertilizerModel saved = repository.save(fertilizer);
         if (idsFotos != null) {

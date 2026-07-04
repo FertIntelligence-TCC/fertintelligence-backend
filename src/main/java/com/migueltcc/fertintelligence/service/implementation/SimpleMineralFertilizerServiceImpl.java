@@ -62,6 +62,11 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
                 .publico(Boolean.TRUE.equals(createRequestDto.getPublico()))
                 .observation(createRequestDto.getObservation())
                 .source(createRequestDto.getSource())
+                .dataTomadaPreco(createRequestDto.getDataTomadaPreco())
+                .precoSaco5Kg(createRequestDto.getPrecoSaco5Kg())
+                .precoSaco25Kg(createRequestDto.getPrecoSaco25Kg())
+                .precoSaco50Kg(createRequestDto.getPrecoSaco50Kg())
+                .precoSaco1000Kg(createRequestDto.getPrecoSaco1000Kg())
                 .build();
         List<String> idsFotos = copyIdsFotos(createRequestDto.getIdsFotos());
 
@@ -147,6 +152,11 @@ public class SimpleMineralFertilizerServiceImpl implements SimpleMineralFertiliz
         }
         if (dto.getObservation() != null) fertilizer.setObservation(dto.getObservation());
         if (dto.getSource() != null) fertilizer.setSource(dto.getSource());
+        if (dto.getDataTomadaPreco() != null) fertilizer.setDataTomadaPreco(dto.getDataTomadaPreco());
+        if (dto.getPrecoSaco5Kg() != null) fertilizer.setPrecoSaco5Kg(dto.getPrecoSaco5Kg());
+        if (dto.getPrecoSaco25Kg() != null) fertilizer.setPrecoSaco25Kg(dto.getPrecoSaco25Kg());
+        if (dto.getPrecoSaco50Kg() != null) fertilizer.setPrecoSaco50Kg(dto.getPrecoSaco50Kg());
+        if (dto.getPrecoSaco1000Kg() != null) fertilizer.setPrecoSaco1000Kg(dto.getPrecoSaco1000Kg());
 
         SimpleMineralFertilizerModel updated = simpleMineralFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {

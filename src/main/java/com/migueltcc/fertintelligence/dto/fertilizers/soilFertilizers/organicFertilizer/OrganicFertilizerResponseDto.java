@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -90,7 +92,22 @@ public class OrganicFertilizerResponseDto {
     @JsonProperty("publico")
     private Boolean publico;
 
-    @Schema(example = "João Agrônomo")
+    @JsonProperty("data_tomada_preco")
+    private LocalDate dataTomadaPreco;
+
+    @JsonProperty("preco_saco_5kg")
+    private BigDecimal precoSaco5Kg;
+
+    @JsonProperty("preco_saco_25kg")
+    private BigDecimal precoSaco25Kg;
+
+    @JsonProperty("preco_saco_50kg")
+    private BigDecimal precoSaco50Kg;
+
+    @JsonProperty("preco_saco_1000kg")
+    private BigDecimal precoSaco1000Kg;
+
+
     @JsonProperty("ids_fotos")
     private List<String> idsFotos;
 

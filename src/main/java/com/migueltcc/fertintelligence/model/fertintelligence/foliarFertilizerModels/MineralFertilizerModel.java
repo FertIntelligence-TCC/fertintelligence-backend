@@ -6,6 +6,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @NoArgsConstructor
@@ -34,6 +36,21 @@ public class MineralFertilizerModel {
 
     @Column(name = "FONTE", columnDefinition = "TEXT")
     private String source;
+
+    @Column(name = "DATA_TOMADA_PRECO")
+    private LocalDate dataTomadaPreco;
+
+    @Column(name = "PRECO_SACO_5KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco5Kg;
+
+    @Column(name = "PRECO_SACO_25KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco25Kg;
+
+    @Column(name = "PRECO_SACO_50KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco50Kg;
+
+    @Column(name = "PRECO_SACO_1000KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco1000Kg;
 
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
@@ -127,6 +144,11 @@ public class MineralFertilizerModel {
                 .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
+                .dataTomadaPreco(this.dataTomadaPreco)
+                .precoSaco5Kg(this.precoSaco5Kg)
+                .precoSaco25Kg(this.precoSaco25Kg)
+                .precoSaco50Kg(this.precoSaco50Kg)
+                .precoSaco1000Kg(this.precoSaco1000Kg)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }

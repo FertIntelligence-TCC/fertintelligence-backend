@@ -13,6 +13,7 @@ import java.util.List;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -41,6 +42,21 @@ public class FormulatedMineralFertilizerModel {
 
     @Column(name = "FONTE", columnDefinition = "TEXT")
     private String source;
+
+    @Column(name = "DATA_TOMADA_PRECO")
+    private LocalDate dataTomadaPreco;
+
+    @Column(name = "PRECO_SACO_5KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco5Kg;
+
+    @Column(name = "PRECO_SACO_25KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco25Kg;
+
+    @Column(name = "PRECO_SACO_50KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco50Kg;
+
+    @Column(name = "PRECO_SACO_1000KG", precision = 19, scale = 2)
+    private BigDecimal precoSaco1000Kg;
 
     @Embedded
     @AttributeOverrides({
@@ -126,6 +142,11 @@ public class FormulatedMineralFertilizerModel {
                 .idsFotos(List.of())
                 .observation(this.observation)
                 .source(this.source)
+                .dataTomadaPreco(this.dataTomadaPreco)
+                .precoSaco5Kg(this.precoSaco5Kg)
+                .precoSaco25Kg(this.precoSaco25Kg)
+                .precoSaco50Kg(this.precoSaco50Kg)
+                .precoSaco1000Kg(this.precoSaco1000Kg)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
