@@ -2281,12 +2281,15 @@ public class RecommendationCalculationService {
         private Double providedN;
         private Double providedP2O5;
         private Double providedK2O;
+        private Double providedS;
         private Double balanceN;
         private Double balanceP2O5;
         private Double balanceK2O;
+        private Double balanceS;
         private Double deficitN;
         private Double deficitP2O5;
         private Double deficitK2O;
+        private Double deficitS;
         private String doseUnitMode;
         private String doseUnitLabel;
         private Double gramsPerLinearMeter;

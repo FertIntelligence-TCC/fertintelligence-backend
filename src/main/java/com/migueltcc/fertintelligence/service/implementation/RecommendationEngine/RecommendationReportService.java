@@ -454,7 +454,8 @@ public class RecommendationReportService {
         if (result.getFertilizationRecommendationRows() == null) return List.of();
         return result.getFertilizationRecommendationRows().stream()
                 .filter(row -> row.getPhase() != null)
-                .filter(row -> phase.equalsIgnoreCase(row.getPhase()))
+                .filter(row -> phase.equalsIgnoreCase(row.getPhase())
+                        || row.getPhase().toLowerCase(Locale.ROOT).contains(phase.toLowerCase(Locale.ROOT)))
                 .toList();
     }
 

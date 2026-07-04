@@ -284,12 +284,14 @@ final class TechnicalRecommendationDocumentSupport {
         for (List<String> row : tableRows(section)) {
             if (row.size() < 4) continue;
             String phase = row.get(0);
+            String nutrients = row.get(1);
             String fertilizer = row.get(2);
             String quantity = row.get(3);
+            String application = row.size() > 4 ? row.get(4) : null;
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             String itemName = removeId(fertilizer);
             if (items.containsKey(safe(itemName))) continue;
-            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, null, phase, null));
+            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), phase, null));
         }
     }
 
@@ -359,6 +361,28 @@ final class TechnicalRecommendationDocumentSupport {
     private static String formattedFormulatedGroup(Double nitrogen, Double p2o5, Double k2o) {
         String formula = formatPercentForFormula(nitrogen) + "-" + formatPercentForFormula(p2o5) + "-" + formatPercentForFormula(k2o);
         return "Formulado NPK " + formula;
+    }
+
+    private static String shoppingNutrientGroup(String nutrients, String application) {
+        List<String> parts = new ArrayList<>();
+        if (nutrients != null && !nutrients.isBlank()) {
+            parts.add("Nutrientes: " + nutrients);
+        }
+        String balance = extractBalance(application);
+        if (balance != null) {
+            parts.add("Saldos: " + balance);
+        }
+        return parts.isEmpty() ? null : String.join("; ", parts);
+    }
+
+    private static String extractBalance(String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = normalize(value);
+        int index = normalized.indexOf("saldo:");
+        if (index < 0) return null;
+        String original = value.substring(index + "saldo:".length()).trim();
+        int end = original.indexOf(';');
+        return end >= 0 ? original.substring(0, end).trim() : original;
     }
 
     private static String formatPercentForFormula(Double value) {

@@ -38,15 +38,15 @@ class CoverageFormulatedFertilizerRecommendationService {
         for (CoverageNpkRecommendation coverage : coverageRecommendations.stream()
                 .sorted(Comparator.comparing(CoverageNpkRecommendation::coverageOrder, Comparator.nullsLast(Integer::compareTo)))
                 .toList()) {
-            if (!hasCompletePositiveNpk(coverage)) {
+            if (!hasPositiveNk(coverage)) {
                 addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder())
-                        + " sem recomendação positiva completa de N, P2O5 e K2O; seleção de formulado NPK não foi forçada.");
+                        + " sem recomendação positiva de N ou K2O; seleção de formulado N-00-K2O não foi forçada.");
                 continue;
             }
 
             FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult selection =
                     formulatedFertilizerSelectionService.selectCandidates(
-                            user, sourceOption, coverage.requiredN(), coverage.requiredP2O5(), coverage.requiredK2O());
+                            user, sourceOption, coverage.requiredN(), 0d, coverage.requiredK2O());
             if (selection.technicalMessage() != null) {
                 addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder()) + ": " + selection.technicalMessage());
             }
@@ -56,8 +56,20 @@ class CoverageFormulatedFertilizerRecommendationService {
 
             FormulatedFertilizerRatioService.RatioCalculationResult recommendedRatio =
                     formulatedFertilizerRatioService.calculateRecommendedRatio(
-                            coverage.requiredN(), coverage.requiredP2O5(), coverage.requiredK2O());
-            rows.addAll(selection.candidates().stream()
+                            coverage.requiredN(), 0d, coverage.requiredK2O());
+            List<FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate> candidates = selection.candidates();
+            if (isPositive(coverage.requiredS())) {
+                List<FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate> sulfurCandidates = candidates.stream()
+                        .filter(candidate -> candidate.formulated() != null && nvl(candidate.formulated().getS()) > 0d)
+                        .toList();
+                if (!sulfurCandidates.isEmpty()) {
+                    candidates = sulfurCandidates;
+                } else {
+                    addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder())
+                            + " possui S pendente, mas nenhum formulado N-00-K2O selecionável contém S; complementar com fonte simples cadastrada.");
+                }
+            }
+            rows.addAll(candidates.stream()
                     .limit(2)
                     .map(candidate -> toRow(candidate, recommendedRatio.ratio(), coverage, crop))
                     .toList());
@@ -86,7 +98,7 @@ class CoverageFormulatedFertilizerRecommendationService {
                 .p2o5Percent(fertilizer != null ? fertilizer.getP2O5() : null)
                 .k2oPercent(fertilizer != null ? fertilizer.getK2O() : null)
                 .requiredN(round2(coverage.requiredN()))
-                .requiredP2O5(round2(coverage.requiredP2O5()))
+                .requiredP2O5(0d)
                 .requiredK2O(round2(coverage.requiredK2O()))
                 .relationUsed(formatRelation(recommendedRatio))
                 .selectionType(selectionType(candidate))
@@ -96,12 +108,15 @@ class CoverageFormulatedFertilizerRecommendationService {
                 .providedN(candidate.providedN())
                 .providedP2O5(candidate.providedP2O5())
                 .providedK2O(candidate.providedK2O())
+                .providedS(round2(candidate.fertilizerDoseKgHa() * nvl(fertilizer != null ? fertilizer.getS() : null) / 100d))
                 .balanceN(candidate.balanceN())
                 .balanceP2O5(candidate.balanceP2O5())
                 .balanceK2O(candidate.balanceK2O())
+                .balanceS(round2(candidate.fertilizerDoseKgHa() * nvl(fertilizer != null ? fertilizer.getS() : null) / 100d - nvl(coverage.requiredS())))
                 .deficitN(candidate.deficitN())
                 .deficitP2O5(candidate.deficitP2O5())
                 .deficitK2O(candidate.deficitK2O())
+                .deficitS(round2(Math.max(0d, nvl(coverage.requiredS()) - candidate.fertilizerDoseKgHa() * nvl(fertilizer != null ? fertilizer.getS() : null) / 100d)))
                 .doseUnitMode(doseUnitMetadata.doseUnitMode())
                 .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
                 .gramsPerLinearMeter(resolvedMode == CropSpacingMode.PLANTS_PER_LINEAR_METER
@@ -112,11 +127,9 @@ class CoverageFormulatedFertilizerRecommendationService {
                 .build();
     }
 
-    private boolean hasCompletePositiveNpk(CoverageNpkRecommendation coverage) {
+    private boolean hasPositiveNk(CoverageNpkRecommendation coverage) {
         return coverage != null
-                && isPositive(coverage.requiredN())
-                && isPositive(coverage.requiredP2O5())
-                && isPositive(coverage.requiredK2O());
+                && (isPositive(coverage.requiredN()) || isPositive(coverage.requiredK2O()));
     }
 
     private boolean isPositive(Double value) {
@@ -166,21 +179,24 @@ class CoverageFormulatedFertilizerRecommendationService {
         String relationObservation = " Relação recomendada usada: " + formatRelation(recommendedRatio)
                 + "; relação do formulado: " + formatRelation(candidate.relation()) + ".";
         String requiredObservation = String.format(Locale.US,
-                " Cobertura %s com N %.2f kg/ha, P2O5 %.2f kg/ha e K2O %.2f kg/ha.",
-                coverageLabel(coverage.coverageOrder()), coverage.requiredN(), coverage.requiredP2O5(), coverage.requiredK2O());
+                " Cobertura %s com N %.2f kg/ha, P2O5 %.2f kg/ha, K2O %.2f kg/ha e S %.2f kg/ha. P2O5 não é recomendado em cobertura de cultura anual.",
+                coverageLabel(coverage.coverageOrder()), coverage.requiredN(), 0d, coverage.requiredK2O(), coverage.requiredS());
         String doseObservation = candidate.maximizationFallback()
                 ? " Dose calculada pelo nutriente limitante " + candidate.limitingNutrient()
                 + ", maximizando o atendimento sem ultrapassar esse nutriente."
-                : " Dose calculada por 100 * (N + P2O5 + K2O recomendados na cobertura) / (N% + P2O5% + K2O% do formulado).";
+                : " Dose calculada por 100 * (N + K2O recomendados na cobertura) / (N% + K2O% do formulado).";
         String balanceObservation = String.format(Locale.US,
                 " Fornecimento: N %.2f, P2O5 %.2f, K2O %.2f kg/ha; déficits remanescentes: N %.2f, P2O5 %.2f, K2O %.2f kg/ha.",
                 candidate.providedN(), candidate.providedP2O5(), candidate.providedK2O(),
                 candidate.deficitN(), candidate.deficitP2O5(), candidate.deficitK2O());
+        String sulfurObservation = isPositive(coverage.requiredS())
+                ? String.format(Locale.US, " S pendente para cobertura: %.2f kg/ha; usar S do formulado quando houver e complementar com fonte simples cadastrada se necessário.", coverage.requiredS())
+                : "";
         String spacingObservation = spacingDose.technicalWarning() != null
                 ? " Conversão por espaçamento não calculada: " + spacingDose.technicalWarning()
                 : " Conversão por espaçamento calculada conforme cadastro da cultura.";
         String candidateMessage = candidate.technicalMessage() != null ? " " + candidate.technicalMessage() : "";
-        return selectionObservation + relationObservation + requiredObservation + doseObservation + balanceObservation + spacingObservation + candidateMessage;
+        return selectionObservation + relationObservation + requiredObservation + doseObservation + balanceObservation + sulfurObservation + spacingObservation + candidateMessage;
     }
 
     private String coverageLabel(Integer coverageOrder) {
@@ -194,6 +210,10 @@ class CoverageFormulatedFertilizerRecommendationService {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
-    record CoverageNpkRecommendation(Integer coverageOrder, Double requiredN, Double requiredP2O5, Double requiredK2O) {
+    private double nvl(Double value) {
+        return value == null || !Double.isFinite(value) ? 0d : value;
+    }
+
+    record CoverageNpkRecommendation(Integer coverageOrder, Double requiredN, Double requiredP2O5, Double requiredK2O, Double requiredS) {
     }
 }
