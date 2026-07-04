@@ -24,15 +24,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
 @Service
 class GypsumCalculationService {
 
-    private static final String UNIT = "t/ha";
+    private static final String UNIT = "kg/ha";
     private static final String CRITERION =
-            "Faixas diversas da tabela de interpretação para cálcio, alumínio e saturação por alumínio; dose quantitativa de gessagem não modelada no backend atual.";
+            "Camadas subsuperficiais avaliadas por Ca2+ < 5 mmolc/dm³, Al3+ > 3 mmolc/dm³ ou m% > 20; NG = 5 * maior teor de argila em g/kg nas camadas 21-40 e 41-60 cm.";
 
     private final DiverseContentRangeRepository diverseContentRangeRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
@@ -43,8 +44,9 @@ class GypsumCalculationService {
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
     }
 
-    RecommendationCalculationService.GypsumRequirementResult calculate(Optional<FertilityAnalysisExtractModel> fertilityExtract,
-                                                                       PhysicalAnalysisExtractModel physicalAnalysis,
+    RecommendationCalculationService.GypsumRequirementResult calculate(List<FertilityAnalysisExtractModel> fertilityExtracts,
+                                                                       List<PhysicalAnalysisExtractModel> physicalAnalysisExtracts,
+                                                                       boolean hasSubsurfaceSaturationExtract,
                                                                        CropFertilizationTableModel cropFertilizationTable,
                                                                        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                                                        UserModel user,
@@ -52,98 +54,68 @@ class GypsumCalculationService {
                                                                        List<String> warnings) {
         Map<String, Double> inputValues = new LinkedHashMap<>();
         List<String> gypsumWarnings = new ArrayList<>();
-        FertilityAnalysisExtractModel fertility = fertilityExtract.orElse(null);
+        List<FertilityAnalysisExtractModel> fertilityAnalyses = fertilityExtracts != null ? fertilityExtracts : List.of();
+        List<PhysicalAnalysisExtractModel> physicalAnalyses = physicalAnalysisExtracts != null ? physicalAnalysisExtracts : List.of();
 
-        if (fertility == null || physicalAnalysis == null) {
-            return notEvaluatedByMissingDepth(fertility, physicalAnalysis, inputValues, gypsumWarnings, warnings);
+        if (fertilityAnalyses.isEmpty() || physicalAnalyses.isEmpty() || !hasSubsurfaceSaturationExtract) {
+            return notEvaluatedByMissingDepth(fertilityAnalyses, physicalAnalyses, hasSubsurfaceSaturationExtract,
+                    inputValues, gypsumWarnings, warnings);
         }
 
-        if (fertility == null) {
-            gypsumWarnings.add("Nenhum extrato de fertilidade foi encontrado para avaliar necessidade de gessagem.");
+        Double clay = physicalAnalyses.stream()
+                .map(PhysicalAnalysisExtractModel::getTeorArgila)
+                .filter(Objects::nonNull)
+                .max(Double::compareTo)
+                .orElse(null);
+
+        inputValues.put("Maior teor de argila subsuperficial (g/kg)", clay);
+        for (FertilityAnalysisExtractModel fertility : fertilityAnalyses) {
+            String suffix = " " + formatDepth(fertility);
+            inputValues.put("Cálcio" + suffix + " (" + fertilityUnit(fertility.getUnidadeCalcio()) + ")", fertility.getCalcio());
+            inputValues.put("Alumínio" + suffix + " (" + fertilityUnit(fertility.getUnidadeAluminio()) + ")", fertility.getAluminio());
+            inputValues.put("Saturação por alumínio" + suffix + " (%)", fertility.getSaturacaoAluminioM());
+        }
+
+        if (clay == null) {
+            gypsumWarnings.add("Gessagem não calculada porque as camadas subsuperficiais não possuem teor de argila informado.");
             warnings.addAll(gypsumWarnings);
             return RecommendationCalculationService.GypsumRequirementResult.builder()
                     .needed(null)
                     .criterion(CRITERION)
                     .inputValues(inputValues)
                     .unit(UNIT)
-                    .justification("Gessagem não avaliada por ausência de extrato de fertilidade.")
+                    .justification("Não foi possível calcular NG sem teor de argila nas camadas 21-40 e/ou 41-60 cm.")
                     .warnings(gypsumWarnings)
                     .build();
         }
 
-        inputValues.put("Cálcio (" + fertilityUnit(fertility.getUnidadeCalcio()) + ")", fertility.getCalcio());
-        inputValues.put("Alumínio (" + fertilityUnit(fertility.getUnidadeAluminio()) + ")", fertility.getAluminio());
-        inputValues.put("Saturação por alumínio (%)", fertility.getSaturacaoAluminioM());
-        inputValues.put("CTC efetiva (" + fertilityUnit(fertility.getUnidadeCtcEfetiva()) + ")", fertility.getCtcEfetiva());
-        inputValues.put("CTC pH 7,0 (" + fertilityUnit(fertility.getUnidadeCtcPh7()) + ")", fertility.getCtcPh7());
-        inputValues.put("Argila (" + physicalUnit(physicalAnalysis != null ? physicalAnalysis.getUnidadeTeorArgila() : null) + ")", physicalAnalysis != null ? physicalAnalysis.getTeorArgila() : null);
-        inputValues.put("Enxofre (mg/dm³)", fertility.getEnxofre());
-        inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
-        inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
-        inputValues.put("Profundidade inicial do extrato físico (cm)", extractInitialDepth(physicalAnalysis));
-        inputValues.put("Profundidade final do extrato físico (cm)", extractFinalDepth(physicalAnalysis));
-
-        if (extractInitialDepth(fertility) == null || extractFinalDepth(fertility) == null) {
-            gypsumWarnings.add("Profundidade do extrato de fertilidade não disponível; o backend não inferiu camada para gessagem.");
-        }
-
-        Optional<DiverseContentRangeModel> diverseRange = diverseContentRangeRepository.findByTable(soilInterpretationTable);
-        if (diverseRange.isEmpty()) {
-            gypsumWarnings.add("Não há faixas diversas cadastradas para avaliar cálcio, alumínio e saturação por alumínio na gessagem.");
+        boolean hasAnyIndicator = fertilityAnalyses.stream().anyMatch(fertility ->
+                fertility.getCalcio() != null || fertility.getAluminio() != null || fertility.getSaturacaoAluminioM() != null);
+        if (!hasAnyIndicator) {
+            gypsumWarnings.add("Dados insuficientes para avaliar Ca2+, Al3+ ou m% nas camadas subsuperficiais.");
             warnings.addAll(gypsumWarnings);
             return RecommendationCalculationService.GypsumRequirementResult.builder()
                     .needed(null)
                     .criterion(CRITERION)
                     .inputValues(inputValues)
                     .unit(UNIT)
-                    .justification("Gessagem não calculada por ausência de critério técnico cadastrado para os indicadores disponíveis.")
+                    .justification("Gessagem não calculada porque nenhum indicador crítico estava disponível nas camadas subsuperficiais.")
                     .warnings(gypsumWarnings)
                     .build();
         }
 
-        RecommendationCalculationService.SoilChemicalDiagnosisItem calcium = classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
-                r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
-                "Cálcio usado como indicador para necessidade de gessagem.");
-        RecommendationCalculationService.SoilChemicalDiagnosisItem aluminum = classifyDiverseRange("Alumínio", fertility.getAluminio(), fertilityUnit(fertility.getUnidadeAluminio()), diverseRange,
-                r -> new RangeCriterion(r.getAluminum_too_low(), r.getAluminum_low_i(), r.getAluminum_low_f(), r.getAluminum_medium_i(), r.getAluminum_medium_f(), r.getAluminum_hight_i(), r.getAluminum_hight_f(), r.getAluminum_too_hight()),
-                "Alumínio usado como indicador para necessidade de gessagem.");
-        RecommendationCalculationService.SoilChemicalDiagnosisItem aluminumSaturation = classifyDiverseRange("Saturação por alumínio", fertility.getSaturacaoAluminioM(), "%", diverseRange,
-                r -> new RangeCriterion(r.getAluminum_saturation_too_low(), r.getAluminum_saturation_low_i(), r.getAluminum_saturation_low_f(), r.getAluminum_saturation_medium_i(), r.getAluminum_saturation_medium_f(), r.getAluminum_saturation_hight_i(), r.getAluminum_saturation_hight_f(), r.getAluminum_saturation_too_hight()),
-                "Saturação por alumínio usada como indicador para necessidade de gessagem.");
-
-        boolean calciumIndicatesNeed = isInterpretation(calcium, "Muito baixo", "Baixo");
-        boolean aluminumIndicatesNeed = isInterpretation(aluminum, "Alto", "Muito alto");
-        boolean aluminumSaturationIndicatesNeed = isInterpretation(aluminumSaturation, "Alto", "Muito alto");
-        boolean hasClassifiedIndicator = calcium.getInterpretation() != null
-                || aluminum.getInterpretation() != null
-                || aluminumSaturation.getInterpretation() != null;
-
-        if (!hasClassifiedIndicator) {
-            gypsumWarnings.add("Dados ou critérios insuficientes para classificar cálcio, alumínio ou saturação por alumínio.");
-            warnings.addAll(gypsumWarnings);
-            return RecommendationCalculationService.GypsumRequirementResult.builder()
-                    .needed(null)
-                    .criterion(CRITERION)
-                    .inputValues(inputValues)
-                    .unit(UNIT)
-                    .justification("Gessagem não calculada porque nenhum indicador pôde ser classificado com os dados e critérios cadastrados.")
-                    .warnings(gypsumWarnings)
-                    .build();
-        }
-
+        boolean calciumIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getCalcio() != null && f.getCalcio() < 5d);
+        boolean aluminumIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getAluminio() != null && f.getAluminio() > 3d);
+        boolean aluminumSaturationIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getSaturacaoAluminioM() != null && f.getSaturacaoAluminioM() > 20d);
         boolean needed = calciumIndicatesNeed || aluminumIndicatesNeed || aluminumSaturationIndicatesNeed;
-        Double dose = needed ? null : 0d;
-        if (needed) {
-            gypsumWarnings.add("Gessagem foi indicada pelos critérios disponíveis, mas a dose quantitativa não está modelada no backend atual.");
-        }
+        Double dose = needed ? 5d * clay : 0d;
+        Double sulfurEquivalent = dose * 15d / 100d;
 
         String justification = needed
-                ? "Gessagem indicada por pelo menos um indicador crítico: Ca=" + safeInterpretation(calcium)
-                + ", Al=" + safeInterpretation(aluminum)
-                + ", m%=" + safeInterpretation(aluminumSaturation) + "."
-                : "Gessagem não indicada pelos indicadores classificados: Ca=" + safeInterpretation(calcium)
-                + ", Al=" + safeInterpretation(aluminum)
-                + ", m%=" + safeInterpretation(aluminumSaturation) + ".";
+                ? "Gessagem indicada por pelo menos uma condição crítica subsuperficial: "
+                + criticalConditionSummary(calciumIndicatesNeed, aluminumIndicatesNeed, aluminumSaturationIndicatesNeed)
+                + ". Dose calculada por NG = 5 * " + formatNumber(clay) + " = " + formatNumber(dose) + " kg/ha."
+                : "Gessagem não indicada: nenhuma camada subsuperficial apresentou Ca2+ < 5 mmolc/dm³, Al3+ > 3 mmolc/dm³ ou m% > 20.";
 
         GypsumSourceSelection sourceSelection = selectGypsumSource(user, sourceOption, dose, gypsumWarnings);
 
@@ -160,29 +132,30 @@ class GypsumCalculationService {
                 .commercialDoseUnit(sourceSelection.commercialDoseUnit())
                 .sourceJustification(sourceSelection.justification())
                 .sourceLimitations(sourceSelection.limitations())
+                .sulfurEquivalent(sulfurEquivalent)
+                .applicationRecommendation(applicationRecommendation(dose, sulfurEquivalent))
+                .lowDoseAlternativeApplicable(needed && isLowDose(dose, sulfurEquivalent))
                 .justification(justification)
                 .warnings(gypsumWarnings)
                 .build();
     }
 
-    private RecommendationCalculationService.GypsumRequirementResult notEvaluatedByMissingDepth(FertilityAnalysisExtractModel fertility,
-                                                                                                PhysicalAnalysisExtractModel physicalAnalysis,
+    private RecommendationCalculationService.GypsumRequirementResult notEvaluatedByMissingDepth(List<FertilityAnalysisExtractModel> fertilityAnalyses,
+                                                                                                List<PhysicalAnalysisExtractModel> physicalAnalyses,
+                                                                                                boolean hasSubsurfaceSaturationExtract,
                                                                                                 Map<String, Double> inputValues,
                                                                                                 List<String> gypsumWarnings,
                                                                                                 List<String> warnings) {
-        String warning = "Gessagem não avaliada porque as análises selecionadas não possuem camada 20-40 cm suficiente.";
+        String warning = "Não é possível recomendar gessagem sem análises das camadas subsuperficiais; a camada 0-20 cm foi considerada apenas para manejo de adubação da cultura e calagem.";
         gypsumWarnings.add(warning);
-        if (fertility == null) {
-            gypsumWarnings.add("Análise de fertilidade selecionada sem extrato/camada que compreenda 20-40 cm.");
-        } else {
-            inputValues.put("Profundidade inicial do extrato de fertilidade (cm)", extractInitialDepth(fertility));
-            inputValues.put("Profundidade final do extrato de fertilidade (cm)", extractFinalDepth(fertility));
+        if (fertilityAnalyses == null || fertilityAnalyses.isEmpty()) {
+            gypsumWarnings.add("Análise de fertilidade sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
         }
-        if (physicalAnalysis == null) {
-            gypsumWarnings.add("Análise física selecionada sem extrato/camada que compreenda 20-40 cm.");
-        } else {
-            inputValues.put("Profundidade inicial do extrato físico (cm)", extractInitialDepth(physicalAnalysis));
-            inputValues.put("Profundidade final do extrato físico (cm)", extractFinalDepth(physicalAnalysis));
+        if (physicalAnalyses == null || physicalAnalyses.isEmpty()) {
+            gypsumWarnings.add("Análise física sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
+        }
+        if (!hasSubsurfaceSaturationExtract) {
+            gypsumWarnings.add("Análise de extrato de saturação sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
         }
         warnings.addAll(gypsumWarnings);
         return RecommendationCalculationService.GypsumRequirementResult.builder()
@@ -192,6 +165,35 @@ class GypsumCalculationService {
                 .justification(warning)
                 .warnings(gypsumWarnings)
                 .build();
+    }
+
+    private String applicationRecommendation(Double dose, Double sulfurEquivalent) {
+        if (dose == null || dose <= 0d) {
+            return "Não aplicar gesso agrícola.";
+        }
+        if (isLowDose(dose, sulfurEquivalent)) {
+            return "Dose baixa: aplicar na adubação de plantio, junto com o formulado na linha. S equivalente = gesso agrícola kg/ha * 15 / 100; fontes alternativas possíveis: sulfato de amônio com 22% S e superfosfato simples com 11% S.";
+        }
+        if (dose > 400d && dose < 2000d) {
+            return "Aplicar todo o gesso a lanço em área total imediatamente antes do plantio, sem necessidade de incorporação; se necessário, fazer gradagem.";
+        }
+        return "Aplicar 30 a 90 dias antes do plantio, junto com o calcário, e incorporar com aração e gradagem.";
+    }
+
+    private boolean isLowDose(Double dose, Double sulfurEquivalent) {
+        return dose != null && sulfurEquivalent != null && (dose < 400d || sulfurEquivalent < 60d);
+    }
+
+    private String criticalConditionSummary(boolean calcium, boolean aluminum, boolean aluminumSaturation) {
+        List<String> conditions = new ArrayList<>();
+        if (calcium) conditions.add("Ca2+ < 5 mmolc/dm³");
+        if (aluminum) conditions.add("Al3+ > 3 mmolc/dm³");
+        if (aluminumSaturation) conditions.add("m% > 20");
+        return String.join(", ", conditions);
+    }
+
+    private String formatDepth(FertilityAnalysisExtractModel fertility) {
+        return "(" + formatNumber(extractInitialDepth(fertility)) + "-" + formatNumber(extractFinalDepth(fertility)) + " cm)";
     }
 
     private GypsumSourceSelection selectGypsumSource(UserModel user,

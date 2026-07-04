@@ -191,9 +191,15 @@ public class RecommendationReportService {
         report.append("- Necessidade de gessagem: ").append(formatGypsumNeed(gypsum.getNeeded())).append("\n");
         report.append("- Critério usado: ").append(safe(gypsum.getCriterion())).append("\n");
         report.append("- Dose de gesso: ").append(formatDose(gypsum.getCalculatedRequirement(), gypsum.getUnit())).append("\n");
+        report.append("- Enxofre equivalente: ").append(formatDose(gypsum.getSulfurEquivalent(), "kg/ha de S")).append("\n");
+        report.append("- Recomendação de aplicação: ").append(safe(gypsum.getApplicationRecommendation())).append("\n");
         report.append("- Fonte comercial: ").append(safe(gypsum.getSourceName())).append("\n");
         report.append("- Tipo da fonte: ").append(safe(gypsum.getSourceType())).append("\n");
         report.append("- Dose comercial: ").append(formatDose(gypsum.getCommercialDose(), gypsum.getCommercialDoseUnit())).append("\n");
+        if (Boolean.TRUE.equals(gypsum.getLowDoseAlternativeApplicable())) {
+            report.append("- Alternativa com sulfato de amônio 22% S: ").append(formatDose(gypsum.getSulfurEquivalent() / 0.22d, "kg/ha")).append("\n");
+            report.append("- Alternativa com superfosfato simples 11% S: ").append(formatDose(gypsum.getSulfurEquivalent() / 0.11d, "kg/ha")).append("\n");
+        }
         report.append("- Justificativa: ").append(safe(gypsum.getJustification())).append("\n");
         report.append("- Justificativa da fonte: ").append(safe(gypsum.getSourceJustification())).append("\n");
         report.append("- Limitações da fonte: ").append(safe(gypsum.getSourceLimitations())).append("\n");

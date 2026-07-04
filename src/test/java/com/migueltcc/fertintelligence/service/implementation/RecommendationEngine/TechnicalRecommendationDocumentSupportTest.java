@@ -57,7 +57,7 @@ class TechnicalRecommendationDocumentSupportTest {
                                 .build()));
 
         assertThat(item(items, "Borax").getTypeGroup()).isEqualTo("Micronutriente - B");
-        assertThat(item(items, "Borax").getPhase()).isEqualTo(TechnicalRecommendationDocumentSupport.NOT_APPLICABLE);
+        assertThat(item(items, "Borax").getPhase()).isEqualTo("Plantio");
         assertThat(item(items, "Borax").getLocalizedDose()).isEqualTo("0.50 g/m linear");
         assertThat(item(items, "04-14-08").getPhase()).isEqualTo("Plantio");
         assertThat(item(items, "04-14-08").getLocalizedDose()).isEqualTo("12.50 g/m linear");
@@ -77,6 +77,32 @@ class TechnicalRecommendationDocumentSupportTest {
 
         assertThat(item(items, "Ureia").getPhase()).isEqualTo("Plantio");
         assertThat(item(items, "Cloreto de potássio").getPhase()).isEqualTo("Cobertura 1 - K");
+    }
+
+    @Test
+    void collectShoppingItemsIncludesGypsumAndLowDoseSulfurAlternatives() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 8. Gessagem
+
+                        - Necessidade de gessagem: Sim.
+                        - Dose de gesso: 300.00 kg/ha
+                        - Enxofre equivalente: 45.00 kg/ha de S
+                        - Recomendação de aplicação: Dose baixa: aplicar na adubação de plantio.
+                        - Dose comercial: 300.00 kg/ha
+                        - Alternativa com sulfato de amônio 22% S: 204.55 kg/ha
+                        - Alternativa com superfosfato simples 11% S: 409.09 kg/ha
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        assertThat(item(items, "Gesso agrícola").getKgHa()).isEqualTo(300.0);
+        assertThat(item(items, "Sulfato de amônio 22% S").getKgHa()).isEqualTo(204.55);
+        assertThat(item(items, "Sulfato de amônio 22% S").getTypeGroup()).isEqualTo("Alternativa de S para gessagem em dose baixa");
+        assertThat(item(items, "Superfosfato simples 11% S").getKgHa()).isEqualTo(409.09);
     }
 
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(

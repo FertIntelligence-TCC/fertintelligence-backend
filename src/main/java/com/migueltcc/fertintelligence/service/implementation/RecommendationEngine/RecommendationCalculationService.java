@@ -219,10 +219,12 @@ public class RecommendationCalculationService {
         List<String> correctionMessages = buildCorrectionMessages(inputs.fertilityExtract(), Optional.ofNullable(inputs.saturationExtractAnalysis()), warnings);
         LimingRequirementResult limingRequirement = limingRequirementCalculator.calculate(
                 dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
-        Optional<PhysicalAnalysisExtractModel> gypsumPhysicalExtract = selectGypsumPhysicalExtract(inputs.physicalAnalysisExtracts());
-        Optional<FertilityAnalysisExtractModel> gypsumFertilityExtract = selectGypsumFertilityExtract(inputs.fertilityAnalysisExtracts());
+        List<PhysicalAnalysisExtractModel> gypsumPhysicalExtracts = selectGypsumPhysicalExtracts(inputs.physicalAnalysisExtracts());
+        List<FertilityAnalysisExtractModel> gypsumFertilityExtracts = selectGypsumFertilityExtracts(inputs.fertilityAnalysisExtracts());
+        boolean hasGypsumSaturationExtract = hasGypsumSaturationExtract(inputs.saturationAnalysisExtracts());
         GypsumRequirementResult gypsumRequirement = gypsumCalculationService.calculate(
-                gypsumFertilityExtract, gypsumPhysicalExtract.orElse(null), inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
+                gypsumFertilityExtracts, gypsumPhysicalExtracts, hasGypsumSaturationExtract,
+                inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
         List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
@@ -556,16 +558,21 @@ public class RecommendationCalculationService {
         return selected;
     }
 
-    private Optional<PhysicalAnalysisExtractModel> selectGypsumPhysicalExtract(List<PhysicalAnalysisExtractModel> extracts) {
+    private List<PhysicalAnalysisExtractModel> selectGypsumPhysicalExtracts(List<PhysicalAnalysisExtractModel> extracts) {
         return (extracts != null ? extracts : List.<PhysicalAnalysisExtractModel>of()).stream()
-                .filter(this::coversTwentyToForty)
-                .findFirst();
+                .filter(this::coversGypsumSubsurfaceLayer)
+                .toList();
     }
 
-    private Optional<FertilityAnalysisExtractModel> selectGypsumFertilityExtract(List<FertilityAnalysisExtractModel> extracts) {
+    private List<FertilityAnalysisExtractModel> selectGypsumFertilityExtracts(List<FertilityAnalysisExtractModel> extracts) {
         return (extracts != null ? extracts : List.<FertilityAnalysisExtractModel>of()).stream()
-                .filter(this::coversTwentyToForty)
-                .findFirst();
+                .filter(this::coversGypsumSubsurfaceLayer)
+                .toList();
+    }
+
+    private boolean hasGypsumSaturationExtract(List<SaturationExtractAnalysisExtractModel> extracts) {
+        return (extracts != null ? extracts : List.<SaturationExtractAnalysisExtractModel>of()).stream()
+                .anyMatch(this::coversGypsumSubsurfaceLayer);
     }
 
     private <T> List<T> joinWithLegacy(List<T> extracts, T legacyExtract) {
@@ -622,12 +629,16 @@ public class RecommendationCalculationService {
         return coversZeroToTwenty(depthStart(extract), depthEnd(extract));
     }
 
-    private boolean coversTwentyToForty(PhysicalAnalysisExtractModel extract) {
-        return coversTwentyToForty(depthStart(extract), depthEnd(extract));
+    private boolean coversGypsumSubsurfaceLayer(PhysicalAnalysisExtractModel extract) {
+        return coversGypsumSubsurfaceLayer(depthStart(extract), depthEnd(extract));
     }
 
-    private boolean coversTwentyToForty(FertilityAnalysisExtractModel extract) {
-        return coversTwentyToForty(depthStart(extract), depthEnd(extract));
+    private boolean coversGypsumSubsurfaceLayer(FertilityAnalysisExtractModel extract) {
+        return coversGypsumSubsurfaceLayer(depthStart(extract), depthEnd(extract));
+    }
+
+    private boolean coversGypsumSubsurfaceLayer(SaturationExtractAnalysisExtractModel extract) {
+        return coversGypsumSubsurfaceLayer(depthStart(extract), depthEnd(extract));
     }
 
     private boolean coversZeroToTwenty(Integer initialDepth, Integer finalDepth) {
@@ -636,10 +647,10 @@ public class RecommendationCalculationService {
                 && finalDepth >= 20;
     }
 
-    private boolean coversTwentyToForty(Integer initialDepth, Integer finalDepth) {
+    private boolean coversGypsumSubsurfaceLayer(Integer initialDepth, Integer finalDepth) {
         return initialDepth != null && finalDepth != null
-                && initialDepth <= 20
-                && finalDepth >= 40;
+                && ((initialDepth <= 21 && finalDepth >= 40)
+                || (initialDepth <= 41 && finalDepth >= 60));
     }
 
     private Optional<Double> extractPhValue(Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -2055,6 +2066,9 @@ public class RecommendationCalculationService {
         private String commercialDoseUnit;
         private String sourceJustification;
         private String sourceLimitations;
+        private Double sulfurEquivalent;
+        private String applicationRecommendation;
+        private Boolean lowDoseAlternativeApplicable;
         private String justification;
         private List<String> warnings;
     }

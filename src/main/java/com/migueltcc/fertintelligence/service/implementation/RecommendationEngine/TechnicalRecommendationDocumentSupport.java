@@ -151,7 +151,9 @@ final class TechnicalRecommendationDocumentSupport {
                 "Necessidade de calagem ajustada",
                 "Dose efetiva registrada pelo cálculo",
                 "Dose corrigida por PRNT");
-        addCorrectiveItem(items, source, "Gesso", section(source, "8. Gessagem"), "Dose comercial");
+        String gypsumSection = section(source, "8. Gessagem");
+        addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, "Dose comercial", "Dose de gesso");
+        addGypsumSulfurAlternativeItems(items, gypsumSection);
         addDirectMicronutrientItems(items, micronutrientFertilizerLines);
         addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines);
         addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines);
@@ -241,6 +243,40 @@ final class TechnicalRecommendationDocumentSupport {
                     return;
                 }
             }
+        }
+    }
+
+    private static void addPositiveCorrectiveItem(Map<String, ShoppingItem> items, String itemName, String section, String... labels) {
+        if (section == null || section.isBlank()) return;
+        for (String label : labels) {
+            for (String line : section.split("\\R")) {
+                if (!normalize(line).contains(normalize(label))) continue;
+                Optional<Double> kgHa = extractKgHa(line);
+                if (kgHa.isPresent() && kgHa.get() > 0d) {
+                    merge(items, itemName, kgHa.get(), null, null, null);
+                    return;
+                }
+            }
+        }
+    }
+
+    private static void addGypsumSulfurAlternativeItems(Map<String, ShoppingItem> items, String section) {
+        if (section == null || section.isBlank()) return;
+        addGypsumAlternativeItem(items, section, "Sulfato de amônio 22% S", "Alternativa de S para gessagem em dose baixa",
+                "Alternativa com sulfato de amônio 22% S");
+        addGypsumAlternativeItem(items, section, "Superfosfato simples 11% S", "Alternativa de S para gessagem em dose baixa",
+                "Alternativa com superfosfato simples 11% S");
+    }
+
+    private static void addGypsumAlternativeItem(Map<String, ShoppingItem> items,
+                                                 String section,
+                                                 String itemName,
+                                                 String typeGroup,
+                                                 String label) {
+        for (String line : section.split("\\R")) {
+            if (!normalize(line).contains(normalize(label))) continue;
+            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, "Plantio", null));
+            return;
         }
     }
 
