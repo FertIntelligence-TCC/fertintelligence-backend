@@ -32,6 +32,18 @@ final class TechnicalRecommendationDocumentSupport {
     private static final String PIT_MODE = "PIT";
     private static final String LINEAR_METER_LABEL = "g/m linear";
     private static final String PIT_LABEL = "g/cova";
+    private static final String FLAG_REQUIRED = "obrigatorio";
+    private static final String FLAG_OPTIONAL = "opcional";
+    private static final String FLAG_ALTERNATIVE = "alternativa";
+    private static final String FLAG_COMPLEMENT = "complemento";
+    private static final String OPTION_FORMULATED = "opcao_1_formulados";
+    private static final String OPTION_SIMPLE_SOURCES = "opcao_2_fontes_simples";
+    private static final String OPTION_COVERAGE_FORMULATED = "cobertura_opcao_1";
+    private static final String OPTION_COVERAGE_SIMPLE_SOURCES = "cobertura_opcao_2";
+    private static final String OPTION_CORRECTIVE = "adubacao_corretiva";
+    private static final String OPTION_GYPSUM = "gessagem";
+    private static final String OPTION_SULFUR = "enxofre";
+    private static final String OPTION_COMPLEMENT = "complemento";
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
@@ -147,12 +159,13 @@ final class TechnicalRecommendationDocumentSupport {
             List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
         String source = recommendation.getTechnicalReport();
-        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"),
+        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"), "calagem", "calagem", FLAG_REQUIRED,
                 "Necessidade de calagem ajustada",
                 "Dose efetiva registrada pelo cálculo",
                 "Dose corrigida por PRNT");
         String gypsumSection = section(source, "8. Gessagem");
-        addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, "Dose comercial", "Dose de gesso");
+        addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, "gessagem", OPTION_GYPSUM, FLAG_OPTIONAL,
+                "Dose comercial", "Dose de gesso");
         addGypsumSulfurAlternativeItems(items, gypsumSection);
         addSoilCorrectiveFertilizationItems(items, section(source, "9. Adubação corretiva"));
         addDirectMicronutrientItems(items, micronutrientFertilizerLines);
@@ -234,28 +247,41 @@ final class TechnicalRecommendationDocumentSupport {
         return "nao informado".equals(normalized);
     }
 
-    private static void addCorrectiveItem(Map<String, ShoppingItem> items, String source, String itemName, String section, String... labels) {
+    private static void addCorrectiveItem(Map<String, ShoppingItem> items,
+                                          String source,
+                                          String itemName,
+                                          String section,
+                                          String sectionKey,
+                                          String option,
+                                          String flag,
+                                          String... labels) {
         if (section.isBlank()) return;
         for (String label : labels) {
             for (String line : section.split("\\R")) {
                 if (!normalize(line).contains(normalize(label))) continue;
                 Optional<Double> kgHa = extractKgHa(line);
                 if (kgHa.isPresent()) {
-                    merge(items, itemName, kgHa.get(), null, null, null);
+                    merge(items, itemName, kgHa.get(), null, sectionKey, option, flag, null, null);
                     return;
                 }
             }
         }
     }
 
-    private static void addPositiveCorrectiveItem(Map<String, ShoppingItem> items, String itemName, String section, String... labels) {
+    private static void addPositiveCorrectiveItem(Map<String, ShoppingItem> items,
+                                                  String itemName,
+                                                  String section,
+                                                  String sectionKey,
+                                                  String option,
+                                                  String flag,
+                                                  String... labels) {
         if (section == null || section.isBlank()) return;
         for (String label : labels) {
             for (String line : section.split("\\R")) {
                 if (!normalize(line).contains(normalize(label))) continue;
                 Optional<Double> kgHa = extractKgHa(line);
                 if (kgHa.isPresent() && kgHa.get() > 0d) {
-                    merge(items, itemName, kgHa.get(), null, null, null);
+                    merge(items, itemName, kgHa.get(), null, sectionKey, option, flag, null, null);
                     return;
                 }
             }
@@ -277,7 +303,7 @@ final class TechnicalRecommendationDocumentSupport {
                                                  String label) {
         for (String line : section.split("\\R")) {
             if (!normalize(line).contains(normalize(label))) continue;
-            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, "Plantio", null));
+            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, "enxofre", OPTION_SULFUR, FLAG_ALTERNATIVE, "Plantio", null));
             return;
         }
     }
@@ -293,7 +319,9 @@ final class TechnicalRecommendationDocumentSupport {
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             String itemName = removeId(fertilizer);
             if (items.containsKey(safe(itemName))) continue;
-            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), phase, null));
+            String sectionKey = normalize(phase).contains("cobertura") ? "cobertura_opcao_2" : "plantio_opcao_2";
+            String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_SIMPLE_SOURCES;
+            extractKgHa(quantity).ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), sectionKey, option, FLAG_ALTERNATIVE, phase, null));
         }
     }
 
@@ -307,7 +335,7 @@ final class TechnicalRecommendationDocumentSupport {
             String itemName = removeId(sourceName);
             extractKgHa(dose).ifPresent(kgHa -> {
                 if (kgHa > 0d) {
-                    merge(items, itemName, kgHa, "Adubação corretiva do solo", attribute, null);
+                    merge(items, itemName, kgHa, "Adubação corretiva do solo", "adubacao_corretiva", OPTION_CORRECTIVE, FLAG_OPTIONAL, attribute, null);
                 }
             });
         }
@@ -323,7 +351,7 @@ final class TechnicalRecommendationDocumentSupport {
             if (!normalize(unit).contains("kg/ha")) continue;
             String itemName = removeId(sourceName);
             if (items.containsKey(safe(itemName))) continue;
-            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, row.get(0), null));
+            parseDecimal(dose).ifPresent(kgHa -> merge(items, itemName, kgHa, null, "fontes_alternativas", OPTION_COMPLEMENT, FLAG_COMPLEMENT, row.get(0), null));
         }
     }
 
@@ -338,6 +366,9 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(line.getFertilizerName()),
                     line.getFertilizerDoseKgHa(),
                     "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
+                    "micronutrientes",
+                    OPTION_COMPLEMENT,
+                    FLAG_COMPLEMENT,
                     "Plantio",
                     localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
@@ -354,6 +385,9 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(line.getFertilizerName()),
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    "plantio_opcao_1",
+                    OPTION_FORMULATED,
+                    FLAG_ALTERNATIVE,
                     line.getPhase(),
                     localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
@@ -371,6 +405,9 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(line.getFertilizerName()),
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(line.getNitrogenPercent(), line.getP2o5Percent(), line.getK2oPercent()),
+                    "cobertura_opcao_1",
+                    OPTION_COVERAGE_FORMULATED,
+                    FLAG_ALTERNATIVE,
                     phase,
                     localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
         }
@@ -445,11 +482,23 @@ final class TechnicalRecommendationDocumentSupport {
         return label == null || label.isBlank() ? defaultLabel : label;
     }
 
-    private static void merge(Map<String, ShoppingItem> items, String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
-        String itemName = safe(name);
-        ShoppingItem existing = items.get(itemName);
+    private static void merge(Map<String, ShoppingItem> items,
+                              String name,
+                              Double kgHa,
+                              String typeGroup,
+                              String section,
+                              String option,
+                              String itemFlag,
+                              String phase,
+                              String localizedDose) {
+        String itemName = cleanNullable(name);
+        if (itemName == null) {
+            return;
+        }
+        String key = normalize(itemName) + "|" + normalize(section) + "|" + normalize(option) + "|" + normalize(itemFlag);
+        ShoppingItem existing = items.get(key);
         if (existing == null) {
-            items.put(itemName, new ShoppingItem(itemName, kgHa, typeGroup, phase, localizedDose));
+            items.put(key, new ShoppingItem(itemName, kgHa, typeGroup, section, option, itemFlag, phase, localizedDose));
             return;
         }
         existing.addKgHa(kgHa);
@@ -540,6 +589,13 @@ final class TechnicalRecommendationDocumentSupport {
         return value == null ? null : value.replaceAll("\\s*\\(ID\\s+\\d+\\)", "").trim();
     }
 
+    private static String cleanNullable(String value) {
+        if (value == null || value.isBlank() || looksUnavailable(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private static String normalize(String value) {
         if (value == null) return "";
         String noAccent = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
@@ -601,14 +657,27 @@ final class TechnicalRecommendationDocumentSupport {
         private final String name;
         private Double kgHa;
         private String typeGroup;
+        private String section;
+        private String option;
+        private String itemFlag;
         private String phase;
         private String localizedDose;
         private String opportunityCostDecision;
 
-        ShoppingItem(String name, Double kgHa, String typeGroup, String phase, String localizedDose) {
+        ShoppingItem(String name,
+                     Double kgHa,
+                     String typeGroup,
+                     String section,
+                     String option,
+                     String itemFlag,
+                     String phase,
+                     String localizedDose) {
             this.name = name;
             this.kgHa = kgHa;
             this.typeGroup = typeGroup;
+            this.section = section;
+            this.option = option;
+            this.itemFlag = itemFlag;
             this.phase = phase;
             this.localizedDose = localizedDose;
         }
@@ -622,19 +691,31 @@ final class TechnicalRecommendationDocumentSupport {
         }
 
         String getTypeGroup() {
-            return typeGroup == null || typeGroup.isBlank() ? NOT_APPLICABLE : typeGroup;
+            return typeGroup == null || typeGroup.isBlank() ? null : typeGroup;
+        }
+
+        String getSection() {
+            return section == null || section.isBlank() ? null : section;
+        }
+
+        String getOption() {
+            return option == null || option.isBlank() ? null : option;
+        }
+
+        String getItemFlag() {
+            return itemFlag == null || itemFlag.isBlank() ? null : itemFlag;
         }
 
         String getPhase() {
-            return phase == null || phase.isBlank() ? NOT_APPLICABLE : phase;
+            return phase == null || phase.isBlank() ? null : phase;
         }
 
         String getLocalizedDose() {
-            return localizedDose == null || localizedDose.isBlank() ? NOT_APPLICABLE : localizedDose;
+            return localizedDose == null || localizedDose.isBlank() ? null : localizedDose;
         }
 
         String getOpportunityCostDecision() {
-            return opportunityCostDecision == null || opportunityCostDecision.isBlank() ? NOT_APPLICABLE : opportunityCostDecision;
+            return opportunityCostDecision == null || opportunityCostDecision.isBlank() ? null : opportunityCostDecision;
         }
 
         void addKgHa(Double value) {

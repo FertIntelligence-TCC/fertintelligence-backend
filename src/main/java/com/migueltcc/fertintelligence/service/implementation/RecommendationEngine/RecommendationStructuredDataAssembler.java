@@ -15,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -39,27 +41,34 @@ public class RecommendationStructuredDataAssembler {
 
     public List<RecommendationTableSectionDto> generalSections(String report) {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
-        sections.add(section(report, "2. Dados utilizados", "Dados utilizados"));
-        sections.add(section(report, "3. Diagnóstico químico", CHEMICAL_DIAGNOSIS_TITLE));
-        sections.add(section(report, "4. Diagnóstico físico", "Diagnóstico físico"));
-        sections.add(section(report, "5. Diagnóstico de salinidade/sodicidade", "Diagnóstico de salinidade/sodicidade"));
-        sections.add(section(report, "6. Diagnóstico foliar", FOLIAR_DIAGNOSIS_TITLE));
-        sections.add(section(report, "9. Adubação corretiva", "Adubação corretiva"));
-        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
+        sections.add(section(report, "2. Dados utilizados", "Dados utilizados", "dados_utilizados", null, null));
+        sections.add(section(report, "3. Diagnóstico químico", CHEMICAL_DIAGNOSIS_TITLE, "diagnostico_quimico", null, null));
+        sections.add(section(report, "4. Diagnóstico físico", "Diagnóstico físico", "diagnostico_fisico", null, null));
+        sections.add(section(report, "5. Diagnóstico de salinidade/sodicidade", "Diagnóstico de salinidade/sodicidade", "diagnostico_salinidade_sodicidade", null, null));
+        sections.add(section(report, "6. Diagnóstico foliar", FOLIAR_DIAGNOSIS_TITLE, "diagnostico_foliar", null, null));
+        sections.add(section(report, "9. Adubação corretiva", "Adubação corretiva", "adubacao_corretiva", "adubacao_corretiva", "opcional"));
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - fontes simples no plantio", "plantio_opcao_2", "opcao_2_fontes_simples", "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - fontes simples", "cobertura_opcao_2", "cobertura_opcao_2", "alternativa"));
+        sections.add(section(report, "13. Fertilizantes recomendados", "Fontes selecionadas", "fertilizantes_recomendados", null, null));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
+        sections.add(section(report, "15. Memória de cálculo", "Memória de cálculo", "memoria_calculo", null, null));
         return nonEmpty(sections);
     }
 
     public List<RecommendationTableSectionDto> summarySections(RecommendationModel recommendation) {
         String report = report(recommendation);
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
-        sections.add(section(report, "10. Adubação de plantio", "Recomendações de N, P2O5 e K2O - plantio"));
-        sections.add(section(report, "11. Adubação de cobertura", "Recomendações de N, P2O5 e K2O - cobertura"));
-        sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados"));
-        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - fontes simples no plantio", "plantio_opcao_2", "opcao_2_fontes_simples", "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - fontes simples", "cobertura_opcao_2", "cobertura_opcao_2", "alternativa"));
+        sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados", "fertilizantes_recomendados", null, null));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes orgânicas, organominerais e micronutrientes"),
                 null,
-                "Fontes orgânicas, organominerais e micronutrientes"));
-        sections.add(section(report, "12. Balanço nutricional", "Balanço nutricional"));
+                "Fontes orgânicas, organominerais e micronutrientes",
+                "fontes_alternativas",
+                "complemento",
+                "complemento"));
+        sections.add(section(report, "12. Balanço nutricional", "Balanço nutricional", "balanco_nutricional", null, null));
         return nonEmpty(sections);
     }
 
@@ -83,6 +92,9 @@ public class RecommendationStructuredDataAssembler {
                         .inputName(item.getName())
                         .typeGroup(item.getTypeGroup())
                         .phase(item.getPhase())
+                        .section(item.getSection())
+                        .option(item.getOption())
+                        .itemFlag(item.getItemFlag())
                         .quantityKgHa(item.getKgHa())
                         .quantityPerHectare(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
                         .localizedUnit(item.getLocalizedDose())
@@ -103,7 +115,7 @@ public class RecommendationStructuredDataAssembler {
                 observations.add(trimmed.substring(2).trim());
             }
         }
-        return observations;
+        return deduplicate(observations);
     }
 
     private RecommendationTableSectionDto directLineSection(RecommendationModel recommendation) {
@@ -120,7 +132,7 @@ public class RecommendationStructuredDataAssembler {
                     value(line.getFertilizerName()),
                     value(line.getRelationUsed()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()),
-                    value(line.getTechnicalObservation())));
+                    displayText(shortText(line.getTechnicalObservation()))));
         }
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : coverage) {
             rows.add(List.of(
@@ -128,15 +140,19 @@ public class RecommendationStructuredDataAssembler {
                     value(line.getFertilizerName()),
                     value(line.getRelationUsed()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()),
-                    value(line.getTechnicalObservation())));
+                    displayText(shortText(line.getTechnicalObservation()))));
         }
 
         return RecommendationTableSectionDto.builder()
                 .title("Recomendação Direta - formulados")
+                .sectionKey("plantio_cobertura_opcao_1")
+                .option("opcao_1_formulados")
+                .itemType("alternativa")
                 .source(SOURCE_DIRECT_LINES)
                 .columns(List.of("Fase", "Formulado", "Relação N-P2O5-K2O", "Dose", "Observação técnica"))
                 .rows(rows)
-                .technicalObservations(extractLastColumn(rows))
+                .technicalObservations(deduplicate(extractLastColumn(rows)))
+                .technicalWarnings(deduplicate(extractLastColumn(rows)))
                 .build();
     }
 
@@ -153,30 +169,52 @@ public class RecommendationStructuredDataAssembler {
                     value(line.getFertilizerName()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()),
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()),
-                    value(line.getTechnicalObservation())));
+                    displayText(shortText(line.getTechnicalObservation()))));
         }
 
         return RecommendationTableSectionDto.builder()
                 .title("Recomendação Direta - micronutrientes")
+                .sectionKey("micronutrientes")
+                .option("complemento")
+                .itemType("complemento")
                 .source(SOURCE_DIRECT_LINES)
                 .columns(List.of("Micronutriente", "Adubo", "Dose micronutriente", "Dose adubo", "Observação técnica"))
                 .rows(rows)
-                .technicalObservations(extractLastColumn(rows))
+                .technicalObservations(deduplicate(extractLastColumn(rows)))
+                .technicalWarnings(deduplicate(extractLastColumn(rows)))
                 .build();
     }
 
     private RecommendationTableSectionDto section(String report, String heading, String title) {
+        return section(report, heading, title, null, null, null);
+    }
+
+    private RecommendationTableSectionDto section(String report,
+                                                  String heading,
+                                                  String title,
+                                                  String sectionKey,
+                                                  String option,
+                                                  String itemType) {
         String section = heading == null ? report : TechnicalRecommendationDocumentSupport.section(report, heading);
         List<List<String>> tableRows = TechnicalRecommendationDocumentSupport.tableRows(section);
         if (tableRows.isEmpty()) {
             return null;
         }
+        List<String> observations = deduplicate(extractTechnicalObservations(tableRows));
+        List<String> calculationMemory = "memoria_calculo".equals(sectionKey)
+                ? rowsAsMemory(tableRows)
+                : List.of();
         return RecommendationTableSectionDto.builder()
                 .title(title)
+                .sectionKey(sectionKey)
+                .option(option)
+                .itemType(itemType)
                 .source(SOURCE_TECHNICAL_REPORT)
                 .columns(tableHeader(section))
                 .rows(tableRows)
-                .technicalObservations(extractTechnicalObservations(tableRows))
+                .technicalObservations(observations)
+                .technicalWarnings(observations)
+                .calculationMemory(calculationMemory)
                 .build();
     }
 
@@ -208,7 +246,7 @@ public class RecommendationStructuredDataAssembler {
         for (List<String> row : rows) {
             for (String cell : row) {
                 if (cell != null && cell.toLowerCase().contains("observ")) {
-                    observations.add(cell);
+                    observations.add(shortText(cell));
                     break;
                 }
             }
@@ -220,7 +258,7 @@ public class RecommendationStructuredDataAssembler {
         List<String> observations = new ArrayList<>();
         for (List<String> row : rows) {
             if (!row.isEmpty()) {
-                observations.add(row.get(row.size() - 1));
+                observations.add(shortText(row.get(row.size() - 1)));
             }
         }
         return observations;
@@ -238,6 +276,46 @@ public class RecommendationStructuredDataAssembler {
 
     private String value(Object value) {
         return TechnicalRecommendationDocumentSupport.safe(value);
+    }
+
+    private String displayText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String shortText(String value) {
+        if (value == null || value.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(value)) {
+            return null;
+        }
+        String normalized = value.trim().replaceAll("\\s+", " ");
+        int end = normalized.indexOf(". ");
+        if (end > 0 && end < 160) {
+            normalized = normalized.substring(0, end + 1);
+        }
+        return normalized.length() <= 220 ? normalized : normalized.substring(0, 217).trim() + "...";
+    }
+
+    private List<String> deduplicate(List<String> values) {
+        Set<String> unique = new LinkedHashSet<>();
+        for (String value : values) {
+            if (value == null || value.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(value)) {
+                continue;
+            }
+            unique.add(value.trim());
+        }
+        return new ArrayList<>(unique);
+    }
+
+    private List<String> rowsAsMemory(List<List<String>> rows) {
+        List<String> memory = new ArrayList<>();
+        for (List<String> row : rows) {
+            List<String> cells = row.stream()
+                    .filter(cell -> cell != null && !cell.isBlank() && !TechnicalRecommendationDocumentSupport.looksUnavailable(cell))
+                    .toList();
+            if (!cells.isEmpty()) {
+                memory.add(String.join(" | ", cells));
+            }
+        }
+        return deduplicate(memory);
     }
 
     private boolean isSeparatorRow(String line) {

@@ -45,19 +45,22 @@ public class ShoppingListReportService {
                 recommendation != null ? recommendation.getCropPlantingDate() : null);
         report.append("- Área usada para totalização: ").append(TechnicalRecommendationDocumentSupport.formatArea(area)).append("\n\n");
 
-        report.append("| Insumo | Tipo/grupo | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
-        report.append("|---|---|---|---:|---|---:|---|\n");
+        report.append("| Insumo | Tipo/grupo | Seção | Opção | Flag | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
+        report.append("|---|---|---|---|---|---|---:|---|---:|---|\n");
         if (items.isEmpty()) {
-            report.append("| Não calculado | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. | Não calculado por falta de dados. |\n\n");
+            report.append("| Não calculado | | | | | | | | | Não calculado por falta de dados. |\n\n");
         } else {
             for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
-                report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getName()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getTypeGroup()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getPhase()))
+                report.append("| ").append(cell(item.getName()))
+                        .append(" | ").append(cell(item.getTypeGroup()))
+                        .append(" | ").append(cell(item.getSection()))
+                        .append(" | ").append(cell(item.getOption()))
+                        .append(" | ").append(cell(item.getItemFlag()))
+                        .append(" | ").append(cell(item.getPhase()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getLocalizedDose()))
+                        .append(" | ").append(cell(item.getLocalizedDose()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
-                        .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(item.getOpportunityCostDecision()))
+                        .append(" | ").append(cell(item.getOpportunityCostDecision()))
                         .append(" |\n");
             }
             report.append("\n");
@@ -67,9 +70,10 @@ public class ShoppingListReportService {
         report.append("- A lista consolida insumos e doses do laudo técnico persistido e das linhas calculadas da Recomendação Direta.\n");
         report.append("- ").append(areaResolution.observation()).append("\n");
         if (!hasValidPlantingDate(recommendation)) {
-            report.append("- Data de plantio da cultura usada na recomendação indisponível; o campo foi mantido como não informado.\n");
+            report.append("- Data de plantio da cultura usada na recomendação indisponível; campo omitível no frontend.\n");
         }
         report.append("- Itens sem dose em kg/ha não são convertidos para compra para evitar conversões não suportadas.\n");
+        report.append("- Itens com flag alternativa representam opções incompatíveis e devem ser filtrados por opção antes da compra.\n");
         return report.toString();
     }
 
@@ -101,6 +105,13 @@ public class ShoppingListReportService {
         return recommendation.getCropPlantingDate().getDay() > 0
                 && recommendation.getCropPlantingDate().getMonth() > 0
                 && recommendation.getCropPlantingDate().getYear() > 0;
+    }
+
+    private String cell(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.replace("|", "/").replace("\n", " ").trim();
     }
 
     private List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines(

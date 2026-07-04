@@ -26,7 +26,6 @@ import java.util.Optional;
 
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.LINEAR_CONVERSION_UNAVAILABLE;
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
-import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_APPLICABLE;
 
 @Service
 @RequiredArgsConstructor
@@ -108,11 +107,10 @@ public class DirectRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.section(source, "7. Calagem") + "\n\n" + TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "8. Gessagem")),
                 NOT_CALCULATED);
 
-        TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
+        appendOptionalSourceSection(
                 report,
                 "Recomendação orgânica",
-                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
-                NOT_APPLICABLE);
+                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
                 report,
@@ -138,6 +136,15 @@ public class DirectRecommendationReportService {
         }
         report.append("Comparativo de custo de oportunidade\n\n");
         report.append(section).append("\n\n");
+    }
+
+    private void appendOptionalSourceSection(StringBuilder report, String title, String sourceSection) {
+        String content = TechnicalRecommendationDocumentSupport.stripHeading(sourceSection);
+        if (content.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(content)) {
+            return;
+        }
+        report.append(title).append("\n\n");
+        report.append(content).append("\n\n");
     }
 
     private void appendMicronutrientTable(StringBuilder report,
@@ -277,7 +284,7 @@ public class DirectRecommendationReportService {
                     || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) continue;
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
-                    .append(" | ").append(NOT_APPLICABLE)
+                    .append(" | ")
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
                     .append(" | ").append(calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings))
                     .append(" | Complemento de nutriente secundário ou adubo simples propagado do laudo técnico. |\n");
@@ -320,7 +327,7 @@ public class DirectRecommendationReportService {
             String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
             report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
-                    .append(" | ").append(NOT_APPLICABLE)
+                    .append(" | ")
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
                     .append(" | ").append(spacingDose)
                     .append(" | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |\n");

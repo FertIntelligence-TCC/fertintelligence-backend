@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.Optional;
 
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
-import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_INFORMED;
 
 @Service
 @RequiredArgsConstructor
@@ -62,11 +61,10 @@ public class SummaryRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.section(source, "9. Adubação corretiva"),
                 NOT_CALCULATED);
 
-        TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
+        appendOptionalSourceSection(
                 report,
                 "Recomendação de adubação orgânica",
-                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"),
-                "Não aplicável com os dados disponíveis.");
+                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
 
         appendMicronutrientRecommendation(report, micronutrientLines);
 
@@ -89,7 +87,6 @@ public class SummaryRecommendationReportService {
         report.append("Observações\n\n");
         appendWithoutHeading(report, source, "14. Limitações e alertas", "Nenhuma observação adicional foi persistida.");
         report.append("- Conversões g/m linear e g/cova: ").append(NOT_CALCULATED).append("\n");
-        report.append("- Dados institucionais não modelados no backend foram mantidos como ").append(NOT_INFORMED).append("\n");
         return report.toString();
     }
 
@@ -194,6 +191,15 @@ public class SummaryRecommendationReportService {
     private void appendWithoutHeading(StringBuilder report, String source, String heading, String fallback) {
         String section = TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, heading));
         report.append(section.isBlank() ? fallback : section).append("\n\n");
+    }
+
+    private void appendOptionalSourceSection(StringBuilder report, String title, String sourceSection) {
+        String content = TechnicalRecommendationDocumentSupport.stripHeading(sourceSection);
+        if (content.isBlank() || TechnicalRecommendationDocumentSupport.looksUnavailable(content)) {
+            return;
+        }
+        report.append(title).append("\n\n");
+        report.append(content).append("\n\n");
     }
 
     private String normalize(String value) {

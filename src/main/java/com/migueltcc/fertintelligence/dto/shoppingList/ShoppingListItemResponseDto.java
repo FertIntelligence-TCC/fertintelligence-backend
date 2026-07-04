@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.shoppingList;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -7,6 +8,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ShoppingListItemResponseDto {
 
     @JsonProperty("insumo")
@@ -17,6 +19,15 @@ public class ShoppingListItemResponseDto {
 
     @JsonProperty("fase")
     private String phase;
+
+    @JsonProperty("secao")
+    private String section;
+
+    @JsonProperty("opcao")
+    private String option;
+
+    @JsonProperty("flag_item")
+    private String itemFlag;
 
     @JsonProperty("quantidade_kg_ha")
     private Double quantityKgHa;

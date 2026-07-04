@@ -90,7 +90,7 @@ public class DirectRecommendationDtoMapper {
                 .applicableDoseValue(applicableDose.value())
                 .applicableDoseUnit(applicableDose.unit())
                 .applicableDoseColumn(applicableDose.column())
-                .technicalObservation(line.getTechnicalObservation())
+                .technicalObservation(shortTechnicalObservation(line.getTechnicalObservation()))
                 .build();
     }
 
@@ -128,7 +128,7 @@ public class DirectRecommendationDtoMapper {
                 .applicableDoseValue(applicableDose.value())
                 .applicableDoseUnit(applicableDose.unit())
                 .applicableDoseColumn(applicableDose.column())
-                .technicalObservation(line.getTechnicalObservation())
+                .technicalObservation(shortTechnicalObservation(line.getTechnicalObservation()))
                 .build();
     }
 
@@ -170,7 +170,7 @@ public class DirectRecommendationDtoMapper {
                 .applicableDoseValue(applicableDose.value())
                 .applicableDoseUnit(applicableDose.unit())
                 .applicableDoseColumn(applicableDose.column())
-                .technicalObservation(line.getTechnicalObservation())
+                .technicalObservation(shortTechnicalObservation(line.getTechnicalObservation()))
                 .build();
     }
 
@@ -181,6 +181,29 @@ public class DirectRecommendationDtoMapper {
                 cropSpacingCalculationService.applicableDoseValue(mode, gramsPerLinearMeter, gramsPerPit),
                 metadata.doseUnitLabel(),
                 metadata.applicableDoseColumn());
+    }
+
+    private String shortTechnicalObservation(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.trim().replaceAll("\\s+", " ");
+        String lower = normalized.toLowerCase();
+        int memoryIndex = lower.indexOf("memória de cálculo");
+        if (memoryIndex < 0) {
+            memoryIndex = lower.indexOf("memoria de calculo");
+        }
+        if (memoryIndex > 0) {
+            normalized = normalized.substring(0, memoryIndex).trim();
+        }
+        int sentenceEnd = normalized.indexOf(". ");
+        if (sentenceEnd > 0 && sentenceEnd < 160) {
+            normalized = normalized.substring(0, sentenceEnd + 1);
+        }
+        if (normalized.isBlank() || normalized.equalsIgnoreCase("Não informado")) {
+            return null;
+        }
+        return normalized.length() <= 220 ? normalized : normalized.substring(0, 217).trim() + "...";
     }
 
     private record ApplicableDose(Double value, String unit, String column) {

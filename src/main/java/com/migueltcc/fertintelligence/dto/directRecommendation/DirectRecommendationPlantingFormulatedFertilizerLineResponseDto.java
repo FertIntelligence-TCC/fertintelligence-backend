@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.dto.directRecommendation;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -7,6 +8,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DirectRecommendationPlantingFormulatedFertilizerLineResponseDto {
 
     @JsonProperty("id")
