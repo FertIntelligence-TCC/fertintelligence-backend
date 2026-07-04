@@ -1,0 +1,18 @@
+package com.migueltcc.fertintelligence.service.documentation;
+
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.phosphorusClayPhosphateDose.PhosphorusClayPhosphateDoseCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.phosphorusClayPhosphateDose.PhosphorusClayPhosphateDosePostRequestDto;
+import com.migueltcc.fertintelligence.dto.tables.soilFertilityInterpretationCriteria.phosphorusClayPhosphateDose.PhosphorusClayPhosphateDoseResponseDto;
+
+public interface PhosphorusClayPhosphateDoseService {
+
+    PhosphorusClayPhosphateDoseResponseDto createPhosphorusClayPhosphateDose(Long tableId, PhosphorusClayPhosphateDoseCreateRequestDto createRequestDto, String username);
+
+    PhosphorusClayPhosphateDoseResponseDto getPhosphorusClayPhosphateDoseById(Long criterionId, String username);
+
+    PhosphorusClayPhosphateDoseResponseDto getPhosphorusClayPhosphateDoseByTable(Long tableId, String username);
+
+    PhosphorusClayPhosphateDoseResponseDto updatePhosphorusClayPhosphateDose(Long criterionId, PhosphorusClayPhosphateDosePostRequestDto updateRequestDto, String username);
+
+    void deletePhosphorusClayPhosphateDose(Long criterionId, String username);
+}

@@ -91,6 +91,10 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @ToString.Exclude
     private KContentAndDoseModel kContentAndDose;
 
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private PhosphorusClayPhosphateDoseModel phosphorusClayPhosphateDose;
+
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()
                 .id(this.id)
