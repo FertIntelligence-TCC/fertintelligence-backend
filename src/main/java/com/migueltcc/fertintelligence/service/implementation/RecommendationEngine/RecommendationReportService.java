@@ -67,7 +67,8 @@ public class RecommendationReportService {
         report.append("\n");
         report.append("- Necessidade N considerada: ").append(formatQuantity(result.getRequiredN())).append("\n");
         report.append("- Necessidade P2O5 considerada: ").append(formatQuantity(result.getRequiredP2O5())).append("\n");
-        report.append("- Necessidade K2O considerada: ").append(formatQuantity(result.getRequiredK2O())).append("\n\n");
+        report.append("- Necessidade K2O considerada: ").append(formatQuantity(result.getRequiredK2O())).append("\n");
+        report.append("- Necessidade S considerada: ").append(formatQuantity(result.getRequiredS())).append("\n\n");
     }
 
     private void appendChemicalDiagnosis(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
@@ -282,10 +283,10 @@ public class RecommendationReportService {
 
     private void appendRecommendedFertilizers(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("13. Fertilizantes recomendados\n\n");
-        report.append("| Tipo | Fertilizante | N | P2O5 | K2O | Justificativa |\n");
-        report.append("|---|---|---:|---:|---:|---|\n");
+        report.append("| Tipo | Fertilizante | N | P2O5 | K2O | S | Justificativa |\n");
+        report.append("|---|---|---:|---:|---:|---:|---|\n");
         if (result.getFertilizerSuggestions() == null || result.getFertilizerSuggestions().isEmpty()) {
-            report.append("| Não calculado | Não selecionado | Não informado | Não informado | Não informado | Nenhum fertilizante comercial foi selecionado com os dados disponíveis. |\n\n");
+            report.append("| Não calculado | Não selecionado | Não informado | Não informado | Não informado | Não informado | Nenhum fertilizante comercial foi selecionado com os dados disponíveis. |\n\n");
         } else {
             for (RecommendationCalculationService.FertilizerSuggestion suggestion : result.getFertilizerSuggestions()) {
                 report.append("| ").append(safeCell(suggestion.getFertilizerType()))
@@ -293,6 +294,7 @@ public class RecommendationReportService {
                         .append(" | ").append(formatPercentValue(suggestion.getN()))
                         .append(" | ").append(formatPercentValue(suggestion.getP2o5()))
                         .append(" | ").append(formatPercentValue(suggestion.getK2o()))
+                        .append(" | ").append(formatPercentValue(suggestion.getS()))
                         .append(" | ").append(safeCell(suggestion.getReason()))
                         .append(" |\n");
             }
@@ -377,7 +379,7 @@ public class RecommendationReportService {
     private void appendCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
         report.append("15. Memória de cálculo\n\n");
         report.append("A) Fertilizante comercial\n\n");
-        report.append("| Fase | Fertilizante | Nutriente limitante/alvo | Necessidade alvo | Concentração do produto | Dose calculada | Fornecido N/P2O5/K2O | Déficit ou excedente N/P2O5/K2O |\n");
+        report.append("| Fase | Fertilizante | Nutriente limitante/alvo | Necessidade alvo | Concentração do produto | Dose calculada | Fornecido N/P2O5/K2O/S | Déficit ou excedente N/P2O5/K2O/S |\n");
         report.append("|---|---|---|---:|---:|---:|---|---|\n");
         List<RecommendationCalculationService.FertilizationRecommendationRow> rows = nonBalanceRows(result);
         if (rows.isEmpty()) {
@@ -390,8 +392,8 @@ public class RecommendationReportService {
                         .append(" | ").append(formatQuantity(row.getTargetNeedKgHa()))
                         .append(" | ").append(formatPercent(row.getProductConcentrationPercent()))
                         .append(" | ").append(formatQuantity(row.getFertilizerQuantityKgHa()))
-                        .append(" | ").append(formatNpk(row.getProvidedN(), row.getProvidedP2O5(), row.getProvidedK2O()))
-                        .append(" | ").append(formatSignedNpk(row.getBalanceN(), row.getBalanceP2O5(), row.getBalanceK2O()))
+                        .append(" | ").append(formatNpk(row.getProvidedN(), row.getProvidedP2O5(), row.getProvidedK2O(), row.getProvidedS()))
+                        .append(" | ").append(formatSignedNpk(row.getBalanceN(), row.getBalanceP2O5(), row.getBalanceK2O(), row.getBalanceS()))
                         .append(" |\n");
             }
         }
@@ -528,14 +530,14 @@ public class RecommendationReportService {
         return needed ? "Sim" : "Não";
     }
 
-    private String formatNpk(Double n, Double p2o5, Double k2o) {
-        if (n == null && p2o5 == null && k2o == null) return "Não calculado";
-        return String.format(Locale.US, "N %.2f / P2O5 %.2f / K2O %.2f kg/ha", nvl(n), nvl(p2o5), nvl(k2o));
+    private String formatNpk(Double n, Double p2o5, Double k2o, Double s) {
+        if (n == null && p2o5 == null && k2o == null && s == null) return "Não calculado";
+        return String.format(Locale.US, "N %.2f / P2O5 %.2f / K2O %.2f / S %.2f kg/ha", nvl(n), nvl(p2o5), nvl(k2o), nvl(s));
     }
 
-    private String formatSignedNpk(Double n, Double p2o5, Double k2o) {
-        if (n == null && p2o5 == null && k2o == null) return "Não calculado";
-        return String.format(Locale.US, "N %+.2f / P2O5 %+.2f / K2O %+.2f kg/ha", nvl(n), nvl(p2o5), nvl(k2o));
+    private String formatSignedNpk(Double n, Double p2o5, Double k2o, Double s) {
+        if (n == null && p2o5 == null && k2o == null && s == null) return "Não calculado";
+        return String.format(Locale.US, "N %+.2f / P2O5 %+.2f / K2O %+.2f / S %+.2f kg/ha", nvl(n), nvl(p2o5), nvl(k2o), nvl(s));
     }
 
     private String joinApplicationDetails(RecommendationCalculationService.FertilizationRecommendationRow row) {
@@ -544,12 +546,12 @@ public class RecommendationReportService {
             details.add(row.getApplicationMode());
         }
         if (row.getProvidedN() != null || row.getProvidedP2O5() != null || row.getProvidedK2O() != null) {
-            details.add(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f kg/ha",
-                    nvl(row.getProvidedN()), nvl(row.getProvidedP2O5()), nvl(row.getProvidedK2O())));
+            details.add(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                    nvl(row.getProvidedN()), nvl(row.getProvidedP2O5()), nvl(row.getProvidedK2O()), nvl(row.getProvidedS())));
         }
-        if (row.getBalanceN() != null || row.getBalanceP2O5() != null || row.getBalanceK2O() != null) {
-            details.add(String.format(Locale.US, "Saldo: N %.2f, P2O5 %.2f, K2O %.2f kg/ha",
-                    nvl(row.getBalanceN()), nvl(row.getBalanceP2O5()), nvl(row.getBalanceK2O())));
+        if (row.getBalanceN() != null || row.getBalanceP2O5() != null || row.getBalanceK2O() != null || row.getBalanceS() != null) {
+            details.add(String.format(Locale.US, "Saldo: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                    nvl(row.getBalanceN()), nvl(row.getBalanceP2O5()), nvl(row.getBalanceK2O()), nvl(row.getBalanceS())));
         }
         if (row.getCalculationMemory() != null && !row.getCalculationMemory().isBlank()) {
             details.add("Memória de cálculo: " + row.getCalculationMemory());

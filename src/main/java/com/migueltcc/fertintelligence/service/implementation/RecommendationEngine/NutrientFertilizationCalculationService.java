@@ -7,17 +7,20 @@ import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.ContentRangeRepository;
 import com.migueltcc.fertintelligence.repository.CoverageRepository;
 import com.migueltcc.fertintelligence.repository.MicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.SimpleMineralFertilizerRepository;
+import com.migueltcc.fertintelligence.repository.SulfurDoseRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,6 +41,7 @@ class NutrientFertilizationCalculationService {
     private final CoverageRepository coverageRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
     private final MicronutrientDoseRepository micronutrientDoseRepository;
+    private final SulfurDoseRepository sulfurDoseRepository;
     private final AlternativeFertilizationCalculationService alternativeFertilizationCalculationService;
     private final FormulatedFertilizerSelectionService formulatedFertilizerSelectionService;
     private final MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService;
@@ -49,6 +53,7 @@ class NutrientFertilizationCalculationService {
                                             CoverageRepository coverageRepository,
                                             SimpleMineralFertilizerRepository simpleMineralFertilizerRepository,
                                             MicronutrientDoseRepository micronutrientDoseRepository,
+                                            SulfurDoseRepository sulfurDoseRepository,
                                             AlternativeFertilizationCalculationService alternativeFertilizationCalculationService,
                                             FormulatedFertilizerSelectionService formulatedFertilizerSelectionService,
                                             MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService,
@@ -59,6 +64,7 @@ class NutrientFertilizationCalculationService {
         this.coverageRepository = coverageRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
         this.micronutrientDoseRepository = micronutrientDoseRepository;
+        this.sulfurDoseRepository = sulfurDoseRepository;
         this.alternativeFertilizationCalculationService = alternativeFertilizationCalculationService;
         this.formulatedFertilizerSelectionService = formulatedFertilizerSelectionService;
         this.micronutrientFertilizerSelectionService = micronutrientFertilizerSelectionService;
@@ -70,6 +76,7 @@ class NutrientFertilizationCalculationService {
     FertilizationRecommendationContext calculate(CropFertilizationTableModel table,
                                                  CropModel crop,
                                                  Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                 Optional<PhysicalAnalysisExtractModel> physicalExtract,
                                                  SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                                  UserModel user,
                                                  FertilizerSourceOption sourceOption,
@@ -98,6 +105,8 @@ class NutrientFertilizationCalculationService {
         Long nRangeId = nRange.map(ContentRangeModel::getId).orElse(null);
         Long pRangeId = pRange.map(ContentRangeModel::getId).orElse(null);
         Long kRangeId = kRange.map(ContentRangeModel::getId).orElse(null);
+        SulfurPlantingRequirement sulfurRequirement = resolveSulfurRequirement(
+                fertilityExtract, physicalExtract, soilInterpretationTable, chemicalDiagnosis, warnings);
 
         if (nRange.isEmpty()) warnings.add("Não foi encontrado intervalo para NITROGENIO na tabela selecionada.");
         if (pRange.isEmpty()) warnings.add("Não foi encontrado intervalo para FOSFORO na tabela selecionada.");
@@ -115,30 +124,44 @@ class NutrientFertilizationCalculationService {
         Double mineralRequiredK2O = alternativeFertilizationResult.remainingRequiredK2O();
 
         FertilizerSelection planting = selectBestPlantingFertilizer(user, sourceOption, mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, warnings);
-        planting.suggestion().ifPresent(fertilizerSuggestions::add);
-        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O);
-        nutrientBalance.addPlanting(planting.providedN(), planting.providedP2O5(), planting.providedK2O());
+        SulfurPlantingPlan sulfurPlan = buildSulfurPlantingPlan(sulfurRequirement, planting, mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, warnings);
+        if (!sulfurPlan.replacesPlanting()) {
+            planting.suggestion().ifPresent(fertilizerSuggestions::add);
+        }
+        sulfurPlan.suggestions().forEach(fertilizerSuggestions::add);
+        NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, sulfurRequirement.requiredS());
+        nutrientBalance.addPlanting(
+                (sulfurPlan.replacesPlanting() ? 0d : planting.providedN()) + sulfurPlan.providedN(),
+                (sulfurPlan.replacesPlanting() ? 0d : planting.providedP2O5()) + sulfurPlan.providedP2O5(),
+                (sulfurPlan.replacesPlanting() ? 0d : planting.providedK2O()) + sulfurPlan.providedK2O(),
+                (sulfurPlan.replacesPlanting() ? 0d : planting.providedS()) + sulfurPlan.providedS());
         CoverageNpkAccumulator coverageNpkAccumulator = new CoverageNpkAccumulator();
 
-        recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
-                .phase("Plantio")
-                .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha", nvl(mineralRequiredN), nvl(mineralRequiredP2O5), nvl(mineralRequiredK2O)))
-                .suggestedFertilizer(planting.name())
-                .fertilizerQuantityKgHa(planting.quantityKgHa())
-                .providedN(planting.providedN())
-                .providedP2O5(planting.providedP2O5())
-                .providedK2O(planting.providedK2O())
-                .balanceN(planting.balanceN())
-                .balanceP2O5(planting.balanceP2O5())
-                .balanceK2O(planting.balanceK2O())
-                .limitingNutrient(planting.limitingNutrient())
-                .targetNeedKgHa(planting.targetNeedKgHa())
-                .productConcentrationPercent(planting.productConcentrationPercent())
-                .calculationMemory(planting.calculationMemory())
-                .warning(planting.warning())
-                .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
-                .source("Tabela de adubação de culturas ID " + table.getId())
-                .build());
+        if (!sulfurPlan.replacesPlanting()) {
+            recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                    .phase("Plantio")
+                    .nutrients(String.format("N: %.2f kg/ha, P2O5: %.2f kg/ha, K2O: %.2f kg/ha, S: %.2f kg/ha",
+                            nvl(mineralRequiredN), nvl(mineralRequiredP2O5), nvl(mineralRequiredK2O), sulfurRequirement.requiredS()))
+                    .suggestedFertilizer(planting.name())
+                    .fertilizerQuantityKgHa(planting.quantityKgHa())
+                    .providedN(planting.providedN())
+                    .providedP2O5(planting.providedP2O5())
+                    .providedK2O(planting.providedK2O())
+                    .providedS(planting.providedS())
+                    .balanceN(planting.balanceN())
+                    .balanceP2O5(planting.balanceP2O5())
+                    .balanceK2O(planting.balanceK2O())
+                    .balanceS(round2(planting.providedS() - sulfurRequirement.requiredS()))
+                    .limitingNutrient(planting.limitingNutrient())
+                    .targetNeedKgHa(planting.targetNeedKgHa())
+                    .productConcentrationPercent(planting.productConcentrationPercent())
+                    .calculationMemory(planting.calculationMemory())
+                    .warning(planting.warning())
+                    .applicationMode("Aplicação no plantio, conforme recomendação técnica.")
+                    .source("Tabela de adubação de culturas ID " + table.getId())
+                    .build());
+        }
+        recommendationRows.addAll(sulfurPlan.rows());
 
         for (ContentRangeModel selectedRange : List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null))) {
             if (selectedRange != null) {
@@ -154,9 +177,11 @@ class NutrientFertilizationCalculationService {
                 .providedN(nutrientBalance.providedTotalN())
                 .providedP2O5(nutrientBalance.providedTotalP2O5())
                 .providedK2O(nutrientBalance.providedTotalK2O())
+                .providedS(nutrientBalance.providedTotalS())
                 .balanceN(nutrientBalance.balanceN())
                 .balanceP2O5(nutrientBalance.balanceP2O5())
                 .balanceK2O(nutrientBalance.balanceK2O())
+                .balanceS(nutrientBalance.balanceS())
                 .source("Balanço global calculado pelo backend")
                 .build());
         List<RecommendationCalculationService.NutrientBalanceRow> nutrientBalanceRows = nutrientBalance.toRows();
@@ -180,7 +205,262 @@ class NutrientFertilizationCalculationService {
                 micronutrientFertilizerRows,
                 plantingFormulatedRows,
                 coverageFormulatedRows,
-                mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, nRangeId, pRangeId, kRangeId);
+                mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, sulfurRequirement.requiredS(), nRangeId, pRangeId, kRangeId);
+    }
+
+    private SulfurPlantingRequirement resolveSulfurRequirement(
+            Optional<FertilityAnalysisExtractModel> fertilityExtract,
+            Optional<PhysicalAnalysisExtractModel> physicalExtract,
+            SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
+            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
+            List<String> warnings) {
+        if (fertilityExtract.isEmpty() || fertilityExtract.get().getEnxofre() == null) {
+            addWarning(warnings, "Enxofre no plantio não calculado porque não há teor de S no extrato de fertilidade selecionado.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        if (!isArableLayer020(fertilityExtract.get())) {
+            addWarning(warnings, "Enxofre no plantio não calculado: a análise de fertilidade usada não corresponde à camada arável 0-20 cm.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        if (physicalExtract.isEmpty() || physicalExtract.get().getTeorArgila() == null) {
+            addWarning(warnings, "Enxofre no plantio não calculado porque não há textura/argila da camada arável 0-20 cm.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        if (!isArableLayer020(physicalExtract.get())) {
+            addWarning(warnings, "Enxofre no plantio não calculado: a análise física usada não corresponde à camada arável 0-20 cm.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        String interpretation = interpretationFor(chemicalDiagnosis, "Enxofre");
+        if (interpretation == null || "Não classificado".equalsIgnoreCase(interpretation)) {
+            addWarning(warnings, "Enxofre no plantio não calculado porque o teor de S não foi classificado por critério suficiente.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        Optional<SulfurDoseModel> sulfurDose = sulfurDoseRepository.findByTable(soilInterpretationTable);
+        if (sulfurDose.isEmpty()) {
+            addWarning(warnings, "Enxofre no plantio não calculado porque não há tabela auxiliar Doses de S vinculada à tabela de interpretação selecionada.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        boolean less400 = physicalExtract.get().getTeorArgila() < 400d;
+        Double rawDose = selectSulfurDose(sulfurDose.get(), less400, interpretation);
+        if (rawDose == null) {
+            addWarning(warnings, "Enxofre no plantio não calculado porque a classe " + interpretation + " não possui dose preenchida na tabela auxiliar Doses de S.");
+            return SulfurPlantingRequirement.notCalculated();
+        }
+        double dose = round2(Math.max(0d, Math.min(60d, rawDose)));
+        if (Double.compare(dose, rawDose) != 0) {
+            addWarning(warnings, "Dose de S ajustada para o limite operacional de 0 a 60 kg/ha; dose cadastrada: " + rawDose + " kg/ha.");
+        }
+        return new SulfurPlantingRequirement(dose, interpretation,
+                "S disponível em 0-20 cm = " + formatNumber(fertilityExtract.get().getEnxofre())
+                        + " mg/dm³; argila 0-20 cm = " + formatNumber(physicalExtract.get().getTeorArgila())
+                        + " g/kg; classe " + interpretation + "; Doses de S ID " + sulfurDose.get().getId() + ".",
+                true);
+    }
+
+    private SulfurPlantingPlan buildSulfurPlantingPlan(
+            SulfurPlantingRequirement requirement,
+            FertilizerSelection planting,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            List<String> warnings) {
+        if (!requirement.calculated()) {
+            return SulfurPlantingPlan.empty();
+        }
+        if (isFormulated(planting)) {
+            return buildFormulatedSulfurPlan(requirement, planting, warnings);
+        }
+        return buildSimpleSulfurPlan(requirement, requiredN, requiredP2O5, requiredK2O, warnings);
+    }
+
+    private SulfurPlantingPlan buildFormulatedSulfurPlan(
+            SulfurPlantingRequirement requirement,
+            FertilizerSelection planting,
+            List<String> warnings) {
+        List<RecommendationCalculationService.FertilizationRecommendationRow> rows = new ArrayList<>();
+        List<RecommendationCalculationService.FertilizerSuggestion> suggestions = new ArrayList<>();
+        double deficit = round2(requirement.requiredS() - planting.providedS());
+        double tolerance = tolerance(requirement.requiredS());
+        if (requirement.requiredS() <= 0d) {
+            rows.add(sulfurRow("Plantio - S", "Não se aplica", 0d, 0d, 0d, requirement,
+                    "Teor de S sem demanda de complemento no plantio.", null));
+            return new SulfurPlantingPlan(rows, suggestions, 0d, 0d, 0d, 0d, false);
+        }
+        if (deficit > tolerance) {
+            double gypsumDose = round2(deficit / 0.15d);
+            rows.add(sulfurRow("Plantio - S", "Gesso agrícola", gypsumDose, 0d, 0d, requirement,
+                    "Aplicar conjuntamente na linha de plantio como complemento ao formulado sem S suficiente.",
+                    "Complemento calculado por 100 * déficit de S / 15% S do gesso agrícola."));
+            suggestions.add(fixedSuggestion("SECUNDARIO", "Gesso agrícola", 0d, 0d, 0d, 15d,
+                    "Complemento de S no plantio quando o formulado NPK não atende a dose de S."));
+            return new SulfurPlantingPlan(rows, suggestions, 0d, 0d, 0d, round2(gypsumDose * 0.15d), false);
+        }
+        if (planting.providedS() - requirement.requiredS() > tolerance) {
+            String warning = "O formulado selecionado fornece S acima da tolerância de 10%; avaliar formulado alternativo sem gerar complemento inconsistente.";
+            addWarning(warnings, warning);
+            rows.add(sulfurRow("Plantio - S", "Alternativa técnica necessária", null, 0d, 0d, requirement,
+                    "Não foi aplicado complemento de S.", warning));
+        }
+        return new SulfurPlantingPlan(rows, suggestions, 0d, 0d, 0d, 0d, false);
+    }
+
+    private SulfurPlantingPlan buildSimpleSulfurPlan(
+            SulfurPlantingRequirement requirement,
+            Double requiredN,
+            Double requiredP2O5,
+            Double requiredK2O,
+            List<String> warnings) {
+        SimplePackage pkg = new SimplePackage();
+        if (nvl(requiredN) > 0d) {
+            pkg.add("Sulfato de amônio", nvl(requiredN) / 0.21d, 21d, 0d, 0d, 22d,
+                    "Fornecimento de todo o N como sulfato de amônio para atender S.");
+        }
+        double sDeficit = requirement.requiredS() - pkg.s;
+        if (sDeficit > tolerance(requirement.requiredS()) && nvl(requiredP2O5) > 0d) {
+            double p2o5Remaining = Math.max(0d, nvl(requiredP2O5) - pkg.p2o5);
+            double doseByP = p2o5Remaining / 0.18d;
+            double doseByS = sDeficit / 0.11d;
+            pkg.add("Superfosfato simples", Math.min(doseByP, doseByS), 0d, 18d, 0d, 11d,
+                    "Complemento de S usando P2O5 demandado no plantio.");
+        }
+        double p2o5Remaining = Math.max(0d, nvl(requiredP2O5) - pkg.p2o5);
+        if (p2o5Remaining > tolerance(nvl(requiredP2O5))) {
+            pkg.add("MAP", p2o5Remaining / 0.50d, 11d, 50d, 0d, 0d,
+                    "Complemento de P2O5 remanescente após superfosfato simples.");
+        }
+        if (nvl(requiredK2O) > 0d) {
+            pkg.add("Cloreto de potássio", nvl(requiredK2O) / 0.60d, 0d, 0d, 60d, 0d,
+                    "Fornecimento de K2O como cloreto de potássio.");
+        }
+        sDeficit = requirement.requiredS() - pkg.s;
+        if (sDeficit > tolerance(requirement.requiredS())) {
+            pkg.add("Gesso agrícola", sDeficit / 0.15d, 0d, 0d, 0d, 15d,
+                    "Complemento final de S como gesso agrícola no plantio.");
+        }
+        if (!withinTolerance(pkg.n, nvl(requiredN)) || !withinTolerance(pkg.p2o5, nvl(requiredP2O5))
+                || !withinTolerance(pkg.k2o, nvl(requiredK2O)) || !withinTolerance(pkg.s, requirement.requiredS())) {
+            String warning = String.format(Locale.US,
+                    "Não foi possível fechar adubos simples no plantio dentro da tolerância de 10%%. Saldos: N %+.2f, P2O5 %+.2f, K2O %+.2f, S %+.2f kg/ha. Avaliar parcelamento em cobertura ou fonte comercial alternativa.",
+                    pkg.n - nvl(requiredN), pkg.p2o5 - nvl(requiredP2O5), pkg.k2o - nvl(requiredK2O), pkg.s - requirement.requiredS());
+            addWarning(warnings, warning);
+            return new SulfurPlantingPlan(List.of(sulfurRow("Plantio - S", "Alternativa técnica necessária", null, 0d, 0d,
+                    requirement, "Balanço com adubos simples não fechado.", warning)), List.of(), 0d, 0d, 0d, 0d, false);
+        }
+        return pkg.toPlan(requirement, nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O));
+    }
+
+    private RecommendationCalculationService.FertilizationRecommendationRow sulfurRow(
+            String phase,
+            String source,
+            Double doseKgHa,
+            double providedN,
+            double providedP2O5,
+            SulfurPlantingRequirement requirement,
+            String application,
+            String warning) {
+        double providedS = doseKgHa == null ? 0d : switch (source) {
+            case "Sulfato de amônio" -> round2(doseKgHa * 0.22d);
+            case "Superfosfato simples" -> round2(doseKgHa * 0.11d);
+            case "Gesso agrícola" -> round2(doseKgHa * 0.15d);
+            case "Enxofre elementar" -> doseKgHa;
+            default -> 0d;
+        };
+        return RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                .phase(phase)
+                .nutrients(String.format(Locale.US, "S: %.2f kg/ha", requirement.requiredS()))
+                .suggestedFertilizer(source)
+                .fertilizerQuantityKgHa(doseKgHa)
+                .applicationMode(application)
+                .source("Tabela auxiliar Doses de S; camada arável 0-20 cm.")
+                .providedN(round2(providedN))
+                .providedP2O5(round2(providedP2O5))
+                .providedK2O(0d)
+                .providedS(providedS)
+                .balanceS(round2(providedS - requirement.requiredS()))
+                .limitingNutrient("S")
+                .targetNeedKgHa(requirement.requiredS())
+                .productConcentrationPercent(sulfurPercent(source))
+                .calculationMemory(requirement.memory() + (warning == null ? "" : " " + warning))
+                .warning(warning)
+                .build();
+    }
+
+    private RecommendationCalculationService.FertilizerSuggestion fixedSuggestion(
+            String type, String name, double n, double p2o5, double k2o, double s, String reason) {
+        return RecommendationCalculationService.FertilizerSuggestion.builder()
+                .fertilizerType(type)
+                .fertilizerName(name)
+                .n(n)
+                .p2o5(p2o5)
+                .k2o(k2o)
+                .s(s)
+                .reason(reason)
+                .build();
+    }
+
+    private boolean isFormulated(FertilizerSelection planting) {
+        return planting != null && planting.suggestion().isPresent()
+                && "FORMULADO".equalsIgnoreCase(planting.suggestion().get().getFertilizerType());
+    }
+
+    private Double selectSulfurDose(SulfurDoseModel doses, boolean less400, String interpretation) {
+        if (doses == null || interpretation == null) return null;
+        return switch (interpretation) {
+            case "Muito baixo" -> less400 ? doses.getLess400VeryLowDose() : doses.getGreater400VeryLowDose();
+            case "Baixo" -> less400 ? doses.getLess400LowDose() : doses.getGreater400LowDose();
+            case "Médio" -> less400 ? doses.getLess400MediumDose() : doses.getGreater400MediumDose();
+            case "Alto" -> less400 ? doses.getLess400HighDose() : doses.getGreater400HighDose();
+            case "Muito alto" -> less400 ? doses.getLess400VeryHighDose() : doses.getGreater400VeryHighDose();
+            default -> null;
+        };
+    }
+
+    private boolean isArableLayer020(FertilityAnalysisExtractModel extract) {
+        if (extract == null) return false;
+        if (extract.getRangeExtract() != null) {
+            return isZeroTwenty(extract.getRangeExtract().getProfundidade_inicial(), extract.getRangeExtract().getProfundidade_final());
+        }
+        if (extract.getLayerExtract() != null) {
+            return isZeroTwenty(extract.getLayerExtract().getProfundidade_inicial(), extract.getLayerExtract().getProfundidade_final());
+        }
+        return false;
+    }
+
+    private boolean isArableLayer020(PhysicalAnalysisExtractModel extract) {
+        if (extract == null) return false;
+        if (extract.getRangeExtract() != null) {
+            return isZeroTwenty(extract.getRangeExtract().getProfundidade_inicial(), extract.getRangeExtract().getProfundidade_final());
+        }
+        if (extract.getLayerExtract() != null) {
+            return isZeroTwenty(extract.getLayerExtract().getProfundidade_inicial(), extract.getLayerExtract().getProfundidade_final());
+        }
+        return false;
+    }
+
+    private boolean isZeroTwenty(Integer start, Integer end) {
+        return start != null && end != null && start == 0 && end == 20;
+    }
+
+    private boolean withinTolerance(double provided, double required) {
+        return Math.abs(provided - required) <= tolerance(required);
+    }
+
+    private double tolerance(double required) {
+        return Math.max(0.01d, Math.abs(required) * 0.10d);
+    }
+
+    private Double sulfurPercent(String source) {
+        return switch (source) {
+            case "Sulfato de amônio" -> 22d;
+            case "Superfosfato simples" -> 11d;
+            case "Gesso agrícola" -> 15d;
+            case "Enxofre elementar" -> 100d;
+            default -> null;
+        };
+    }
+
+    private String formatNumber(Double value) {
+        return value == null ? "não informado" : String.format(Locale.US, "%.2f", value);
     }
 
     private List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> buildMicronutrientFertilizerRows(
@@ -416,7 +696,7 @@ class NutrientFertilizationCalculationService {
         if (bestS.isPresent()) {
             var f = bestS.get();
             Optional<FertilizerDoseCalculation> calc = calculateByGreatestFactor(n, p, k, f.getN(), f.getP2O5(), f.getK2O(), "concentração do nutriente alvo em fertilizante simples");
-            var s = RecommendationCalculationService.FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).reason("Fallback por ausência de formulado adequado; dose calculada pelo nutriente alvo identificado.").build();
+            var s = RecommendationCalculationService.FertilizerSuggestion.builder().fertilizerId(f.getId()).fertilizerType("SIMPLES").fertilizerName(f.getName()).n(f.getN()).p2o5(f.getP2O5()).k2o(f.getK2O()).s(f.getS()).reason("Fallback por ausência de formulado adequado; dose calculada pelo nutriente alvo identificado.").build();
             if (calc.isEmpty()) {
                 String warning = "Fertilizante simples selecionado, mas sem nutriente alvo com necessidade e concentração válidas para calcular dose comercial.";
                 w.add(warning);
@@ -426,7 +706,7 @@ class NutrientFertilizationCalculationService {
             return buildSelection(s.getFertilizerName(), calc.get(), n, p, k, f.getN(), f.getP2O5(), f.getK2O(), w, null, Optional.of(s));
         }
         w.add("Nenhum adubo mineral adequado foi encontrado para a origem de adubos selecionada.");
-        return new FertilizerSelection("Não encontrado", null, null, null, null, null, null, null, null, null, null, null, null, Optional.empty());
+        return new FertilizerSelection("Não encontrado", null, 0d, 0d, 0d, 0d, null, null, null, null, null, null, null, null, Optional.empty());
     }
 
     private FertilizerSelection buildFormulatedSelection(
@@ -452,15 +732,18 @@ class NutrientFertilizationCalculationService {
                         .n(fertilizer != null ? fertilizer.getN() : null)
                         .p2o5(fertilizer != null ? fertilizer.getP2O5() : null)
                         .k2o(fertilizer != null ? fertilizer.getK2O() : null)
+                        .s(fertilizer != null ? fertilizer.getS() : null)
                         .reason("Seleção de formulado NPK por " + formulatedSelectionType(selected) + ".")
                         .build();
 
+        double providedS = round2(nvl(selected.fertilizerDoseKgHa()) * nvl(fertilizer != null ? fertilizer.getS() : null) / 100d);
         return new FertilizerSelection(
                 suggestion.getFertilizerName(),
                 round2(nvl(selected.fertilizerDoseKgHa())),
                 round2(nvl(selected.providedN())),
                 round2(nvl(selected.providedP2O5())),
                 round2(nvl(selected.providedK2O())),
+                providedS,
                 selected.balanceN(),
                 selected.balanceP2O5(),
                 selected.balanceK2O(),
@@ -525,7 +808,7 @@ class NutrientFertilizationCalculationService {
             warnings.add(effectiveWarning);
         }
         String memory = calc == null ? null : buildCalculationMemory(calc, pn, pp, pk, bn, bp, bk);
-        return new FertilizerSelection(name, q, pn, pp, pk, bn, bp, bk, calc != null ? calc.nutrient() : null, calc != null ? calc.targetNeedKgHa() : null, calc != null ? calc.concentrationPercent() : null, memory, effectiveWarning, suggestion);
+        return new FertilizerSelection(name, q, pn, pp, pk, 0d, bn, bp, bk, calc != null ? calc.nutrient() : null, calc != null ? calc.targetNeedKgHa() : null, calc != null ? calc.concentrationPercent() : null, memory, effectiveWarning, suggestion);
     }
 
     private Optional<FertilizerDoseCalculation> calculateByGreatestFactor(Double rn, Double rp, Double rk, double n, double p, double k, String method) {
@@ -608,6 +891,7 @@ class NutrientFertilizationCalculationService {
                             .n(best.getN())
                             .p2o5(best.getP2O5())
                             .k2o(best.getK2O())
+                            .s(best.getS())
                             .reason("Cobertura por " + nutrient + " baseada na dose cadastrada na tabela técnica da cultura.")
                             .build());
                 } else {
@@ -730,9 +1014,11 @@ class NutrientFertilizationCalculationService {
         private final double requiredN;
         private final double requiredP2O5;
         private final double requiredK2O;
+        private final double requiredS;
         private double plantingN;
         private double plantingP2O5;
         private double plantingK2O;
+        private double plantingS;
         private double coverageRecommendedN;
         private double coverageRecommendedP2O5;
         private double coverageRecommendedK2O;
@@ -740,16 +1026,18 @@ class NutrientFertilizationCalculationService {
         private double coverageProvidedP2O5;
         private double coverageProvidedK2O;
 
-        NutrientBalanceAccumulator(Double requiredN, Double requiredP2O5, Double requiredK2O) {
+        NutrientBalanceAccumulator(Double requiredN, Double requiredP2O5, Double requiredK2O, Double requiredS) {
             this.requiredN = nvl(requiredN);
             this.requiredP2O5 = nvl(requiredP2O5);
             this.requiredK2O = nvl(requiredK2O);
+            this.requiredS = nvl(requiredS);
         }
 
-        void addPlanting(Double providedN, Double providedP2O5, Double providedK2O) {
+        void addPlanting(Double providedN, Double providedP2O5, Double providedK2O, Double providedS) {
             plantingN = nvl(providedN);
             plantingP2O5 = nvl(providedP2O5);
             plantingK2O = nvl(providedK2O);
+            plantingS = nvl(providedS);
         }
 
         void addCoverage(Nutriente nutrient, double recommendedApplication, double providedN, double providedP2O5, double providedK2O) {
@@ -764,18 +1052,22 @@ class NutrientFertilizationCalculationService {
         double requiredTotalN() { return round2(requiredN + coverageRecommendedN); }
         double requiredTotalP2O5() { return round2(requiredP2O5 + coverageRecommendedP2O5); }
         double requiredTotalK2O() { return round2(requiredK2O + coverageRecommendedK2O); }
+        double requiredTotalS() { return round2(requiredS); }
         double providedTotalN() { return round2(plantingN + coverageProvidedN); }
         double providedTotalP2O5() { return round2(plantingP2O5 + coverageProvidedP2O5); }
         double providedTotalK2O() { return round2(plantingK2O + coverageProvidedK2O); }
+        double providedTotalS() { return round2(plantingS); }
         double balanceN() { return round2(providedTotalN() - requiredTotalN()); }
         double balanceP2O5() { return round2(providedTotalP2O5() - requiredTotalP2O5()); }
         double balanceK2O() { return round2(providedTotalK2O() - requiredTotalK2O()); }
+        double balanceS() { return round2(providedTotalS() - requiredTotalS()); }
 
         List<RecommendationCalculationService.NutrientBalanceRow> toRows() {
             return List.of(
                     row("N", requiredTotalN(), plantingN, coverageRecommendedN, coverageProvidedN, providedTotalN(), balanceN()),
                     row("P2O5", requiredTotalP2O5(), plantingP2O5, coverageRecommendedP2O5, coverageProvidedP2O5, providedTotalP2O5(), balanceP2O5()),
-                    row("K2O", requiredTotalK2O(), plantingK2O, coverageRecommendedK2O, coverageProvidedK2O, providedTotalK2O(), balanceK2O())
+                    row("K2O", requiredTotalK2O(), plantingK2O, coverageRecommendedK2O, coverageProvidedK2O, providedTotalK2O(), balanceK2O()),
+                    row("S", requiredTotalS(), plantingS, 0d, 0d, providedTotalS(), balanceS())
             );
         }
 
@@ -835,6 +1127,7 @@ class NutrientFertilizationCalculationService {
             Double providedN,
             Double providedP2O5,
             Double providedK2O,
+            Double providedS,
             Double balanceN,
             Double balanceP2O5,
             Double balanceK2O,
@@ -854,5 +1147,79 @@ class NutrientFertilizationCalculationService {
             Double analyzedValue,
             String interpretation,
             Double doseKgHa) {
+    }
+
+    private record SulfurPlantingRequirement(
+            double requiredS,
+            String interpretation,
+            String memory,
+            boolean calculated) {
+        static SulfurPlantingRequirement notCalculated() {
+            return new SulfurPlantingRequirement(0d, null, "Dose de S não calculada por critério insuficiente.", false);
+        }
+    }
+
+    private record SulfurPlantingPlan(
+            List<RecommendationCalculationService.FertilizationRecommendationRow> rows,
+            List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
+            double providedN,
+            double providedP2O5,
+            double providedK2O,
+            double providedS,
+            boolean replacesPlanting) {
+        static SulfurPlantingPlan empty() {
+            return new SulfurPlantingPlan(List.of(), List.of(), 0d, 0d, 0d, 0d, false);
+        }
+    }
+
+    private class SimplePackage {
+        private final List<RecommendationCalculationService.FertilizationRecommendationRow> rows = new ArrayList<>();
+        private final List<RecommendationCalculationService.FertilizerSuggestion> suggestions = new ArrayList<>();
+        private double n;
+        private double p2o5;
+        private double k2o;
+        private double s;
+
+        void add(String name, double rawDose, double nPct, double pPct, double kPct, double sPct, String reason) {
+            double dose = round2(rawDose);
+            if (dose <= 0d) return;
+            double providedN = round2(dose * nPct / 100d);
+            double providedP = round2(dose * pPct / 100d);
+            double providedK = round2(dose * kPct / 100d);
+            double providedS = round2(dose * sPct / 100d);
+            n = round2(n + providedN);
+            p2o5 = round2(p2o5 + providedP);
+            k2o = round2(k2o + providedK);
+            s = round2(s + providedS);
+            rows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                    .phase(name.equals("Cloreto de potássio") ? "Plantio - K2O" : "Plantio - " + (sPct > 0d ? "S" : "NPK"))
+                    .nutrients(String.format(Locale.US, "Fornecido: N %.2f, P2O5 %.2f, K2O %.2f, S %.2f kg/ha",
+                            providedN, providedP, providedK, providedS))
+                    .suggestedFertilizer(name)
+                    .fertilizerQuantityKgHa(dose)
+                    .applicationMode("Aplicação no plantio com adubo mineral simples.")
+                    .source("Balanço de adubos simples para N-P2O5-K2O-S no plantio.")
+                    .providedN(providedN)
+                    .providedP2O5(providedP)
+                    .providedK2O(providedK)
+                    .providedS(providedS)
+                    .limitingNutrient(sPct > 0d ? "S" : nPct > 0d ? "N" : pPct > 0d ? "P2O5" : "K2O")
+                    .productConcentrationPercent(sPct > 0d ? sPct : nPct > 0d ? nPct : pPct > 0d ? pPct : kPct)
+                    .calculationMemory(reason)
+                    .build());
+            suggestions.add(fixedSuggestion("SIMPLES", name, nPct, pPct, kPct, sPct, reason));
+        }
+
+        SulfurPlantingPlan toPlan(SulfurPlantingRequirement requirement, double requiredN, double requiredP2O5, double requiredK2O) {
+            List<RecommendationCalculationService.FertilizationRecommendationRow> completedRows = rows.stream()
+                    .map(row -> row.toBuilder()
+                            .balanceN(round2(n - requiredN))
+                            .balanceP2O5(round2(p2o5 - requiredP2O5))
+                            .balanceK2O(round2(k2o - requiredK2O))
+                            .balanceS(round2(s - requirement.requiredS()))
+                            .build())
+                    .toList();
+            return new SulfurPlantingPlan(completedRows, suggestions, n, p2o5, k2o, s, true);
+        }
     }
 }

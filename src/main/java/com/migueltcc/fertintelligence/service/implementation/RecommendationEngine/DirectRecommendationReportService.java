@@ -182,6 +182,7 @@ public class DirectRecommendationReportService {
                     .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
             report.append("|---|---|---|---:|---:|---|\n");
             appendPlantingFormulatedRows(report, plantingFormulatedFertilizerLines);
+            appendAdditionalPlantingRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
             appendCoverageFormulatedRows(report, coverageFormulatedFertilizerLines);
             if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
                 appendCoverageFallbackRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
@@ -239,6 +240,30 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
                     .append(" |\n");
+        }
+    }
+
+    private void appendAdditionalPlantingRowsForFormulatedTable(
+            StringBuilder report,
+            String source,
+            CropModel crop,
+            DirectDoseUnitMetadata doseUnitMetadata,
+            List<String> spacingWarnings) {
+        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(
+                TechnicalRecommendationDocumentSupport.section(source, "10. Adubação de plantio"))) {
+            if (row.size() < 4) continue;
+            String phase = row.get(0);
+            String fertilizer = row.get(2);
+            String quantity = row.get(3);
+            if (phase == null || "Plantio".equalsIgnoreCase(phase.trim())) continue;
+            if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer)
+                    || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) continue;
+            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
+                    .append(" | ").append(NOT_APPLICABLE)
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
+                    .append(" | ").append(calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings))
+                    .append(" | Complemento de nutriente secundário ou adubo simples propagado do laudo técnico. |\n");
         }
     }
 

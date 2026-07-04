@@ -247,7 +247,7 @@ public class RecommendationCalculationService {
                                                                                  List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
                                                                                  List<FoliarDiagnosisItem> foliarDiagnosis) {
         return nutrientFertilizationCalculationService.calculate(
-                inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), inputs.soilInterpretationTable(),
+                inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), Optional.ofNullable(inputs.physicalAnalysis()), inputs.soilInterpretationTable(),
                 user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
                 dto.getUseOrganoMineralFertilizer(), dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
@@ -293,7 +293,7 @@ public class RecommendationCalculationService {
                 .micronutrientFertilizerRows(recommendations.micronutrientFertilizerRows())
                 .plantingFormulatedFertilizerRows(recommendations.plantingFormulatedFertilizerRows())
                 .coverageFormulatedFertilizerRows(recommendations.coverageFormulatedFertilizerRows())
-                .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O())
+                .requiredN(recommendations.requiredN()).requiredP2O5(recommendations.requiredP2O5()).requiredK2O(recommendations.requiredK2O()).requiredS(recommendations.requiredS())
                 .nitrogenRangeId(recommendations.nRangeId()).phosphorusRangeId(recommendations.pRangeId()).potassiumRangeId(recommendations.kRangeId())
                 .physicalAnalysisId(inputs.physicalAnalysisSourceId())
                 .soilFertilityAnalysisId(inputs.soilFertilityAnalysis().getId())
@@ -2008,6 +2008,7 @@ public class RecommendationCalculationService {
         private Double requiredN;
         private Double requiredP2O5;
         private Double requiredK2O;
+        private Double requiredS;
         private Long nitrogenRangeId;
         private Long phosphorusRangeId;
         private Long potassiumRangeId;
@@ -2138,7 +2139,7 @@ public class RecommendationCalculationService {
     }
 
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FertilizationRecommendationRow {
@@ -2151,9 +2152,11 @@ public class RecommendationCalculationService {
         private Double providedN;
         private Double providedP2O5;
         private Double providedK2O;
+        private Double providedS;
         private Double balanceN;
         private Double balanceP2O5;
         private Double balanceK2O;
+        private Double balanceS;
         private String limitingNutrient;
         private Double targetNeedKgHa;
         private Double productConcentrationPercent;
@@ -2172,6 +2175,7 @@ public class RecommendationCalculationService {
         private Double n;
         private Double p2o5;
         private Double k2o;
+        private Double s;
         private String reason;
     }
 

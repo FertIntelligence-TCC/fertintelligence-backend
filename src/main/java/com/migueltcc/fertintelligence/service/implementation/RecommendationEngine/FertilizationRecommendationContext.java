@@ -13,6 +13,7 @@ record FertilizationRecommendationContext(
         Double requiredN,
         Double requiredP2O5,
         Double requiredK2O,
+        Double requiredS,
         Long nRangeId,
         Long pRangeId,
         Long kRangeId) {
