@@ -87,6 +87,10 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @ToString.Exclude
     private RecommendedLimestoneTypeModel recommendedLimestoneType;
 
+    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private KContentAndDoseModel kContentAndDose;
+
     public SoilFertilityInterpretationCriteriaTableResponseDto toDto() {
         return SoilFertilityInterpretationCriteriaTableResponseDto.builder()
                 .id(this.id)
