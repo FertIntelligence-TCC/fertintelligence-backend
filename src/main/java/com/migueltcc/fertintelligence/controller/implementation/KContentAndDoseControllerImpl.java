@@ -15,7 +15,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/k-content-and-dose")
+@RequestMapping({"/k-content-and-dose", "/potassium-content-and-dose"})
 public class KContentAndDoseControllerImpl implements KContentAndDoseController {
 
     @Autowired

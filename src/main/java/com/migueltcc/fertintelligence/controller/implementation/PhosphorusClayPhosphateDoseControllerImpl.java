@@ -15,7 +15,10 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/phosphorus-clay-phosphate-dose")
+@RequestMapping({
+        "/phosphorus-clay-phosphate-dose",
+        "/phosphorus-clay-content-and-phosphate-dose"
+})
 public class PhosphorusClayPhosphateDoseControllerImpl implements PhosphorusClayPhosphateDoseController {
 
     @Autowired
