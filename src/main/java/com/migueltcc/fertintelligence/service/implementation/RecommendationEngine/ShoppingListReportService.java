@@ -57,11 +57,11 @@ public class ShoppingListReportService {
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION), area);
             appendBlock(report, "BLOCO 2 - Adubação Corretiva",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION), area);
-            appendBlock(report, "BLOCO 3 - Plantio / Opção 1 - formulados, S e micronutrientes",
+            appendBlock(report, "BLOCO 3 - Plantio / Opção 1 - formulados",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1), area);
             appendBlock(report, "BLOCO 3 - Plantio / Opção 2 - adubos simples",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_2), area);
-            appendBlock(report, "BLOCO 4 - Cobertura / Opção 1 - formulados e complementações",
+            appendBlock(report, "BLOCO 4 - Cobertura / Opção 1 - formulados",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1), area);
             appendBlock(report, "BLOCO 4 - Cobertura / Opção 2 - adubos simples",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area);
@@ -74,7 +74,7 @@ public class ShoppingListReportService {
             report.append("- Data de plantio da cultura usada na recomendação indisponível; campo omitível no frontend.\n");
         }
         report.append("- Itens sem dose em kg/ha não são convertidos para compra para evitar conversões não suportadas.\n");
-        report.append("- Itens com flag alternativa representam opções incompatíveis e devem ser filtrados por opção antes da compra.\n");
+        report.append("- Em blocos com Opção 1 e Opção 2, aceitar uma opção descarta somente a outra opção do mesmo bloco.\n");
         return report.toString();
     }
 
@@ -132,7 +132,7 @@ public class ShoppingListReportService {
             report.append("Aviso técnico: nenhum item com dose operacional foi classificado para este bloco.\n\n");
             return;
         }
-        for (Map.Entry<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> group : groupedByOptionAndPhase(items).entrySet()) {
+        for (Map.Entry<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> group : groupedByOption(items).entrySet()) {
             if (!group.getKey().isBlank()) {
                 report.append("Grupo: ").append(group.getKey()).append("\n\n");
             }
@@ -140,18 +140,28 @@ public class ShoppingListReportService {
         }
     }
 
-    private Map<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> groupedByOptionAndPhase(
+    private Map<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> groupedByOption(
             List<TechnicalRecommendationDocumentSupport.ShoppingItem> items) {
         Map<String, List<TechnicalRecommendationDocumentSupport.ShoppingItem>> grouped = new LinkedHashMap<>();
         for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
-            String key = cell(item.getOption());
-            String phase = cell(item.getPhase());
-            if (!phase.isBlank()) {
-                key = key.isBlank() ? phase : key + " / " + phase;
-            }
+            String key = optionLabel(item.getOption());
             grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(item);
         }
         return grouped;
+    }
+
+    private String optionLabel(String option) {
+        String key = cell(option);
+        return switch (key) {
+            case "correcao_acidez_recomendacao_unica" -> "Recomendação única";
+            case "adubacao_corretiva_opcao_1_formulados",
+                    "plantio_opcao_1_formulados",
+                    "cobertura_opcao_1_formulados" -> "Opção 1 - formulados";
+            case "adubacao_corretiva_opcao_2_adubos_simples",
+                    "plantio_opcao_2_adubos_simples",
+                    "cobertura_opcao_2_adubos_simples" -> "Opção 2 - adubos simples";
+            default -> key;
+        };
     }
 
     private void appendItemsTable(StringBuilder report,

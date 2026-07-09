@@ -39,6 +39,7 @@ class TechnicalRecommendationDocumentSupportTest {
                                 .gramsPerLinearMeter(12.5)
                                 .build()),
                         List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
+                                .fertilizerId(2L)
                                 .coverageOrder(1)
                                 .phase("COBERTURA 1ª")
                                 .doseKgHa(180.0)
@@ -46,7 +47,7 @@ class TechnicalRecommendationDocumentSupportTest {
                                 .doseUnitLabel(null)
                                 .gramsPerPit(9.0)
                                 .build()),
-                        null);
+                        resolver("04-14-08", "20-00-20"));
 
         assertThat(item(items, "Borax").getTypeGroup()).isEqualTo("Micronutriente - B");
         assertThat(item(items, "Borax").getPhase()).isEqualTo("Plantio");
@@ -126,6 +127,11 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(item(items, "FTE BR-12").getTypeGroup()).isEqualTo("FTE BR-12");
         assertThat(items.stream().filter(item -> "Borax".equals(item.getName()))).hasSize(1);
         assertThat(item(items, "Borax").getItemFlag()).isEqualTo("alternativa");
+        assertThat(item(items, "NPK 00-20-20").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
+        assertThat(item(items, "FTE BR-12").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
+        assertThat(item(items, "Superfosfato Simples").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
+        assertThat(item(items, "Cloreto de Potássio").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
+        assertThat(item(items, "Borax").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getSection))
                 .containsOnly(TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION);
     }
@@ -159,11 +165,13 @@ class TechnicalRecommendationDocumentSupportTest {
                                 .doseKgHa(120.0)
                                 .build()),
                         List.of(),
-                        null);
+                        resolver("04-14-08", "20-00-20"));
 
-        assertThat(items.stream().filter(item -> "Ureia".equals(item.getName()))).hasSize(3);
+        assertThat(items.stream().filter(item -> "Ureia".equals(item.getName()))).hasSize(2);
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getName))
+                .contains("04-14-08");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getOption))
-                .contains("opcao_1_formulados", "opcao_2_fontes_simples", "cobertura_opcao_2");
+                .contains("plantio_opcao_1_formulados", "plantio_opcao_2_adubos_simples", "cobertura_opcao_2_adubos_simples");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getPhase))
                 .contains("Plantio", "Cobertura 1");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getName))
@@ -216,6 +224,21 @@ class TechnicalRecommendationDocumentSupportTest {
                 .filter(item -> name.equals(item.getName()))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private DirectRecommendationFertilizerResolver resolver(String plantingFormulatedName, String coverageFormulatedName) {
+        return new DirectRecommendationFertilizerResolver(null, null) {
+            @Override
+            public SimpleMineralFertilizerData simple(Long fertilizerId, AppliedMicronutrient micronutrient) {
+                return new SimpleMineralFertilizerData("Borax", 10.0);
+            }
+
+            @Override
+            public FormulatedMineralFertilizerData formulated(Long fertilizerId) {
+                String name = fertilizerId == null ? plantingFormulatedName : coverageFormulatedName;
+                return new FormulatedMineralFertilizerData(name, 4.0, 14.0, 8.0);
+            }
+        };
     }
 
     private String technicalReport() {

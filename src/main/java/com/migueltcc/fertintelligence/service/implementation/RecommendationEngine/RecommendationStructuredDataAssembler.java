@@ -14,9 +14,11 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,9 +28,14 @@ public class RecommendationStructuredDataAssembler {
 
     private static final String SOURCE_TECHNICAL_REPORT = "technical_report";
     private static final String SOURCE_DIRECT_LINES = "direct_recommendation_lines";
-    private static final String SOURCE_SHOPPING_ITEMS = "shopping_items";
     private static final String CHEMICAL_DIAGNOSIS_TITLE = "Diagnóstico químico";
     private static final String FOLIAR_DIAGNOSIS_TITLE = "Diagnóstico foliar";
+    private static final String OPTION_CORRECTIVE_FORMULATED = "adubacao_corretiva_opcao_1_formulados";
+    private static final String OPTION_CORRECTIVE_SIMPLE_SOURCES = "adubacao_corretiva_opcao_2_adubos_simples";
+    private static final String OPTION_PLANTING_FORMULATED = "plantio_opcao_1_formulados";
+    private static final String OPTION_PLANTING_SIMPLE_SOURCES = "plantio_opcao_2_adubos_simples";
+    private static final String OPTION_COVERAGE_FORMULATED = "cobertura_opcao_1_formulados";
+    private static final String OPTION_COVERAGE_SIMPLE_SOURCES = "cobertura_opcao_2_adubos_simples";
 
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
@@ -47,9 +54,10 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "4. Diagnóstico físico", "Diagnóstico físico", "diagnostico_fisico", null, null));
         sections.add(section(report, "5. Diagnóstico de salinidade/sodicidade", "Diagnóstico de salinidade/sodicidade", "diagnostico_salinidade_sodicidade", null, null));
         sections.add(section(report, "6. Diagnóstico foliar", FOLIAR_DIAGNOSIS_TITLE, "diagnostico_foliar", null, null));
-        sections.add(section(report, "9. Adubação corretiva", "Adubação corretiva", "adubacao_corretiva", "adubacao_corretiva", "opcional"));
-        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - fontes simples no plantio", "plantio_opcao_2", "opcao_2_fontes_simples", "alternativa"));
-        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - fontes simples", "cobertura_opcao_2", "cobertura_opcao_2", "alternativa"));
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 1 - formulados", "adubacao_corretiva_opcao_1", OPTION_CORRECTIVE_FORMULATED, true));
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Fontes selecionadas", "fertilizantes_recomendados", null, null));
         sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(report, "15. Memória de cálculo", "Memória de cálculo", "memoria_calculo", null, null));
@@ -59,8 +67,8 @@ public class RecommendationStructuredDataAssembler {
     public List<RecommendationTableSectionDto> summarySections(RecommendationModel recommendation) {
         String report = report(recommendation);
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
-        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - fontes simples no plantio", "plantio_opcao_2", "opcao_2_fontes_simples", "alternativa"));
-        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - fontes simples", "cobertura_opcao_2", "cobertura_opcao_2", "alternativa"));
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados", "fertilizantes_recomendados", null, null));
         sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes orgânicas, organominerais e micronutrientes"),
@@ -76,7 +84,8 @@ public class RecommendationStructuredDataAssembler {
     public List<RecommendationTableSectionDto> directSections(RecommendationModel recommendation, String directReport) {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
         sections.add(micronutrientLineSection(recommendation));
-        sections.add(directLineSection(recommendation));
+        sections.add(directPlantingFormulatedLineSection(recommendation));
+        sections.add(directCoverageFormulatedLineSection(recommendation));
         sections.add(section(directReport, "Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
         return nonEmpty(sections);
     }
@@ -120,10 +129,9 @@ public class RecommendationStructuredDataAssembler {
         return deduplicate(observations);
     }
 
-    private RecommendationTableSectionDto directLineSection(RecommendationModel recommendation) {
+    private RecommendationTableSectionDto directPlantingFormulatedLineSection(RecommendationModel recommendation) {
         List<DirectRecommendationPlantingFormulatedFertilizerLineModel> planting = plantingFormulatedFertilizerLines(recommendation);
-        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverage = coverageFormulatedFertilizerLines(recommendation);
-        if (planting.isEmpty() && coverage.isEmpty()) {
+        if (planting.isEmpty()) {
             return null;
         }
 
@@ -138,6 +146,27 @@ public class RecommendationStructuredDataAssembler {
                     TechnicalRecommendationDocumentSupport.formatKgHa(line.getDoseKgHa()),
                     displayText(shortText(line.getTechnicalObservation()))));
         }
+
+        return RecommendationTableSectionDto.builder()
+                .title("Plantio - Opção 1 - formulados")
+                .sectionKey("plantio_opcao_1")
+                .option(OPTION_PLANTING_FORMULATED)
+                .itemType("alternativa")
+                .source(SOURCE_DIRECT_LINES)
+                .columns(List.of("Fase", "Formulado", "Relação N-P2O5-K2O", "Dose", "Observação técnica"))
+                .rows(rows)
+                .technicalObservations(deduplicate(extractLastColumn(rows)))
+                .technicalWarnings(deduplicate(extractLastColumn(rows)))
+                .build();
+    }
+
+    private RecommendationTableSectionDto directCoverageFormulatedLineSection(RecommendationModel recommendation) {
+        List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverage = coverageFormulatedFertilizerLines(recommendation);
+        if (coverage.isEmpty()) {
+            return null;
+        }
+
+        List<List<String>> rows = new ArrayList<>();
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : coverage) {
             DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
                     fertilizerResolver.formulated(line.getFertilizerId());
@@ -150,9 +179,9 @@ public class RecommendationStructuredDataAssembler {
         }
 
         return RecommendationTableSectionDto.builder()
-                .title("Recomendação Direta - formulados")
-                .sectionKey("plantio_cobertura_opcao_1")
-                .option("opcao_1_formulados")
+                .title("Cobertura - Opção 1 - formulados")
+                .sectionKey("cobertura_opcao_1")
+                .option(OPTION_COVERAGE_FORMULATED)
                 .itemType("alternativa")
                 .source(SOURCE_DIRECT_LINES)
                 .columns(List.of("Fase", "Formulado", "Relação N-P2O5-K2O", "Dose", "Observação técnica"))
@@ -183,7 +212,7 @@ public class RecommendationStructuredDataAssembler {
         return RecommendationTableSectionDto.builder()
                 .title("Recomendação Direta - micronutrientes")
                 .sectionKey("micronutrientes")
-                .option("complemento")
+                .option(OPTION_PLANTING_FORMULATED)
                 .itemType("complemento")
                 .source(SOURCE_DIRECT_LINES)
                 .columns(List.of("Micronutriente", "Adubo", "Dose micronutriente", "Dose adubo", "Observação técnica"))
@@ -191,6 +220,41 @@ public class RecommendationStructuredDataAssembler {
                 .technicalObservations(deduplicate(extractLastColumn(rows)))
                 .technicalWarnings(deduplicate(extractLastColumn(rows)))
                 .build();
+    }
+
+    private RecommendationTableSectionDto correctiveSection(String report,
+                                                            String title,
+                                                            String sectionKey,
+                                                            String option,
+                                                            boolean formulated) {
+        String section = TechnicalRecommendationDocumentSupport.section(report, "9. Adubação corretiva");
+        List<List<String>> tableRows = TechnicalRecommendationDocumentSupport.tableRows(section).stream()
+                .filter(row -> isCorrectiveFormulatedRow(row) == formulated)
+                .toList();
+        if (tableRows.isEmpty()) {
+            return null;
+        }
+        List<String> observations = deduplicate(extractTechnicalObservations(tableRows));
+        return RecommendationTableSectionDto.builder()
+                .title(title)
+                .sectionKey(sectionKey)
+                .option(option)
+                .itemType("alternativa")
+                .source(SOURCE_TECHNICAL_REPORT)
+                .columns(tableHeader(section))
+                .rows(tableRows)
+                .technicalObservations(observations)
+                .technicalWarnings(observations)
+                .build();
+    }
+
+    private boolean isCorrectiveFormulatedRow(List<String> row) {
+        String attribute = row == null || row.isEmpty() ? "" : row.get(0);
+        String sourceName = row == null || row.size() < 3 ? "" : row.get(2);
+        String normalized = normalize(attribute + " " + sourceName);
+        return normalized.contains("formulado")
+                || normalized.contains("npk")
+                || normalized.contains("fte");
     }
 
     private RecommendationTableSectionDto section(String report, String heading, String title) {
@@ -300,6 +364,15 @@ public class RecommendationStructuredDataAssembler {
             normalized = normalized.substring(0, end + 1);
         }
         return normalized.length() <= 220 ? normalized : normalized.substring(0, 217).trim() + "...";
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private List<String> deduplicate(List<String> values) {
