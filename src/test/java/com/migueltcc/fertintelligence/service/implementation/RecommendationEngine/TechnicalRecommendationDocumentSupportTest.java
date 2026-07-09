@@ -92,9 +92,42 @@ class TechnicalRecommendationDocumentSupportTest {
                 TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
 
         assertThat(item(items, "Gesso agrícola").getKgHa()).isEqualTo(300.0);
+        assertThat(item(items, "Gesso agrícola").getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION);
         assertThat(item(items, "Sulfato de amônio 22% S").getKgHa()).isEqualTo(204.55);
+        assertThat(item(items, "Sulfato de amônio 22% S").getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1);
         assertThat(item(items, "Sulfato de amônio 22% S").getTypeGroup()).isEqualTo("Alternativa de S para gessagem em dose baixa");
         assertThat(item(items, "Superfosfato simples 11% S").getKgHa()).isEqualTo(409.09);
+    }
+
+    @Test
+    void collectShoppingItemsClassifiesCorrectiveBlockAndSkipsAutomaticFteComplements() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 9. Adubação corretiva
+
+                        | Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |
+                        |---|---|---|---:|---|---|
+                        | P2O5 corretivo - Superfosfato Simples | 60 kg/ha de P2O5 | Superfosfato Simples | 333.33 kg/ha de produto | Memória |  |
+                        | K2O corretivo - Cloreto de Potássio | 40 kg/ha de K2O | Cloreto de Potássio | 66.67 kg/ha de produto | Memória |  |
+                        | Formulado 00-P2O5-K2O corretivo | P2O5 e K2O | NPK 00-20-20 | 300.00 kg/ha de produto | Memória |  |
+                        | FTE BR 12 corretivo | Zn como nutriente-base: 2 kg/ha | FTE BR-12 | 16.67 kg/ha de produto | Memória |  |
+                        | Complemento após FTE BR-12 de B | 1 kg/ha de B | Borax | 9.09 kg/ha de produto | Memória |  |
+                        | Complemento corretivo de B | 1 kg/ha de B | Borax | 9.09 kg/ha de produto | Memória |  |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        assertThat(item(items, "Superfosfato Simples").getTypeGroup()).isEqualTo("Superfosfato Simples");
+        assertThat(item(items, "Cloreto de Potássio").getTypeGroup()).isEqualTo("Cloreto de Potássio");
+        assertThat(item(items, "NPK 00-20-20").getTypeGroup()).isEqualTo("Formulados");
+        assertThat(item(items, "FTE BR-12").getTypeGroup()).isEqualTo("FTE BR-12");
+        assertThat(items.stream().filter(item -> "Borax".equals(item.getName()))).hasSize(1);
+        assertThat(item(items, "Borax").getItemFlag()).isEqualTo("alternativa");
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getSection))
+                .containsOnly(TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION);
     }
 
     @Test

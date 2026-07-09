@@ -42,8 +42,12 @@ final class TechnicalRecommendationDocumentSupport {
     private static final String OPTION_COVERAGE_SIMPLE_SOURCES = "cobertura_opcao_2";
     private static final String OPTION_CORRECTIVE = "adubacao_corretiva";
     private static final String OPTION_GYPSUM = "gessagem";
-    private static final String OPTION_SULFUR = "enxofre";
-    private static final String OPTION_COMPLEMENT = "complemento";
+    static final String SECTION_ACIDITY_CORRECTION = "bloco_1_correcao_acidez";
+    static final String SECTION_CORRECTIVE_FERTILIZATION = "bloco_2_adubacao_corretiva";
+    static final String SECTION_PLANTING_OPTION_1 = "bloco_3_plantio_opcao_1";
+    static final String SECTION_PLANTING_OPTION_2 = "bloco_3_plantio_opcao_2";
+    static final String SECTION_COVERAGE_OPTION_1 = "bloco_4_cobertura_opcao_1";
+    static final String SECTION_COVERAGE_OPTION_2 = "bloco_4_cobertura_opcao_2";
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
@@ -160,12 +164,12 @@ final class TechnicalRecommendationDocumentSupport {
             DirectRecommendationFertilizerResolver fertilizerResolver) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
         String source = recommendation.getTechnicalReport();
-        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"), "calagem", "calagem", FLAG_REQUIRED,
+        addCorrectiveItem(items, source, "Calcário", section(source, "7. Calagem"), SECTION_ACIDITY_CORRECTION, "calagem", FLAG_REQUIRED,
                 "Necessidade de calagem ajustada",
                 "Dose efetiva registrada pelo cálculo",
                 "Dose corrigida por PRNT");
         String gypsumSection = section(source, "8. Gessagem");
-        addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, "gessagem", OPTION_GYPSUM, FLAG_OPTIONAL,
+        addPositiveCorrectiveItem(items, "Gesso agrícola", gypsumSection, SECTION_ACIDITY_CORRECTION, OPTION_GYPSUM, FLAG_OPTIONAL,
                 "Dose comercial", "Dose de gesso");
         addGypsumSulfurAlternativeItems(items, gypsumSection);
         addSoilCorrectiveFertilizationItems(items, section(source, "9. Adubação corretiva"));
@@ -333,7 +337,8 @@ final class TechnicalRecommendationDocumentSupport {
                                                  String label) {
         for (String line : section.split("\\R")) {
             if (!normalize(line).contains(normalize(label))) continue;
-            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, "enxofre", OPTION_SULFUR, FLAG_ALTERNATIVE, "Plantio", null));
+            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, SECTION_PLANTING_OPTION_1,
+                    OPTION_FORMULATED, FLAG_COMPLEMENT, "Plantio - suprimento de S", null));
             return;
         }
     }
@@ -349,7 +354,7 @@ final class TechnicalRecommendationDocumentSupport {
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             String itemName = removeId(fertilizer);
             if (items.containsKey(safe(itemName))) continue;
-            String sectionKey = normalize(phase).contains("cobertura") ? "cobertura_opcao_2" : "plantio_opcao_2";
+            String sectionKey = normalize(phase).contains("cobertura") ? SECTION_COVERAGE_OPTION_2 : SECTION_PLANTING_OPTION_2;
             String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_SIMPLE_SOURCES;
             extractKgHa(quantity)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
@@ -364,10 +369,12 @@ final class TechnicalRecommendationDocumentSupport {
             String sourceName = row.get(2);
             String dose = row.get(3);
             if (looksUnavailable(sourceName) || looksUnavailable(dose)) continue;
+            if (isAutomaticFteComplement(attribute)) continue;
             String itemName = removeId(sourceName);
             extractKgHa(dose).ifPresent(kgHa -> {
                 if (kgHa > 0d) {
-                    merge(items, itemName, kgHa, "Adubação corretiva do solo", "adubacao_corretiva", OPTION_CORRECTIVE, FLAG_OPTIONAL, attribute, null);
+                    merge(items, itemName, kgHa, correctiveTypeGroup(attribute, itemName), SECTION_CORRECTIVE_FERTILIZATION,
+                            OPTION_CORRECTIVE, correctiveItemFlag(attribute), attribute, null);
                 }
             });
         }
@@ -383,9 +390,13 @@ final class TechnicalRecommendationDocumentSupport {
             if (!normalize(unit).contains("kg/ha")) continue;
             String itemName = removeId(sourceName);
             if (items.containsKey(safe(itemName))) continue;
+            String typeGroup = normalize(row.get(0)).contains("micronutriente")
+                    ? "Complementação de micronutrientes"
+                    : row.get(0);
             parseDecimal(dose)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
-                    .ifPresent(kgHa -> merge(items, itemName, kgHa, null, "fontes_alternativas", OPTION_COMPLEMENT, FLAG_COMPLEMENT, row.get(0), null));
+                    .ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, SECTION_PLANTING_OPTION_1, OPTION_FORMULATED,
+                            FLAG_COMPLEMENT, "Plantio", null));
         }
     }
 
@@ -404,8 +415,8 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(fertilizer.name()),
                     line.getFertilizerDoseKgHa(),
                     "Micronutriente" + (line.getMicronutrient() == null ? "" : " - " + line.getMicronutrient()),
-                    "micronutrientes",
-                    OPTION_COMPLEMENT,
+                    SECTION_PLANTING_OPTION_1,
+                    OPTION_FORMULATED,
                     FLAG_COMPLEMENT,
                     "Plantio",
                     localizedDose(line.getDoseUnitMode(), line.getDoseUnitLabel(), line.getGramsPerLinearMeter(), line.getGramsPerPit()));
@@ -427,7 +438,7 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(fertilizer.name()),
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(fertilizer.nitrogenPercent(), fertilizer.p2o5Percent(), fertilizer.k2oPercent()),
-                    "plantio_opcao_1",
+                    SECTION_PLANTING_OPTION_1,
                     OPTION_FORMULATED,
                     FLAG_ALTERNATIVE,
                     line.getPhase(),
@@ -451,7 +462,7 @@ final class TechnicalRecommendationDocumentSupport {
                     removeId(fertilizer.name()),
                     line.getDoseKgHa(),
                     formattedFormulatedGroup(fertilizer.nitrogenPercent(), fertilizer.p2o5Percent(), fertilizer.k2oPercent()),
-                    "cobertura_opcao_1",
+                    SECTION_COVERAGE_OPTION_1,
                     OPTION_COVERAGE_FORMULATED,
                     FLAG_ALTERNATIVE,
                     phase,
@@ -462,6 +473,28 @@ final class TechnicalRecommendationDocumentSupport {
     private static String formattedFormulatedGroup(Double nitrogen, Double p2o5, Double k2o) {
         String formula = formatPercentForFormula(nitrogen) + "-" + formatPercentForFormula(p2o5) + "-" + formatPercentForFormula(k2o);
         return "Formulado NPK " + formula;
+    }
+
+    private static String correctiveTypeGroup(String attribute, String itemName) {
+        String normalizedAttribute = normalize(attribute);
+        String normalizedName = normalize(itemName);
+        if (normalizedName.contains("superfosfato simples")) return "Superfosfato Simples";
+        if (normalizedName.contains("cloreto de potassio")) return "Cloreto de Potássio";
+        if (normalizedName.contains("fte br 12") || normalizedName.contains("fte br-12")) return "FTE BR-12";
+        if (normalizedName.contains("fte br 24") || normalizedName.contains("fte br-24")) return "FTE BR-24";
+        if (normalizedName.contains("fte")) return "FTE";
+        if (normalizedAttribute.contains("formulado") || normalizedName.contains("npk")) return "Formulados";
+        if (normalizedAttribute.contains("complemento corretivo")) return "Micronutriente simples em dose cheia";
+        return "Adubação corretiva do solo";
+    }
+
+    private static String correctiveItemFlag(String attribute) {
+        return normalize(attribute).contains("complemento corretivo") ? FLAG_ALTERNATIVE : FLAG_OPTIONAL;
+    }
+
+    private static boolean isAutomaticFteComplement(String attribute) {
+        String normalized = normalize(attribute);
+        return normalized.contains("complemento apos") || normalized.contains("complemento após");
     }
 
     private static String shoppingNutrientGroup(String nutrients, String application) {
