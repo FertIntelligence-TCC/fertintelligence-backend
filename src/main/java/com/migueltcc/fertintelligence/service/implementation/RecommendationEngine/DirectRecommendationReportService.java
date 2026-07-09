@@ -221,7 +221,11 @@ public class DirectRecommendationReportService {
             appendAdditionalPlantingRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
             appendCoverageFormulatedRows(report, coverageFormulatedFertilizerLines);
             if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
-                appendCoverageFallbackRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
+                report.append("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | ")
+                        .append("Não calculado por falta de dados. | ")
+                        .append(spacingUnavailableCell())
+                        .append(" | Aviso técnico: não houve linha estruturada de formulado NPK para cobertura; ")
+                        .append("a recomendação direta não propagou a cobertura textual do laudo. |\n");
             }
             report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
                     .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
@@ -331,35 +335,6 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
                     .append(" |\n");
         }
-    }
-
-    private boolean appendCoverageFallbackRowsForFormulatedTable(StringBuilder report,
-                                                                 String source,
-                                                                 CropModel crop,
-                                                                 DirectDoseUnitMetadata doseUnitMetadata,
-                                                                 List<String> spacingWarnings) {
-        boolean appended = false;
-        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(
-                TechnicalRecommendationDocumentSupport.section(source, "11. Adubação de cobertura"))) {
-            if (row.size() < 4) continue;
-            String phase = row.get(0);
-            String fertilizer = row.get(2);
-            String quantity = row.get(3);
-            if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer)
-                    || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)) {
-                continue;
-            }
-            if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(quantity)) continue;
-            String spacingDose = calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings);
-            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
-                    .append(" | ")
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
-                    .append(" | ").append(spacingDose)
-                    .append(" | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |\n");
-            appended = true;
-        }
-        return appended;
     }
 
     private String coveragePhase(String phase, Integer coverageOrder) {

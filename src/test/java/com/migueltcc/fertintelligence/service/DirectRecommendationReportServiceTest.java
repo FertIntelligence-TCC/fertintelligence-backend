@@ -165,7 +165,7 @@ class DirectRecommendationReportServiceTest {
     }
 
     @Test
-    void buildUsesSourceCoverageRowsWhenStructuredPlantingExistsWithoutStructuredCoverage() {
+    void buildDoesNotUseSourceCoverageRowsWhenStructuredPlantingExistsWithoutStructuredCoverage() {
         DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
@@ -211,8 +211,10 @@ class DirectRecommendationReportServiceTest {
 
         assertThat(report).contains("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | g/m linear | Observação técnica |");
         assertThat(report).contains("| Plantio | 04-14-08 | 1-3.5-2 | 250.00 kg/ha | 12.50 | Formulado de plantio selecionado. |");
-        assertThat(report).contains("| Cobertura 1 - N | Ureia | Não aplicável com os dados disponíveis. | 60 kg/ha | 3.00 | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |");
-        assertThat(report).contains("| Cobertura 2 - K | Cloreto de potássio | Não aplicável com os dados disponíveis. | 40 kg/ha | 2.00 | Cobertura propagada do laudo técnico; não houve linha estruturada de formulado NPK para esta cobertura. |");
+        assertThat(report).contains("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | Não calculado por falta de dados. | Não calculado por falta de dados. | Aviso técnico: não houve linha estruturada de formulado NPK para cobertura; a recomendação direta não propagou a cobertura textual do laudo. |");
+        assertThat(report).doesNotContain("Cobertura propagada do laudo técnico");
+        assertThat(report).doesNotContain("| Cobertura 1 - N | Ureia |");
+        assertThat(report).doesNotContain("| Cobertura 2 - K | Cloreto de potássio |");
     }
 
     @Test
