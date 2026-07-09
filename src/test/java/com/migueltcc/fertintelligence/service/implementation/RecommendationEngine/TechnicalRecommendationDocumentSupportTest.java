@@ -116,9 +116,12 @@ class TechnicalRecommendationDocumentSupportTest {
                         | Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |
                         |---|---|---|---:|---|---|
                         | P2O5 corretivo - Superfosfato Simples | 60 kg/ha de P2O5 | Superfosfato Simples | 333.33 kg/ha de produto | Memória |  |
+                        | P2O5 corretivo - Superfosfato Triplo | 60 kg/ha de P2O5 | Superfosfato Triplo | 133.33 kg/ha de produto | Memória |  |
+                        | P2O5 corretivo - Termofosfato Magnesiano | 60 kg/ha de P2O5 | Termofosfato Magnesiano | 300.00 kg/ha de produto | Memória |  |
                         | K2O corretivo - Cloreto de Potássio | 40 kg/ha de K2O | Cloreto de Potássio | 66.67 kg/ha de produto | Memória |  |
                         | Formulado 00-P2O5-K2O corretivo | P2O5 e K2O | NPK 00-20-20 | 300.00 kg/ha de produto | Memória |  |
                         | FTE BR 12 corretivo | Zn como nutriente-base: 2 kg/ha | FTE BR-12 | 16.67 kg/ha de produto | Memória |  |
+                        | FTE BR 24 corretivo | Zn como nutriente-base: 2 kg/ha | FTE BR-24 | 16.67 kg/ha de produto | Memória |  |
                         | Complemento após FTE BR-12 de B | 1 kg/ha de B | Borax | 9.09 kg/ha de produto | Memória |  |
                         | Complemento corretivo de B | 1 kg/ha de B | Borax | 9.09 kg/ha de produto | Memória |  |
                         """)
@@ -127,15 +130,22 @@ class TechnicalRecommendationDocumentSupportTest {
         List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
                 TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
 
-        assertThat(item(items, "Superfosfato Simples").getTypeGroup()).isEqualTo("Superfosfato Simples");
-        assertThat(item(items, "Cloreto de Potássio").getTypeGroup()).isEqualTo("Cloreto de Potássio");
-        assertThat(item(items, "NPK 00-20-20").getTypeGroup()).isEqualTo("Formulados");
+        assertThat(item(items, "Superfosfato Simples").getTypeGroup()).isEqualTo("SSP - Superfosfato Simples");
+        assertThat(item(items, "Superfosfato Triplo").getTypeGroup()).isEqualTo("Superfosfato Triplo");
+        assertThat(item(items, "Termofosfato Magnesiano").getTypeGroup()).isEqualTo("Termofosfato Magnesiano");
+        assertThat(item(items, "Cloreto de Potássio").getTypeGroup()).isEqualTo("KCl - Cloreto de Potássio");
+        assertThat(item(items, "NPK 00-20-20").getTypeGroup()).isEqualTo("Formulado corretivo");
         assertThat(item(items, "FTE BR-12").getTypeGroup()).isEqualTo("FTE BR-12");
+        assertThat(item(items, "FTE BR-24").getTypeGroup()).isEqualTo("FTE BR-24");
         assertThat(items.stream().filter(item -> "Borax".equals(item.getName()))).hasSize(1);
+        assertThat(item(items, "Borax").getTypeGroup()).isEqualTo("Complemento corretivo simples");
         assertThat(item(items, "Borax").getItemFlag()).isEqualTo("alternativa");
         assertThat(item(items, "NPK 00-20-20").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
         assertThat(item(items, "FTE BR-12").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
+        assertThat(item(items, "FTE BR-24").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
         assertThat(item(items, "Superfosfato Simples").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
+        assertThat(item(items, "Superfosfato Triplo").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
+        assertThat(item(items, "Termofosfato Magnesiano").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(item(items, "Cloreto de Potássio").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(item(items, "Borax").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getSection))
@@ -275,6 +285,13 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(purchaseList.getBlocks())
                 .extracting("mutuallyExclusiveOptions")
                 .containsExactly(false, true, true, true);
+        assertThat(purchaseList.getBlocks().get(1).getDescription())
+                .isEqualTo("Fontes corretivas já calculadas, separando formulados/FTE das fontes simples de P2O5, K2O e micronutrientes.");
+        assertThat(purchaseList.getBlocks().get(1).getOptions())
+                .extracting("title")
+                .containsExactly(
+                        "Formulado corretivo, FTE BR-12 e FTE BR-24",
+                        "SSP, superfosfato triplo, termofosfato, KCl e complementos");
         assertThat(purchaseList.getBlocks().get(2).getOptions())
                 .extracting("key")
                 .containsExactly("plantio_opcao_1_formulados", "plantio_opcao_2_adubos_simples");

@@ -482,13 +482,16 @@ final class TechnicalRecommendationDocumentSupport {
     private static String correctiveTypeGroup(String attribute, String itemName) {
         String normalizedAttribute = normalize(attribute);
         String normalizedName = normalize(itemName);
-        if (normalizedName.contains("superfosfato simples")) return "Superfosfato Simples";
-        if (normalizedName.contains("cloreto de potassio")) return "Cloreto de Potássio";
+        if (normalizedName.contains("superfosfato simples")) return "SSP - Superfosfato Simples";
+        if (normalizedName.contains("superfosfato triplo")) return "Superfosfato Triplo";
+        if (normalizedName.contains("termofosfato")) return "Termofosfato Magnesiano";
+        if (normalizedName.contains("cloreto de potassio")) return "KCl - Cloreto de Potássio";
         if (normalizedName.contains("fte br 12") || normalizedName.contains("fte br-12")) return "FTE BR-12";
         if (normalizedName.contains("fte br 24") || normalizedName.contains("fte br-24")) return "FTE BR-24";
         if (normalizedName.contains("fte")) return "FTE";
-        if (normalizedAttribute.contains("formulado") || normalizedName.contains("npk")) return "Formulados";
-        if (normalizedAttribute.contains("complemento corretivo")) return "Micronutriente simples em dose cheia";
+        if (normalizedAttribute.contains("formulado") || normalizedName.contains("npk")) return "Formulado corretivo";
+        if (isAutomaticFteComplement(attribute)) return "Complemento após FTE";
+        if (normalizedAttribute.contains("complemento corretivo")) return "Complemento corretivo simples";
         return "Adubação corretiva do solo";
     }
 

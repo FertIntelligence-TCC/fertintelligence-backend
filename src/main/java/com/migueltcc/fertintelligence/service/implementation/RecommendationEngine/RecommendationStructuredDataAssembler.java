@@ -163,11 +163,11 @@ public class RecommendationStructuredDataAssembler {
                         purchaseBlock(
                                 BLOCK_CORRECTIVE_FERTILIZATION,
                                 "Adubação corretiva",
-                                "Alternativas corretivas de P2O5, K2O, formulados, FTE e micronutrientes simples já calculadas.",
+                                "Fontes corretivas já calculadas, separando formulados/FTE das fontes simples de P2O5, K2O e micronutrientes.",
                                 List.of(
-                                        purchaseOption(OPTION_CORRECTIVE_FORMULATED, "SSP, formulado corretivo e FTE",
+                                        purchaseOption(OPTION_CORRECTIVE_FORMULATED, "Formulado corretivo, FTE BR-12 e FTE BR-24",
                                                 correctiveFormulatedItems),
-                                        purchaseOption(OPTION_CORRECTIVE_SIMPLE_SOURCES, "KCl e micronutrientes simples",
+                                        purchaseOption(OPTION_CORRECTIVE_SIMPLE_SOURCES, "SSP, superfosfato triplo, termofosfato, KCl e complementos",
                                                 correctiveSimpleSourceItems))),
                         purchaseBlock(
                                 BLOCK_PLANTING,
@@ -204,9 +204,9 @@ public class RecommendationStructuredDataAssembler {
                         "adubacao_corretiva",
                         "Adubação Corretiva",
                         List.of(
-                                option(OPTION_CORRECTIVE_FORMULATED, "Opção 1 - formulados", true,
+                                option(OPTION_CORRECTIVE_FORMULATED, "Opção 1 - formulado corretivo e FTE", true,
                                         itemsByOption(validItems, OPTION_CORRECTIVE_FORMULATED)),
-                                option(OPTION_CORRECTIVE_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
+                                option(OPTION_CORRECTIVE_SIMPLE_SOURCES, "Opção 2 - fontes simples e complementos", true,
                                         itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES)))),
                 block(
                         "plantio",
