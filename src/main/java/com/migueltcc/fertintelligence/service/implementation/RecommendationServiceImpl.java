@@ -9,6 +9,7 @@ import com.migueltcc.fertintelligence.dto.generalRecommendation.GeneralRecommend
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.dto.summaryRecommendation.SummaryRecommendationResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.GeneralRecommendationModel;
@@ -312,6 +313,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         if (shoppingList == null) {
             return null;
         }
+        List<ShoppingListItemResponseDto> items = structuredDataAssembler.shoppingItems(shoppingList.getRecommendation());
         return ShoppingListResponseDto.builder()
                 .id(shoppingList.getId())
                 .recommendationId(shoppingList.getRecommendation().getId())
@@ -320,7 +322,8 @@ public class RecommendationServiceImpl implements RecommendationService {
                         : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(shoppingList.getTechnicalReport())
                 .content(shoppingList.getTechnicalReport())
-                .items(structuredDataAssembler.shoppingItems(shoppingList.getRecommendation()))
+                .items(items)
+                .blocks(structuredDataAssembler.shoppingBlocks(items))
                 .technicalObservations(structuredDataAssembler.observations(shoppingList.getTechnicalReport()))
                 .createdAt(shoppingList.getCreatedAt())
                 .updatedAt(shoppingList.getUpdatedAt())

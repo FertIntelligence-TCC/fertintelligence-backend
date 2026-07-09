@@ -6,6 +6,8 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -95,7 +97,7 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(item(items, "Gesso agrícola").getKgHa()).isEqualTo(300.0);
         assertThat(item(items, "Gesso agrícola").getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION);
         assertThat(item(items, "Sulfato de amônio 22% S").getKgHa()).isEqualTo(204.55);
-        assertThat(item(items, "Sulfato de amônio 22% S").getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1);
+        assertThat(item(items, "Sulfato de amônio 22% S").getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION);
         assertThat(item(items, "Sulfato de amônio 22% S").getTypeGroup()).isEqualTo("Alternativa de S para gessagem em dose baixa");
         assertThat(item(items, "Superfosfato simples 11% S").getKgHa()).isEqualTo(409.09);
     }
@@ -146,6 +148,7 @@ class TechnicalRecommendationDocumentSupportTest {
                         | Fase | Nutriente | Fertilizante | Dose |
                         |---|---|---|---:|
                         | Plantio | N | Ureia | 100 kg/ha |
+                        | Plantio |  | MAP | 90 kg/ha |
                         | Plantio | N | Sulfato de amônio | 0 kg/ha |
 
                         ## 11. Adubação de cobertura
@@ -170,6 +173,8 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(items.stream().filter(item -> "Ureia".equals(item.getName()))).hasSize(2);
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getName))
                 .contains("04-14-08");
+        assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getName))
+                .doesNotContain("MAP");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getOption))
                 .contains("plantio_opcao_1_formulados", "plantio_opcao_2_adubos_simples", "cobertura_opcao_2_adubos_simples");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getPhase))
@@ -215,6 +220,48 @@ class TechnicalRecommendationDocumentSupportTest {
                 .filter(item -> "Borax".equals(item.getName()))
                 .filter(item -> "Cobertura 1".equals(item.getPhase())))
                 .hasSize(1);
+    }
+
+    @Test
+    void shoppingBlocksKeepOptionsMutuallyExclusiveAndDoNotSumAlternatives() {
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null);
+        List<ShoppingListItemResponseDto> items = List.of(
+                ShoppingListItemResponseDto.builder()
+                        .inputName("NPK 00-20-20")
+                        .option("adubacao_corretiva_opcao_1_formulados")
+                        .quantityKgHa(300.0)
+                        .build(),
+                ShoppingListItemResponseDto.builder()
+                        .inputName("Superfosfato Simples")
+                        .option("adubacao_corretiva_opcao_2_adubos_simples")
+                        .quantityKgHa(333.33)
+                        .build(),
+                ShoppingListItemResponseDto.builder()
+                        .inputName("Linha inválida")
+                        .option("plantio_opcao_1_formulados")
+                        .quantityKgHa(null)
+                        .build());
+
+        List<ShoppingListResponseDto.ShoppingListBlockResponseDto> blocks = assembler.shoppingBlocks(items);
+
+        ShoppingListResponseDto.ShoppingListBlockResponseDto corrective = blocks.stream()
+                .filter(block -> "adubacao_corretiva".equals(block.getCode()))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(corrective.getOptions()).hasSize(2);
+        assertThat(corrective.getOptions()).allMatch(ShoppingListResponseDto.ShoppingListOptionResponseDto::getMutuallyExclusive);
+        assertThat(corrective.getOptions().get(0).getItems())
+                .extracting(ShoppingListItemResponseDto::getInputName)
+                .containsExactly("NPK 00-20-20");
+        assertThat(corrective.getOptions().get(1).getItems())
+                .extracting(ShoppingListItemResponseDto::getInputName)
+                .containsExactly("Superfosfato Simples");
+        assertThat(blocks.stream()
+                .flatMap(block -> block.getOptions().stream())
+                .flatMap(option -> option.getItems().stream())
+                .map(ShoppingListItemResponseDto::getInputName))
+                .doesNotContain("Linha inválida");
     }
 
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(

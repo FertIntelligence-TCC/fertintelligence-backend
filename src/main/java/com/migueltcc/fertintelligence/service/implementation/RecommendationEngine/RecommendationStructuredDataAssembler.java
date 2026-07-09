@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationTableSectionDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
@@ -36,6 +37,7 @@ public class RecommendationStructuredDataAssembler {
     private static final String OPTION_PLANTING_SIMPLE_SOURCES = "plantio_opcao_2_adubos_simples";
     private static final String OPTION_COVERAGE_FORMULATED = "cobertura_opcao_1_formulados";
     private static final String OPTION_COVERAGE_SIMPLE_SOURCES = "cobertura_opcao_2_adubos_simples";
+    private static final String OPTION_ACIDITY_CORRECTION = "correcao_acidez_recomendacao_unica";
 
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
@@ -115,6 +117,45 @@ public class RecommendationStructuredDataAssembler {
                 .toList();
     }
 
+    public List<ShoppingListResponseDto.ShoppingListBlockResponseDto> shoppingBlocks(RecommendationModel recommendation) {
+        return shoppingBlocks(shoppingItems(recommendation));
+    }
+
+    public List<ShoppingListResponseDto.ShoppingListBlockResponseDto> shoppingBlocks(List<ShoppingListItemResponseDto> items) {
+        List<ShoppingListItemResponseDto> validItems = validShoppingItems(items);
+        return List.of(
+                block(
+                        "correcao_acidez",
+                        "Correção da Acidez",
+                        List.of(option(OPTION_ACIDITY_CORRECTION, "Recomendação única", false,
+                                itemsByOption(validItems, OPTION_ACIDITY_CORRECTION)))),
+                block(
+                        "adubacao_corretiva",
+                        "Adubação Corretiva",
+                        List.of(
+                                option(OPTION_CORRECTIVE_FORMULATED, "Opção 1 - formulados", true,
+                                        itemsByOption(validItems, OPTION_CORRECTIVE_FORMULATED)),
+                                option(OPTION_CORRECTIVE_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
+                                        itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES)))),
+                block(
+                        "plantio",
+                        "Plantio",
+                        List.of(
+                                option(OPTION_PLANTING_FORMULATED, "Opção 1 - formulados", true,
+                                        itemsByOption(validItems, OPTION_PLANTING_FORMULATED)),
+                                option(OPTION_PLANTING_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
+                                        itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES)))),
+                block(
+                        "cobertura",
+                        "Cobertura",
+                        List.of(
+                                option(OPTION_COVERAGE_FORMULATED, "Opção 1 - formulados", true,
+                                        itemsByOption(validItems, OPTION_COVERAGE_FORMULATED)),
+                                option(OPTION_COVERAGE_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
+                                        itemsByOption(validItems, OPTION_COVERAGE_SIMPLE_SOURCES))))
+        );
+    }
+
     public List<String> observations(String text) {
         List<String> observations = new ArrayList<>();
         if (text == null || text.isBlank()) {
@@ -158,6 +199,54 @@ public class RecommendationStructuredDataAssembler {
                 .technicalObservations(deduplicate(extractLastColumn(rows)))
                 .technicalWarnings(deduplicate(extractLastColumn(rows)))
                 .build();
+    }
+
+    private ShoppingListResponseDto.ShoppingListBlockResponseDto block(
+            String code,
+            String name,
+            List<ShoppingListResponseDto.ShoppingListOptionResponseDto> options) {
+        boolean empty = options.stream().allMatch(option -> option.getItems() == null || option.getItems().isEmpty());
+        return ShoppingListResponseDto.ShoppingListBlockResponseDto.builder()
+                .code(code)
+                .name(name)
+                .options(options)
+                .technicalObservation(empty ? "Nenhum item com dose operacional foi classificado para este bloco." : null)
+                .build();
+    }
+
+    private ShoppingListResponseDto.ShoppingListOptionResponseDto option(
+            String code,
+            String name,
+            boolean mutuallyExclusive,
+            List<ShoppingListItemResponseDto> items) {
+        return ShoppingListResponseDto.ShoppingListOptionResponseDto.builder()
+                .code(code)
+                .name(name)
+                .mutuallyExclusive(mutuallyExclusive)
+                .items(items)
+                .technicalObservation(items.isEmpty() ? "Nenhum item com dose operacional foi classificado para esta opção." : null)
+                .build();
+    }
+
+    private List<ShoppingListItemResponseDto> itemsByOption(List<ShoppingListItemResponseDto> items, String option) {
+        return items.stream()
+                .filter(item -> option.equals(item.getOption()))
+                .toList();
+    }
+
+    private List<ShoppingListItemResponseDto> validShoppingItems(List<ShoppingListItemResponseDto> items) {
+        if (items == null || items.isEmpty()) {
+            return List.of();
+        }
+        return items.stream()
+                .filter(item -> item != null
+                        && item.getInputName() != null
+                        && !item.getInputName().isBlank()
+                        && item.getQuantityKgHa() != null
+                        && item.getQuantityKgHa() > 0
+                        && item.getOption() != null
+                        && !item.getOption().isBlank())
+                .toList();
     }
 
     private RecommendationTableSectionDto directCoverageFormulatedLineSection(RecommendationModel recommendation) {

@@ -33,6 +33,10 @@ public class ShoppingListResponseDto {
     private List<ShoppingListItemResponseDto> items = new ArrayList<>();
 
     @Builder.Default
+    @JsonProperty("blocos")
+    private List<ShoppingListBlockResponseDto> blocks = new ArrayList<>();
+
+    @Builder.Default
     @JsonProperty("observacoes_tecnicas")
     private List<String> technicalObservations = new ArrayList<>();
 
@@ -57,4 +61,47 @@ public class ShoppingListResponseDto {
 
     @JsonProperty("atualizado_em")
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShoppingListBlockResponseDto {
+
+        @JsonProperty("codigo")
+        private String code;
+
+        @JsonProperty("nome")
+        private String name;
+
+        @Builder.Default
+        @JsonProperty("opcoes")
+        private List<ShoppingListOptionResponseDto> options = new ArrayList<>();
+
+        @JsonProperty("observacao_tecnica")
+        private String technicalObservation;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShoppingListOptionResponseDto {
+
+        @JsonProperty("codigo")
+        private String code;
+
+        @JsonProperty("nome")
+        private String name;
+
+        @JsonProperty("mutuamente_exclusiva")
+        private Boolean mutuallyExclusive;
+
+        @Builder.Default
+        @JsonProperty("itens")
+        private List<ShoppingListItemResponseDto> items = new ArrayList<>();
+
+        @JsonProperty("observacao_tecnica")
+        private String technicalObservation;
+    }
 }

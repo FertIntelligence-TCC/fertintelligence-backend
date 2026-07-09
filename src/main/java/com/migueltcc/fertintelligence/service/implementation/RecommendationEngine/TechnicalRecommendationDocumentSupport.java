@@ -338,8 +338,8 @@ final class TechnicalRecommendationDocumentSupport {
                                                  String label) {
         for (String line : section.split("\\R")) {
             if (!normalize(line).contains(normalize(label))) continue;
-            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, SECTION_PLANTING_OPTION_1,
-                    OPTION_PLANTING_FORMULATED, FLAG_COMPLEMENT, "Plantio - suprimento de S", null));
+            extractKgHa(line).ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, SECTION_ACIDITY_CORRECTION,
+                    OPTION_ACIDITY_CORRECTION, FLAG_ALTERNATIVE, "Gessagem - alternativa de S", null));
             return;
         }
     }
@@ -353,6 +353,7 @@ final class TechnicalRecommendationDocumentSupport {
             String quantity = row.get(3);
             String application = row.size() > 4 ? row.get(4) : null;
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
+            if (nutrients == null || nutrients.isBlank() || looksUnavailable(nutrients)) continue;
             String itemName = removeId(fertilizer);
             String sectionKey = normalize(phase).contains("cobertura") ? SECTION_COVERAGE_OPTION_2 : SECTION_PLANTING_OPTION_2;
             String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_PLANTING_SIMPLE_SOURCES;
@@ -370,6 +371,7 @@ final class TechnicalRecommendationDocumentSupport {
             String sourceName = row.get(2);
             String dose = row.get(3);
             if (looksUnavailable(sourceName) || looksUnavailable(dose)) continue;
+            if (attribute == null || attribute.isBlank() || looksUnavailable(attribute)) continue;
             if (isAutomaticFteComplement(attribute)) continue;
             String itemName = removeId(sourceName);
             extractKgHa(dose).ifPresent(kgHa -> {

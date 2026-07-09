@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListPostRequestDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -114,13 +117,15 @@ public class ShoppingListServiceImpl implements ShoppingListService {
     }
 
     private ShoppingListResponseDto toDto(ShoppingListModel model) {
+        List<ShoppingListItemResponseDto> items = structuredDataAssembler.shoppingItems(model.getRecommendation());
         return ShoppingListResponseDto.builder()
                 .id(model.getId())
                 .recommendationId(model.getRecommendation().getId())
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
-                .items(structuredDataAssembler.shoppingItems(model.getRecommendation()))
+                .items(items)
+                .blocks(structuredDataAssembler.shoppingBlocks(items))
                 .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
