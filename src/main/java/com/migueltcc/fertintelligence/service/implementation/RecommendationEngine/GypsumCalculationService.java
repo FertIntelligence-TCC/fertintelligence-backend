@@ -33,7 +33,17 @@ class GypsumCalculationService {
 
     private static final String UNIT = "kg/ha";
     private static final String CRITERION =
-            "Camadas subsuperficiais avaliadas por Ca2+ < 5 mmolc/dm³, Al3+ > 3 mmolc/dm³ ou m% > 20; NG = 5 * maior teor de argila em g/kg nas camadas 21-40 e 41-60 cm.";
+            "Camadas subsuperficiais avaliadas por Ca2+ < 5 mmolc/dm³, Al3+ >= 3 mmolc/dm³ ou Valor m >= 20%; NG = 5 * maior teor de argila em g/kg nas camadas 21-40 e 41-60 cm.";
+    static final String NOT_NEEDED_MESSAGE =
+            "O solo não precisa de gessagem, pois tem Ca²⁺ ≥ 5 mmolc/dm³, teor de Al³⁺ < 3 mmolc/dm³ e Valor m < 20%.";
+    static final String MISSING_SUBSURFACE_MESSAGE =
+            "Não é possível recomendar gessagem sem análises das camadas subsuperficiais; a camada 0-20 cm é usada para manejo da adubação da cultura e calagem.";
+    static final String LOW_DOSE_RECOMMENDATION =
+            "A dose < 400 kg/ha (ou < 60 kg/ha de S) de gesso pode ser aplicada na adubação de plantio, juntamente com o formulado escolhido, na linha de plantio ou a lanço; ou aplicar o equivalente em S recomendado (S kg/ha = kg/ha de gesso agrícola * 15/100) na adubação de plantio, usando como fonte sulfato de amônio (22% de S) e superfosfato simples (11% de S).";
+    static final String MEDIUM_DOSE_RECOMMENDATION =
+            "A dose de gesso agrícola > 400 e < 2.000 kg/ha deve ser aplicada toda a lanço em área total, imediatamente antes do plantio. Não precisa incorporar, mas, se necessário, fazer gradagem da área.";
+    static final String HIGH_DOSE_RECOMMENDATION =
+            "A dose de gesso agrícola ≥ 2.000 kg/ha deve ser aplicada 30 a 90 dias antes do plantio, juntamente com o calcário, e incorporada com aração e gradagem. Se for aplicado somente o gesso, incorporar com grade leve para evitar perda pelo arraste do vento.";
 
     private final DiverseContentRangeRepository diverseContentRangeRepository;
     private final SimpleMineralFertilizerRepository simpleMineralFertilizerRepository;
@@ -105,8 +115,8 @@ class GypsumCalculationService {
         }
 
         boolean calciumIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getCalcio() != null && f.getCalcio() < 5d);
-        boolean aluminumIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getAluminio() != null && f.getAluminio() > 3d);
-        boolean aluminumSaturationIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getSaturacaoAluminioM() != null && f.getSaturacaoAluminioM() > 20d);
+        boolean aluminumIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getAluminio() != null && f.getAluminio() >= 3d);
+        boolean aluminumSaturationIndicatesNeed = fertilityAnalyses.stream().anyMatch(f -> f.getSaturacaoAluminioM() != null && f.getSaturacaoAluminioM() >= 20d);
         boolean needed = calciumIndicatesNeed || aluminumIndicatesNeed || aluminumSaturationIndicatesNeed;
         Double dose = needed ? 5d * clay : 0d;
         Double sulfurEquivalent = dose * 15d / 100d;
@@ -115,7 +125,7 @@ class GypsumCalculationService {
                 ? "Gessagem indicada por pelo menos uma condição crítica subsuperficial: "
                 + criticalConditionSummary(calciumIndicatesNeed, aluminumIndicatesNeed, aluminumSaturationIndicatesNeed)
                 + ". Dose calculada por NG = 5 * " + formatNumber(clay) + " = " + formatNumber(dose) + " kg/ha."
-                : "Gessagem não indicada: nenhuma camada subsuperficial apresentou Ca2+ < 5 mmolc/dm³, Al3+ > 3 mmolc/dm³ ou m% > 20.";
+                : NOT_NEEDED_MESSAGE;
 
         GypsumSourceSelection sourceSelection = selectGypsumSource(user, sourceOption, dose, gypsumWarnings);
 
@@ -146,7 +156,7 @@ class GypsumCalculationService {
                                                                                                 Map<String, Double> inputValues,
                                                                                                 List<String> gypsumWarnings,
                                                                                                 List<String> warnings) {
-        String warning = "Não é possível recomendar gessagem sem análises das camadas subsuperficiais; a camada 0-20 cm foi considerada apenas para manejo de adubação da cultura e calagem.";
+        String warning = MISSING_SUBSURFACE_MESSAGE;
         gypsumWarnings.add(warning);
         if (fertilityAnalyses == null || fertilityAnalyses.isEmpty()) {
             gypsumWarnings.add("Análise de fertilidade sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
@@ -172,12 +182,12 @@ class GypsumCalculationService {
             return "Não aplicar gesso agrícola.";
         }
         if (isLowDose(dose, sulfurEquivalent)) {
-            return "Dose baixa: aplicar na adubação de plantio, junto com o formulado na linha. S equivalente = gesso agrícola kg/ha * 15 / 100; fontes alternativas possíveis: sulfato de amônio com 22% S e superfosfato simples com 11% S.";
+            return LOW_DOSE_RECOMMENDATION;
         }
-        if (dose > 400d && dose < 2000d) {
-            return "Aplicar todo o gesso a lanço em área total imediatamente antes do plantio, sem necessidade de incorporação; se necessário, fazer gradagem.";
+        if (dose < 2000d) {
+            return MEDIUM_DOSE_RECOMMENDATION;
         }
-        return "Aplicar 30 a 90 dias antes do plantio, junto com o calcário, e incorporar com aração e gradagem.";
+        return HIGH_DOSE_RECOMMENDATION;
     }
 
     private boolean isLowDose(Double dose, Double sulfurEquivalent) {
@@ -187,8 +197,8 @@ class GypsumCalculationService {
     private String criticalConditionSummary(boolean calcium, boolean aluminum, boolean aluminumSaturation) {
         List<String> conditions = new ArrayList<>();
         if (calcium) conditions.add("Ca2+ < 5 mmolc/dm³");
-        if (aluminum) conditions.add("Al3+ > 3 mmolc/dm³");
-        if (aluminumSaturation) conditions.add("m% > 20");
+        if (aluminum) conditions.add("Al3+ >= 3 mmolc/dm³");
+        if (aluminumSaturation) conditions.add("Valor m >= 20%");
         return String.join(", ", conditions);
     }
 

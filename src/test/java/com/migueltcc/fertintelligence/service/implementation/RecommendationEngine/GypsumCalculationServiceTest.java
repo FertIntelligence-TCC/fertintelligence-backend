@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
+import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
@@ -34,7 +36,7 @@ class GypsumCalculationServiceTest {
 
         assertThat(result.getEvaluated()).isFalse();
         assertThat(result.getNeeded()).isNull();
-        assertThat(result.getJustification()).contains("Não é possível recomendar gessagem");
+        assertThat(result.getJustification()).isEqualTo(GypsumCalculationService.MISSING_SUBSURFACE_MESSAGE);
         assertThat(warnings).anySatisfy(warning -> assertThat(warning).contains("extrato de saturação"));
     }
 
@@ -66,7 +68,7 @@ class GypsumCalculationServiceTest {
     }
 
     @Test
-    void doesNotRecommendGypsumWhenSubsurfaceIndicatorsAreNotCritical() {
+    void recommendsGypsumWhenAluminumOrAluminumSaturationAreAtCriticalThreshold() {
         List<String> warnings = new ArrayList<>();
         GypsumCalculationService service = newService();
 
@@ -80,9 +82,71 @@ class GypsumCalculationServiceTest {
                 FertilizerSourceOption.BOTH,
                 warnings);
 
+        assertThat(result.getNeeded()).isTrue();
+        assertThat(result.getCalculatedRequirement()).isEqualTo(1500.0);
+        assertThat(result.getJustification()).contains("Al3+ >= 3 mmolc/dm³");
+        assertThat(result.getJustification()).contains("Valor m >= 20%");
+    }
+
+    @Test
+    void usesRequiredLowDoseObservationWhenGypsumDoseIsBelowFourHundredKgHa() {
+        List<String> warnings = new ArrayList<>();
+        GypsumCalculationService service = newService();
+
+        RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
+                List.of(fertility(21, 40, 4.0, null, null)),
+                List.of(physical(21, 40, 70.0)),
+                true,
+                null,
+                null,
+                null,
+                FertilizerSourceOption.BOTH,
+                warnings);
+
+        assertThat(result.getNeeded()).isTrue();
+        assertThat(result.getCalculatedRequirement()).isEqualTo(350.0);
+        assertThat(result.getSulfurEquivalent()).isEqualTo(52.5);
+        assertThat(result.getApplicationRecommendation()).isEqualTo(GypsumCalculationService.LOW_DOSE_RECOMMENDATION);
+        assertThat(result.getLowDoseAlternativeApplicable()).isTrue();
+    }
+
+    @Test
+    void doesNotRecommendGypsumWhenSubsurfaceIndicatorsAreNotCritical() {
+        List<String> warnings = new ArrayList<>();
+        GypsumCalculationService service = newService();
+
+        RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
+                List.of(fertility(21, 40, 5.0, 2.9, 19.9)),
+                List.of(physical(21, 40, 300.0)),
+                true,
+                null,
+                null,
+                null,
+                FertilizerSourceOption.BOTH,
+                warnings);
+
         assertThat(result.getNeeded()).isFalse();
         assertThat(result.getCalculatedRequirement()).isZero();
-        assertThat(result.getJustification()).contains("Gessagem não indicada");
+        assertThat(result.getJustification()).isEqualTo(GypsumCalculationService.NOT_NEEDED_MESSAGE);
+    }
+
+    @Test
+    void doesNotIncludeGypsumInShoppingItemsWhenGypsumIsNotRecommended() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 8. Gessagem
+
+                        - Necessidade de gessagem: Não.
+                        - Dose de gesso: 0.00 kg/ha
+                        - Justificativa: O solo não precisa de gessagem, pois tem Ca²⁺ ≥ 5 mmolc/dm³, teor de Al³⁺ < 3 mmolc/dm³ e Valor m < 20%.
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        assertThat(items).noneSatisfy(item -> assertThat(item.getName()).isEqualTo("Gesso agrícola"));
     }
 
     private GypsumCalculationService newService() {
