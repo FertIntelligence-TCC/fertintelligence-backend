@@ -27,12 +27,20 @@ public class RecommendationReportService {
         appendFoliarDiagnosis(report, result);
         appendLimingRequirement(report, result);
         appendGypsumRequirement(report, result);
-        appendCorrectiveFertilization(report, result);
-        appendPlantingFertilization(report, result);
-        appendCoverageFertilization(report, result);
-        appendRecommendedFertilizers(report, result);
+        if (shouldRenderFertilization(result)) {
+            appendCorrectiveFertilization(report, result);
+            appendPlantingFertilization(report, result);
+            appendCoverageFertilization(report, result);
+            appendRecommendedFertilizers(report, result);
+        }
         appendSingleTechnicalWarning(report, result);
         return report.toString();
+    }
+
+    private boolean shouldRenderFertilization(RecommendationCalculationService.RecommendationCalculationResult result) {
+        return result == null
+                || result.getRecommendationType() == null
+                || !"ACIDITY_OR_SALINITY_CORRECTION".equals(result.getRecommendationType());
     }
 
     private void appendTitle(StringBuilder report) {

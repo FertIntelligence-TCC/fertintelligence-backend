@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Men
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.Nutriente;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.UnidadeTeor;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TechnicalTableGroup;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
@@ -168,10 +169,12 @@ public class RecommendationCalculationService {
         validateRecommendationInputs(inputs, plot, warnings);
 
         DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
-        FertilizationRecommendationContext recommendations = buildFertilizationRecommendations(
-                dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis());
-        FertilizerOpportunityCostService.OpportunityCostResult opportunityCost =
-                fertilizerOpportunityCostService.calculate(user, sourceOption, formulatedFertilizerIds(recommendations), warnings);
+        FertilizationRecommendationContext recommendations = shouldRunFertilization(dto)
+                ? buildFertilizationRecommendations(dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis())
+                : emptyFertilizationRecommendations();
+        FertilizerOpportunityCostService.OpportunityCostResult opportunityCost = shouldRunFertilization(dto)
+                ? fertilizerOpportunityCostService.calculate(user, sourceOption, formulatedFertilizerIds(recommendations), warnings)
+                : null;
 
         warnings.add("Valide os parâmetros com engenheiro agrônomo responsável antes de uso operacional.");
 
@@ -260,9 +263,11 @@ public class RecommendationCalculationService {
                 inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
-        List<CorrectiveFertilizationRow> correctiveFertilizationRows = buildCorrectiveFertilizationRows(
+        List<CorrectiveFertilizationRow> correctiveFertilizationRows = shouldRunFertilization(dto)
+                ? buildCorrectiveFertilizationRows(
                 dto, chemicalDiagnosis, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(),
-                inputs.soilInterpretationTable(), user, sourceOption, warnings);
+                inputs.soilInterpretationTable(), user, sourceOption, warnings)
+                : List.of();
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
                 inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
         String saturationSummary = buildSaturationAnalysisSummary(inputs, salinityDiagnosis.summary());
@@ -287,6 +292,16 @@ public class RecommendationCalculationService {
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
                 dto.getUseBioFertilizer(),
                 warnings, chemicalDiagnosis, foliarDiagnosis);
+    }
+
+    private boolean shouldRunFertilization(RecommendationCreateRequestDto dto) {
+        return dto == null || dto.getRecommendationType() != RecommendationType.ACIDITY_OR_SALINITY_CORRECTION;
+    }
+
+    private FertilizationRecommendationContext emptyFertilizationRecommendations() {
+        return new FertilizationRecommendationContext(
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                null, null, null, null, null, null, null);
     }
 
     private RecommendationCalculationResult buildCalculationResult(RecommendationCreateRequestDto dto,

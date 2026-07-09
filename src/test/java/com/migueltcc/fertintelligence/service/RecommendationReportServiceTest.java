@@ -152,4 +152,55 @@ class RecommendationReportServiceTest {
         assertTrue(report.contains("Aviso único."));
         assertFalse(report.contains("Aviso secundário."));
     }
+
+    @Test
+    void buildTechnicalReport_WhenOnlyAcidityCorrectionSkipsFertilizationSections() {
+        RecommendationCalculationService.RecommendationCalculationResult result =
+                RecommendationCalculationService.RecommendationCalculationResult.builder()
+                        .requesterName("Produtor")
+                        .propertyName("Fazenda")
+                        .plotIdentification("Talhao 1")
+                        .cropName("MILHO")
+                        .recommendationType("ACIDITY_OR_SALINITY_CORRECTION")
+                        .issuedAt(LocalDateTime.of(2026, 7, 9, 10, 0))
+                        .limingRequirement(RecommendationCalculationService.LimingRequirementResult.builder()
+                                .selectedCriteria("SATURACAO_POR_BASES_TROCAVEIS")
+                                .criterionJustification("Critério selecionado no payload.")
+                                .formula("NC = CTC * (V2 - V1) / 100")
+                                .calculatedRequirement(2.0)
+                                .unit("t/ha")
+                                .warnings(List.of())
+                                .build())
+                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
+                                .evaluated(false)
+                                .justification("Não é possível recomendar gessagem sem análises das camadas subsuperficiais.")
+                                .warnings(List.of("Análise de fertilidade sem extrato/camada subsuperficial 21-40 ou 41-60 cm."))
+                                .build())
+                        .correctiveFertilizationRows(List.of(
+                                RecommendationCalculationService.CorrectiveFertilizationRow.builder()
+                                        .correctedAttribute("P2O5 corretivo")
+                                        .suggestedSource("Superfosfato Simples")
+                                        .dose(120.0)
+                                        .doseUnit("kg/ha")
+                                        .build()))
+                        .fertilizationRecommendationRows(List.of(
+                                RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                                        .phase("Plantio")
+                                        .suggestedFertilizer("04-14-08")
+                                        .fertilizerQuantityKgHa(250.0)
+                                        .build()))
+                        .build();
+
+        String report = reportService.buildTechnicalReport(result);
+
+        assertTrue(report.contains("7. Calagem"));
+        assertTrue(report.contains("8. Gessagem"));
+        assertTrue(report.contains("Não é possível recomendar gessagem"));
+        assertFalse(report.contains("9. Adubação corretiva"));
+        assertFalse(report.contains("10. Adubação de plantio"));
+        assertFalse(report.contains("11. Adubação de cobertura"));
+        assertFalse(report.contains("13. Fertilizantes recomendados"));
+        assertFalse(report.contains("Superfosfato Simples"));
+        assertFalse(report.contains("04-14-08"));
+    }
 }

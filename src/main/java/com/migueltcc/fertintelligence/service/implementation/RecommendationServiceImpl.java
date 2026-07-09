@@ -3,6 +3,7 @@ package com.migueltcc.fertintelligence.service.implementation;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
+import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.TexturalClassification;
 import com.migueltcc.fertintelligence.dto.generalRecommendation.GeneralRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationCreateRequestDto;
@@ -114,16 +115,22 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         RecommendationModel savedRecommendation = recommendationRepository.save(recommendation);
         generalRecommendationService.createInitial(savedRecommendation, improvedReport);
-        directRecommendationService.createInitial(
-                savedRecommendation,
-                directRecommendationReportService.build(savedRecommendation),
-                calculationResult.getMicronutrientFertilizerRows(),
-                calculationResult.getPlantingFormulatedFertilizerRows(),
-                calculationResult.getCoverageFormulatedFertilizerRows());
-        summaryRecommendationService.createInitial(savedRecommendation, summaryRecommendationReportService.build(savedRecommendation));
-        shoppingListService.createInitial(savedRecommendation, shoppingListReportService.build(savedRecommendation));
+        if (shouldGenerateFertilizationDocuments(dto)) {
+            directRecommendationService.createInitial(
+                    savedRecommendation,
+                    directRecommendationReportService.build(savedRecommendation),
+                    calculationResult.getMicronutrientFertilizerRows(),
+                    calculationResult.getPlantingFormulatedFertilizerRows(),
+                    calculationResult.getCoverageFormulatedFertilizerRows());
+            summaryRecommendationService.createInitial(savedRecommendation, summaryRecommendationReportService.build(savedRecommendation));
+            shoppingListService.createInitial(savedRecommendation, shoppingListReportService.build(savedRecommendation));
+        }
 
         return toDto(savedRecommendation);
+    }
+
+    private boolean shouldGenerateFertilizationDocuments(RecommendationCreateRequestDto dto) {
+        return dto == null || dto.getRecommendationType() != RecommendationType.ACIDITY_OR_SALINITY_CORRECTION;
     }
 
     @Override
