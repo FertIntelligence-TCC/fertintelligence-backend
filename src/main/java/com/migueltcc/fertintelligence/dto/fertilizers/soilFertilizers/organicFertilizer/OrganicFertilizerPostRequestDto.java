@@ -101,26 +101,26 @@ public class OrganicFertilizerPostRequestDto {
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 
     @JsonProperty("data_tomada_preco")
-    @JsonAlias("dataTomadaPreco")
+    @JsonAlias({"dataTomadaPreco", "nova_data_tomada_preco"})
     private LocalDate dataTomadaPreco;
 
     @JsonProperty("preco_saco_5kg")
-    @JsonAlias("precoSaco5Kg")
+    @JsonAlias({"precoSaco5Kg", "preco_saco_5_kg", "novo_preco_saco_5kg", "novo_preco_saco_5_kg"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private BigDecimal precoSaco5Kg;
 
     @JsonProperty("preco_saco_25kg")
-    @JsonAlias("precoSaco25Kg")
+    @JsonAlias({"precoSaco25Kg", "preco_saco_25_kg", "novo_preco_saco_25kg", "novo_preco_saco_25_kg"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private BigDecimal precoSaco25Kg;
 
     @JsonProperty("preco_saco_50kg")
-    @JsonAlias("precoSaco50Kg")
+    @JsonAlias({"precoSaco50Kg", "preco_saco_50_kg", "novo_preco_saco_50kg", "novo_preco_saco_50_kg"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private BigDecimal precoSaco50Kg;
 
     @JsonProperty("preco_saco_1000kg")
-    @JsonAlias("precoSaco1000Kg")
+    @JsonAlias({"precoSaco1000Kg", "preco_saco_1000_kg", "novo_preco_saco_1000kg", "novo_preco_saco_1000_kg"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private BigDecimal precoSaco1000Kg;
 

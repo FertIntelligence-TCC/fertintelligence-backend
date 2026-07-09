@@ -236,6 +236,41 @@ public class SimpleMineralFertilizerControllerImplTest extends AbstractControlle
 
     @Test
     @WithMockUser(username = "owner")
+    void updateSimpleMineralFertilizerPersistsCommercialPricePayloadFromFrontend() throws Exception {
+        SimpleMineralFertilizerModel existing = createModel(1L, "Acido Borico", 0.0, 0.0, 0.0);
+
+        when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+        when(simpleMineralFertilizerRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(simpleMineralFertilizerRepository.save(any(SimpleMineralFertilizerModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String frontendPayload = """
+                {
+                  "novo_nome_adubo": "Acido Borico",
+                  "nova_data_tomada_preco": "2001-05-08",
+                  "novo_preco_saco_5_kg": 20,
+                  "novo_preco_saco_25_kg": 60,
+                  "novo_preco_saco_50_kg": 100,
+                  "novo_preco_saco_1000_kg": 1000,
+                  "novo_b": 17,
+                  "novo_publico": true
+                }
+                """;
+
+        mockMvc.perform(put("/simple-mineral-fertilizer/update")
+                        .param("simpleMineralFertilizerId", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(frontendPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome_adubo").value("Acido Borico"))
+                .andExpect(jsonPath("$.data_tomada_preco").value("2001-05-08"))
+                .andExpect(jsonPath("$.preco_saco_5kg").value(20))
+                .andExpect(jsonPath("$.preco_saco_25kg").value(60))
+                .andExpect(jsonPath("$.preco_saco_50kg").value(100))
+                .andExpect(jsonPath("$.preco_saco_1000kg").value(1000));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
     void deleteSimpleMineralFertilizerSuccessfully() throws Exception {
         SimpleMineralFertilizerModel existing = createModel(1L, "Ureia", 45.0, 0.0, 0.0);
 
