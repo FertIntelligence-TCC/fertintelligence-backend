@@ -135,6 +135,23 @@ public class RecommendationStructuredDataAssembler {
 
     public PurchaseListResponseDto purchaseList(List<ShoppingListItemResponseDto> items) {
         List<ShoppingListItemResponseDto> validItems = validShoppingItems(items);
+        List<ShoppingListItemResponseDto> acidityItems = itemsByOption(validItems, OPTION_ACIDITY_CORRECTION);
+        List<ShoppingListItemResponseDto> correctiveFormulatedItems = itemsByOption(validItems, OPTION_CORRECTIVE_FORMULATED);
+        List<ShoppingListItemResponseDto> correctiveSimpleSourceItems = itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES);
+        List<ShoppingListItemResponseDto> plantingFormulatedItems = itemsByOption(validItems, OPTION_PLANTING_FORMULATED);
+        List<ShoppingListItemResponseDto> plantingSimpleSourceItems = itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES);
+        List<ShoppingListItemResponseDto> coverageFormulatedItems = itemsByOption(validItems, OPTION_COVERAGE_FORMULATED);
+        List<ShoppingListItemResponseDto> coverageSimpleSourceItems = itemsByOption(validItems, OPTION_COVERAGE_SIMPLE_SOURCES);
+
+        List<PurchaseListResponseDto.PurchaseListCalculationDetailResponseDto> calculationDetails = new ArrayList<>();
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_ACIDITY_CORRECTION, OPTION_ACIDITY_CORRECTION, acidityItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_CORRECTIVE_FERTILIZATION, OPTION_CORRECTIVE_FORMULATED, correctiveFormulatedItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_CORRECTIVE_FERTILIZATION, OPTION_CORRECTIVE_SIMPLE_SOURCES, correctiveSimpleSourceItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_PLANTING, OPTION_PLANTING_FORMULATED, plantingFormulatedItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_PLANTING, OPTION_PLANTING_SIMPLE_SOURCES, plantingSimpleSourceItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_TOPDRESSING, OPTION_COVERAGE_FORMULATED, coverageFormulatedItems);
+        addPurchaseCalculationDetails(calculationDetails, BLOCK_TOPDRESSING, OPTION_COVERAGE_SIMPLE_SOURCES, coverageSimpleSourceItems);
+
         return PurchaseListResponseDto.builder()
                 .blocks(List.of(
                         purchaseBlock(
@@ -142,35 +159,36 @@ public class RecommendationStructuredDataAssembler {
                                 "Correção da acidez",
                                 "Calcário, gesso e alternativas de enxofre classificadas para correção da acidez.",
                                 List.of(purchaseOption(OPTION_ACIDITY_CORRECTION, "Calcário e gesso",
-                                        itemsByOption(validItems, OPTION_ACIDITY_CORRECTION)))),
+                                        acidityItems))),
                         purchaseBlock(
                                 BLOCK_CORRECTIVE_FERTILIZATION,
                                 "Adubação corretiva",
                                 "Alternativas corretivas de P2O5, K2O, formulados, FTE e micronutrientes simples já calculadas.",
                                 List.of(
                                         purchaseOption(OPTION_CORRECTIVE_FORMULATED, "SSP, formulado corretivo e FTE",
-                                                itemsByOption(validItems, OPTION_CORRECTIVE_FORMULATED)),
+                                                correctiveFormulatedItems),
                                         purchaseOption(OPTION_CORRECTIVE_SIMPLE_SOURCES, "KCl e micronutrientes simples",
-                                                itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES)))),
+                                                correctiveSimpleSourceItems))),
                         purchaseBlock(
                                 BLOCK_PLANTING,
                                 "Plantio",
                                 "Opções de plantio agrupadas em formulado com complementos ou adubos simples.",
                                 List.of(
                                         purchaseOption(OPTION_PLANTING_FORMULATED, "Opção 1 - formulado",
-                                                itemsByOption(validItems, OPTION_PLANTING_FORMULATED)),
+                                                plantingFormulatedItems),
                                         purchaseOption(OPTION_PLANTING_SIMPLE_SOURCES, "Opção 2 - adubos simples",
-                                                itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES)))),
+                                                plantingSimpleSourceItems))),
                         purchaseBlock(
                                 BLOCK_TOPDRESSING,
                                 "Cobertura",
                                 "Opções de cobertura agrupadas em formulado ou adubos simples.",
                                 List.of(
                                         purchaseOption(OPTION_COVERAGE_FORMULATED, "Opção 1 - formulado",
-                                                itemsByOption(validItems, OPTION_COVERAGE_FORMULATED)),
+                                                coverageFormulatedItems),
                                         purchaseOption(OPTION_COVERAGE_SIMPLE_SOURCES, "Opção 2 - adubos simples",
-                                                itemsByOption(validItems, OPTION_COVERAGE_SIMPLE_SOURCES))))
+                                                coverageSimpleSourceItems)))
                 ))
+                .calculationDetails(calculationDetails)
                 .build();
     }
 
@@ -300,9 +318,25 @@ public class RecommendationStructuredDataAssembler {
                 .doseKgHa(item.getQuantityKgHa())
                 .areaQuantity(displayText(item.getTotalForArea()))
                 .unit("kg/ha")
-                .calculationMemory(purchaseCalculationMemory(item))
-                .technicalNote(purchaseTechnicalNote(item))
+                .shortTechnicalNote(purchaseShortTechnicalNote(item))
                 .build();
+    }
+
+    private void addPurchaseCalculationDetails(
+            List<PurchaseListResponseDto.PurchaseListCalculationDetailResponseDto> details,
+            String blockKey,
+            String optionKey,
+            List<ShoppingListItemResponseDto> items) {
+        items.stream()
+                .map(item -> PurchaseListResponseDto.PurchaseListCalculationDetailResponseDto.builder()
+                        .blockKey(blockKey)
+                        .optionKey(optionKey)
+                        .sourceName(item.getInputName())
+                        .nutrientTarget(displayText(item.getTypeGroup()))
+                        .calculationMemory(purchaseCalculationMemory(item))
+                        .technicalNote(purchaseTechnicalNote(item))
+                        .build())
+                .forEach(details::add);
     }
 
     private String purchaseCalculationMemory(ShoppingListItemResponseDto item) {
@@ -328,6 +362,19 @@ public class RecommendationStructuredDataAssembler {
             return "Item estruturado a partir da lista de compras consolidada já calculada.";
         }
         return String.join("; ", parts) + ".";
+    }
+
+    private String purchaseShortTechnicalNote(ShoppingListItemResponseDto item) {
+        if (item.getPhase() != null && !item.getPhase().isBlank()) {
+            return item.getPhase().trim();
+        }
+        if (item.getItemFlag() != null && !item.getItemFlag().isBlank()) {
+            return item.getItemFlag().trim();
+        }
+        if (item.getOpportunityCostDecision() != null && !item.getOpportunityCostDecision().isBlank()) {
+            return item.getOpportunityCostDecision().trim();
+        }
+        return "Item consolidado";
     }
 
     private void addIfPresent(List<String> parts, String label, String value) {

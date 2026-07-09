@@ -32,9 +32,6 @@ public class PurchaseListItemResponseDto {
     @JsonProperty("unit")
     private String unit;
 
-    @JsonProperty("calculationMemory")
-    private String calculationMemory;
-
-    @JsonProperty("technicalNote")
-    private String technicalNote;
+    @JsonProperty("shortTechnicalNote")
+    private String shortTechnicalNote;
 }

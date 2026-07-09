@@ -6,6 +6,9 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListItemResponseDto;
 import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
@@ -280,11 +283,52 @@ class TechnicalRecommendationDocumentSupportTest {
                 .containsExactly("cobertura_opcao_1_formulados", "cobertura_opcao_2_adubos_simples");
         assertThat(purchaseList.getBlocks().get(1).getOptions().get(0).getItems().get(0).getSourceName())
                 .isEqualTo("NPK 00-20-20");
+        assertThat(purchaseList.getBlocks().get(1).getOptions().get(0).getItems().get(0).getShortTechnicalNote())
+                .isEqualTo("Item consolidado");
         assertThat(purchaseList.getBlocks().stream()
                 .flatMap(block -> block.getOptions().stream())
                 .flatMap(option -> option.getItems().stream())
-                .map(item -> item.getCalculationMemory() + " " + item.getTechnicalNote()))
+                .map(PurchaseListItemResponseDto::getShortTechnicalNote))
                 .noneMatch(text -> text.contains(": 0.00 kg/ha"));
+        assertThat(purchaseList.getCalculationDetails())
+                .extracting("sourceName")
+                .containsExactly("NPK 00-20-20", "Superfosfato Simples");
+        assertThat(purchaseList.getCalculationDetails())
+                .extracting("blockKey")
+                .containsExactly("CORRECTIVE_FERTILIZATION", "CORRECTIVE_FERTILIZATION");
+        assertThat(purchaseList.getCalculationDetails())
+                .extracting("calculationMemory")
+                .noneMatch(text -> ((String) text).contains(": 0.00 kg/ha"));
+    }
+
+    @Test
+    void purchaseListJsonKeepsCalculationMemoryOutsidePurchaseItems() throws Exception {
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null);
+        PurchaseListResponseDto purchaseList = assembler.purchaseList(List.of(
+                ShoppingListItemResponseDto.builder()
+                        .inputName("NPK 00-20-20")
+                        .typeGroup("Formulado")
+                        .option("adubacao_corretiva_opcao_1_formulados")
+                        .quantityKgHa(300.0)
+                        .totalForArea("1.500 kg")
+                        .phase("Correção")
+                        .build()));
+
+        JsonNode root = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(purchaseList));
+        JsonNode item = root.at("/blocks/1/options/0/items/0");
+
+        assertThat(item.size()).isEqualTo(7);
+        assertThat(item.has("sourceName")).isTrue();
+        assertThat(item.has("sourceType")).isTrue();
+        assertThat(item.has("nutrientTarget")).isTrue();
+        assertThat(item.has("doseKgHa")).isTrue();
+        assertThat(item.has("areaQuantity")).isTrue();
+        assertThat(item.has("unit")).isTrue();
+        assertThat(item.has("shortTechnicalNote")).isTrue();
+        assertThat(item.has("calculationMemory")).isFalse();
+        assertThat(item.has("technicalNote")).isFalse();
+        assertThat(root.at("/calculationDetails/0/calculationMemory").asText()).contains("Dose operacional consolidada");
+        assertThat(root.at("/calculationDetails/0/technicalNote").asText()).contains("Opção:");
     }
 
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(

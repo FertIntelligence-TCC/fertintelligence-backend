@@ -18,4 +18,33 @@ public class PurchaseListResponseDto {
     @Builder.Default
     @JsonProperty("blocks")
     private List<PurchaseListBlockResponseDto> blocks = new ArrayList<>();
+
+    @Builder.Default
+    @JsonProperty("calculationDetails")
+    private List<PurchaseListCalculationDetailResponseDto> calculationDetails = new ArrayList<>();
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PurchaseListCalculationDetailResponseDto {
+
+        @JsonProperty("blockKey")
+        private String blockKey;
+
+        @JsonProperty("optionKey")
+        private String optionKey;
+
+        @JsonProperty("sourceName")
+        private String sourceName;
+
+        @JsonProperty("nutrientTarget")
+        private String nutrientTarget;
+
+        @JsonProperty("calculationMemory")
+        private String calculationMemory;
+
+        @JsonProperty("technicalNote")
+        private String technicalNote;
+    }
 }
