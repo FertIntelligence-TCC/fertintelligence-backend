@@ -85,6 +85,7 @@ class AlternativeFertilizationCalculationService {
             Double greenFertilizerMoisturePercentage,
             Double greenFertilizerDryMass,
             Boolean useBioFertilizer,
+            Map<AppliedMicronutrient, Double> correctiveFteCredits,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
         GreenFertilizerContribution greenContribution = calculateGreenFertilizerContribution(
@@ -97,7 +98,8 @@ class AlternativeFertilizationCalculationService {
         rows.add(greenContribution.row());
         addBiofertilizerRow(rows, user, sourceOption, useBioFertilizer, warnings);
         MicronutrientRowsResult micronutrientRows = buildMicronutrientRows(
-                chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption, warnings);
+                chemicalDiagnosis, foliarDiagnosis, soilInterpretationTable, crop, user, sourceOption,
+                correctiveFteCredits, warnings);
         rows.addAll(micronutrientRows.alternativeRows());
         return new AlternativeFertilizationCalculationResult(
                 rows,
@@ -544,6 +546,7 @@ class AlternativeFertilizationCalculationService {
             CropModel crop,
             UserModel user,
             FertilizerSourceOption sourceOption,
+            Map<AppliedMicronutrient, Double> correctiveFteCredits,
             List<String> warnings) {
         List<RecommendationCalculationService.AlternativeFertilizationRecommendationRow> rows = new ArrayList<>();
         List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> directRows = new ArrayList<>();
@@ -570,6 +573,19 @@ class AlternativeFertilizationCalculationService {
                 doseJustifications.put(entry.getKey(), "Dose selecionada pela faixa "
                         + (functionalRange != null ? functionalRange : item.getInterpretation())
                         + " do teor de " + item.getAttribute() + " na tabela de fertilidade do solo.");
+            }
+            recommendedDoses = plantingMicronutrientBalancesAfterCorrectiveFte(recommendedDoses, correctiveFteCredits, doseJustifications, warnings);
+            if (recommendedDoses.isEmpty() && !doseJustifications.isEmpty()) {
+                rows.add(RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                        .sourceType("MICRONUTRIENTE")
+                        .nutrientOrObjective("B/Cu/Fe/Mn/Zn")
+                        .sourceName("Não selecionada")
+                        .dose("Não calculada")
+                        .unit("kg/ha de produto")
+                        .justification("Micronutrientes de plantio não transferidos porque o FTE corretivo já supriu as doses calculadas.")
+                        .limitations("Balanço realizado com FTE BR-12/BR-24 da adubação corretiva.")
+                        .build());
+                return new MicronutrientRowsResult(rows, directRows);
             }
             List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
                     micronutrientFertilizerSelectionService.select(user, sourceOption, recommendedDoses);
@@ -628,6 +644,34 @@ class AlternativeFertilizationCalculationService {
                 .limitations(limitation)
                 .build());
         return new MicronutrientRowsResult(rows, directRows);
+    }
+
+    private Map<AppliedMicronutrient, Double> plantingMicronutrientBalancesAfterCorrectiveFte(
+            Map<AppliedMicronutrient, Double> requestedDoses,
+            Map<AppliedMicronutrient, Double> correctiveFteCredits,
+            Map<AppliedMicronutrient, String> doseJustifications,
+            List<String> warnings) {
+        if (requestedDoses == null || requestedDoses.isEmpty() || correctiveFteCredits == null || correctiveFteCredits.isEmpty()) {
+            return requestedDoses;
+        }
+        Map<AppliedMicronutrient, Double> remaining = new LinkedHashMap<>();
+        for (Map.Entry<AppliedMicronutrient, Double> entry : requestedDoses.entrySet()) {
+            double requested = nvl(entry.getValue());
+            double credit = nvl(correctiveFteCredits.get(entry.getKey()));
+            double balance = round2(requested - credit);
+            if (balance > 0d) {
+                remaining.put(entry.getKey(), balance);
+                doseJustifications.computeIfPresent(entry.getKey(), (micronutrient, justification) -> justification
+                        + " Dose complementar após FTE corretivo: " + formatNumber(balance)
+                        + " kg/ha, descontando " + formatNumber(credit) + " kg/ha fornecidos por FTE BR-12/BR-24.");
+                warnings.add("Micronutriente " + entry.getKey().name() + " no plantio ajustado para complemento de "
+                        + formatNumber(balance) + " kg/ha após FTE corretivo.");
+            } else if (requested > 0d && credit > 0d) {
+                warnings.add("Micronutriente " + entry.getKey().name()
+                        + " não foi recomendado no plantio porque o FTE corretivo supriu a dose calculada.");
+            }
+        }
+        return remaining;
     }
 
     private Optional<DiverseContentRangeModel> findDiverseContentRangeByTable(SoilFertilityInterpretationCriteriaTableModel table) {

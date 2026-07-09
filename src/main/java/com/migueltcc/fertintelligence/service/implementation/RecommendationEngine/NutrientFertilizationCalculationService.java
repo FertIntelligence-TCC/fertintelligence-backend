@@ -92,9 +92,12 @@ class NutrientFertilizationCalculationService {
                                                  Boolean useBioFertilizer,
                                                  List<String> warnings,
                                                  List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
-                                                 List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis) {
+                                                 List<RecommendationCalculationService.FoliarDiagnosisItem> foliarDiagnosis,
+                                                 List<RecommendationCalculationService.CorrectiveFertilizationRow> correctiveFertilizationRows) {
         List<RecommendationCalculationService.FertilizationRecommendationRow> recommendationRows = new ArrayList<>();
         List<RecommendationCalculationService.FertilizerSuggestion> fertilizerSuggestions = new ArrayList<>();
+        Map<AppliedMicronutrient, Double> correctiveFteCredits = correctiveFteMicronutrientCredits(
+                correctiveFertilizationRows, user, sourceOption, warnings);
 
         Optional<ContentRangeModel> nRange = selectNitrogenRange(table);
         Optional<ContentRangeModel> pRange = selectNutrientRange(table, Nutriente.FOSFORO, extractPhosphorusValue(fertilityExtract), warnings, "fósforo (P) disponível em mg/dm³");
@@ -119,7 +122,7 @@ class NutrientFertilizationCalculationService {
                         soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
                         organicFertilizerReferenceNutrient, useOrganoMineralFertilizer, useGreenFertilizer, greenFertilizerSpecies,
                         greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass,
-                        useBioFertilizer, warnings);
+                        useBioFertilizer, correctiveFteCredits, warnings);
         Double mineralRequiredN = alternativeFertilizationResult.remainingRequiredN();
         Double mineralRequiredP2O5 = alternativeFertilizationResult.remainingRequiredP2O5();
         Double mineralRequiredK2O = alternativeFertilizationResult.remainingRequiredK2O();
@@ -202,7 +205,8 @@ class NutrientFertilizationCalculationService {
                 alternativeFertilizationResult.directRecommendationRows();
         if (micronutrientFertilizerRows == null || micronutrientFertilizerRows.isEmpty()) {
             micronutrientFertilizerRows = buildMicronutrientFertilizerRows(
-                    fertilityExtract, soilInterpretationTable, user, sourceOption, crop, warnings, chemicalDiagnosis);
+                    fertilityExtract, soilInterpretationTable, user, sourceOption, crop, warnings, chemicalDiagnosis,
+                    correctiveFteCredits);
         }
 
         return new FertilizationRecommendationContext(
@@ -476,7 +480,8 @@ class NutrientFertilizationCalculationService {
             FertilizerSourceOption sourceOption,
             CropModel crop,
             List<String> warnings,
-            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis) {
+            List<RecommendationCalculationService.SoilChemicalDiagnosisItem> chemicalDiagnosis,
+            Map<AppliedMicronutrient, Double> correctiveFteCredits) {
         if (fertilityExtract.isEmpty()) {
             addWarning(warnings, "Micronutrientes não calculados porque não há extrato de fertilidade selecionado.");
             return List.of();
@@ -499,8 +504,9 @@ class NutrientFertilizationCalculationService {
         addMicronutrientInput(inputs, AppliedMicronutrient.Zn, "Zinco", fertilityExtract.get().getZinco(),
                 doseFor(micronutrientDose.get(), AppliedMicronutrient.Zn, interpretationFor(chemicalDiagnosis, "Zinco")), chemicalDiagnosis, warnings);
 
-        Map<AppliedMicronutrient, Double> doses = new LinkedHashMap<>();
-        inputs.forEach((micronutrient, input) -> doses.put(micronutrient, input.doseKgHa()));
+        Map<AppliedMicronutrient, Double> requestedDoses = new LinkedHashMap<>();
+        inputs.forEach((micronutrient, input) -> requestedDoses.put(micronutrient, input.doseKgHa()));
+        Map<AppliedMicronutrient, Double> doses = plantingMicronutrientBalancesAfterCorrectiveFte(requestedDoses, correctiveFteCredits, warnings);
         if (doses.isEmpty()) {
             return List.of();
         }
@@ -516,8 +522,98 @@ class NutrientFertilizationCalculationService {
             }
             rows.add(toMicronutrientRow(selection, input, crop));
         }
-        addFteZincRows(rows, inputs.get(AppliedMicronutrient.Zn), user, sourceOption, crop, warnings);
+        if (correctiveFteCredits == null || correctiveFteCredits.isEmpty()) {
+            addFteZincRows(rows, inputs.get(AppliedMicronutrient.Zn), user, sourceOption, crop, warnings);
+        }
         return rows;
+    }
+
+    private Map<AppliedMicronutrient, Double> correctiveFteMicronutrientCredits(
+            List<RecommendationCalculationService.CorrectiveFertilizationRow> correctiveRows,
+            UserModel user,
+            FertilizerSourceOption sourceOption,
+            List<String> warnings) {
+        Map<AppliedMicronutrient, Double> credits = new LinkedHashMap<>();
+        if (correctiveRows == null || correctiveRows.isEmpty()) {
+            return credits;
+        }
+        List<SimpleMineralFertilizerModel> fertilizers = selectSimpleFertilizers(user, sourceOption);
+        for (RecommendationCalculationService.CorrectiveFertilizationRow row : correctiveRows) {
+            if (row == null || nvl(row.getDose()) <= 0d || !isFteBr12OrBr24(row.getSuggestedSource())) {
+                continue;
+            }
+            SimpleMineralFertilizerModel fte = findFteByName(fertilizers, row.getSuggestedSource()).orElse(null);
+            if (fte == null) {
+                addWarning(warnings, "FTE corretivo " + row.getSuggestedSource()
+                        + " consta na recomendação, mas seus teores cadastrados não foram localizados para abater micronutrientes do plantio.");
+                continue;
+            }
+            addCorrectiveFteCredit(credits, AppliedMicronutrient.B, row.getDose(), fte.getB());
+            addCorrectiveFteCredit(credits, AppliedMicronutrient.Cu, row.getDose(), fte.getCu());
+            addCorrectiveFteCredit(credits, AppliedMicronutrient.Fe, row.getDose(), fte.getFe());
+            addCorrectiveFteCredit(credits, AppliedMicronutrient.Mn, row.getDose(), fte.getMn());
+            addCorrectiveFteCredit(credits, AppliedMicronutrient.Zn, row.getDose(), fte.getZn());
+        }
+        return credits;
+    }
+
+    private Optional<SimpleMineralFertilizerModel> findFteByName(List<SimpleMineralFertilizerModel> fertilizers, String sourceName) {
+        String normalizedSource = normalizeText(sourceName);
+        return fertilizers.stream()
+                .filter(f -> normalizeText(f.getName()).equals(normalizedSource))
+                .findFirst()
+                .or(() -> fertilizers.stream()
+                        .filter(f -> isFteBr12OrBr24(f.getName()) && fteType(f.getName()).equals(fteType(sourceName)))
+                        .findFirst());
+    }
+
+    private void addCorrectiveFteCredit(Map<AppliedMicronutrient, Double> credits,
+                                        AppliedMicronutrient micronutrient,
+                                        Double productDoseKgHa,
+                                        Double concentrationPercent) {
+        double provided = nvl(productDoseKgHa) * nvl(concentrationPercent) / 100d;
+        if (provided > 0d) {
+            credits.merge(micronutrient, round2(provided), (current, added) -> round2(current + added));
+        }
+    }
+
+    private Map<AppliedMicronutrient, Double> plantingMicronutrientBalancesAfterCorrectiveFte(
+            Map<AppliedMicronutrient, Double> requestedDoses,
+            Map<AppliedMicronutrient, Double> correctiveFteCredits,
+            List<String> warnings) {
+        if (requestedDoses == null || requestedDoses.isEmpty() || correctiveFteCredits == null || correctiveFteCredits.isEmpty()) {
+            return requestedDoses;
+        }
+        Map<AppliedMicronutrient, Double> remaining = new LinkedHashMap<>();
+        for (Map.Entry<AppliedMicronutrient, Double> entry : requestedDoses.entrySet()) {
+            double requested = nvl(entry.getValue());
+            double credit = nvl(correctiveFteCredits.get(entry.getKey()));
+            double balance = round2(requested - credit);
+            if (balance > 0d) {
+                remaining.put(entry.getKey(), balance);
+                addWarning(warnings, "Micronutriente " + entry.getKey().name() + " no plantio ajustado para complemento de "
+                        + formatNumber(balance) + " kg/ha após crédito de FTE corretivo de " + formatNumber(credit) + " kg/ha.");
+            } else if (requested > 0d && credit > 0d) {
+                addWarning(warnings, "Micronutriente " + entry.getKey().name()
+                        + " não foi recomendado no plantio porque o FTE corretivo supriu a dose calculada.");
+            }
+        }
+        return remaining;
+    }
+
+    private boolean isFteBr12OrBr24(String value) {
+        String normalized = normalizeText(value);
+        return normalized.contains("fte br 12")
+                || normalized.contains("fte br-12")
+                || normalized.contains("fte br 24")
+                || normalized.contains("fte br-24");
+    }
+
+    private String fteType(String value) {
+        String normalized = normalizeText(value);
+        if (normalized.contains("br 12") || normalized.contains("br-12")) return "BR-12";
+        if (normalized.contains("br 24") || normalized.contains("br-24")) return "BR-24";
+        return "";
     }
 
     private void addFteZincRows(

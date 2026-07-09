@@ -170,7 +170,8 @@ public class RecommendationCalculationService {
 
         DiagnosesContext diagnoses = buildRecommendationDiagnoses(dto, inputs, user, sourceOption, warnings);
         FertilizationRecommendationContext recommendations = shouldRunFertilization(dto)
-                ? buildFertilizationRecommendations(dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(), diagnoses.foliarDiagnosis())
+                ? buildFertilizationRecommendations(dto, inputs, user, sourceOption, warnings, diagnoses.chemicalDiagnosis(),
+                diagnoses.foliarDiagnosis(), diagnoses.correctiveFertilizationRows())
                 : emptyFertilizationRecommendations();
         FertilizerOpportunityCostService.OpportunityCostResult opportunityCost = shouldRunFertilization(dto)
                 ? fertilizerOpportunityCostService.calculate(user, sourceOption, formulatedFertilizerIds(recommendations), warnings)
@@ -284,14 +285,15 @@ public class RecommendationCalculationService {
                                                                                  FertilizerSourceOption sourceOption,
                                                                                  List<String> warnings,
                                                                                  List<SoilChemicalDiagnosisItem> chemicalDiagnosis,
-                                                                                 List<FoliarDiagnosisItem> foliarDiagnosis) {
+                                                                                 List<FoliarDiagnosisItem> foliarDiagnosis,
+                                                                                 List<CorrectiveFertilizationRow> correctiveFertilizationRows) {
         return nutrientFertilizationCalculationService.calculate(
                 inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), Optional.ofNullable(inputs.physicalAnalysis()), inputs.soilInterpretationTable(),
                 user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
                 dto.getUseOrganoMineralFertilizer(), dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
                 dto.getUseBioFertilizer(),
-                warnings, chemicalDiagnosis, foliarDiagnosis);
+                warnings, chemicalDiagnosis, foliarDiagnosis, correctiveFertilizationRows);
     }
 
     private boolean shouldRunFertilization(RecommendationCreateRequestDto dto) {
