@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
+import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NO_CALCULATED_LINES;
 
 @Service
 @RequiredArgsConstructor
@@ -102,8 +103,7 @@ public class SummaryRecommendationReportService {
             return;
         }
 
-        report.append("| Micronutriente | Dose micronutriente | Adubo sólido | Concentração | Dose adubo | Dose operacional | Observação técnica |\n");
-        report.append("|---|---:|---|---:|---:|---:|---|\n");
+        StringBuilder rows = new StringBuilder();
         boolean appended = false;
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrientLines) {
             if (line == null) continue;
@@ -111,7 +111,7 @@ public class SummaryRecommendationReportService {
                     fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())
                     || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
-            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
+            rows.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
                     .append(" | ").append(formatPercent(fertilizer.micronutrientConcentrationPercent()))
@@ -121,8 +121,12 @@ public class SummaryRecommendationReportService {
                     .append(" |\n");
             appended = true;
         }
-        if (!appended) {
-            report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
+        if (appended) {
+            report.append("| Micronutriente | Dose micronutriente | Adubo sólido | Concentração | Dose adubo | Dose operacional | Observação técnica |\n");
+            report.append("|---|---:|---|---:|---:|---:|---|\n");
+            report.append(rows);
+        } else {
+            report.append(NO_CALCULATED_LINES).append("\n");
         }
         report.append("\n");
     }

@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.LINEAR_CONVERSION_UNAVAILABLE;
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
+import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NO_CALCULATED_LINES;
 
 @Service
 @RequiredArgsConstructor
@@ -132,11 +133,12 @@ public class DirectRecommendationReportService {
     private void appendOpportunityCostComparison(StringBuilder report, String source) {
         String section = TechnicalRecommendationDocumentSupport.stripHeading(
                 TechnicalRecommendationDocumentSupport.section(source, "13.2. Comparativo de custo de oportunidade"));
-        if (section.isBlank()) {
+        String content = TechnicalRecommendationDocumentSupport.cleanSectionForFinalReport(section);
+        if (content.isBlank()) {
             return;
         }
         report.append("Comparativo de custo de oportunidade\n\n");
-        report.append(section).append("\n\n");
+        report.append(content).append("\n\n");
     }
 
     private void appendOptionalSourceSection(StringBuilder report, String title, String sourceSection) {
@@ -155,9 +157,7 @@ public class DirectRecommendationReportService {
                                           List<DirectRecommendationMicronutrientFertilizerLineModel> directLines) {
         report.append("Tabela de micronutrientes\n\n");
         if (directLines != null && !directLines.isEmpty()) {
-            report.append("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | ")
-                    .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
-            report.append("|---|---|---:|---:|---:|---|\n");
+            StringBuilder rows = new StringBuilder();
             boolean appended = false;
             for (DirectRecommendationMicronutrientFertilizerLineModel line : directLines) {
                 if (line == null) continue;
@@ -165,7 +165,7 @@ public class DirectRecommendationReportService {
                         fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
                 if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())
                         || TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())) continue;
-                report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
+                rows.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer.name()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getMicronutrientDoseKgHa()))
                         .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(line.getFertilizerDoseKgHa()))
@@ -174,33 +174,41 @@ public class DirectRecommendationReportService {
                         .append(" |\n");
                 appended = true;
             }
-            if (!appended) {
-                report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
+            if (appended) {
+                report.append("| Micronutriente | Adubo sólido | Dose micronutriente | Dose adubo | ")
+                        .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
+                report.append("|---|---|---:|---:|---:|---|\n");
+                report.append(rows);
+            } else {
+                report.append(NO_CALCULATED_LINES).append("\n");
             }
             report.append("\n");
             return;
         }
 
-        report.append("| Nutriente/Adubo | kg/ha | ").append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
-        report.append("|---|---:|---:|\n");
-        List<List<String>> rows = TechnicalRecommendationDocumentSupport.tableRows(
+        StringBuilder rowContent = new StringBuilder();
+        List<List<String>> sourceRows = TechnicalRecommendationDocumentSupport.tableRows(
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         boolean appended = false;
-        for (List<String> row : rows) {
+        for (List<String> row : sourceRows) {
             if (row.size() < 5) continue;
             String sourceName = row.get(2);
             String dose = row.get(3);
             String unit = row.get(4);
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(sourceName)) continue;
             if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(dose + " " + unit)) continue;
-            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(sourceName))
+            rowContent.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(sourceName))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(dose + " " + unit))
                     .append(" | ").append(spacingUnavailableCell())
                     .append(" |\n");
             appended = true;
         }
-        if (!appended) {
-            report.append("Aviso técnico: micronutrientes não geraram dose operacional com os dados persistidos.\n");
+        if (appended) {
+            report.append("| Nutriente/Adubo | kg/ha | ").append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
+            report.append("|---|---:|---:|\n");
+            report.append(rowContent);
+        } else {
+            report.append(NO_CALCULATED_LINES).append("\n");
         }
         report.append("\n");
     }
@@ -214,18 +222,25 @@ public class DirectRecommendationReportService {
                                 List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
         report.append("Tabela de N, P2O5 e K2O\n\n");
         if (hasFormulatedLines(plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines)) {
-            report.append("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | ")
-                    .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
-            report.append("|---|---|---|---:|---:|---|\n");
-            appendPlantingFormulatedRows(report, plantingFormulatedFertilizerLines);
-            appendAdditionalPlantingRowsForFormulatedTable(report, source, crop, doseUnitMetadata, spacingWarnings);
-            appendCoverageFormulatedRows(report, coverageFormulatedFertilizerLines);
+            StringBuilder rows = new StringBuilder();
+            boolean appended = appendPlantingFormulatedRows(rows, plantingFormulatedFertilizerLines);
+            appended = appendAdditionalPlantingRowsForFormulatedTable(rows, source, crop, doseUnitMetadata, spacingWarnings) || appended;
+            appended = appendCoverageFormulatedRows(rows, coverageFormulatedFertilizerLines) || appended;
             if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
-                report.append("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | ")
+                rows.append("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | ")
                         .append("Não calculado por falta de dados. | ")
                         .append(spacingUnavailableCell())
                         .append(" | Aviso técnico: não houve linha estruturada de formulado NPK para cobertura; ")
                         .append("a recomendação direta não propagou a cobertura textual do laudo. |\n");
+                appended = true;
+            }
+            if (appended) {
+                report.append("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | ")
+                        .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
+                report.append("|---|---|---|---:|---:|---|\n");
+                report.append(rows);
+            } else {
+                report.append(NO_CALCULATED_LINES).append("\n");
             }
             report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
                     .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
@@ -233,13 +248,16 @@ public class DirectRecommendationReportService {
             return;
         }
 
-        report.append("| Adubação | Adubos simples/formulados | kg/ha | ")
-                .append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
-        report.append("|---|---|---:|---:|\n");
-        boolean appended = appendFertilizationRows(report, source, "10. Adubação de plantio", crop, doseUnitMetadata, spacingWarnings);
-        appended = appendFertilizationRows(report, source, "11. Adubação de cobertura", crop, doseUnitMetadata, spacingWarnings) || appended;
-        if (!appended) {
-            report.append("Aviso técnico: NPK não gerou dose operacional com os dados persistidos.\n");
+        StringBuilder rows = new StringBuilder();
+        boolean appended = appendFertilizationRows(rows, source, "10. Adubação de plantio", crop, doseUnitMetadata, spacingWarnings);
+        appended = appendFertilizationRows(rows, source, "11. Adubação de cobertura", crop, doseUnitMetadata, spacingWarnings) || appended;
+        if (appended) {
+            report.append("| Adubação | Adubos simples/formulados | kg/ha | ")
+                    .append(spacingColumnHeader(doseUnitMetadata)).append(" |\n");
+            report.append("|---|---|---:|---:|\n");
+            report.append(rows);
+        } else {
+            report.append(NO_CALCULATED_LINES).append("\n");
         }
         report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
                 .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
@@ -271,10 +289,11 @@ public class DirectRecommendationReportService {
         return appended;
     }
 
-    private void appendPlantingFormulatedRows(
+    private boolean appendPlantingFormulatedRows(
             StringBuilder report,
             List<DirectRecommendationPlantingFormulatedFertilizerLineModel> lines) {
-        if (lines == null) return;
+        if (lines == null) return false;
+        boolean appended = false;
         for (DirectRecommendationPlantingFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
             DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
@@ -288,15 +307,18 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
                     .append(" |\n");
+            appended = true;
         }
+        return appended;
     }
 
-    private void appendAdditionalPlantingRowsForFormulatedTable(
+    private boolean appendAdditionalPlantingRowsForFormulatedTable(
             StringBuilder report,
             String source,
             CropModel crop,
             DirectDoseUnitMetadata doseUnitMetadata,
             List<String> spacingWarnings) {
+        boolean appended = false;
         for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(
                 TechnicalRecommendationDocumentSupport.section(source, "10. Adubação de plantio"))) {
             if (row.size() < 4) continue;
@@ -313,13 +335,16 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
                     .append(" | ").append(calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings))
                     .append(" | Complemento de nutriente secundário ou adubo simples propagado do laudo técnico. |\n");
+            appended = true;
         }
+        return appended;
     }
 
-    private void appendCoverageFormulatedRows(
+    private boolean appendCoverageFormulatedRows(
             StringBuilder report,
             List<DirectRecommendationCoverageFormulatedFertilizerLineModel> lines) {
-        if (lines == null) return;
+        if (lines == null) return false;
+        boolean appended = false;
         for (DirectRecommendationCoverageFormulatedFertilizerLineModel line : lines) {
             if (line == null) continue;
             DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData fertilizer =
@@ -334,7 +359,9 @@ public class DirectRecommendationReportService {
                     .append(" | ").append(applicableLocalizedDose(line.getDoseUnitMode(), line.getGramsPerLinearMeter(), line.getGramsPerPit()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getTechnicalObservation()))
                     .append(" |\n");
+            appended = true;
         }
+        return appended;
     }
 
     private String coveragePhase(String phase, Integer coverageOrder) {

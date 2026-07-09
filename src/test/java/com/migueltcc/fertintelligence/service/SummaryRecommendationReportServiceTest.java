@@ -111,6 +111,41 @@ class SummaryRecommendationReportServiceTest {
         assertThat(report).contains("não há linhas estruturadas de micronutrientes persistidas");
     }
 
+    @Test
+    void buildKeepsCorrectivePlantingAndCoverageRowsFromGeneralReport() {
+        SummaryRecommendationReportService service = new SummaryRecommendationReportService(null, null, null);
+
+        String report = service.build(RecommendationModel.builder()
+                .technicalReport("""
+                        ## 9. Adubação corretiva
+
+                        | Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |
+                        |---|---|---|---:|---|---|
+                        | P corretivo | 90 kg/ha P2O5 | Superfosfato triplo | 180 kg/ha | Cálculo preservado. | Aplicar antes do plantio. |
+
+                        ## 10. Adubação de plantio
+
+                        | Fase da Cultura | Nutrientes Necessários | Sugestão de Adubo | Quantidade do Adubo | Época e Modo de Aplicação |
+                        |---|---|---|---:|---|
+                        | Plantio | N, P2O5 e K2O | 04-14-08 | 300 kg/ha | No sulco; saldo K2O: 0.00 kg/ha. |
+
+                        ## 11. Adubação de cobertura
+
+                        | Fase da Cultura | Nutrientes Necessários | Sugestão de Adubo | Quantidade do Adubo | Época e Modo de Aplicação |
+                        |---|---|---|---:|---|
+                        | Cobertura 1 | N | Ureia | 120 kg/ha | Aos 30 DAE; saldo N: 0.00 kg/ha. |
+                        """)
+                .build());
+
+        assertThat(report).contains("Adubação corretiva do solo");
+        assertThat(report).contains("| P corretivo | 90 kg/ha P2O5 | Superfosfato triplo | 180 kg/ha | Cálculo preservado. | Aplicar antes do plantio. |");
+        assertThat(report).contains("Recomendações de N, P2O5 e K2O - plantio");
+        assertThat(report).contains("| Plantio | N, P2O5 e K2O | 04-14-08 | 300 kg/ha | No sulco; saldo K2O: 0.00 kg/ha. |");
+        assertThat(report).contains("Recomendações de N, P2O5 e K2O - cobertura");
+        assertThat(report).contains("| Cobertura 1 | N | Ureia | 120 kg/ha | Aos 30 DAE; saldo N: 0.00 kg/ha. |");
+        assertThat(report).doesNotContain("|---|---|---|---:|---|\n\n");
+    }
+
     private RecommendationModel recommendationWithTechnicalReport() {
         return RecommendationModel.builder()
                 .technicalReport("""

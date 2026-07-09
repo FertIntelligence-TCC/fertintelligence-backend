@@ -105,6 +105,24 @@ class DirectRecommendationReportServiceTest {
     }
 
     @Test
+    void buildDoesNotRenderEmptyOpportunityCostDecisionTable() {
+        DirectRecommendationReportService service = newService();
+
+        String report = service.build(RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .cropYear(2026)
+                .technicalReport("""
+                        ## 13.2. Comparativo de custo de oportunidade
+
+                        | Categoria | Fertilizante | Dose | Preço comercial | Custo comercial | Razão PC/PO | Decisão | Observação |
+                        |---|---|---:|---:|---:|---:|---|---|
+                        """)
+                .build(), null);
+
+        assertThat(report).doesNotContain("| Categoria | Fertilizante | Dose | Preço comercial | Custo comercial | Razão PC/PO | Decisão | Observação |");
+    }
+
+    @Test
     void buildUsesPersistedStructuredLinesWhenTheyExist() {
         DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);

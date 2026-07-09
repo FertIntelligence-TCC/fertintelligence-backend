@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 final class TechnicalRecommendationDocumentSupport {
     static final String NOT_INFORMED = "Não informado.";
     static final String NOT_CALCULATED = "Não calculado por falta de dados.";
+    static final String NO_CALCULATED_LINES = "Não houve linhas calculadas para esta seção.";
     static final String NOT_APPLICABLE = "Não aplicável com os dados disponíveis.";
     static final String LINEAR_CONVERSION_UNAVAILABLE = "Não calculado por falta de dados.";
     static final String STYLE_METADATA = "<!-- formato: markdown; fonte: Aptos; tamanho: 10 -->";
@@ -67,6 +68,7 @@ final class TechnicalRecommendationDocumentSupport {
             "11. Adubação de cobertura",
             "12. Balanço nutricional",
             "13. Fertilizantes recomendados",
+            "13.2. Comparativo de custo de oportunidade",
             "14. Limitações e alertas",
             "15. Memória de cálculo",
             "16. Encerramento"
@@ -128,7 +130,8 @@ final class TechnicalRecommendationDocumentSupport {
     static void appendSourceSectionOrMessage(StringBuilder report, String title, String sourceSection, String missingMessage) {
         report.append(title).append("\n\n");
         String content = cleanSectionForFinalReport(stripHeading(sourceSection));
-        report.append(content.isBlank() ? missingMessage : content).append("\n\n");
+        String fallback = sourceSectionContainsTable(sourceSection) ? NO_CALCULATED_LINES : missingMessage;
+        report.append(content.isBlank() ? fallback : content).append("\n\n");
     }
 
     static void appendBullet(StringBuilder report, String label, String value) {
@@ -273,7 +276,7 @@ final class TechnicalRecommendationDocumentSupport {
             }
             appendCleanedLine(cleaned, line);
         }
-        return collapseBlankLines(cleaned.toString().trim());
+        return collapseBlankLines(removeHeaderOnlyTables(cleaned.toString()).trim());
     }
 
     private static boolean missingMicronutrientTechnicalObservation(String value) {
@@ -767,13 +770,61 @@ final class TechnicalRecommendationDocumentSupport {
     private static boolean isZeroDoseLine(String line) {
         if (line == null || line.isBlank()) return false;
         Matcher matcher = QUANTITY_KG_HA.matcher(line);
+        boolean foundKgHa = false;
+        boolean foundPositiveKgHa = false;
         while (matcher.find()) {
+            foundKgHa = true;
             Optional<Double> parsed = parseDecimal(matcher.group(1));
-            if (parsed.isPresent() && parsed.get() == 0d) {
+            if (parsed.isPresent() && parsed.get() > 0d) {
+                foundPositiveKgHa = true;
+            }
+        }
+        return foundKgHa && !foundPositiveKgHa;
+    }
+
+    private static boolean sourceSectionContainsTable(String sourceSection) {
+        if (sourceSection == null || sourceSection.isBlank()) {
+            return false;
+        }
+        for (String line : sourceSection.split("\\R")) {
+            if (line.trim().startsWith("|")) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String removeHeaderOnlyTables(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        String[] lines = content.split("\\R", -1);
+        StringBuilder result = new StringBuilder();
+        int index = 0;
+        while (index < lines.length) {
+            if (!lines[index].trim().startsWith("|")) {
+                appendCleanedLine(result, lines[index]);
+                index++;
+                continue;
+            }
+
+            int tableStart = index;
+            int tableEnd = index;
+            boolean hasDataRow = false;
+            while (tableEnd < lines.length && lines[tableEnd].trim().startsWith("|")) {
+                if (tableEnd > tableStart && !isSeparatorRow(lines[tableEnd].trim())) {
+                    hasDataRow = true;
+                }
+                tableEnd++;
+            }
+            if (hasDataRow) {
+                for (int i = tableStart; i < tableEnd; i++) {
+                    appendCleanedLine(result, lines[i]);
+                }
+            }
+            index = tableEnd;
+        }
+        return result.toString();
     }
 
     private static void appendCleanedLine(StringBuilder target, String line) {
