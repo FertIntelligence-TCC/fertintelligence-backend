@@ -170,6 +170,45 @@ class TechnicalRecommendationDocumentSupportTest {
                 .doesNotContain("Sulfato de amônio");
     }
 
+    @Test
+    void collectShoppingItemsSkipsRepeatedProductInSameOperationalPhase() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## Fontes orgânicas, organominerais e micronutrientes
+
+                        | Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade |
+                        |---|---|---|---:|---|
+                        | MICRONUTRIENTE | B | Borax | 10.00 | kg/ha de produto |
+
+                        ## 10. Adubação de plantio
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Plantio | B | Borax | 10.00 kg/ha |
+
+                        ## 11. Adubação de cobertura
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Cobertura 1 | B | Borax | 5.00 kg/ha |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        assertThat(items.stream()
+                .filter(item -> "Borax".equals(item.getName()))
+                .filter(item -> "Plantio".equals(item.getPhase())))
+                .hasSize(1);
+        assertThat(item(items, "Borax").getKgHa()).isEqualTo(10.0);
+        assertThat(items.stream()
+                .filter(item -> "Borax".equals(item.getName()))
+                .filter(item -> "Cobertura 1".equals(item.getPhase())))
+                .hasSize(1);
+    }
+
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(
             List<TechnicalRecommendationDocumentSupport.ShoppingItem> items,
             String name) {

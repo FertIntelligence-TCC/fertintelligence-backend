@@ -353,9 +353,9 @@ final class TechnicalRecommendationDocumentSupport {
             String application = row.size() > 4 ? row.get(4) : null;
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             String itemName = removeId(fertilizer);
-            if (items.containsKey(safe(itemName))) continue;
             String sectionKey = normalize(phase).contains("cobertura") ? SECTION_COVERAGE_OPTION_2 : SECTION_PLANTING_OPTION_2;
             String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_SIMPLE_SOURCES;
+            if (hasOperationalItemInSamePhase(items, itemName, phase)) continue;
             extractKgHa(quantity)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
                     .ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), sectionKey, option, FLAG_ALTERNATIVE, phase, null));
@@ -389,7 +389,7 @@ final class TechnicalRecommendationDocumentSupport {
             if (looksUnavailable(sourceName) || looksUnavailable(dose) || unit == null) continue;
             if (!normalize(unit).contains("kg/ha")) continue;
             String itemName = removeId(sourceName);
-            if (items.containsKey(safe(itemName))) continue;
+            if (hasOperationalItemInSamePhase(items, itemName, "Plantio")) continue;
             String typeGroup = normalize(row.get(0)).contains("micronutriente")
                     ? "Complementação de micronutrientes"
                     : row.get(0);
@@ -559,6 +559,32 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static String defaultLabel(String label, String defaultLabel) {
         return label == null || label.isBlank() ? defaultLabel : label;
+    }
+
+    private static boolean hasOperationalItemInSamePhase(Map<String, ShoppingItem> items, String name, String phase) {
+        String itemName = cleanNullable(name);
+        String normalizedPhase = normalize(phase);
+        if (items.isEmpty() || itemName == null || normalizedPhase.isBlank()) {
+            return false;
+        }
+        String normalizedName = normalize(itemName);
+        for (ShoppingItem item : items.values()) {
+            if (item == null) continue;
+            if (!isOperationalFertilizationSection(item.getSection())) continue;
+            if (normalizedName.equals(normalize(item.getName()))
+                    && normalizedPhase.equals(normalize(item.getPhase()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isOperationalFertilizationSection(String section) {
+        String normalized = normalize(section);
+        return normalize(SECTION_PLANTING_OPTION_1).equals(normalized)
+                || normalize(SECTION_PLANTING_OPTION_2).equals(normalized)
+                || normalize(SECTION_COVERAGE_OPTION_1).equals(normalized)
+                || normalize(SECTION_COVERAGE_OPTION_2).equals(normalized);
     }
 
     private static void merge(Map<String, ShoppingItem> items,
