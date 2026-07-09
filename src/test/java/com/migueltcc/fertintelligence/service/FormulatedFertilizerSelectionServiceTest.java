@@ -133,15 +133,46 @@ class FormulatedFertilizerSelectionServiceTest {
         assertThat(result.candidates().get(0).formulated()).isSameAs(formula101010);
         assertThat(result.candidates().get(0).approximateFallback()).isFalse();
         assertThat(result.candidates().get(0).maximizationFallback()).isTrue();
-        assertThat(result.candidates().get(0).limitingNutrient()).isEqualTo("N");
-        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(200d);
-        assertThat(result.candidates().get(0).providedN()).isEqualTo(20d);
-        assertThat(result.candidates().get(0).providedP2O5()).isEqualTo(20d);
-        assertThat(result.candidates().get(0).providedK2O()).isEqualTo(20d);
+        assertThat(result.candidates().get(0).limitingNutrient()).isEqualTo("P2O5");
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(800d);
+        assertThat(result.candidates().get(0).providedN()).isEqualTo(80d);
+        assertThat(result.candidates().get(0).providedP2O5()).isEqualTo(80d);
+        assertThat(result.candidates().get(0).providedK2O()).isEqualTo(80d);
         assertThat(result.candidates().get(0).deficitN()).isEqualTo(0d);
-        assertThat(result.candidates().get(0).deficitP2O5()).isEqualTo(60d);
-        assertThat(result.candidates().get(0).deficitK2O()).isEqualTo(20d);
-        assertThat(result.candidates().get(0).coveragePercent()).isEqualTo(42.86d);
+        assertThat(result.candidates().get(0).deficitP2O5()).isEqualTo(0d);
+        assertThat(result.candidates().get(0).deficitK2O()).isEqualTo(0d);
+        assertThat(result.candidates().get(0).coveragePercent()).isEqualTo(100d);
+    }
+
+    @Test
+    void coverageSelectionPrefersN00KWhenPhosphorusFormulaHasHigherCoverage() {
+        FormulatedMineralFertilizerModel formula100010 = formulated(1L, 10d, 0d, 10d);
+        FormulatedMineralFertilizerModel formula101010 = formulated(2L, 10d, 10d, 10d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCoverageCandidates(List.of(formula101010, formula100010), 20d, 40d);
+
+        assertThat(result.candidates()).hasSize(1);
+        assertThat(result.candidates().get(0).formulated()).isSameAs(formula100010);
+        assertThat(result.candidates().get(0).providedP2O5()).isZero();
+        assertThat(result.technicalMessage()).doesNotContain("Concessão técnica");
+    }
+
+    @Test
+    void coverageSelectionAllowsPhosphorusOnlyWithExplicitTechnicalConcession() {
+        FormulatedMineralFertilizerModel formula101010 = formulated(1L, 10d, 10d, 10d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCoverageCandidates(List.of(formula101010), 20d, 40d);
+
+        assertThat(result.candidates()).hasSize(1);
+        assertThat(result.candidates().get(0).formulated()).isSameAs(formula101010);
+        assertThat(result.candidates().get(0).providedP2O5()).isGreaterThan(0d);
+        assertThat(result.technicalMessage())
+                .contains("Concessão técnica")
+                .contains("P2O5 recomendado igual a 0")
+                .contains("nenhuma alternativa aceitável sem P2O5");
+        assertThat(result.candidates().get(0).technicalMessage()).contains("Concessão técnica");
     }
 
     private FormulatedMineralFertilizerModel formulated(Long id, double n, double p2o5, double k2o) {

@@ -45,8 +45,8 @@ class CoverageFormulatedFertilizerRecommendationService {
             }
 
             FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult selection =
-                    formulatedFertilizerSelectionService.selectCandidates(
-                            user, sourceOption, coverage.requiredN(), 0d, coverage.requiredK2O());
+                    formulatedFertilizerSelectionService.selectCoverageCandidates(
+                            user, sourceOption, coverage.requiredN(), coverage.requiredK2O());
             if (selection.technicalMessage() != null) {
                 addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder()) + ": " + selection.technicalMessage());
             }

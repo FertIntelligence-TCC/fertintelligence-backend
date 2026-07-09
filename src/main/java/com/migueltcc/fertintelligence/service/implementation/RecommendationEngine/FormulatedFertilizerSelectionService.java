@@ -54,6 +54,13 @@ public class FormulatedFertilizerSelectionService {
         return selectCandidates(selectFormulatedFertilizers(user, sourceOption), requiredN, requiredP2O5, requiredK2O);
     }
 
+    public FormulatedFertilizerSelectionResult selectCoverageCandidates(UserModel user,
+                                                                        FertilizerSourceOption sourceOption,
+                                                                        Double requiredN,
+                                                                        Double requiredK2O) {
+        return selectCoverageCandidates(selectFormulatedFertilizers(user, sourceOption), requiredN, requiredK2O);
+    }
+
     public List<FormulatedFertilizerSelectionCandidate> selectTopCandidates(List<FormulatedMineralFertilizerModel> fertilizers,
                                                                             Double requiredN,
                                                                             Double requiredP2O5,
@@ -146,6 +153,47 @@ public class FormulatedFertilizerSelectionService {
         }
 
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
+    }
+
+    public FormulatedFertilizerSelectionResult selectCoverageCandidates(List<FormulatedMineralFertilizerModel> fertilizers,
+                                                                        Double requiredN,
+                                                                        Double requiredK2O) {
+        List<FormulatedMineralFertilizerModel> safeFertilizers = fertilizers != null ? fertilizers : List.of();
+        List<FormulatedMineralFertilizerModel> withoutPhosphorus = safeFertilizers.stream()
+                .filter(this::doesNotExceedCoveragePhosphorus)
+                .toList();
+        FormulatedFertilizerSelectionResult phosphorusFreeSelection =
+                selectCandidates(withoutPhosphorus, requiredN, 0d, requiredK2O);
+        if (phosphorusFreeSelection.candidates() != null && !phosphorusFreeSelection.candidates().isEmpty()) {
+            return phosphorusFreeSelection;
+        }
+
+        List<FormulatedMineralFertilizerModel> withPhosphorus = safeFertilizers.stream()
+                .filter(fertilizer -> normalizeRequiredDose(fertilizer != null ? fertilizer.getP2O5() : null) > 0d)
+                .toList();
+        FormulatedFertilizerSelectionResult phosphorusSelection =
+                selectCandidates(withPhosphorus, requiredN, 0d, requiredK2O);
+        if (phosphorusSelection.candidates() == null || phosphorusSelection.candidates().isEmpty()) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    appendTechnicalMessage(
+                            phosphorusFreeSelection.technicalMessage(),
+                            phosphorusSelection.technicalMessage()));
+        }
+
+        String concessionMessage = "Concessão técnica: cobertura de cultura anual tem P2O5 recomendado igual a 0; "
+                + "foi permitido formulado contendo P2O5 somente porque nenhuma alternativa aceitável sem P2O5 foi encontrada. "
+                + "Critério utilizado: aplicar a seleção N-P2O5-K2O com P2O5 requerido zerado sobre os formulados contendo P2O5 disponíveis, "
+                + "mantendo déficits e excedentes explícitos.";
+        return new FormulatedFertilizerSelectionResult(
+                phosphorusSelection.candidates().stream()
+                        .map(candidate -> appendCandidateTechnicalMessage(candidate, concessionMessage))
+                        .toList(),
+                true,
+                appendTechnicalMessage(
+                        appendTechnicalMessage(phosphorusFreeSelection.technicalMessage(), phosphorusSelection.technicalMessage()),
+                        concessionMessage));
     }
 
     private FormulatedFertilizerSelectionCandidate toDirectMatchCandidate(FormulatedMineralFertilizerModel fertilizer,
@@ -496,6 +544,39 @@ public class FormulatedFertilizerSelectionService {
             return 0d;
         }
         return value;
+    }
+
+    private boolean doesNotExceedCoveragePhosphorus(FormulatedMineralFertilizerModel fertilizer) {
+        return normalizeRequiredDose(fertilizer != null ? fertilizer.getP2O5() : null) == 0d;
+    }
+
+    private FormulatedFertilizerSelectionCandidate appendCandidateTechnicalMessage(
+            FormulatedFertilizerSelectionCandidate candidate,
+            String technicalMessage) {
+        if (candidate == null) {
+            return null;
+        }
+        return new FormulatedFertilizerSelectionCandidate(
+                candidate.formulated(),
+                candidate.relation(),
+                candidate.ratioSum(),
+                candidate.formulatedRatioSum(),
+                candidate.concentrationSum(),
+                candidate.fertilizerDoseKgHa(),
+                candidate.approximateFallback(),
+                candidate.maximizationFallback(),
+                candidate.limitingNutrient(),
+                candidate.coveragePercent(),
+                candidate.providedN(),
+                candidate.providedP2O5(),
+                candidate.providedK2O(),
+                candidate.balanceN(),
+                candidate.balanceP2O5(),
+                candidate.balanceK2O(),
+                candidate.deficitN(),
+                candidate.deficitP2O5(),
+                candidate.deficitK2O(),
+                appendTechnicalMessage(candidate.technicalMessage(), technicalMessage));
     }
 
     private double round2(double value) {
