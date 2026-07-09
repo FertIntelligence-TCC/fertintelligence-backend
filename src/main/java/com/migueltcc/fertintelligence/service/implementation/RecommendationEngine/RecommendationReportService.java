@@ -355,7 +355,7 @@ public class RecommendationReportService {
             report.append("\n");
         }
 
-        report.append("14. Fontes orgânicas, organominerais e micronutrientes\n\n");
+        report.append("13.1. Fontes orgânicas, organominerais e micronutrientes\n\n");
         report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
         report.append("|---|---|---|---:|---|---|---|\n");
         boolean hasAlternativeRows = result.getAlternativeFertilizationRows() != null && !result.getAlternativeFertilizationRows().isEmpty();
@@ -441,7 +441,7 @@ public class RecommendationReportService {
         if (warning == null) {
             return;
         }
-        report.append("16. Aviso técnico\n\n");
+        report.append("14. Aviso técnico\n\n");
         report.append("- ").append(warning).append("\n\n");
     }
 

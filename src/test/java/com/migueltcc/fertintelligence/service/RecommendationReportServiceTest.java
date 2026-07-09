@@ -4,6 +4,7 @@ import com.migueltcc.fertintelligence.service.implementation.RecommendationEngin
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -233,5 +234,62 @@ class RecommendationReportServiceTest {
         assertTrue(report.contains("N: 20.00 kg/ha, P2O5: 0.00 kg/ha, K2O: 40.00 kg/ha, S: 0.00 kg/ha"));
         assertFalse(report.contains(", : 0.00 kg/ha"));
         assertFalse(report.contains("| : 0.00 kg/ha"));
+    }
+
+    @Test
+    void buildTechnicalReport_OrdersFertilizerSubsectionsAndTechnicalWarning() {
+        RecommendationCalculationService.RecommendationCalculationResult result =
+                RecommendationCalculationService.RecommendationCalculationResult.builder()
+                        .requesterName("Produtor")
+                        .propertyName("Fazenda")
+                        .plotIdentification("Talhao 1")
+                        .cropName("AMENDOIM")
+                        .recommendationType("BOTH")
+                        .issuedAt(LocalDateTime.of(2026, 7, 9, 10, 0))
+                        .fertilizerSuggestions(List.of(
+                                RecommendationCalculationService.FertilizerSuggestion.builder()
+                                        .fertilizerType("FORMULADO")
+                                        .fertilizerName("NPK 05-30-05")
+                                        .n(5.0)
+                                        .p2o5(30.0)
+                                        .k2o(5.0)
+                                        .reason("Selecionado para plantio.")
+                                        .build()))
+                        .alternativeFertilizationRows(List.of(
+                                RecommendationCalculationService.AlternativeFertilizationRecommendationRow.builder()
+                                        .sourceType("ORGANOMINERAL")
+                                        .nutrientOrObjective("Matéria orgânica")
+                                        .sourceName("Composto")
+                                        .dose("100.00")
+                                        .unit("kg/ha")
+                                        .justification("Alternativa válida.")
+                                        .build()))
+                        .opportunityCostDecisionRows(List.of(
+                                RecommendationCalculationService.OpportunityCostDecisionRow.builder()
+                                        .category("FORMULADO")
+                                        .fertilizerName("NPK 05-30-05")
+                                        .commercialPrice(BigDecimal.TEN)
+                                        .opportunityPrice(BigDecimal.ONE)
+                                        .commercialWeightKg(BigDecimal.valueOf(50))
+                                        .ratio(BigDecimal.TEN)
+                                        .decision("avaliado")
+                                        .contributionSummary("Comparado por preço.")
+                                        .build()))
+                        .warnings(List.of("Aviso técnico final."))
+                        .build();
+
+        String report = reportService.buildTechnicalReport(result);
+
+        int fertilizers = report.indexOf("13. Fertilizantes recomendados");
+        int alternativeSources = report.indexOf("13.1. Fontes orgânicas, organominerais e micronutrientes");
+        int opportunityCost = report.indexOf("13.2. Comparativo de custo de oportunidade");
+        int warning = report.indexOf("14. Aviso técnico");
+
+        assertTrue(fertilizers >= 0);
+        assertTrue(alternativeSources > fertilizers);
+        assertTrue(opportunityCost > alternativeSources);
+        assertTrue(warning > opportunityCost);
+        assertFalse(report.contains("14. Fontes orgânicas"));
+        assertFalse(report.contains("16. Aviso técnico"));
     }
 }

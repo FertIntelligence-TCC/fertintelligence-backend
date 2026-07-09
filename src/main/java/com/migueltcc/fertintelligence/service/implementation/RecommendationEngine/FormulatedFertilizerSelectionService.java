@@ -142,14 +142,14 @@ public class FormulatedFertilizerSelectionService {
                         true,
                         appendTechnicalMessage(
                                 noDirectMatchMessage,
-                                "Seleção por maximização aplicada após falha da seleção aproximada; quando possível a dose prioriza P2O5 exato e os déficits de N/K2O seguem para cobertura."));
+                                "Seleção por maximização aplicada após falha da seleção aproximada; quando possível a dose prioriza P2O5 exato, sem exceder nutrientes acima de 10%, e os déficits de N/K2O seguem para cobertura."));
             }
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
                     false,
                     appendTechnicalMessage(
                             noDirectMatchMessage,
-                            "Nenhum formulado aproximado ou aplicável à maximização permaneceu válido para os nutrientes considerados."));
+                            "Nenhum formulado aproximado ou aplicável à maximização permaneceu válido sem exceder nutriente acima da tolerância de 10%. Usar adubos simples ou outra alternativa válida."));
         }
 
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
@@ -352,6 +352,11 @@ public class FormulatedFertilizerSelectionService {
         double providedN = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getN());
         double providedP2O5 = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getP2O5());
         double providedK2O = calculateProvidedNutrient(fertilizerDoseKgHa, fertilizer.getK2O());
+        if (exceedsMaximumSupplyTolerance(providedN, requiredN)
+                || exceedsMaximumSupplyTolerance(providedP2O5, requiredP2O5)
+                || exceedsMaximumSupplyTolerance(providedK2O, requiredK2O)) {
+            return null;
+        }
 
         return new FormulatedFertilizerSelectionCandidate(
                 fertilizer,
@@ -484,6 +489,14 @@ public class FormulatedFertilizerSelectionService {
         double minimum = normalizedRequired * (1d - APPROXIMATE_SUPPLY_TOLERANCE);
         double maximum = normalizedRequired * (1d + APPROXIMATE_SUPPLY_TOLERANCE);
         return supplied >= minimum && supplied <= maximum;
+    }
+
+    private boolean exceedsMaximumSupplyTolerance(double supplied, Double required) {
+        double normalizedRequired = normalizeRequiredDose(required);
+        if (normalizedRequired <= 0d) {
+            return false;
+        }
+        return supplied > normalizedRequired * (1d + APPROXIMATE_SUPPLY_TOLERANCE);
     }
 
     private double calculateRatioDistance(NPKrelation recommendedRatio, NPKrelation formulatedRatio) {

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 class FormulatedFertilizerSelectionServiceTest {
 
@@ -121,27 +122,41 @@ class FormulatedFertilizerSelectionServiceTest {
 
     @Test
     void returnsMaximizationFallbackWhenNoIdenticalOrApproximateRatioExists() {
-        FormulatedMineralFertilizerModel formula101010 = formulated(1L, 10d, 10d, 10d);
+        FormulatedMineralFertilizerModel formula053005 = formulated(1L, 5d, 30d, 5d);
 
         FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
-                service.selectCandidates(List.of(formula101010), 20d, 80d, 40d);
+                service.selectCandidates(List.of(formula053005), 20d, 80d, 40d);
 
         assertThat(result.candidates()).hasSize(1);
         assertThat(result.fallbackUsed()).isTrue();
         assertThat(result.technicalMessage()).contains("relação N-P2O5-K2O idêntica");
         assertThat(result.technicalMessage()).contains("maximização");
-        assertThat(result.candidates().get(0).formulated()).isSameAs(formula101010);
+        assertThat(result.candidates().get(0).formulated()).isSameAs(formula053005);
         assertThat(result.candidates().get(0).approximateFallback()).isFalse();
         assertThat(result.candidates().get(0).maximizationFallback()).isTrue();
         assertThat(result.candidates().get(0).limitingNutrient()).isEqualTo("P2O5");
-        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(800d);
-        assertThat(result.candidates().get(0).providedN()).isEqualTo(80d);
-        assertThat(result.candidates().get(0).providedP2O5()).isEqualTo(80d);
-        assertThat(result.candidates().get(0).providedK2O()).isEqualTo(80d);
-        assertThat(result.candidates().get(0).deficitN()).isEqualTo(0d);
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isCloseTo(800d / 3d, within(0.01d));
+        assertThat(result.candidates().get(0).providedN()).isCloseTo(13.33d, within(0.01d));
+        assertThat(result.candidates().get(0).providedP2O5()).isCloseTo(80d, within(0.01d));
+        assertThat(result.candidates().get(0).providedK2O()).isCloseTo(13.33d, within(0.01d));
+        assertThat(result.candidates().get(0).deficitN()).isEqualTo(6.67d);
         assertThat(result.candidates().get(0).deficitP2O5()).isEqualTo(0d);
-        assertThat(result.candidates().get(0).deficitK2O()).isEqualTo(0d);
-        assertThat(result.candidates().get(0).coveragePercent()).isEqualTo(100d);
+        assertThat(result.candidates().get(0).deficitK2O()).isEqualTo(26.67d);
+        assertThat(result.candidates().get(0).coveragePercent()).isEqualTo(76.19d);
+    }
+
+    @Test
+    void rejectsMaximizationCandidateWhenAnyNutrientExceedsTenPercentTolerance() {
+        FormulatedMineralFertilizerModel formula153015 = formulated(1L, 15d, 30d, 15d);
+
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                service.selectCandidates(List.of(formula153015), 20d, 80d, 30d);
+
+        assertThat(result.candidates()).isEmpty();
+        assertThat(result.fallbackUsed()).isFalse();
+        assertThat(result.technicalMessage())
+                .contains("sem exceder nutriente acima da tolerância de 10%")
+                .contains("Usar adubos simples ou outra alternativa válida");
     }
 
     @Test
