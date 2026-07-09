@@ -276,7 +276,7 @@ public class RecommendationStructuredDataAssembler {
                 .key(key)
                 .title(title)
                 .description(description)
-                .mutuallyExclusiveOptions(true)
+                .mutuallyExclusiveOptions(!BLOCK_ACIDITY_CORRECTION.equals(key))
                 .options(options)
                 .build();
     }

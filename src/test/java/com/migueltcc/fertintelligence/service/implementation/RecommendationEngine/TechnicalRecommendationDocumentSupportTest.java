@@ -269,7 +269,9 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(purchaseList.getBlocks())
                 .extracting("key")
                 .containsExactly("ACIDITY_CORRECTION", "CORRECTIVE_FERTILIZATION", "PLANTING", "TOPDRESSING");
-        assertThat(purchaseList.getBlocks()).allMatch(block -> Boolean.TRUE.equals(block.getMutuallyExclusiveOptions()));
+        assertThat(purchaseList.getBlocks())
+                .extracting("mutuallyExclusiveOptions")
+                .containsExactly(false, true, true, true);
         assertThat(purchaseList.getBlocks().get(2).getOptions())
                 .extracting("key")
                 .containsExactly("plantio_opcao_1_formulados", "plantio_opcao_2_adubos_simples");
