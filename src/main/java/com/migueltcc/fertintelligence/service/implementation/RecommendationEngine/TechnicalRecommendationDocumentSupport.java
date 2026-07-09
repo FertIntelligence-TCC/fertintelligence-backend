@@ -53,6 +53,7 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static final DateTimeFormatter BR_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Pattern QUANTITY_KG_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*kg\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
+    private static final Pattern QUANTITY_T_HA = Pattern.compile("(-?\\d+(?:[\\.,]\\d+)?)\\s*t\\s*/\\s*ha", Pattern.CASE_INSENSITIVE);
     private static final List<String> TOP_LEVEL_HEADINGS = List.of(
             "Laudo Técnico de Recomendação Agrícola",
             "1. Identificação",
@@ -297,7 +298,7 @@ final class TechnicalRecommendationDocumentSupport {
         for (String label : labels) {
             for (String line : section.split("\\R")) {
                 if (!normalize(line).contains(normalize(label))) continue;
-                Optional<Double> kgHa = extractKgHa(line);
+                Optional<Double> kgHa = extractDoseKgHa(line);
                 if (kgHa.isPresent()) {
                     merge(items, itemName, kgHa.get(), null, sectionKey, option, flag, null, null);
                     return;
@@ -317,7 +318,7 @@ final class TechnicalRecommendationDocumentSupport {
         for (String label : labels) {
             for (String line : section.split("\\R")) {
                 if (!normalize(line).contains(normalize(label))) continue;
-                Optional<Double> kgHa = extractKgHa(line);
+                Optional<Double> kgHa = extractDoseKgHa(line);
                 if (kgHa.isPresent() && kgHa.get() > 0d) {
                     merge(items, itemName, kgHa.get(), null, sectionKey, option, flag, null, null);
                     return;
@@ -362,6 +363,7 @@ final class TechnicalRecommendationDocumentSupport {
             if (hasOperationalItemInSamePhase(items, itemName, phase)) continue;
             extractKgHa(quantity)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
+                    .filter(kgHa -> !hasEquivalentItem(items, itemName, kgHa, classification.sectionKey(), classification.option()))
                     .ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application),
                             classification.sectionKey(), classification.option(), classification.itemFlag(), phase, null));
         }
@@ -421,6 +423,7 @@ final class TechnicalRecommendationDocumentSupport {
                     : row.get(0);
             parseDecimal(dose)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
+                    .filter(kgHa -> !hasEquivalentItem(items, itemName, kgHa, SECTION_PLANTING_OPTION_1, OPTION_PLANTING_FORMULATED))
                     .ifPresent(kgHa -> merge(items, itemName, kgHa, typeGroup, SECTION_PLANTING_OPTION_1, OPTION_PLANTING_FORMULATED,
                             FLAG_COMPLEMENT, "Plantio", null));
         }
@@ -622,6 +625,31 @@ final class TechnicalRecommendationDocumentSupport {
         return false;
     }
 
+    private static boolean hasEquivalentItem(Map<String, ShoppingItem> items,
+                                             String name,
+                                             Double kgHa,
+                                             String section,
+                                             String option) {
+        String itemName = cleanNullable(name);
+        if (items.isEmpty() || itemName == null || kgHa == null) {
+            return false;
+        }
+        String normalizedName = normalize(itemName);
+        String normalizedSection = normalize(section);
+        String normalizedOption = normalize(option);
+        String doseKey = approximateDoseKey(kgHa);
+        for (ShoppingItem item : items.values()) {
+            if (item == null || item.getKgHa() == null) continue;
+            if (!normalizedName.equals(normalize(item.getName()))) continue;
+            if (!normalizedSection.equals(normalize(item.getSection()))) continue;
+            if (!normalizedOption.equals(normalize(item.getOption()))) continue;
+            if (doseKey.equals(approximateDoseKey(item.getKgHa()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isOperationalFertilizationSection(String section) {
         String normalized = normalize(section);
         return normalize(SECTION_PLANTING_OPTION_1).equals(normalized)
@@ -643,13 +671,13 @@ final class TechnicalRecommendationDocumentSupport {
         if (itemName == null) {
             return;
         }
-        String key = normalize(itemName) + "|" + normalize(section) + "|" + normalize(option) + "|" + normalize(itemFlag) + "|" + normalize(phase);
+        String key = normalize(section) + "|" + normalize(option) + "|" + normalize(phase) + "|"
+                + normalize(itemName) + "|" + approximateDoseKey(kgHa);
         ShoppingItem existing = items.get(key);
         if (existing == null) {
             items.put(key, new ShoppingItem(itemName, kgHa, typeGroup, section, option, itemFlag, phase, localizedDose));
             return;
         }
-        existing.addKgHa(kgHa);
         existing.addTypeGroup(typeGroup);
         existing.addPhase(phase);
         existing.addLocalizedDose(localizedDose);
@@ -731,6 +759,24 @@ final class TechnicalRecommendationDocumentSupport {
         } catch (NumberFormatException ex) {
             return Optional.empty();
         }
+    }
+
+    private static Optional<Double> extractDoseKgHa(String value) {
+        Optional<Double> kgHa = extractKgHa(value);
+        if (kgHa.isPresent()) {
+            return kgHa;
+        }
+        if (value == null) return Optional.empty();
+        Matcher matcher = QUANTITY_T_HA.matcher(value);
+        if (!matcher.find()) return Optional.empty();
+        return parseDecimal(matcher.group(1)).map(tHa -> tHa * 1000d);
+    }
+
+    private static String approximateDoseKey(Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return "";
+        }
+        return String.format(Locale.US, "%.2f", value);
     }
 
     private static String removeId(String value) {

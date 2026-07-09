@@ -279,6 +279,93 @@ class TechnicalRecommendationDocumentSupportTest {
     }
 
     @Test
+    void collectShoppingItemsIncludesLimestoneFromPositiveLimingDoseInTonsPerHectare() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 7. Calagem
+
+                        - Necessidade de calagem ajustada: 1.90 t/ha
+                        - Dose corrigida por PRNT: 1.90 t/ha
+                        - Dose efetiva registrada pelo cálculo: 1.90 t/ha
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        TechnicalRecommendationDocumentSupport.ShoppingItem limestone = item(items, "Calcário");
+        assertThat(limestone.getKgHa()).isEqualTo(1900.0);
+        assertThat(limestone.getSection()).isEqualTo(TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION);
+        assertThat(limestone.getOption()).isEqualTo("correcao_acidez_recomendacao_unica");
+        assertThat(limestone.getItemFlag()).isEqualTo("obrigatorio");
+    }
+
+    @Test
+    void collectShoppingItemsPrefersStructuredPlantingFormulatedLineOverEquivalentTextFallback() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 10. Adubação de plantio
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Opção 1 - Plantio com formulado | N, P2O5, K2O | NPK 6.00-24.00-24.00 | 250.00 kg/ha |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(
+                        recommendation,
+                        List.of(),
+                        List.of(DirectRecommendationPlantingFormulatedFertilizerLineModel.builder()
+                                .phase("Plantio")
+                                .doseKgHa(250.0)
+                                .build()),
+                        List.of(),
+                        resolver("NPK 6.00-24.00-24.00", "NPK 10.00-0.00-20.00"));
+
+        assertThat(items.stream()
+                .filter(item -> "NPK 6.00-24.00-24.00".equals(item.getName()))
+                .filter(item -> TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1.equals(item.getSection())))
+                .hasSize(1);
+        assertThat(item(items, "NPK 6.00-24.00-24.00").getPhase()).isEqualTo("Plantio");
+    }
+
+    @Test
+    void collectShoppingItemsPrefersStructuredCoverageFormulatedLineOverEquivalentTextFallback() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 11. Adubação de cobertura
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Opção 1 - Cobertura com formulado | N, K2O | NPK 10.00-0.00-20.00 | 180.00 kg/ha |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(
+                        recommendation,
+                        List.of(),
+                        List.of(),
+                        List.of(DirectRecommendationCoverageFormulatedFertilizerLineModel.builder()
+                                .fertilizerId(2L)
+                                .coverageOrder(1)
+                                .phase("Cobertura")
+                                .doseKgHa(180.0)
+                                .build()),
+                        resolver("NPK 6.00-24.00-24.00", "NPK 10.00-0.00-20.00"));
+
+        assertThat(items.stream()
+                .filter(item -> "NPK 10.00-0.00-20.00".equals(item.getName()))
+                .filter(item -> TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1.equals(item.getSection())))
+                .hasSize(1);
+        assertThat(item(items, "NPK 10.00-0.00-20.00").getPhase()).isEqualTo("Cobertura 1");
+    }
+
+    @Test
     void shoppingBlocksKeepOptionsMutuallyExclusiveAndDoNotSumAlternatives() {
         RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null);
         List<ShoppingListItemResponseDto> items = List.of(
