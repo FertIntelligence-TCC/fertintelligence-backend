@@ -3,7 +3,9 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.DiverseContentRangeRepository;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -63,6 +65,58 @@ class RecommendationCalculationServiceTest {
                 .filteredOn(item -> List.of("Boro", "Cobre", "Ferro", "Manganês", "Zinco").contains(item.getAttribute()))
                 .extracting(RecommendationCalculationService.SoilChemicalDiagnosisItem::getInterpretation)
                 .containsExactly("Médio", "Médio", "Médio", "Médio", "Médio");
+    }
+
+    @Test
+    void formulatedPlantingWarningDoesNotMentionP2O5WhenDeficitIsZero() throws Exception {
+        NutrientFertilizationCalculationService service = new NutrientFertilizationCalculationService(
+                null, null, null, null, null, null, null, null, null, null, null);
+        FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
+                .id(8L)
+                .N(8d)
+                .P2O5(32d)
+                .K2O(16d)
+                .build();
+        FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate candidate =
+                new FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate(
+                        fertilizer,
+                        new NPKrelation(1d, 4d, 2d),
+                        7d,
+                        7d,
+                        56d,
+                        250d,
+                        false,
+                        true,
+                        "P2O5",
+                        85.71d,
+                        20d,
+                        80d,
+                        40d,
+                        0d,
+                        0d,
+                        -20d,
+                        0d,
+                        0d,
+                        20d,
+                        null);
+        List<String> warnings = new ArrayList<>();
+
+        Method method = NutrientFertilizationCalculationService.class.getDeclaredMethod(
+                "buildFormulatedSelection",
+                FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate.class,
+                Double.class,
+                Double.class,
+                Double.class,
+                List.class);
+        method.setAccessible(true);
+        method.invoke(service, candidate, 20d, 80d, 60d, warnings);
+
+        assertThat(warnings).hasSize(1);
+        assertThat(warnings.get(0))
+                .contains("K2O 20.00 kg/ha")
+                .contains("serão repassados para cobertura")
+                .doesNotContain("déficit de P2O5 0.00")
+                .doesNotContain("P2O5 0.00 kg/ha exige ajuste técnico");
     }
 
     @SuppressWarnings("unchecked")

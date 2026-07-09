@@ -888,9 +888,7 @@ class NutrientFertilizationCalculationService {
         FormulatedMineralFertilizerModel fertilizer = selected.formulated();
         String warning = null;
         if (nvl(selected.balanceN()) < 0 || nvl(selected.balanceP2O5()) < 0 || nvl(selected.balanceK2O()) < 0) {
-            warning = String.format(Locale.US,
-                    "Fertilizante formulado selecionado não atende todos os nutrientes no plantio. Déficits de N %.2f kg/ha e K2O %.2f kg/ha serão repassados para cobertura; déficit de P2O5 %.2f kg/ha exige ajuste técnico no plantio.",
-                    nvl(selected.deficitN()), nvl(selected.deficitK2O()), nvl(selected.deficitP2O5()));
+            warning = buildFormulatedPlantingDeficitWarning(selected);
             warnings.add(warning);
         }
 
@@ -923,6 +921,32 @@ class NutrientFertilizationCalculationService {
                 buildFormulatedCalculationMemory(selected),
                 warning,
                 Optional.of(suggestion));
+    }
+
+    private String buildFormulatedPlantingDeficitWarning(
+            FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected) {
+        List<String> coverageDeficits = new ArrayList<>();
+        if (nvl(selected.deficitN()) > 0d) {
+            coverageDeficits.add(String.format(Locale.US, "N %.2f kg/ha", nvl(selected.deficitN())));
+        }
+        if (nvl(selected.deficitK2O()) > 0d) {
+            coverageDeficits.add(String.format(Locale.US, "K2O %.2f kg/ha", nvl(selected.deficitK2O())));
+        }
+
+        List<String> observations = new ArrayList<>();
+        if (!coverageDeficits.isEmpty()) {
+            observations.add("Déficits de " + String.join(" e ", coverageDeficits) + " serão repassados para cobertura");
+        }
+        if (nvl(selected.deficitP2O5()) > 0d) {
+            observations.add(String.format(Locale.US,
+                    "déficit de P2O5 %.2f kg/ha exige ajuste técnico no plantio",
+                    nvl(selected.deficitP2O5())));
+        }
+
+        String detail = observations.isEmpty()
+                ? "Saldos negativos identificados sem déficit positivo após arredondamento; revisar memória de cálculo"
+                : String.join("; ", observations);
+        return "Fertilizante formulado selecionado não atende todos os nutrientes no plantio. " + detail + ".";
     }
 
     private String formatFormulatedFertilizerName(FormulatedMineralFertilizerModel fertilizer) {
