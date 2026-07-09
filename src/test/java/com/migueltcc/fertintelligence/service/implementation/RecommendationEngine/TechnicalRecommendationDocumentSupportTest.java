@@ -198,6 +198,48 @@ class TechnicalRecommendationDocumentSupportTest {
     }
 
     @Test
+    void collectShoppingItemsKeepsTopdressingOptionOneSeparateFromOptionTwo() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropName(NomeComum.MILHO)
+                .technicalReport("""
+                        ## 11. Adubação de cobertura
+
+                        | Fase | Nutriente | Fertilizante | Dose |
+                        |---|---|---|---:|
+                        | Opção 1 - Cobertura com formulado | N, K2O | NPK 10.00-0.00-20.00 | 200.00 kg/ha |
+                        | Opção 1 - Complemento de cobertura - N | N | Ureia | 30.00 kg/ha |
+                        | Opção 2 - Cobertura com adubos simples - N | N | Ureia | 100.00 kg/ha |
+                        | Opção 2 - Cobertura com adubos simples - K2O | K2O | Cloreto de potássio | 80.00 kg/ha |
+                        """)
+                .build();
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> items =
+                TechnicalRecommendationDocumentSupport.collectShoppingItems(recommendation);
+
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> optionOne = items.stream()
+                .filter(item -> "cobertura_opcao_1_formulados".equals(item.getOption()))
+                .toList();
+        List<TechnicalRecommendationDocumentSupport.ShoppingItem> optionTwo = items.stream()
+                .filter(item -> "cobertura_opcao_2_adubos_simples".equals(item.getOption()))
+                .toList();
+
+        assertThat(optionOne)
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getName)
+                .containsExactlyInAnyOrder("NPK 10.00-0.00-20.00", "Ureia");
+        assertThat(optionTwo)
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getName)
+                .containsExactlyInAnyOrder("Ureia", "Cloreto de potássio");
+        assertThat(optionTwo)
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getName)
+                .doesNotContain("NPK 10.00-0.00-20.00");
+        assertThat(optionOne)
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getPhase)
+                .noneMatch(phase -> phase.contains("Opção 2"));
+        assertThat(items.stream().filter(item -> "Ureia".equals(item.getName())))
+                .hasSize(2);
+    }
+
+    @Test
     void collectShoppingItemsSkipsRepeatedProductInSameOperationalPhase() {
         RecommendationModel recommendation = RecommendationModel.builder()
                 .cropName(NomeComum.MILHO)

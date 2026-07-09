@@ -355,13 +355,32 @@ final class TechnicalRecommendationDocumentSupport {
             if (looksUnavailable(fertilizer) || looksUnavailable(quantity)) continue;
             if (nutrients == null || nutrients.isBlank() || looksUnavailable(nutrients)) continue;
             String itemName = removeId(fertilizer);
-            String sectionKey = normalize(phase).contains("cobertura") ? SECTION_COVERAGE_OPTION_2 : SECTION_PLANTING_OPTION_2;
-            String option = normalize(phase).contains("cobertura") ? OPTION_COVERAGE_SIMPLE_SOURCES : OPTION_PLANTING_SIMPLE_SOURCES;
+            FertilizationOptionClassification classification = classifyFertilizationOption(phase);
             if (hasOperationalItemInSamePhase(items, itemName, phase)) continue;
             extractKgHa(quantity)
                     .filter(TechnicalRecommendationDocumentSupport::hasPositiveKgHa)
-                    .ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application), sectionKey, option, FLAG_ALTERNATIVE, phase, null));
+                    .ifPresent(kgHa -> merge(items, itemName, kgHa, shoppingNutrientGroup(nutrients, application),
+                            classification.sectionKey(), classification.option(), classification.itemFlag(), phase, null));
         }
+    }
+
+    private static FertilizationOptionClassification classifyFertilizationOption(String phase) {
+        String normalizedPhase = normalize(phase);
+        boolean coverage = normalizedPhase.contains("cobertura");
+        boolean optionOne = normalizedPhase.contains("opcao 1");
+        boolean optionTwo = normalizedPhase.contains("opcao 2");
+        if (coverage) {
+            if (optionOne) {
+                return new FertilizationOptionClassification(SECTION_COVERAGE_OPTION_1, OPTION_COVERAGE_FORMULATED,
+                        normalizedPhase.contains("complemento") ? FLAG_COMPLEMENT : FLAG_ALTERNATIVE);
+            }
+            return new FertilizationOptionClassification(SECTION_COVERAGE_OPTION_2, OPTION_COVERAGE_SIMPLE_SOURCES, FLAG_ALTERNATIVE);
+        }
+        if (optionOne && !optionTwo) {
+            return new FertilizationOptionClassification(SECTION_PLANTING_OPTION_1, OPTION_PLANTING_FORMULATED,
+                    normalizedPhase.contains("complemento") ? FLAG_COMPLEMENT : FLAG_ALTERNATIVE);
+        }
+        return new FertilizationOptionClassification(SECTION_PLANTING_OPTION_2, OPTION_PLANTING_SIMPLE_SOURCES, FLAG_ALTERNATIVE);
     }
 
     private static void addSoilCorrectiveFertilizationItems(Map<String, ShoppingItem> items, String section) {
@@ -915,5 +934,8 @@ final class TechnicalRecommendationDocumentSupport {
             }
             return current + "; " + value.trim();
         }
+    }
+
+    private record FertilizationOptionClassification(String sectionKey, String option, String itemFlag) {
     }
 }
