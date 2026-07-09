@@ -441,12 +441,12 @@ public class RecommendationReportService {
         if (warning == null) {
             return;
         }
-        report.append("14. Aviso técnico\n\n");
+        report.append("16. Aviso técnico\n\n");
         report.append("- ").append(warning).append("\n\n");
     }
 
     private void appendCalculationMemory(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("16. Memória de cálculo\n\n");
+        report.append("17. Memória de cálculo\n\n");
         report.append("A) Fertilizante comercial\n\n");
         report.append("| Fase | Fertilizante | Nutriente limitante/alvo | Necessidade alvo | Concentração do produto | Dose calculada | Fornecido N/P2O5/K2O/S | Déficit ou excedente N/P2O5/K2O/S |\n");
         report.append("|---|---|---|---:|---:|---:|---|---|\n");
@@ -481,7 +481,7 @@ public class RecommendationReportService {
     }
 
     private void appendClosing(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("17. Encerramento\n\n");
+        report.append("18. Encerramento\n\n");
         report.append("Este laudo técnico consolida os diagnósticos, doses, fontes e memórias de cálculo produzidos pelo backend a partir dos dados cadastrados. ");
         report.append("Campos ausentes foram mantidos como não informados ou não calculados para evitar inferências não suportadas pelo modelo atual.\n\n");
         report.append("Data de emissão: ").append(formatDate(result.getIssuedAt())).append("\n");
