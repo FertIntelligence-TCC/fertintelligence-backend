@@ -712,11 +712,62 @@ public class RecommendationReportService {
         if (!isCoverage(row) || nutrients == null) {
             return nutrients;
         }
+        if (nutrients.contains(":")) {
+            return displayCoverageNutrients(nutrients);
+        }
         return nutrients
                 .replaceAll("(?i)\\s*/?\\s*P2O5\\s*[-+]?\\d*(?:[\\.,]\\d+)?\\s*kg/ha", "")
                 .replaceAll("(?i)P2O5\\s*[,;/]?\\s*", "")
                 .replaceAll("\\s{2,}", " ")
                 .trim();
+    }
+
+    private String displayCoverageNutrients(String nutrients) {
+        List<String> parts = new ArrayList<>();
+        String[] rawParts = nutrients.split(",");
+        for (int i = 0; i < rawParts.length; i++) {
+            String part = rawParts[i] == null ? "" : rawParts[i].trim();
+            if (part.isBlank()) {
+                continue;
+            }
+            int separator = part.indexOf(':');
+            if (separator < 0) {
+                parts.add(part);
+                continue;
+            }
+            String label = part.substring(0, separator).trim();
+            String value = part.substring(separator + 1).trim();
+            if (label.isBlank()) {
+                label = inferMissingCoverageNutrient(rawParts, i);
+            }
+            if (label == null || label.isBlank() || value.isBlank()) {
+                continue;
+            }
+            parts.add(label + ": " + value);
+        }
+        return String.join(", ", parts).replaceAll("\\s{2,}", " ").trim();
+    }
+
+    private String inferMissingCoverageNutrient(String[] rawParts, int index) {
+        boolean previousHasN = hasCoverageNutrient(rawParts, 0, index, "N");
+        boolean nextHasK2O = hasCoverageNutrient(rawParts, index + 1, rawParts.length, "K2O");
+        boolean alreadyHasP2O5 = hasCoverageNutrient(rawParts, 0, rawParts.length, "P2O5");
+        return previousHasN && nextHasK2O && !alreadyHasP2O5 ? "P2O5" : null;
+    }
+
+    private boolean hasCoverageNutrient(String[] rawParts, int startInclusive, int endExclusive, String nutrient) {
+        for (int i = startInclusive; i < endExclusive; i++) {
+            if (i < 0 || i >= rawParts.length || rawParts[i] == null) {
+                continue;
+            }
+            String part = rawParts[i].trim();
+            int separator = part.indexOf(':');
+            String label = separator >= 0 ? part.substring(0, separator).trim() : part;
+            if (nutrient.equalsIgnoreCase(label)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String positiveNutrientSummary(Double n, Double p2o5, Double k2o, Double s) {

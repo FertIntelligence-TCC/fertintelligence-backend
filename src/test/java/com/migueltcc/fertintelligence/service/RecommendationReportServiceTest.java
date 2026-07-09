@@ -203,4 +203,35 @@ class RecommendationReportServiceTest {
         assertFalse(report.contains("Superfosfato Simples"));
         assertFalse(report.contains("04-14-08"));
     }
+
+    @Test
+    void buildTechnicalReport_DoesNotRenderEmptyCoverageNutrientLabel() {
+        RecommendationCalculationService.RecommendationCalculationResult result =
+                RecommendationCalculationService.RecommendationCalculationResult.builder()
+                        .requesterName("Produtor")
+                        .propertyName("Fazenda")
+                        .plotIdentification("Talhao 1")
+                        .cropName("MILHO")
+                        .recommendationType("BOTH")
+                        .issuedAt(LocalDateTime.of(2026, 7, 9, 10, 0))
+                        .fertilizationRecommendationRows(List.of(
+                                RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                                        .phase("Opção 1 - Cobertura com formulado")
+                                        .nutrients("N: 20.00 kg/ha, : 0.00 kg/ha, K2O: 40.00 kg/ha, S: 0.00 kg/ha")
+                                        .suggestedFertilizer("20-00-20")
+                                        .fertilizerQuantityKgHa(200.0)
+                                        .providedN(20.0)
+                                        .providedP2O5(0.0)
+                                        .providedK2O(40.0)
+                                        .providedS(0.0)
+                                        .build()))
+                        .build();
+
+        String report = reportService.buildTechnicalReport(result);
+
+        assertTrue(report.contains("11. Adubação de cobertura"));
+        assertTrue(report.contains("N: 20.00 kg/ha, P2O5: 0.00 kg/ha, K2O: 40.00 kg/ha, S: 0.00 kg/ha"));
+        assertFalse(report.contains(", : 0.00 kg/ha"));
+        assertFalse(report.contains("| : 0.00 kg/ha"));
+    }
 }
