@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.shoppingList;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListResponseDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,9 @@ public class ShoppingListResponseDto {
     @JsonProperty("blocos")
     private List<ShoppingListBlockResponseDto> blocks = new ArrayList<>();
 
+    @JsonProperty("purchaseList")
+    private PurchaseListResponseDto purchaseList;
+
     @Builder.Default
     @JsonProperty("observacoes_tecnicas")
     private List<String> technicalObservations = new ArrayList<>();
@@ -61,6 +65,11 @@ public class ShoppingListResponseDto {
 
     @JsonProperty("atualizado_em")
     private LocalDateTime updatedAt;
+
+    @JsonProperty("laudoTecnico")
+    public String getLaudoTecnico() {
+        return technicalReport;
+    }
 
     @Data
     @Builder

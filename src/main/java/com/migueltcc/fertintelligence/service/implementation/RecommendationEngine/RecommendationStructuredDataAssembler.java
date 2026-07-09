@@ -1,6 +1,10 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.dto.recommendation.RecommendationTableSectionDto;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListBlockResponseDto;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListItemResponseDto;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListOptionResponseDto;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
@@ -38,6 +42,10 @@ public class RecommendationStructuredDataAssembler {
     private static final String OPTION_COVERAGE_FORMULATED = "cobertura_opcao_1_formulados";
     private static final String OPTION_COVERAGE_SIMPLE_SOURCES = "cobertura_opcao_2_adubos_simples";
     private static final String OPTION_ACIDITY_CORRECTION = "correcao_acidez_recomendacao_unica";
+    private static final String BLOCK_ACIDITY_CORRECTION = "ACIDITY_CORRECTION";
+    private static final String BLOCK_CORRECTIVE_FERTILIZATION = "CORRECTIVE_FERTILIZATION";
+    private static final String BLOCK_PLANTING = "PLANTING";
+    private static final String BLOCK_TOPDRESSING = "TOPDRESSING";
 
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
@@ -119,6 +127,51 @@ public class RecommendationStructuredDataAssembler {
 
     public List<ShoppingListResponseDto.ShoppingListBlockResponseDto> shoppingBlocks(RecommendationModel recommendation) {
         return shoppingBlocks(shoppingItems(recommendation));
+    }
+
+    public PurchaseListResponseDto purchaseList(RecommendationModel recommendation) {
+        return purchaseList(shoppingItems(recommendation));
+    }
+
+    public PurchaseListResponseDto purchaseList(List<ShoppingListItemResponseDto> items) {
+        List<ShoppingListItemResponseDto> validItems = validShoppingItems(items);
+        return PurchaseListResponseDto.builder()
+                .blocks(List.of(
+                        purchaseBlock(
+                                BLOCK_ACIDITY_CORRECTION,
+                                "Correção da acidez",
+                                "Calcário, gesso e alternativas de enxofre classificadas para correção da acidez.",
+                                List.of(purchaseOption(OPTION_ACIDITY_CORRECTION, "Calcário e gesso",
+                                        itemsByOption(validItems, OPTION_ACIDITY_CORRECTION)))),
+                        purchaseBlock(
+                                BLOCK_CORRECTIVE_FERTILIZATION,
+                                "Adubação corretiva",
+                                "Alternativas corretivas de P2O5, K2O, formulados, FTE e micronutrientes simples já calculadas.",
+                                List.of(
+                                        purchaseOption(OPTION_CORRECTIVE_FORMULATED, "SSP, formulado corretivo e FTE",
+                                                itemsByOption(validItems, OPTION_CORRECTIVE_FORMULATED)),
+                                        purchaseOption(OPTION_CORRECTIVE_SIMPLE_SOURCES, "KCl e micronutrientes simples",
+                                                itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES)))),
+                        purchaseBlock(
+                                BLOCK_PLANTING,
+                                "Plantio",
+                                "Opções de plantio agrupadas em formulado com complementos ou adubos simples.",
+                                List.of(
+                                        purchaseOption(OPTION_PLANTING_FORMULATED, "Opção 1 - formulado",
+                                                itemsByOption(validItems, OPTION_PLANTING_FORMULATED)),
+                                        purchaseOption(OPTION_PLANTING_SIMPLE_SOURCES, "Opção 2 - adubos simples",
+                                                itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES)))),
+                        purchaseBlock(
+                                BLOCK_TOPDRESSING,
+                                "Cobertura",
+                                "Opções de cobertura agrupadas em formulado ou adubos simples.",
+                                List.of(
+                                        purchaseOption(OPTION_COVERAGE_FORMULATED, "Opção 1 - formulado",
+                                                itemsByOption(validItems, OPTION_COVERAGE_FORMULATED)),
+                                        purchaseOption(OPTION_COVERAGE_SIMPLE_SOURCES, "Opção 2 - adubos simples",
+                                                itemsByOption(validItems, OPTION_COVERAGE_SIMPLE_SOURCES))))
+                ))
+                .build();
     }
 
     public List<ShoppingListResponseDto.ShoppingListBlockResponseDto> shoppingBlocks(List<ShoppingListItemResponseDto> items) {
@@ -212,6 +265,75 @@ public class RecommendationStructuredDataAssembler {
                 .options(options)
                 .technicalObservation(empty ? "Nenhum item com dose operacional foi classificado para este bloco." : null)
                 .build();
+    }
+
+    private PurchaseListBlockResponseDto purchaseBlock(
+            String key,
+            String title,
+            String description,
+            List<PurchaseListOptionResponseDto> options) {
+        return PurchaseListBlockResponseDto.builder()
+                .key(key)
+                .title(title)
+                .description(description)
+                .mutuallyExclusiveOptions(true)
+                .options(options)
+                .build();
+    }
+
+    private PurchaseListOptionResponseDto purchaseOption(
+            String key,
+            String title,
+            List<ShoppingListItemResponseDto> items) {
+        return PurchaseListOptionResponseDto.builder()
+                .key(key)
+                .title(title)
+                .items(items.stream().map(this::purchaseItem).toList())
+                .build();
+    }
+
+    private PurchaseListItemResponseDto purchaseItem(ShoppingListItemResponseDto item) {
+        return PurchaseListItemResponseDto.builder()
+                .sourceName(item.getInputName())
+                .sourceType(displayText(item.getTypeGroup()))
+                .nutrientTarget(displayText(item.getTypeGroup()))
+                .doseKgHa(item.getQuantityKgHa())
+                .areaQuantity(displayText(item.getTotalForArea()))
+                .unit("kg/ha")
+                .calculationMemory(purchaseCalculationMemory(item))
+                .technicalNote(purchaseTechnicalNote(item))
+                .build();
+    }
+
+    private String purchaseCalculationMemory(ShoppingListItemResponseDto item) {
+        List<String> parts = new ArrayList<>();
+        parts.add("Dose operacional consolidada: " + TechnicalRecommendationDocumentSupport.formatKgHa(item.getQuantityKgHa()));
+        if (item.getTotalForArea() != null && !item.getTotalForArea().isBlank()) {
+            parts.add("Total para área: " + item.getTotalForArea());
+        }
+        if (item.getLocalizedUnit() != null && !item.getLocalizedUnit().isBlank()) {
+            parts.add("Dose localizada: " + item.getLocalizedUnit());
+        }
+        return String.join("; ", parts) + ".";
+    }
+
+    private String purchaseTechnicalNote(ShoppingListItemResponseDto item) {
+        List<String> parts = new ArrayList<>();
+        addIfPresent(parts, "Seção: ", item.getSection());
+        addIfPresent(parts, "Opção: ", item.getOption());
+        addIfPresent(parts, "Fase: ", item.getPhase());
+        addIfPresent(parts, "Classificação: ", item.getItemFlag());
+        addIfPresent(parts, "Custo de oportunidade: ", item.getOpportunityCostDecision());
+        if (parts.isEmpty()) {
+            return "Item estruturado a partir da lista de compras consolidada já calculada.";
+        }
+        return String.join("; ", parts) + ".";
+    }
+
+    private void addIfPresent(List<String> parts, String label, String value) {
+        if (value != null && !value.isBlank()) {
+            parts.add(label + value.trim());
+        }
     }
 
     private ShoppingListResponseDto.ShoppingListOptionResponseDto option(

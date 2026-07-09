@@ -6,6 +6,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListItemResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import org.junit.jupiter.api.Test;
@@ -262,6 +263,26 @@ class TechnicalRecommendationDocumentSupportTest {
                 .flatMap(option -> option.getItems().stream())
                 .map(ShoppingListItemResponseDto::getInputName))
                 .doesNotContain("Linha inválida");
+
+        PurchaseListResponseDto purchaseList = assembler.purchaseList(items);
+
+        assertThat(purchaseList.getBlocks())
+                .extracting("key")
+                .containsExactly("ACIDITY_CORRECTION", "CORRECTIVE_FERTILIZATION", "PLANTING", "TOPDRESSING");
+        assertThat(purchaseList.getBlocks()).allMatch(block -> Boolean.TRUE.equals(block.getMutuallyExclusiveOptions()));
+        assertThat(purchaseList.getBlocks().get(2).getOptions())
+                .extracting("key")
+                .containsExactly("plantio_opcao_1_formulados", "plantio_opcao_2_adubos_simples");
+        assertThat(purchaseList.getBlocks().get(3).getOptions())
+                .extracting("key")
+                .containsExactly("cobertura_opcao_1_formulados", "cobertura_opcao_2_adubos_simples");
+        assertThat(purchaseList.getBlocks().get(1).getOptions().get(0).getItems().get(0).getSourceName())
+                .isEqualTo("NPK 00-20-20");
+        assertThat(purchaseList.getBlocks().stream()
+                .flatMap(block -> block.getOptions().stream())
+                .flatMap(option -> option.getItems().stream())
+                .map(item -> item.getCalculationMemory() + " " + item.getTechnicalNote()))
+                .noneMatch(text -> text.contains(": 0.00 kg/ha"));
     }
 
     private TechnicalRecommendationDocumentSupport.ShoppingItem item(

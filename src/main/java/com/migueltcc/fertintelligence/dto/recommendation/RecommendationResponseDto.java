@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Textural
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.directRecommendation.DirectRecommendationResponseDto;
 import com.migueltcc.fertintelligence.dto.generalRecommendation.GeneralRecommendationResponseDto;
+import com.migueltcc.fertintelligence.dto.purchaseList.PurchaseListResponseDto;
 import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import com.migueltcc.fertintelligence.dto.summaryRecommendation.SummaryRecommendationResponseDto;
 import lombok.*;
@@ -95,6 +96,8 @@ public class RecommendationResponseDto {
     private String shoppingListDocumentName;
     @JsonProperty("lista_compras")
     private ShoppingListResponseDto shoppingList;
+    @JsonProperty("purchaseList")
+    private PurchaseListResponseDto purchaseList;
     @JsonProperty("imprimivel")
     private Boolean printable;
     @JsonProperty("criado_em")
@@ -104,5 +107,10 @@ public class RecommendationResponseDto {
 
     public static boolean isPrintableForRole(Cargo cargo) {
         return cargo == Cargo.AGRONOMO_RESIDENTE || cargo == Cargo.AGRONOMO_CONSULTOR;
+    }
+
+    @JsonProperty("laudoTecnico")
+    public String getLaudoTecnico() {
+        return technicalReport;
     }
 }

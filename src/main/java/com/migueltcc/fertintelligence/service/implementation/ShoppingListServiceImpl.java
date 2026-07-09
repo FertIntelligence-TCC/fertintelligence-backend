@@ -126,6 +126,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 .content(model.getTechnicalReport())
                 .items(items)
                 .blocks(structuredDataAssembler.shoppingBlocks(items))
+                .purchaseList(structuredDataAssembler.purchaseList(items))
                 .technicalObservations(structuredDataAssembler.observations(model.getTechnicalReport()))
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
