@@ -344,6 +344,26 @@ public class SoilAnalysisControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = USERNAME_OWNER)
+    void updateSoilAnalysisPartiallyKeepsAbsentFields() throws Exception {
+        SoilAnalysisModel existing = createSoilAnalysisModel(1L, 2023, ownerPlot);
+
+        when(userRepository.findByUsername(USERNAME_OWNER)).thenReturn(Optional.of(proprietarioUser));
+        when(soilAnalysisRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(soilAnalysisRepository.save(any(SoilAnalysisModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/soil-analysis/update")
+                        .param("analysisId", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"novo_laboratorio_responsavel\":\"Laboratório Parcial\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.ano_analise").value(2023))
+                .andExpect(jsonPath("$.laboratorio_responsavel").value("Laboratório Parcial"))
+                .andExpect(jsonPath("$.tipo_extrato").value("CAMADAS"));
+    }
+
+    @Test
+    @WithMockUser(username = USERNAME_OWNER)
     void updateSoilAnalysisReturnsInternalServerError_WhenDuplicateYearCurrentlyFallsThroughToSave() throws Exception {
         SoilAnalysisModel existing = createSoilAnalysisModel(1L, 2023, ownerPlot);
         SoilAnalysisPostRequestDto updateRequestDto = SoilAnalysisPostRequestDto.builder()
