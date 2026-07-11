@@ -113,6 +113,16 @@ public class DiverseContentRangeModel {
     @Column(name = "MAIOR_TEOR_MAGNESIO", nullable = false)
     Double magnesium_too_hight;
 
+    // POTÁSSIO TROCÁVEL (K+) - mmolc/dm³ (classificação em três níveis)
+    @Column(name = "TEOR_FINAL_BAIXO_POTASSIO")
+    Double potassium_low_f;
+    @Column(name = "TEOR_INICIAL_MEDIO_POTASSIO")
+    Double potassium_medium_i;
+    @Column(name = "TEOR_FINAL_MEDIO_POTASSIO")
+    Double potassium_medium_f;
+    @Column(name = "TEOR_INICIAL_ALTO_POTASSIO")
+    Double potassium_hight_i;
+
     // =================================================================================
     // SÓDIO TROCÁVEL (Na+) - mmolc/dm³
     // =================================================================================
@@ -495,6 +505,10 @@ public class DiverseContentRangeModel {
                 .magnesium_hight_i(this.magnesium_hight_i)
                 .magnesium_hight_f(this.magnesium_hight_f)
                 .magnesium_too_hight(this.magnesium_too_hight)
+                .potassium_low_f(this.potassium_low_f)
+                .potassium_medium_i(this.potassium_medium_i)
+                .potassium_medium_f(this.potassium_medium_f)
+                .potassium_hight_i(this.potassium_hight_i)
 
                 // Sodium
                 .sodium_too_low(this.sodium_too_low)

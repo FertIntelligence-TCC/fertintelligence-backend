@@ -23,6 +23,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.ContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CoverageModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableLineModel;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
@@ -36,9 +37,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.CorrectiveP2O5FertilizationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.ExchangeableSodiumModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.KContentAndDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.MicronutrientDoseModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.PhosphorusClayPhosphateDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SalinityInterpretationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.SulfurDoseModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
@@ -85,8 +84,6 @@ public class RecommendationCalculationService {
     private final AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository;
     private final AvailableSRepository availableSRepository;
     private final SulfurDoseRepository sulfurDoseRepository;
-    private final KContentAndDoseRepository kContentAndDoseRepository;
-    private final PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository;
     private final CorrectiveP2O5FertilizationRepository correctiveP2O5FertilizationRepository;
     private final CorrectiveK2OFertilizationRepository correctiveK2OFertilizationRepository;
     private final MicronutrientDoseRepository micronutrientDoseRepository;
@@ -112,8 +109,6 @@ public class RecommendationCalculationService {
                                             AvailablePAnionExchangeResinExtractorRepository availablePAnionExchangeResinExtractorRepository,
                                             AvailableSRepository availableSRepository,
                                             SulfurDoseRepository sulfurDoseRepository,
-                                            KContentAndDoseRepository kContentAndDoseRepository,
-                                            PhosphorusClayPhosphateDoseRepository phosphorusClayPhosphateDoseRepository,
                                             CorrectiveP2O5FertilizationRepository correctiveP2O5FertilizationRepository,
                                             CorrectiveK2OFertilizationRepository correctiveK2OFertilizationRepository,
                                             MicronutrientDoseRepository micronutrientDoseRepository,
@@ -143,8 +138,6 @@ public class RecommendationCalculationService {
         this.availablePAnionExchangeResinExtractorRepository = availablePAnionExchangeResinExtractorRepository;
         this.availableSRepository = availableSRepository;
         this.sulfurDoseRepository = sulfurDoseRepository;
-        this.kContentAndDoseRepository = kContentAndDoseRepository;
-        this.phosphorusClayPhosphateDoseRepository = phosphorusClayPhosphateDoseRepository;
         this.correctiveP2O5FertilizationRepository = correctiveP2O5FertilizationRepository;
         this.correctiveK2OFertilizationRepository = correctiveK2OFertilizationRepository;
         this.micronutrientDoseRepository = micronutrientDoseRepository;
@@ -1921,7 +1914,7 @@ public class RecommendationCalculationService {
         }
 
         diagnosis.add(classifyPhosphorus(fertility, physicalAnalysis, table, warnings));
-        diagnosis.add(classifyPotassium(fertility, warnings));
+        diagnosis.add(classifyPotassium(fertility, diverseRange, warnings));
         diagnosis.add(classifyDiverseRange("Cálcio", fertility.getCalcio(), fertilityUnit(fertility.getUnidadeCalcio()), diverseRange,
                 r -> new RangeCriterion(r.getCalcium_too_low(), r.getCalcium_low_i(), r.getCalcium_low_f(), r.getCalcium_medium_i(), r.getCalcium_medium_f(), r.getCalcium_hight_i(), r.getCalcium_hight_f(), r.getCalcium_too_hight()),
                 "Cálcio trocável classificado pelas faixas diversas da tabela selecionada."));
@@ -2031,13 +2024,30 @@ public class RecommendationCalculationService {
     }
 
     private SoilChemicalDiagnosisItem classifyPotassium(FertilityAnalysisExtractModel fertility,
-                                                       List<String> warnings) {
+                                                         Optional<DiverseContentRangeModel> diverseRange,
+                                                         List<String> warnings) {
         if (fertility.getPotassio() == null) {
             return missingValue("Potássio (K) trocável", "Não há valor de potássio trocável no extrato de fertilidade.");
         }
-        String observation = "Não há critério auxiliar ativo para classificar potássio trocável na tabela selecionada.";
-        warnings.add(observation);
-        return notClassified("Potássio (K) trocável", fertility.getPotassio(), fertilityUnit(fertility.getUnidadePotassio()), observation);
+        String unit = fertility.getUnidadePotassio() != null
+                ? fertility.getUnidadePotassio().getSymbol()
+                : "mmolc/dm³";
+        if (fertility.getUnidadePotassio() != null
+                && fertility.getUnidadePotassio() != FertilityAnalysisUnit.MMOLC_PER_DM3) {
+            String observation = "A unidade do potássio trocável é incompatível com o critério auxiliar em mmolc/dm³.";
+            warnings.add(observation);
+            return notClassified("Potássio (K) trocável", fertility.getPotassio(), unit, observation);
+        }
+        if (diverseRange.isEmpty()) {
+            String observation = "Não há critério auxiliar de potássio em Teores de Nutrientes Diversos na tabela selecionada.";
+            warnings.add(observation);
+            return notClassified("Potássio (K) trocável", fertility.getPotassio(), unit, observation);
+        }
+        DiverseContentRangeModel range = diverseRange.get();
+        return classifyThreeLevelRange("Potássio (K) trocável", fertility.getPotassio(), unit,
+                new ThreeLevelCriterion(range.getPotassium_low_f(), range.getPotassium_medium_i(),
+                        range.getPotassium_medium_f(), range.getPotassium_hight_i()),
+                "Potássio trocável classificado pelas faixas de Teores de Nutrientes Diversos.");
     }
 
     private SoilChemicalDiagnosisItem classifySulfur(FertilityAnalysisExtractModel fertility,

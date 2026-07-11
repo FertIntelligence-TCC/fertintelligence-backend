@@ -8,6 +8,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.DiverseContentRangeRepository;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
+import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -19,6 +20,39 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecommendationCalculationServiceTest {
+
+    @Test
+    void potassiumUsesIndependentDiverseRangesForLowMediumAndHighClassification() throws Exception {
+        SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
+        DiverseContentRangeModel range = micronutrientRange(table).toBuilder()
+                .potassium_low_f(1d)
+                .potassium_medium_i(1d)
+                .potassium_medium_f(2d)
+                .potassium_hight_i(2d)
+                .build();
+        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepositoryReturningByTableId(range));
+
+        assertThat(potassiumInterpretation(service, table, 0.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Baixo");
+        assertThat(potassiumInterpretation(service, table, 1.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Médio");
+        assertThat(potassiumInterpretation(service, table, 2.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Alto");
+
+        assertThat(range.getPotassium_low_f()).isNotEqualTo(range.getMagnesium_low_f());
+    }
+
+    @Test
+    void potassiumWithoutValueOrWithIncompatibleUnitIsNotClassified() throws Exception {
+        SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
+        DiverseContentRangeModel range = micronutrientRange(table).toBuilder()
+                .potassium_low_f(1d).potassium_medium_i(1d).potassium_medium_f(2d).potassium_hight_i(2d)
+                .build();
+        RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepositoryReturningByTableId(range));
+
+        assertThat(potassiumItem(service, table, null, FertilityAnalysisUnit.MMOLC_PER_DM3).getAnalyzedValue()).isNull();
+        RecommendationCalculationService.SoilChemicalDiagnosisItem incompatible =
+                potassiumItem(service, table, 1.5d, FertilityAnalysisUnit.CMOLC_PER_DM3);
+        assertThat(incompatible.getInterpretation()).isNull();
+        assertThat(incompatible.getTechnicalObservation()).contains("unidade", "incompatível");
+    }
 
     @Test
     void gypsumSelectionAcceptsSupportedSubsurfaceDepthEquivalentsAndExcludesSurface() throws Exception {
@@ -156,6 +190,29 @@ class RecommendationCalculationServiceTest {
                 service, Optional.of(fertility), null, table, new ArrayList<String>());
     }
 
+    private String potassiumInterpretation(RecommendationCalculationService service,
+                                            SoilFertilityInterpretationCriteriaTableModel table,
+                                            Double value,
+                                            FertilityAnalysisUnit unit) throws Exception {
+        return potassiumItem(service, table, value, unit).getInterpretation();
+    }
+
+    private RecommendationCalculationService.SoilChemicalDiagnosisItem potassiumItem(
+            RecommendationCalculationService service,
+            SoilFertilityInterpretationCriteriaTableModel table,
+            Double value,
+            FertilityAnalysisUnit unit) throws Exception {
+        FertilityAnalysisExtractModel fertility = FertilityAnalysisExtractModel.builder()
+                .potassio(value)
+                .unidadePotassio(unit)
+                .build();
+        return invokeBuildSoilChemicalDiagnosis(service, fertility, table).stream()
+                .filter(item -> "Potássio (K) trocável".equals(item.getAttribute()))
+                .findFirst()
+                .orElseThrow()
+                ;
+    }
+
     private RecommendationCalculationService serviceWithRepositories(
             DiverseContentRangeRepository diverseContentRangeRepository) {
         return new RecommendationCalculationService(
@@ -171,8 +228,6 @@ class RecommendationCalculationServiceTest {
                 null,
                 null,
                 diverseContentRangeRepository,
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -225,6 +280,7 @@ class RecommendationCalculationServiceTest {
                 .zinc_medium_i(0.8d)
                 .zinc_medium_f(1.6d)
                 .zinc_hight_i(1.6d)
+                .magnesium_low_f(99d)
                 .build();
     }
 

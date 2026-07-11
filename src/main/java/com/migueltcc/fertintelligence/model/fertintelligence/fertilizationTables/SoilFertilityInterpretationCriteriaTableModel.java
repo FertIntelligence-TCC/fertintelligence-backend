@@ -99,16 +99,6 @@ public class SoilFertilityInterpretationCriteriaTableModel {
     @EqualsAndHashCode.Exclude
     private RecommendedLimestoneTypeModel recommendedLimestoneType;
 
-    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private KContentAndDoseModel kContentAndDose;
-
-    @OneToOne(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private PhosphorusClayPhosphateDoseModel phosphorusClayPhosphateDose;
-
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
