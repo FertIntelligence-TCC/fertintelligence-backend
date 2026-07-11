@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.service.implementation.RecommendationEngine;
 
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.FertilityAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
@@ -17,6 +19,25 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecommendationCalculationServiceTest {
+
+    @Test
+    void gypsumSelectionAcceptsSupportedSubsurfaceDepthEquivalentsAndExcludesSurface() throws Exception {
+        RecommendationCalculationService service = serviceWithRepositories(null);
+        PhysicalAnalysisExtractModel surface = physical(1L, 0, 20);
+        PhysicalAnalysisExtractModel twentyToForty = physical(2L, 20, 40);
+        PhysicalAnalysisExtractModel fortyToSixty = physical(3L, 40, 60);
+
+        Method method = RecommendationCalculationService.class.getDeclaredMethod(
+                "selectGypsumPhysicalExtracts", List.class);
+        method.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<PhysicalAnalysisExtractModel> selected =
+                (List<PhysicalAnalysisExtractModel>) method.invoke(
+                        service, List.of(surface, twentyToForty, fortyToSixty));
+
+        assertThat(selected).extracting(PhysicalAnalysisExtractModel::getId)
+                .containsExactly(2L, 3L);
+    }
 
     @Test
     void chemicalDiagnosisLoadsMicronutrientRangesByAuthorizedTableIdBeforeEntityLookup() throws Exception {
@@ -169,6 +190,16 @@ class RecommendationCalculationServiceTest {
                 null,
                 null,
                 null);
+    }
+
+    private PhysicalAnalysisExtractModel physical(long id, int start, int end) {
+        return PhysicalAnalysisExtractModel.builder()
+                .id(id)
+                .rangeExtract(RangeExtractModel.builder()
+                        .profundidade_inicial(start)
+                        .profundidade_final(end)
+                        .build())
+                .build();
     }
 
     private DiverseContentRangeModel micronutrientRange(SoilFertilityInterpretationCriteriaTableModel table) {

@@ -20,14 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GypsumCalculationServiceTest {
 
     @Test
-    void doesNotEvaluateGypsumWithoutSubsurfaceSaturationExtract() {
+    void doesNotEvaluateGypsumWithoutRequiredSubsurfaceInputs() {
         List<String> warnings = new ArrayList<>();
         GypsumCalculationService service = newService();
 
         RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
                 List.of(fertility(21, 40, 4.0, null, null)),
-                List.of(physical(21, 40, 300.0)),
-                false,
+                List.of(),
                 null,
                 null,
                 null,
@@ -37,7 +36,27 @@ class GypsumCalculationServiceTest {
         assertThat(result.getEvaluated()).isFalse();
         assertThat(result.getNeeded()).isNull();
         assertThat(result.getJustification()).isEqualTo(GypsumCalculationService.MISSING_SUBSURFACE_MESSAGE);
-        assertThat(warnings).anySatisfy(warning -> assertThat(warning).contains("extrato de saturação"));
+        assertThat(warnings).anySatisfy(warning -> assertThat(warning).contains("Análise física"));
+    }
+
+    @Test
+    void calculatesGypsumWithoutSubsurfaceSaturationExtractWhenRequiredInputsExist() {
+        List<String> warnings = new ArrayList<>();
+        GypsumCalculationService service = newService();
+
+        RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
+                List.of(fertility(21, 40, 4.0, null, null)),
+                List.of(physical(21, 40, 300.0)),
+                null,
+                null,
+                null,
+                FertilizerSourceOption.BOTH,
+                warnings);
+
+        assertThat(result.getEvaluated()).isTrue();
+        assertThat(result.getNeeded()).isTrue();
+        assertThat(result.getCalculatedRequirement()).isEqualTo(1500.0);
+        assertThat(warnings).noneSatisfy(warning -> assertThat(warning).contains("extrato de saturação"));
     }
 
     @Test
@@ -52,7 +71,6 @@ class GypsumCalculationServiceTest {
                 List.of(
                         physical(21, 40, 300.0),
                         physical(41, 60, 420.0)),
-                true,
                 null,
                 null,
                 null,
@@ -75,7 +93,6 @@ class GypsumCalculationServiceTest {
         RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
                 List.of(fertility(21, 40, 5.0, 3.0, 20.0)),
                 List.of(physical(21, 40, 300.0)),
-                true,
                 null,
                 null,
                 null,
@@ -96,7 +113,6 @@ class GypsumCalculationServiceTest {
         RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
                 List.of(fertility(21, 40, 4.0, null, null)),
                 List.of(physical(21, 40, 70.0)),
-                true,
                 null,
                 null,
                 null,
@@ -118,7 +134,6 @@ class GypsumCalculationServiceTest {
         RecommendationCalculationService.GypsumRequirementResult result = service.calculate(
                 List.of(fertility(21, 40, 5.0, 2.9, 19.9)),
                 List.of(physical(21, 40, 300.0)),
-                true,
                 null,
                 null,
                 null,

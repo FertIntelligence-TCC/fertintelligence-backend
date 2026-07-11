@@ -258,9 +258,8 @@ public class RecommendationCalculationService {
                 dto, inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.cropFertilizationTable(), warnings);
         List<PhysicalAnalysisExtractModel> gypsumPhysicalExtracts = selectGypsumPhysicalExtracts(inputs.physicalAnalysisExtracts());
         List<FertilityAnalysisExtractModel> gypsumFertilityExtracts = selectGypsumFertilityExtracts(inputs.fertilityAnalysisExtracts());
-        boolean hasGypsumSaturationExtract = hasGypsumSaturationExtract(inputs.saturationAnalysisExtracts());
         GypsumRequirementResult gypsumRequirement = gypsumCalculationService.calculate(
-                gypsumFertilityExtracts, gypsumPhysicalExtracts, hasGypsumSaturationExtract,
+                gypsumFertilityExtracts, gypsumPhysicalExtracts,
                 inputs.cropFertilizationTable(), inputs.soilInterpretationTable(), user, sourceOption, warnings);
         List<SoilChemicalDiagnosisItem> chemicalDiagnosis = buildSoilChemicalDiagnosis(
                 inputs.fertilityExtract(), inputs.physicalAnalysis(), inputs.soilInterpretationTable(), warnings);
@@ -679,11 +678,6 @@ public class RecommendationCalculationService {
                 .toList();
     }
 
-    private boolean hasGypsumSaturationExtract(List<SaturationExtractAnalysisExtractModel> extracts) {
-        return (extracts != null ? extracts : List.<SaturationExtractAnalysisExtractModel>of()).stream()
-                .anyMatch(this::coversGypsumSubsurfaceLayer);
-    }
-
     private <T> List<T> joinWithLegacy(List<T> extracts, T legacyExtract) {
         List<T> joined = new ArrayList<>(extracts != null ? extracts : List.of());
         joined.add(legacyExtract);
@@ -743,10 +737,6 @@ public class RecommendationCalculationService {
     }
 
     private boolean coversGypsumSubsurfaceLayer(FertilityAnalysisExtractModel extract) {
-        return coversGypsumSubsurfaceLayer(depthStart(extract), depthEnd(extract));
-    }
-
-    private boolean coversGypsumSubsurfaceLayer(SaturationExtractAnalysisExtractModel extract) {
         return coversGypsumSubsurfaceLayer(depthStart(extract), depthEnd(extract));
     }
 

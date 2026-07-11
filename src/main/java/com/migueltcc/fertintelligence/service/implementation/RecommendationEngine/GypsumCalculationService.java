@@ -56,7 +56,6 @@ class GypsumCalculationService {
 
     RecommendationCalculationService.GypsumRequirementResult calculate(List<FertilityAnalysisExtractModel> fertilityExtracts,
                                                                        List<PhysicalAnalysisExtractModel> physicalAnalysisExtracts,
-                                                                       boolean hasSubsurfaceSaturationExtract,
                                                                        CropFertilizationTableModel cropFertilizationTable,
                                                                        SoilFertilityInterpretationCriteriaTableModel soilInterpretationTable,
                                                                        UserModel user,
@@ -67,8 +66,8 @@ class GypsumCalculationService {
         List<FertilityAnalysisExtractModel> fertilityAnalyses = fertilityExtracts != null ? fertilityExtracts : List.of();
         List<PhysicalAnalysisExtractModel> physicalAnalyses = physicalAnalysisExtracts != null ? physicalAnalysisExtracts : List.of();
 
-        if (fertilityAnalyses.isEmpty() || physicalAnalyses.isEmpty() || !hasSubsurfaceSaturationExtract) {
-            return notEvaluatedByMissingDepth(fertilityAnalyses, physicalAnalyses, hasSubsurfaceSaturationExtract,
+        if (fertilityAnalyses.isEmpty() || physicalAnalyses.isEmpty()) {
+            return notEvaluatedByMissingDepth(fertilityAnalyses, physicalAnalyses,
                     inputValues, gypsumWarnings, warnings);
         }
 
@@ -152,7 +151,6 @@ class GypsumCalculationService {
 
     private RecommendationCalculationService.GypsumRequirementResult notEvaluatedByMissingDepth(List<FertilityAnalysisExtractModel> fertilityAnalyses,
                                                                                                 List<PhysicalAnalysisExtractModel> physicalAnalyses,
-                                                                                                boolean hasSubsurfaceSaturationExtract,
                                                                                                 Map<String, Double> inputValues,
                                                                                                 List<String> gypsumWarnings,
                                                                                                 List<String> warnings) {
@@ -163,9 +161,6 @@ class GypsumCalculationService {
         }
         if (physicalAnalyses == null || physicalAnalyses.isEmpty()) {
             gypsumWarnings.add("Análise física sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
-        }
-        if (!hasSubsurfaceSaturationExtract) {
-            gypsumWarnings.add("Análise de extrato de saturação sem extrato/camada subsuperficial 21-40 ou 41-60 cm.");
         }
         warnings.addAll(gypsumWarnings);
         return RecommendationCalculationService.GypsumRequirementResult.builder()
