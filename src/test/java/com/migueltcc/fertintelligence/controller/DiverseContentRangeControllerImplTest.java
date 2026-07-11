@@ -77,10 +77,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
         existingCriterion = DiverseContentRangeModel.builder()
                 .id(301L)
                 .table(ownerTable)
+                .potassium_too_low(0.1)
+                .potassium_low_i(0.2)
                 .potassium_low_f(1.1)
                 .potassium_medium_i(1.2)
                 .potassium_medium_f(2.2)
                 .potassium_hight_i(2.3)
+                .potassium_hight_f(3.1)
+                .potassium_too_hight(4.1)
                 .organic_carbon_too_low(1.0)
                 .organic_carbon_low_i(2.0)
                 .organic_carbon_low_f(3.0)
@@ -113,6 +117,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .magnesium_hight_i(6.0)
                 .magnesium_hight_f(7.0)
                 .magnesium_too_hight(8.0)
+                .sodium_saturation_too_low(1.0)
+                .sodium_saturation_low_i(2.0)
+                .sodium_saturation_low_f(3.0)
+                .sodium_saturation_medium_i(4.0)
+                .sodium_saturation_medium_f(5.0)
+                .sodium_saturation_hight_i(6.0)
+                .sodium_saturation_hight_f(7.0)
+                .sodium_saturation_too_hight(8.0)
                 .sodium_too_low(1.0)
                 .sodium_low_i(2.0)
                 .sodium_low_f(3.0)
@@ -387,10 +399,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.menor_teor_pst").value(1.0))
                 .andExpect(jsonPath("$.menor_valor_ph_agua").value(1.0))
                 .andExpect(jsonPath("$.menor_teor_ph_agua").value(1.0))
+                .andExpect(jsonPath("$.menor_teor_potassio").value(0.1))
+                .andExpect(jsonPath("$.teor_inicial_baixo_potassio").value(0.2))
                 .andExpect(jsonPath("$.teor_final_baixo_potassio").value(1.1))
                 .andExpect(jsonPath("$.teor_inicial_medio_potassio").value(1.2))
                 .andExpect(jsonPath("$.teor_final_medio_potassio").value(2.2))
-                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3));
+                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3))
+                .andExpect(jsonPath("$.teor_final_alto_potassio").value(3.1))
+                .andExpect(jsonPath("$.maior_teor_potassio").value(4.1));
     }
 
     @Test
@@ -398,10 +414,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
     void createDiverseContentRangePersistsIndependentPotassiumLimits() throws Exception {
         String requestJson = """
                 {
+                  "menor_teor_potassio": 0.1,
+                  "teor_inicial_baixo_potassio": 0.2,
                   "teor_final_baixo_potassio": 1.1,
                   "teor_inicial_medio_potassio": 1.2,
                   "teor_final_medio_potassio": 2.2,
-                  "teor_inicial_alto_potassio": 2.3
+                  "teor_inicial_alto_potassio": 2.3,
+                  "teor_final_alto_potassio": 3.1,
+                  "maior_teor_potassio": 4.1
                 }
                 """;
 
@@ -412,10 +432,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
         when(diverseContentRangeRepository.save(any(DiverseContentRangeModel.class))).thenAnswer(invocation -> {
             DiverseContentRangeModel criterion = invocation.getArgument(0);
             criterion.setId(325L);
+            assertEquals(0.1, criterion.getPotassium_too_low());
+            assertEquals(0.2, criterion.getPotassium_low_i());
             assertEquals(1.1, criterion.getPotassium_low_f());
             assertEquals(1.2, criterion.getPotassium_medium_i());
             assertEquals(2.2, criterion.getPotassium_medium_f());
             assertEquals(2.3, criterion.getPotassium_hight_i());
+            assertEquals(3.1, criterion.getPotassium_hight_f());
+            assertEquals(4.1, criterion.getPotassium_too_hight());
             return criterion;
         });
 
@@ -424,10 +448,14 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.menor_teor_potassio").value(0.1))
+                .andExpect(jsonPath("$.teor_inicial_baixo_potassio").value(0.2))
                 .andExpect(jsonPath("$.teor_final_baixo_potassio").value(1.1))
                 .andExpect(jsonPath("$.teor_inicial_medio_potassio").value(1.2))
                 .andExpect(jsonPath("$.teor_final_medio_potassio").value(2.2))
-                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3));
+                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3))
+                .andExpect(jsonPath("$.teor_final_alto_potassio").value(3.1))
+                .andExpect(jsonPath("$.maior_teor_potassio").value(4.1));
     }
 
     @Test
@@ -435,10 +463,18 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
     void updateDiverseContentRangeSuccessfully() throws Exception {
         DiverseContentRangePostRequestDto requestDto = DiverseContentRangePostRequestDto.builder()
                 .organic_carbon_too_low(1.5)
+                .potassium_too_low(0.15)
+                .potassium_low_i(0.25)
+                .potassium_hight_f(3.15)
+                .potassium_too_hight(4.15)
                 .build();
 
         DiverseContentRangeModel updatedCriterion = existingCriterion.toBuilder()
                 .organic_carbon_too_low(1.5)
+                .potassium_too_low(0.15)
+                .potassium_low_i(0.25)
+                .potassium_hight_f(3.15)
+                .potassium_too_hight(4.15)
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
@@ -453,7 +489,11 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unidade_carbono_organico").value("g/dm³"))
                 .andExpect(jsonPath("$.unidade_materia_organica").value("g/dm³"))
-                .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.5));
+                .andExpect(jsonPath("$.menor_teor_carbono_organico").value(1.5))
+                .andExpect(jsonPath("$.menor_teor_potassio").value(0.15))
+                .andExpect(jsonPath("$.teor_inicial_baixo_potassio").value(0.25))
+                .andExpect(jsonPath("$.teor_final_alto_potassio").value(3.15))
+                .andExpect(jsonPath("$.maior_teor_potassio").value(4.15));
     }
 
     @Test

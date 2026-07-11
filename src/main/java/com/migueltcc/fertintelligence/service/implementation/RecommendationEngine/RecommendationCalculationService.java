@@ -2044,9 +2044,11 @@ public class RecommendationCalculationService {
             return notClassified("Potássio (K) trocável", fertility.getPotassio(), unit, observation);
         }
         DiverseContentRangeModel range = diverseRange.get();
-        return classifyThreeLevelRange("Potássio (K) trocável", fertility.getPotassio(), unit,
-                new ThreeLevelCriterion(range.getPotassium_low_f(), range.getPotassium_medium_i(),
-                        range.getPotassium_medium_f(), range.getPotassium_hight_i()),
+        return classifyRange("Potássio (K) trocável", fertility.getPotassio(), unit,
+                new RangeCriterion(range.getPotassium_too_low(), range.getPotassium_low_i(),
+                        range.getPotassium_low_f(), range.getPotassium_medium_i(),
+                        range.getPotassium_medium_f(), range.getPotassium_hight_i(),
+                        range.getPotassium_hight_f(), range.getPotassium_too_hight()),
                 "Potássio trocável classificado pelas faixas de Teores de Nutrientes Diversos.");
     }
 

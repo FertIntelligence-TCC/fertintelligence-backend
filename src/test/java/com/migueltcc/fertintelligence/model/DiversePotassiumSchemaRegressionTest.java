@@ -20,18 +20,22 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class DiversePotassiumSchemaRegressionTest {
 
     private static final List<String> JAVA_FIELDS = List.of(
-            "potassium_low_f", "potassium_medium_i", "potassium_medium_f", "potassium_hight_i");
+            "potassium_too_low", "potassium_low_i", "potassium_low_f", "potassium_medium_i",
+            "potassium_medium_f", "potassium_hight_i", "potassium_hight_f", "potassium_too_hight");
     private static final List<String> DATABASE_COLUMNS = List.of(
-            "TEOR_FINAL_BAIXO_POTASSIO", "TEOR_INICIAL_MEDIO_POTASSIO",
-            "TEOR_FINAL_MEDIO_POTASSIO", "TEOR_INICIAL_ALTO_POTASSIO");
+            "MENOR_TEOR_POTASSIO", "TEOR_INICIAL_BAIXO_POTASSIO", "TEOR_FINAL_BAIXO_POTASSIO",
+            "TEOR_INICIAL_MEDIO_POTASSIO", "TEOR_FINAL_MEDIO_POTASSIO", "TEOR_INICIAL_ALTO_POTASSIO",
+            "TEOR_FINAL_ALTO_POTASSIO", "MAIOR_TEOR_POTASSIO");
     private static final List<String> LEGACY_COLUMNS = List.of(
-            "LEGACY_TEOR_FINAL_BAIXO_POTASSIO", "LEGACY_TEOR_INICIAL_MEDIO_POTASSIO",
-            "LEGACY_TEOR_FINAL_MEDIO_POTASSIO", "LEGACY_TEOR_INICIAL_ALTO_POTASSIO");
-    private static final Path MIGRATION = Path.of(
+            "LEGACY_MENOR_TEOR_POTASSIO", "LEGACY_TEOR_INICIAL_BAIXO_POTASSIO",
+            "LEGACY_TEOR_FINAL_ALTO_POTASSIO", "LEGACY_MAIOR_TEOR_POTASSIO");
+    private static final Path INITIAL_MIGRATION = Path.of(
             "src/main/resources/db/migration/V20260711_01__activate_diverse_potassium_ranges.sql");
+    private static final Path COMPLETION_MIGRATION = Path.of(
+            "src/main/resources/db/migration/V20260711_02__complete_diverse_potassium_ranges.sql");
 
     @Test
-    void entityAndDtosExposeTheSameFourNullablePotassiumFields() throws Exception {
+    void entityAndDtosExposeTheSameEightNullablePotassiumFields() throws Exception {
         for (int index = 0; index < JAVA_FIELDS.size(); index++) {
             String javaField = JAVA_FIELDS.get(index);
             Column column = DiverseContentRangeModel.class.getDeclaredField(javaField).getAnnotation(Column.class);
@@ -45,18 +49,22 @@ class DiversePotassiumSchemaRegressionTest {
         }
 
         DiverseContentRangeResponseDto dto = DiverseContentRangeModel.builder().build().toDto();
-        assertThat(dto.getPotassium_low_f()).isNull();
-        assertThat(dto.getPotassium_medium_i()).isNull();
-        assertThat(dto.getPotassium_medium_f()).isNull();
-        assertThat(dto.getPotassium_hight_i()).isNull();
+        for (String javaField : JAVA_FIELDS) {
+            var field = DiverseContentRangeResponseDto.class.getDeclaredField(javaField);
+            field.setAccessible(true);
+            assertThat(field.get(dto)).isNull();
+        }
     }
 
     @Test
     void migrationUsesAdditiveNullableColumnsAndGuardsEveryOptionalLegacyReference() throws Exception {
-        String sql = Files.readString(MIGRATION);
+        String initialSql = Files.readString(INITIAL_MIGRATION);
+        String completionSql = Files.readString(COMPLETION_MIGRATION);
+        String sql = initialSql + System.lineSeparator() + completionSql;
+        String normalizedSql = sql.toUpperCase();
 
         for (String column : DATABASE_COLUMNS) {
-            assertThat(sql).contains("ADD COLUMN IF NOT EXISTS " + column + " DOUBLE PRECISION");
+            assertThat(normalizedSql).contains("ADD COLUMN IF NOT EXISTS " + column + " DOUBLE PRECISION");
         }
         for (String legacy : LEGACY_COLUMNS) {
             assertThat(sql).contains("column_name = '" + legacy.toLowerCase() + "'");
@@ -64,7 +72,8 @@ class DiversePotassiumSchemaRegressionTest {
         }
         assertThat(sql).doesNotContain("NOT NULL", "DEFAULT", "DROP COLUMN", "DROP TABLE", "RENAME TO",
                 "\nUPDATE FAIXAS_DE_TEORES_DIVERSOS");
-        assertThat(sql.split("EXECUTE '", -1)).hasSize(5);
+        assertThat(completionSql).contains("DO $$", "BEGIN", "THEN", "END IF;", "END", "$$;");
+        assertThat(completionSql.split("EXECUTE '", -1)).hasSize(5);
     }
 
     @Test
@@ -74,7 +83,8 @@ class DiversePotassiumSchemaRegressionTest {
                 "Defina MIGRATION_TEST_POSTGRES_URL para executar a regressao em PostgreSQL real");
         String user = System.getenv().getOrDefault("MIGRATION_TEST_POSTGRES_USER", "postgres");
         String password = System.getenv().getOrDefault("MIGRATION_TEST_POSTGRES_PASSWORD", "postgres");
-        String sql = Files.readString(MIGRATION);
+        String sql = Files.readString(INITIAL_MIGRATION) + System.lineSeparator()
+                + Files.readString(COMPLETION_MIGRATION);
 
         try (Connection connection = DriverManager.getConnection(url, user, password)) {
             verifyWithoutPotassiumColumns(connection, sql);
@@ -88,7 +98,7 @@ class DiversePotassiumSchemaRegressionTest {
         connection.createStatement().execute("CREATE TABLE faixas_de_teores_diversos (id BIGINT PRIMARY KEY)");
         connection.createStatement().execute("INSERT INTO faixas_de_teores_diversos VALUES (1)");
         executeTwice(connection, sql);
-        assertCurrentValues(connection, null, null, null, null);
+        assertCurrentValues(connection, null, null, null, null, null, null, null, null);
     }
 
     private void verifyWithCurrentColumnsOnly(Connection connection, String sql) throws Exception {
@@ -104,7 +114,7 @@ class DiversePotassiumSchemaRegressionTest {
         connection.createStatement().execute(
                 "INSERT INTO faixas_de_teores_diversos VALUES (1, 10.1, 10.2, 10.3, 10.4)");
         executeTwice(connection, sql);
-        assertCurrentValues(connection, 10.1, 10.2, 10.3, 10.4);
+        assertCurrentValues(connection, null, null, 10.1, 10.2, 10.3, 10.4, null, null);
     }
 
     private void verifyLegacyCopyAndCurrentValuePreservation(Connection connection, String sql) throws Exception {
@@ -113,15 +123,15 @@ class DiversePotassiumSchemaRegressionTest {
                 CREATE TABLE faixas_de_teores_diversos (
                     id BIGINT PRIMARY KEY,
                     teor_final_baixo_potassio DOUBLE PRECISION,
-                    legacy_teor_final_baixo_potassio DOUBLE PRECISION,
-                    legacy_teor_inicial_medio_potassio DOUBLE PRECISION,
-                    legacy_teor_final_medio_potassio DOUBLE PRECISION,
-                    legacy_teor_inicial_alto_potassio DOUBLE PRECISION)
+                    legacy_menor_teor_potassio DOUBLE PRECISION,
+                    legacy_teor_inicial_baixo_potassio DOUBLE PRECISION,
+                    legacy_teor_final_alto_potassio DOUBLE PRECISION,
+                    legacy_maior_teor_potassio DOUBLE PRECISION)
                 """);
         connection.createStatement().execute(
-                "INSERT INTO faixas_de_teores_diversos VALUES (1, 99.0, 1.1, 1.2, 2.2, 2.3)");
+                "INSERT INTO faixas_de_teores_diversos VALUES (1, 99.0, 0.1, 0.2, 3.1, 4.1)");
         executeTwice(connection, sql);
-        assertCurrentValues(connection, 99.0, 1.2, 2.2, 2.3);
+        assertCurrentValues(connection, 0.1, 0.2, 99.0, null, null, null, 3.1, 4.1);
     }
 
     private void resetSchema(Connection connection, String schema) throws Exception {
@@ -137,8 +147,10 @@ class DiversePotassiumSchemaRegressionTest {
 
     private void assertCurrentValues(Connection connection, Double... expected) throws Exception {
         try (ResultSet row = connection.createStatement().executeQuery("""
-                SELECT teor_final_baixo_potassio, teor_inicial_medio_potassio,
-                       teor_final_medio_potassio, teor_inicial_alto_potassio
+                SELECT menor_teor_potassio, teor_inicial_baixo_potassio,
+                       teor_final_baixo_potassio, teor_inicial_medio_potassio,
+                       teor_final_medio_potassio, teor_inicial_alto_potassio,
+                       teor_final_alto_potassio, maior_teor_potassio
                 FROM faixas_de_teores_diversos WHERE id = 1
                 """)) {
             assertThat(row.next()).isTrue();

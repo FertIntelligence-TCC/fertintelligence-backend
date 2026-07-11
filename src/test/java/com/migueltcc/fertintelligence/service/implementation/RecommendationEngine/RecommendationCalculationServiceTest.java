@@ -22,19 +22,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RecommendationCalculationServiceTest {
 
     @Test
-    void potassiumUsesIndependentDiverseRangesForLowMediumAndHighClassification() throws Exception {
+    void potassiumUsesIndependentDiverseRangesForFiveLevelClassificationAndBoundaries() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
         DiverseContentRangeModel range = micronutrientRange(table).toBuilder()
-                .potassium_low_f(1d)
-                .potassium_medium_i(1d)
-                .potassium_medium_f(2d)
-                .potassium_hight_i(2d)
+                .potassium_too_low(1d).potassium_low_i(1d).potassium_low_f(2d)
+                .potassium_medium_i(2d).potassium_medium_f(3d)
+                .potassium_hight_i(3d).potassium_hight_f(4d).potassium_too_hight(4d)
                 .build();
         RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepositoryReturningByTableId(range));
 
-        assertThat(potassiumInterpretation(service, table, 0.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Baixo");
-        assertThat(potassiumInterpretation(service, table, 1.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Médio");
-        assertThat(potassiumInterpretation(service, table, 2.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Alto");
+        assertThat(potassiumInterpretation(service, table, 0.5d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Muito baixo");
+        assertThat(potassiumInterpretation(service, table, 1d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Baixo");
+        assertThat(potassiumInterpretation(service, table, 2d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Médio");
+        assertThat(potassiumInterpretation(service, table, 3d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Alto");
+        assertThat(potassiumInterpretation(service, table, 4d, FertilityAnalysisUnit.MMOLC_PER_DM3)).isEqualTo("Muito alto");
 
         assertThat(range.getPotassium_low_f()).isNotEqualTo(range.getMagnesium_low_f());
     }
@@ -43,7 +44,9 @@ class RecommendationCalculationServiceTest {
     void potassiumWithoutValueOrWithIncompatibleUnitIsNotClassified() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
         DiverseContentRangeModel range = micronutrientRange(table).toBuilder()
-                .potassium_low_f(1d).potassium_medium_i(1d).potassium_medium_f(2d).potassium_hight_i(2d)
+                .potassium_too_low(1d).potassium_low_i(1d).potassium_low_f(2d)
+                .potassium_medium_i(2d).potassium_medium_f(3d)
+                .potassium_hight_i(3d).potassium_hight_f(4d).potassium_too_hight(4d)
                 .build();
         RecommendationCalculationService service = serviceWithRepositories(diverseContentRangeRepositoryReturningByTableId(range));
 
@@ -58,10 +61,9 @@ class RecommendationCalculationServiceTest {
     void potassiumWithLegacyNullLimitsIsNotClassifiedInsteadOfThrowing() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
         DiverseContentRangeModel legacyRange = micronutrientRange(table).toBuilder()
-                .potassium_low_f(null)
-                .potassium_medium_i(null)
-                .potassium_medium_f(null)
-                .potassium_hight_i(null)
+                .potassium_too_low(null).potassium_low_i(null).potassium_low_f(null)
+                .potassium_medium_i(null).potassium_medium_f(null)
+                .potassium_hight_i(null).potassium_hight_f(null).potassium_too_hight(null)
                 .build();
         RecommendationCalculationService service = serviceWithRepositories(
                 diverseContentRangeRepositoryReturningByTableId(legacyRange));
