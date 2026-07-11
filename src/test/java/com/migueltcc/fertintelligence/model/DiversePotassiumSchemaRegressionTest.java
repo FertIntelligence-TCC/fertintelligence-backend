@@ -15,117 +15,135 @@ import java.sql.ResultSet;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class DiversePotassiumSchemaRegressionTest {
 
     private static final List<String> JAVA_FIELDS = List.of(
-            "potassium_low_f",
-            "potassium_medium_i",
-            "potassium_medium_f",
-            "potassium_hight_i"
-    );
+            "potassium_low_f", "potassium_medium_i", "potassium_medium_f", "potassium_hight_i");
     private static final List<String> DATABASE_COLUMNS = List.of(
-            "TEOR_FINAL_BAIXO_POTASSIO",
-            "TEOR_INICIAL_MEDIO_POTASSIO",
-            "TEOR_FINAL_MEDIO_POTASSIO",
-            "TEOR_INICIAL_ALTO_POTASSIO"
-    );
+            "TEOR_FINAL_BAIXO_POTASSIO", "TEOR_INICIAL_MEDIO_POTASSIO",
+            "TEOR_FINAL_MEDIO_POTASSIO", "TEOR_INICIAL_ALTO_POTASSIO");
+    private static final List<String> LEGACY_COLUMNS = List.of(
+            "LEGACY_TEOR_FINAL_BAIXO_POTASSIO", "LEGACY_TEOR_INICIAL_MEDIO_POTASSIO",
+            "LEGACY_TEOR_FINAL_MEDIO_POTASSIO", "LEGACY_TEOR_INICIAL_ALTO_POTASSIO");
     private static final Path MIGRATION = Path.of(
             "src/main/resources/db/migration/V20260711_01__activate_diverse_potassium_ranges.sql");
 
     @Test
-    void entityAndDtosExposeTheSameFourIndependentPotassiumFields() throws Exception {
+    void entityAndDtosExposeTheSameFourNullablePotassiumFields() throws Exception {
         for (int index = 0; index < JAVA_FIELDS.size(); index++) {
             String javaField = JAVA_FIELDS.get(index);
             Column column = DiverseContentRangeModel.class.getDeclaredField(javaField).getAnnotation(Column.class);
 
             assertThat(column).isNotNull();
             assertThat(column.name()).isEqualTo(DATABASE_COLUMNS.get(index));
+            assertThat(column.nullable()).isTrue();
             assertThat(DiverseContentRangeCreateRequestDto.class.getDeclaredField(javaField)).isNotNull();
             assertThat(DiverseContentRangePostRequestDto.class.getDeclaredField(javaField)).isNotNull();
             assertThat(DiverseContentRangeResponseDto.class.getDeclaredField(javaField)).isNotNull();
         }
+
+        DiverseContentRangeResponseDto dto = DiverseContentRangeModel.builder().build().toDto();
+        assertThat(dto.getPotassium_low_f()).isNull();
+        assertThat(dto.getPotassium_medium_i()).isNull();
+        assertThat(dto.getPotassium_medium_f()).isNull();
+        assertThat(dto.getPotassium_hight_i()).isNull();
     }
 
     @Test
-    void additiveMigrationCreatesAllFourNullableColumnsAndPreservesMatchingLegacyValues() throws Exception {
+    void migrationUsesAdditiveNullableColumnsAndGuardsEveryOptionalLegacyReference() throws Exception {
         String sql = Files.readString(MIGRATION);
 
-        assertThat(sql).contains(
-                "ADD COLUMN IF NOT EXISTS TEOR_FINAL_BAIXO_POTASSIO DOUBLE PRECISION",
-                "ADD COLUMN IF NOT EXISTS TEOR_INICIAL_MEDIO_POTASSIO DOUBLE PRECISION",
-                "ADD COLUMN IF NOT EXISTS TEOR_FINAL_MEDIO_POTASSIO DOUBLE PRECISION",
-                "ADD COLUMN IF NOT EXISTS TEOR_INICIAL_ALTO_POTASSIO DOUBLE PRECISION",
-                "TEOR_FINAL_BAIXO_POTASSIO = COALESCE(TEOR_FINAL_BAIXO_POTASSIO, LEGACY_TEOR_FINAL_BAIXO_POTASSIO)",
-                "TEOR_INICIAL_MEDIO_POTASSIO = COALESCE(TEOR_INICIAL_MEDIO_POTASSIO, LEGACY_TEOR_INICIAL_MEDIO_POTASSIO)",
-                "TEOR_FINAL_MEDIO_POTASSIO = COALESCE(TEOR_FINAL_MEDIO_POTASSIO, LEGACY_TEOR_FINAL_MEDIO_POTASSIO)",
-                "TEOR_INICIAL_ALTO_POTASSIO = COALESCE(TEOR_INICIAL_ALTO_POTASSIO, LEGACY_TEOR_INICIAL_ALTO_POTASSIO)")
-                .doesNotContain("NOT NULL", "DEFAULT", "DROP COLUMN", "DROP TABLE", "RENAME TO");
+        for (String column : DATABASE_COLUMNS) {
+            assertThat(sql).contains("ADD COLUMN IF NOT EXISTS " + column + " DOUBLE PRECISION");
+        }
+        for (String legacy : LEGACY_COLUMNS) {
+            assertThat(sql).contains("column_name = '" + legacy.toLowerCase() + "'");
+            assertThat(sql).contains(legacy.toLowerCase() + ")'");
+        }
+        assertThat(sql).doesNotContain("NOT NULL", "DEFAULT", "DROP COLUMN", "DROP TABLE", "RENAME TO",
+                "\nUPDATE FAIXAS_DE_TEORES_DIVERSOS");
+        assertThat(sql.split("EXECUTE '", -1)).hasSize(5);
+    }
 
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:h2:mem:diverse_potassium_migration;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE", "sa", "")) {
-            connection.createStatement().execute("""
-                    CREATE TABLE FAIXAS_DE_TEORES_DIVERSOS (
-                        ID BIGINT PRIMARY KEY,
-                        LEGACY_TEOR_FINAL_BAIXO_POTASSIO DOUBLE PRECISION,
-                        LEGACY_TEOR_INICIAL_MEDIO_POTASSIO DOUBLE PRECISION,
-                        LEGACY_TEOR_FINAL_MEDIO_POTASSIO DOUBLE PRECISION,
-                        LEGACY_TEOR_INICIAL_ALTO_POTASSIO DOUBLE PRECISION
-                    )
-                    """);
-            connection.createStatement().execute("""
-                    INSERT INTO FAIXAS_DE_TEORES_DIVERSOS VALUES
-                        (1, 1.1, 1.2, 2.2, 2.3),
-                        (2, NULL, NULL, NULL, NULL)
-                    """);
-            String h2CompatibleSql = sql.replace("""
-                    ALTER TABLE FAIXAS_DE_TEORES_DIVERSOS
-                        ADD COLUMN IF NOT EXISTS TEOR_FINAL_BAIXO_POTASSIO DOUBLE PRECISION,
-                        ADD COLUMN IF NOT EXISTS TEOR_INICIAL_MEDIO_POTASSIO DOUBLE PRECISION,
-                        ADD COLUMN IF NOT EXISTS TEOR_FINAL_MEDIO_POTASSIO DOUBLE PRECISION,
-                        ADD COLUMN IF NOT EXISTS TEOR_INICIAL_ALTO_POTASSIO DOUBLE PRECISION;
-                    """, """
-                    ALTER TABLE FAIXAS_DE_TEORES_DIVERSOS ADD COLUMN IF NOT EXISTS TEOR_FINAL_BAIXO_POTASSIO DOUBLE PRECISION;
-                    ALTER TABLE FAIXAS_DE_TEORES_DIVERSOS ADD COLUMN IF NOT EXISTS TEOR_INICIAL_MEDIO_POTASSIO DOUBLE PRECISION;
-                    ALTER TABLE FAIXAS_DE_TEORES_DIVERSOS ADD COLUMN IF NOT EXISTS TEOR_FINAL_MEDIO_POTASSIO DOUBLE PRECISION;
-                    ALTER TABLE FAIXAS_DE_TEORES_DIVERSOS ADD COLUMN IF NOT EXISTS TEOR_INICIAL_ALTO_POTASSIO DOUBLE PRECISION;
-                    """);
-            h2CompatibleSql = h2CompatibleSql.lines()
-                    .filter(line -> !line.stripLeading().startsWith("--"))
-                    .reduce("", (left, right) -> left + right + System.lineSeparator());
-            for (String statement : h2CompatibleSql.split(";")) {
-                if (!statement.isBlank()) connection.createStatement().execute(statement);
-            }
+    @Test
+    void migrationRunsOnPostgresWithAbsentCurrentAndOptionalLegacyColumnsAndIsIdempotent() throws Exception {
+        String url = System.getenv("MIGRATION_TEST_POSTGRES_URL");
+        assumeTrue(url != null && !url.isBlank(),
+                "Defina MIGRATION_TEST_POSTGRES_URL para executar a regressao em PostgreSQL real");
+        String user = System.getenv().getOrDefault("MIGRATION_TEST_POSTGRES_USER", "postgres");
+        String password = System.getenv().getOrDefault("MIGRATION_TEST_POSTGRES_PASSWORD", "postgres");
+        String sql = Files.readString(MIGRATION);
 
-            try (ResultSet columns = connection.createStatement().executeQuery("""
-                    SELECT column_name, is_nullable
-                    FROM information_schema.columns
-                    WHERE table_name = 'faixas_de_teores_diversos'
-                      AND column_name LIKE '%potassio'
-                      AND column_name NOT LIKE 'legacy_%'
-                    ORDER BY ordinal_position
-                    """)) {
-                for (String expectedColumn : DATABASE_COLUMNS) {
-                    assertThat(columns.next()).isTrue();
-                    assertThat(columns.getString("column_name")).isEqualTo(expectedColumn.toLowerCase());
-                    assertThat(columns.getString("is_nullable")).isEqualTo("YES");
-                }
-                assertThat(columns.next()).isFalse();
-            }
+        try (Connection connection = DriverManager.getConnection(url, user, password)) {
+            verifyWithoutPotassiumColumns(connection, sql);
+            verifyWithCurrentColumnsOnly(connection, sql);
+            verifyLegacyCopyAndCurrentValuePreservation(connection, sql);
+        }
+    }
 
-            try (ResultSet rows = connection.createStatement().executeQuery("""
-                    SELECT TEOR_FINAL_BAIXO_POTASSIO, TEOR_INICIAL_MEDIO_POTASSIO,
-                           TEOR_FINAL_MEDIO_POTASSIO, TEOR_INICIAL_ALTO_POTASSIO
-                    FROM FAIXAS_DE_TEORES_DIVERSOS ORDER BY ID
-                    """)) {
-                assertThat(rows.next()).isTrue();
-                assertThat(List.of(rows.getDouble(1), rows.getDouble(2), rows.getDouble(3), rows.getDouble(4)))
-                        .containsExactly(1.1, 1.2, 2.2, 2.3);
-                assertThat(rows.next()).isTrue();
-                assertThat(rows.getObject(1)).isNull();
-                assertThat(rows.getObject(2)).isNull();
-                assertThat(rows.getObject(3)).isNull();
-                assertThat(rows.getObject(4)).isNull();
+    private void verifyWithoutPotassiumColumns(Connection connection, String sql) throws Exception {
+        resetSchema(connection, "k_none");
+        connection.createStatement().execute("CREATE TABLE faixas_de_teores_diversos (id BIGINT PRIMARY KEY)");
+        connection.createStatement().execute("INSERT INTO faixas_de_teores_diversos VALUES (1)");
+        executeTwice(connection, sql);
+        assertCurrentValues(connection, null, null, null, null);
+    }
+
+    private void verifyWithCurrentColumnsOnly(Connection connection, String sql) throws Exception {
+        resetSchema(connection, "k_current");
+        connection.createStatement().execute("""
+                CREATE TABLE faixas_de_teores_diversos (
+                    id BIGINT PRIMARY KEY,
+                    teor_final_baixo_potassio DOUBLE PRECISION,
+                    teor_inicial_medio_potassio DOUBLE PRECISION,
+                    teor_final_medio_potassio DOUBLE PRECISION,
+                    teor_inicial_alto_potassio DOUBLE PRECISION)
+                """);
+        connection.createStatement().execute(
+                "INSERT INTO faixas_de_teores_diversos VALUES (1, 10.1, 10.2, 10.3, 10.4)");
+        executeTwice(connection, sql);
+        assertCurrentValues(connection, 10.1, 10.2, 10.3, 10.4);
+    }
+
+    private void verifyLegacyCopyAndCurrentValuePreservation(Connection connection, String sql) throws Exception {
+        resetSchema(connection, "k_legacy");
+        connection.createStatement().execute("""
+                CREATE TABLE faixas_de_teores_diversos (
+                    id BIGINT PRIMARY KEY,
+                    teor_final_baixo_potassio DOUBLE PRECISION,
+                    legacy_teor_final_baixo_potassio DOUBLE PRECISION,
+                    legacy_teor_inicial_medio_potassio DOUBLE PRECISION,
+                    legacy_teor_final_medio_potassio DOUBLE PRECISION,
+                    legacy_teor_inicial_alto_potassio DOUBLE PRECISION)
+                """);
+        connection.createStatement().execute(
+                "INSERT INTO faixas_de_teores_diversos VALUES (1, 99.0, 1.1, 1.2, 2.2, 2.3)");
+        executeTwice(connection, sql);
+        assertCurrentValues(connection, 99.0, 1.2, 2.2, 2.3);
+    }
+
+    private void resetSchema(Connection connection, String schema) throws Exception {
+        connection.createStatement().execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        connection.createStatement().execute("CREATE SCHEMA " + schema);
+        connection.createStatement().execute("SET search_path TO " + schema);
+    }
+
+    private void executeTwice(Connection connection, String sql) throws Exception {
+        connection.createStatement().execute(sql);
+        connection.createStatement().execute(sql);
+    }
+
+    private void assertCurrentValues(Connection connection, Double... expected) throws Exception {
+        try (ResultSet row = connection.createStatement().executeQuery("""
+                SELECT teor_final_baixo_potassio, teor_inicial_medio_potassio,
+                       teor_final_medio_potassio, teor_inicial_alto_potassio
+                FROM faixas_de_teores_diversos WHERE id = 1
+                """)) {
+            assertThat(row.next()).isTrue();
+            for (int index = 0; index < expected.length; index++) {
+                assertThat(row.getObject(index + 1, Double.class)).isEqualTo(expected[index]);
             }
         }
     }
