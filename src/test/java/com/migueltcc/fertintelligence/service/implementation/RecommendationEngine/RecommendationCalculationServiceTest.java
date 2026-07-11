@@ -55,6 +55,25 @@ class RecommendationCalculationServiceTest {
     }
 
     @Test
+    void potassiumWithLegacyNullLimitsIsNotClassifiedInsteadOfThrowing() throws Exception {
+        SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
+        DiverseContentRangeModel legacyRange = micronutrientRange(table).toBuilder()
+                .potassium_low_f(null)
+                .potassium_medium_i(null)
+                .potassium_medium_f(null)
+                .potassium_hight_i(null)
+                .build();
+        RecommendationCalculationService service = serviceWithRepositories(
+                diverseContentRangeRepositoryReturningByTableId(legacyRange));
+
+        RecommendationCalculationService.SoilChemicalDiagnosisItem item =
+                potassiumItem(service, table, 1.5d, FertilityAnalysisUnit.MMOLC_PER_DM3);
+
+        assertThat(item.getInterpretation()).isNull();
+        assertThat(item.getTechnicalObservation()).contains("Critério incompleto");
+    }
+
+    @Test
     void gypsumSelectionAcceptsSupportedSubsurfaceDepthEquivalentsAndExcludesSurface() throws Exception {
         RecommendationCalculationService service = serviceWithRepositories(null);
         PhysicalAnalysisExtractModel surface = physical(1L, 0, 20);

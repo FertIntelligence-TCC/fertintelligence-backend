@@ -77,6 +77,10 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
         existingCriterion = DiverseContentRangeModel.builder()
                 .id(301L)
                 .table(ownerTable)
+                .potassium_low_f(1.1)
+                .potassium_medium_i(1.2)
+                .potassium_medium_f(2.2)
+                .potassium_hight_i(2.3)
                 .organic_carbon_too_low(1.0)
                 .organic_carbon_low_i(2.0)
                 .organic_carbon_low_f(3.0)
@@ -382,7 +386,48 @@ public class DiverseContentRangeControllerImplTest extends AbstractControllerTes
                 .andExpect(jsonPath("$.menor_teor_ctc_ph7").value(1.0))
                 .andExpect(jsonPath("$.menor_teor_pst").value(1.0))
                 .andExpect(jsonPath("$.menor_valor_ph_agua").value(1.0))
-                .andExpect(jsonPath("$.menor_teor_ph_agua").value(1.0));
+                .andExpect(jsonPath("$.menor_teor_ph_agua").value(1.0))
+                .andExpect(jsonPath("$.teor_final_baixo_potassio").value(1.1))
+                .andExpect(jsonPath("$.teor_inicial_medio_potassio").value(1.2))
+                .andExpect(jsonPath("$.teor_final_medio_potassio").value(2.2))
+                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void createDiverseContentRangePersistsIndependentPotassiumLimits() throws Exception {
+        String requestJson = """
+                {
+                  "teor_final_baixo_potassio": 1.1,
+                  "teor_inicial_medio_potassio": 1.2,
+                  "teor_final_medio_potassio": 2.2,
+                  "teor_inicial_alto_potassio": 2.3
+                }
+                """;
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(proprietarioUser));
+        when(soilFertilityInterpretationCriteriaTableRepository.findById(ownerTable.getId()))
+                .thenReturn(Optional.of(ownerTable));
+        when(diverseContentRangeRepository.findByTable(ownerTable)).thenReturn(Optional.empty());
+        when(diverseContentRangeRepository.save(any(DiverseContentRangeModel.class))).thenAnswer(invocation -> {
+            DiverseContentRangeModel criterion = invocation.getArgument(0);
+            criterion.setId(325L);
+            assertEquals(1.1, criterion.getPotassium_low_f());
+            assertEquals(1.2, criterion.getPotassium_medium_i());
+            assertEquals(2.2, criterion.getPotassium_medium_f());
+            assertEquals(2.3, criterion.getPotassium_hight_i());
+            return criterion;
+        });
+
+        mockMvc.perform(post("/diverse-content-range/register")
+                        .param("tableId", ownerTable.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.teor_final_baixo_potassio").value(1.1))
+                .andExpect(jsonPath("$.teor_inicial_medio_potassio").value(1.2))
+                .andExpect(jsonPath("$.teor_final_medio_potassio").value(2.2))
+                .andExpect(jsonPath("$.teor_inicial_alto_potassio").value(2.3));
     }
 
     @Test
