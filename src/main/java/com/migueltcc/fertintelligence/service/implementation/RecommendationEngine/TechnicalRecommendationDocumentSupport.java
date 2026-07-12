@@ -396,7 +396,6 @@ final class TechnicalRecommendationDocumentSupport {
             String dose = row.get(3);
             if (looksUnavailable(sourceName) || looksUnavailable(dose)) continue;
             if (attribute == null || attribute.isBlank() || looksUnavailable(attribute)) continue;
-            if (isAutomaticFteComplement(attribute)) continue;
             String itemName = removeId(sourceName);
             extractKgHa(dose).ifPresent(kgHa -> {
                 if (kgHa > 0d) {

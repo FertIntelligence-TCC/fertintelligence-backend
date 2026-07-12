@@ -210,7 +210,7 @@ class NutrientFertilizationCalculationService {
         }
 
         return new FertilizationRecommendationContext(
-                recommendationRows, fertilizerSuggestions, nutrientBalanceRows,
+                FertilizationRecommendationOrder.sort(recommendationRows), fertilizerSuggestions, nutrientBalanceRows,
                 alternativeFertilizationResult.alternativeRows(),
                 micronutrientFertilizerRows,
                 plantingFormulatedRows,

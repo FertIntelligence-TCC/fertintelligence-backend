@@ -29,6 +29,9 @@ public class ShoppingListResponseDto {
     @JsonProperty("conteudo")
     private String content;
 
+    @JsonProperty("area_usada_no_talhao")
+    private Double usedAreaInThePlot;
+
     @Builder.Default
     @JsonProperty("itens")
     private List<ShoppingListItemResponseDto> items = new ArrayList<>();

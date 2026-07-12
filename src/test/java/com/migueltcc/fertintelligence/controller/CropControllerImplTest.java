@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.controller;
 
 import com.migueltcc.fertintelligence.AbstractControllerTest;
 import com.migueltcc.fertintelligence.composedAttributes.crop.CultivationType;
+import com.migueltcc.fertintelligence.composedAttributes.crop.CropSpacingMode;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.permissions.PermissionScope;
@@ -37,8 +38,11 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -341,6 +345,64 @@ public class CropControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.variedade").value("TMG 7062 IPRO"))
                 .andExpect(jsonPath("$.id_pasta_culturas_anuais").value(OWNER_FOLDER_ID))
                 .andExpect(jsonPath("$.ano_culturas").value(2024));
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createPitCropAcceptsLegacyPlantDistanceAndUsesItAsPitDistance() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setName(NomeComum.SISAL);
+        requestDto.setVariety("Agave tequilana, Agave sisalana e Agave híbrido");
+        requestDto.setSpacingMode(CropSpacingMode.PIT);
+        requestDto.setDistanceBetweenPits(1.0);
+        requestDto.setPlantsPerPit(1.0);
+        requestDto.setDistanceBetweenLines(3.0);
+        requestDto.setPlantsPerMeter(1.0);
+        mockOwnerCreateFlow(requestDto, null);
+        when(cropRepository.save(any(CropModel.class))).thenAnswer(invocation -> {
+            CropModel crop = invocation.getArgument(0);
+            crop.setId(184L);
+            return crop;
+        });
+        String payload = objectMapper.writeValueAsString(requestDto)
+                .replace("\"distancia_entre_covas\"", "\"distancia_entre_plantas\"");
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.modo_espacamento").value("PIT"))
+                .andExpect(jsonPath("$.distancia_entre_covas").value(1.0));
+
+        ArgumentCaptor<CropModel> captor = ArgumentCaptor.forClass(CropModel.class);
+        verify(cropRepository).save(captor.capture());
+        assertThat(captor.getValue().getDistanceBetweenPits()).isEqualTo(1.0);
+    }
+
+    @Test
+    @WithMockUser(username = OWNER_USERNAME)
+    void createPitCropStillRejectsZeroOrMissingPitDistance() throws Exception {
+        CropCreateRequestDto requestDto = createCreateRequestDto();
+        requestDto.setSpacingMode(CropSpacingMode.PIT);
+        requestDto.setPlantsPerPit(1.0);
+        requestDto.setDistanceBetweenPits(0.0);
+        mockOwnerCreateFlow(requestDto, null);
+
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("O modo Distância entre covas (m) exige distância entre covas maior que zero."));
+
+        requestDto.setDistanceBetweenPits(null);
+        mockMvc.perform(post("/crop/register")
+                        .param("folderId", OWNER_FOLDER_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("O modo Distância entre covas (m) exige distância entre covas maior que zero."));
     }
 
     @Test

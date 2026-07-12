@@ -2,6 +2,7 @@ package com.migueltcc.fertintelligence.service;
 
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CalciumMagnesiumBalanceCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -169,6 +170,7 @@ class RecommendationReportServiceTest {
                                 .criterionJustification("Critério selecionado no payload.")
                                 .formula("NC = CTC * (V2 - V1) / 100")
                                 .calculatedRequirement(2.0)
+                                .calciumMagnesiumBalance(new CalciumMagnesiumBalanceCalculator().calculate(4d, 20d, 10d))
                                 .unit("t/ha")
                                 .warnings(List.of())
                                 .build())
@@ -195,6 +197,12 @@ class RecommendationReportServiceTest {
         String report = reportService.buildTechnicalReport(result);
 
         assertTrue(report.contains("7. Calagem"));
+        assertTrue(report.contains("A relação Ca/Mg do solo é igual a 2.00"));
+        assertTrue(report.contains("relação Ca/Mg esperada entre 3:1 e 4:1"));
+        assertTrue(report.contains("Composição teórica para 3:1"));
+        assertTrue(report.contains("classificação: Calcário dolomítico"));
+        assertTrue(report.contains("Composição teórica para 4:1"));
+        assertTrue(report.contains("classificação: Calcário calcítico"));
         assertTrue(report.contains("8. Gessagem"));
         assertTrue(report.contains("Não é possível recomendar gessagem"));
         assertFalse(report.contains("9. Adubação corretiva"));

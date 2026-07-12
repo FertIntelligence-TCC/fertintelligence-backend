@@ -2746,6 +2746,7 @@ public class RecommendationCalculationService {
         private Double correctedRequirement;
         private String limestoneSource;
         private Double calculatedRequirement;
+        private CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceRangeResult calciumMagnesiumBalance;
         private String unit;
         private List<String> warnings;
     }

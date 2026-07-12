@@ -17,9 +17,9 @@ import lombok.NoArgsConstructor;
 public class RecommendedLimestoneTypeModel {
 
     public static final String DISPLAY_NAME = "Tipos de calcário recomendados";
-    public static final String LOW_LEGEND = "Calcário Calcídico (Teor de MgO menor que 5%)";
-    public static final String MEDIUM_LEGEND = "Calcário Magnesiano (Teor de MgO entre 5% e 12%)";
-    public static final String HIGH_LEGEND = "Calcário Dolomítico (Teor de MgO maior que 12%)";
+    public static final String LOW_LEGEND = "Calcário calcítico (Teor de MgO menor que 5%)";
+    public static final String MEDIUM_LEGEND = "Calcário dolomítico (Teor de MgO igual ou maior que 5%)";
+    public static final String HIGH_LEGEND = MEDIUM_LEGEND;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

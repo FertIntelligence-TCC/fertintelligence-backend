@@ -218,8 +218,47 @@ public class RecommendationReportService {
         report.append("- PRNT utilizado: ").append(liming.getPrnt() == null ? "Não informado" : String.format(Locale.US, "%.2f%%", liming.getPrnt())).append("\n");
         report.append("- Dose corrigida por PRNT: ").append(formatDose(liming.getCorrectedRequirement(), liming.getUnit())).append("\n");
         report.append("- Dose efetiva registrada pelo cálculo: ").append(formatDose(liming.getCalculatedRequirement(), liming.getUnit())).append("\n");
+        appendCalciumMagnesiumBalance(report, liming.getCalciumMagnesiumBalance());
         appendFirstWarning(report, "Aviso técnico de calagem", liming.getWarnings());
         report.append("\n");
+    }
+
+    private void appendCalciumMagnesiumBalance(
+            StringBuilder report,
+            CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceRangeResult balance) {
+        if (balance == null) {
+            report.append("- Composição teórica de CaO e MgO: Não calculada.\n");
+            return;
+        }
+        if (balance.currentRatio() == null) {
+            report.append("- Relação atual Ca/Mg: indisponível; o teor de Mg é zero ou os dados de Ca/Mg estão incompletos.\n");
+        } else {
+            report.append("- A relação Ca/Mg do solo é igual a ")
+                    .append(formatDecimal(balance.currentRatio())).append(".\n");
+        }
+        if (!balance.available()) {
+            report.append("- Aviso técnico da composição do calcário: ")
+                    .append(safe(balance.technicalWarning())).append("\n");
+            return;
+        }
+
+        report.append("- Para manter a relação Ca/Mg esperada entre 3:1 e 4:1, deve ser usado calcário com ")
+                .append(formatDecimal(balance.minimumCalciumOxidePercent())).append("% a ")
+                .append(formatDecimal(balance.maximumCalciumOxidePercent())).append("% de CaO e ")
+                .append(formatDecimal(balance.minimumMagnesiumOxidePercent())).append("% a ")
+                .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
+                .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
+        for (CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario scenario : balance.scenarios()) {
+            report.append("- Composição teórica para ")
+                    .append((int) scenario.desiredRatio()).append(":1: CaO ")
+                    .append(formatDecimal(scenario.calciumOxidePercent())).append("%; MgO ")
+                    .append(formatDecimal(scenario.magnesiumOxidePercent())).append("%; classificação: ")
+                    .append(safe(scenario.limestoneClassification())).append(".\n");
+        }
+    }
+
+    private String formatDecimal(Double value) {
+        return value == null || !Double.isFinite(value) ? "Não informado" : String.format(Locale.US, "%.2f", value);
     }
 
     private void appendGypsumRequirement(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {

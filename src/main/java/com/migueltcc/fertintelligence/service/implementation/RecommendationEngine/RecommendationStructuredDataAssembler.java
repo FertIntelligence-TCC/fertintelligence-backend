@@ -77,6 +77,8 @@ public class RecommendationStructuredDataAssembler {
     public List<RecommendationTableSectionDto> summarySections(RecommendationModel recommendation) {
         String report = report(recommendation);
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 1 - formulados", "adubacao_corretiva_opcao_1", OPTION_CORRECTIVE_FORMULATED, true));
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
         sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados", "fertilizantes_recomendados", null, null));
@@ -93,6 +95,9 @@ public class RecommendationStructuredDataAssembler {
 
     public List<RecommendationTableSectionDto> directSections(RecommendationModel recommendation, String directReport) {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
+        String report = report(recommendation);
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 1 - formulados", "adubacao_corretiva_opcao_1", OPTION_CORRECTIVE_FORMULATED, true));
+        sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
         sections.add(micronutrientLineSection(recommendation));
         sections.add(directPlantingFormulatedLineSection(recommendation));
         sections.add(directCoverageFormulatedLineSection(recommendation));
@@ -197,7 +202,7 @@ public class RecommendationStructuredDataAssembler {
         return List.of(
                 block(
                         "correcao_acidez",
-                        "Correção da Acidez",
+                        "Corretivos",
                         List.of(option(OPTION_ACIDITY_CORRECTION, "Recomendação única", false,
                                 itemsByOption(validItems, OPTION_ACIDITY_CORRECTION)))),
                 block(
@@ -209,17 +214,13 @@ public class RecommendationStructuredDataAssembler {
                                 option(OPTION_CORRECTIVE_SIMPLE_SOURCES, "Opção 2 - fontes simples e complementos", true,
                                         itemsByOption(validItems, OPTION_CORRECTIVE_SIMPLE_SOURCES)))),
                 block(
-                        "plantio",
-                        "Plantio",
+                        "plantio_cobertura",
+                        "Adubação de plantio e cobertura",
                         List.of(
                                 option(OPTION_PLANTING_FORMULATED, "Opção 1 - formulados", true,
                                         itemsByOption(validItems, OPTION_PLANTING_FORMULATED)),
                                 option(OPTION_PLANTING_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
-                                        itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES)))),
-                block(
-                        "cobertura",
-                        "Cobertura",
-                        List.of(
+                                        itemsByOption(validItems, OPTION_PLANTING_SIMPLE_SOURCES)),
                                 option(OPTION_COVERAGE_FORMULATED, "Opção 1 - formulados", true,
                                         itemsByOption(validItems, OPTION_COVERAGE_FORMULATED)),
                                 option(OPTION_COVERAGE_SIMPLE_SOURCES, "Opção 2 - adubos simples", true,
@@ -665,10 +666,6 @@ public class RecommendationStructuredDataAssembler {
         if (recommendation != null && recommendation.getCropUsedAreaInThePlot() != null
                 && recommendation.getCropUsedAreaInThePlot() > 0) {
             return recommendation.getCropUsedAreaInThePlot();
-        }
-        if (recommendation != null && recommendation.getPlot() != null
-                && recommendation.getPlot().getArea() != null && recommendation.getPlot().getArea() > 0) {
-            return recommendation.getPlot().getArea();
         }
         return null;
     }

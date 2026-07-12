@@ -4,7 +4,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
@@ -42,7 +41,8 @@ public class ShoppingListReportService {
         StringBuilder report = new StringBuilder();
         TechnicalRecommendationDocumentSupport.appendStyle(report);
         TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
-        report.append("Lista de Compras de insumos/ha\n\n");
+        report.append("Lista de insumos para a área cultivada (")
+                .append(TechnicalRecommendationDocumentSupport.formatArea(area)).append(")\n\n");
         TechnicalRecommendationDocumentSupport.appendIdentification(
                 report,
                 recommendation,
@@ -57,14 +57,12 @@ public class ShoppingListReportService {
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION), area);
             appendBlock(report, "BLOCO 2 - Adubação Corretiva",
                     itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION), area);
-            appendBlock(report, "BLOCO 3 - Plantio / Opção 1 - formulados",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1), area);
-            appendBlock(report, "BLOCO 3 - Plantio / Opção 2 - adubos simples",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_2), area);
-            appendBlock(report, "BLOCO 4 - Cobertura / Opção 1 - formulados",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1), area);
-            appendBlock(report, "BLOCO 4 - Cobertura / Opção 2 - adubos simples",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area);
+            appendBlock(report, "BLOCO 3 - Adubação de plantio e cobertura",
+                    itemsInSections(items,
+                            TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1,
+                            TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_2,
+                            TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1,
+                            TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area);
         }
 
         report.append("Observações\n\n");
@@ -83,12 +81,6 @@ public class ShoppingListReportService {
             return new AreaResolution(
                     recommendation.getCropUsedAreaInThePlot(),
                     "Área de totalização obtida da área da cultura considerada na recomendação.");
-        }
-        PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
-        if (plot != null && isPositive(plot.getArea())) {
-            return new AreaResolution(
-                    plot.getArea(),
-                    "Área da cultura usada na recomendação indisponível; totalização feita pela área do talhão como fallback legado.");
         }
         return new AreaResolution(
                 null,
@@ -167,19 +159,12 @@ public class ShoppingListReportService {
     private void appendItemsTable(StringBuilder report,
                                   List<TechnicalRecommendationDocumentSupport.ShoppingItem> items,
                                   Double area) {
-        report.append("| Insumo | Tipo/grupo | Seção | Opção | Flag | Fase | Quantidade por hectare | Unidade localizada | Total para a área | Decisão de custo |\n");
-        report.append("|---|---|---|---|---|---|---:|---|---:|---|\n");
+        report.append("| Fonte | Dose de aplicação | Quantidade total |\n");
+        report.append("|---|---:|---:|\n");
         for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
             report.append("| ").append(cell(item.getName()))
-                    .append(" | ").append(cell(item.getTypeGroup()))
-                    .append(" | ").append(cell(item.getSection()))
-                    .append(" | ").append(cell(item.getOption()))
-                    .append(" | ").append(cell(item.getItemFlag()))
-                    .append(" | ").append(cell(item.getPhase()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
-                    .append(" | ").append(cell(item.getLocalizedDose()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
-                    .append(" | ").append(cell(item.getOpportunityCostDecision()))
                     .append(" |\n");
         }
         report.append("\n");

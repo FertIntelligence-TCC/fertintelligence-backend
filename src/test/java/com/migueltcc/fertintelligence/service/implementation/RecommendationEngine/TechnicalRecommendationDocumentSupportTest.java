@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class TechnicalRecommendationDocumentSupportTest {
 
@@ -107,7 +108,7 @@ class TechnicalRecommendationDocumentSupportTest {
     }
 
     @Test
-    void collectShoppingItemsClassifiesCorrectiveBlockAndSkipsAutomaticFteComplements() {
+    void collectShoppingItemsClassifiesAllCorrectiveItemsIncludingFteComplements() {
         RecommendationModel recommendation = RecommendationModel.builder()
                 .cropName(NomeComum.MILHO)
                 .technicalReport("""
@@ -137,9 +138,9 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(item(items, "NPK 00-20-20").getTypeGroup()).isEqualTo("Formulado corretivo");
         assertThat(item(items, "FTE BR-12").getTypeGroup()).isEqualTo("FTE BR-12");
         assertThat(item(items, "FTE BR-24").getTypeGroup()).isEqualTo("FTE BR-24");
-        assertThat(items.stream().filter(item -> "Borax".equals(item.getName()))).hasSize(1);
-        assertThat(item(items, "Borax").getTypeGroup()).isEqualTo("Complemento corretivo simples");
-        assertThat(item(items, "Borax").getItemFlag()).isEqualTo("alternativa");
+        assertThat(items.stream().filter(item -> "Borax".equals(item.getName())))
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getTypeGroup)
+                .containsExactlyInAnyOrder("Complemento após FTE", "Complemento corretivo simples");
         assertThat(item(items, "NPK 00-20-20").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
         assertThat(item(items, "FTE BR-12").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
         assertThat(item(items, "FTE BR-24").getOption()).isEqualTo("adubacao_corretiva_opcao_1_formulados");
@@ -147,7 +148,11 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(item(items, "Superfosfato Triplo").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(item(items, "Termofosfato Magnesiano").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(item(items, "Cloreto de Potássio").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
-        assertThat(item(items, "Borax").getOption()).isEqualTo("adubacao_corretiva_opcao_2_adubos_simples");
+        assertThat(items.stream().filter(item -> "Borax".equals(item.getName())))
+                .extracting(TechnicalRecommendationDocumentSupport.ShoppingItem::getOption)
+                .containsExactlyInAnyOrder(
+                        "adubacao_corretiva_opcao_1_formulados",
+                        "adubacao_corretiva_opcao_2_adubos_simples");
         assertThat(items.stream().map(TechnicalRecommendationDocumentSupport.ShoppingItem::getSection))
                 .containsOnly(TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION);
     }
@@ -367,7 +372,12 @@ class TechnicalRecommendationDocumentSupportTest {
 
     @Test
     void shoppingBlocksKeepOptionsMutuallyExclusiveAndDoNotSumAlternatives() {
-        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null);
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
+                null);
         List<ShoppingListItemResponseDto> items = List.of(
                 ShoppingListItemResponseDto.builder()
                         .inputName("NPK 00-20-20")
@@ -386,6 +396,9 @@ class TechnicalRecommendationDocumentSupportTest {
                         .build());
 
         List<ShoppingListResponseDto.ShoppingListBlockResponseDto> blocks = assembler.shoppingBlocks(items);
+
+        assertThat(blocks).extracting(ShoppingListResponseDto.ShoppingListBlockResponseDto::getName)
+                .containsExactly("Corretivos", "Adubação Corretiva", "Adubação de plantio e cobertura");
 
         ShoppingListResponseDto.ShoppingListBlockResponseDto corrective = blocks.stream()
                 .filter(block -> "adubacao_corretiva".equals(block.getCode()))
@@ -445,6 +458,74 @@ class TechnicalRecommendationDocumentSupportTest {
         assertThat(purchaseList.getCalculationDetails())
                 .extracting("calculationMemory")
                 .noneMatch(text -> ((String) text).contains(": 0.00 kg/ha"));
+    }
+
+    @Test
+    void summaryAndDirectSectionsContainEveryCorrectiveRowWithOriginalDoseAndUnit() {
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .technicalReport("""
+                        ## 9. Adubação corretiva
+
+                        | Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose | Memória de cálculo | Aviso técnico |
+                        |---|---|---|---:|---|---|
+                        | Formulado 00-P2O5-K2O corretivo | P2O5 e K2O | NPK 00-20-20 | 300.00 kg/ha de produto | Memória formulado | Observação formulado |
+                        | P2O5 corretivo | 60 kg/ha | Superfosfato Simples | 333.33 kg/ha de produto | Memória P | Observação P |
+                        | K2O corretivo | 40 kg/ha | Cloreto de Potássio | 66.67 kg/ha de produto | Memória K | Observação K |
+                        | FTE BR 12 corretivo | 2 kg/ha Zn | FTE BR-12 | 16.67 kg/ha de produto | Memória FTE | Observação FTE |
+                        | Complemento após FTE BR-12 de Cu | 1 kg/ha Cu | Sulfato de Cobre | 4.00 kg/ha de produto | Memória Cu | Observação Cu |
+                        | Complemento após FTE BR-12 de Mn | 1 kg/ha Mn | Sulfato Manganoso | 5.00 kg/ha de produto | Memória Mn | Observação Mn |
+                        """)
+                .build();
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
+                null);
+
+        assertCorrectiveSections(assembler.summarySections(recommendation));
+        assertCorrectiveSections(assembler.directSections(recommendation, ""));
+    }
+
+    @Test
+    void shoppingItemsUseCultivatedAreaForTotalAndDoNotFallbackWhenAreaIsInvalid() {
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
+                mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
+                null);
+        RecommendationModel recommendation = RecommendationModel.builder()
+                .cropUsedAreaInThePlot(50.0)
+                .technicalReport("""
+                        ## 9. Adubação corretiva
+
+                        | Nutriente/Atributo corrigido | Necessidade | Fonte sugerida | Dose |
+                        |---|---|---|---:|
+                        | Formulado corretivo | P2O5 e K2O | NPK 00-20-20 | 500.00 kg/ha de produto |
+                        """)
+                .build();
+
+        ShoppingListItemResponseDto item = assembler.shoppingItems(recommendation).get(0);
+        assertThat(item.getQuantityPerHectare()).isEqualTo("500.00 kg/ha");
+        assertThat(item.getTotalForArea()).isEqualTo("25000.00 kg");
+
+        recommendation.setCropUsedAreaInThePlot(0.0);
+        assertThat(assembler.shoppingItems(recommendation).get(0).getTotalForArea()).isEqualTo("Não calculado por falta de dados.");
+        recommendation.setCropUsedAreaInThePlot(null);
+        assertThat(assembler.shoppingItems(recommendation).get(0).getTotalForArea()).isEqualTo("Não calculado por falta de dados.");
+    }
+
+    private void assertCorrectiveSections(List<com.migueltcc.fertintelligence.dto.recommendation.RecommendationTableSectionDto> sections) {
+        List<List<String>> rows = sections.stream()
+                .filter(section -> section.getSectionKey().startsWith("adubacao_corretiva_"))
+                .flatMap(section -> section.getRows().stream())
+                .toList();
+        assertThat(rows).extracting(row -> row.get(2))
+                .containsExactlyInAnyOrder("NPK 00-20-20", "Superfosfato Simples", "Cloreto de Potássio",
+                        "FTE BR-12", "Sulfato de Cobre", "Sulfato Manganoso");
+        assertThat(rows).extracting(row -> row.get(3))
+                .contains("300.00 kg/ha de produto", "4.00 kg/ha de produto", "5.00 kg/ha de produto");
     }
 
     @Test

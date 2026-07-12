@@ -47,6 +47,7 @@ public class CropCreateRequestDto {
     CropSpacingMode spacingMode;
 
     @JsonProperty("distancia_entre_covas")
+    @JsonAlias("distancia_entre_plantas")
     Double distanceBetweenPits;
 
     @JsonProperty("numero_plantas_por_cova")

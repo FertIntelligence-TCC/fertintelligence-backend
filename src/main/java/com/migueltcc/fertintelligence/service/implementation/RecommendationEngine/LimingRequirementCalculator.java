@@ -8,6 +8,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisMode
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,10 +19,12 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 class LimingRequirementCalculator {
 
     private static final String UNIT = "t/ha";
     private static final String PRNT_WARNING = "Se o calcário comprado tiver PRNT diferente de 100%, corrija o valor de NC multiplicando-o pela expressão 100/PRNT";
+    private final CalciumMagnesiumBalanceCalculator calciumMagnesiumBalanceCalculator;
 
     RecommendationCalculationService.LimingRequirementResult calculate(RecommendationCreateRequestDto dto,
                                                                        Optional<FertilityAnalysisExtractModel> fertilityExtract,
@@ -90,6 +93,10 @@ class LimingRequirementCalculator {
                 .prnt(100d)
                 .correctedRequirement(theoreticalRequirement)
                 .calculatedRequirement(theoreticalRequirement)
+                .calciumMagnesiumBalance(calciumMagnesiumBalanceCalculator.calculate(
+                        theoreticalRequirement,
+                        exchangeableValueAsMmol(fertility.getCalcio(), fertility.getUnidadeCalcio()),
+                        exchangeableValueAsMmol(fertility.getMagnesio(), fertility.getUnidadeMagnesio())))
                 .limestoneSource("PRNT 100%")
                 .unit(UNIT)
                 .warnings(limingWarnings)
@@ -156,6 +163,8 @@ class LimingRequirementCalculator {
                 .prnt(100d)
                 .correctedRequirement(theoreticalRequirement)
                 .calculatedRequirement(theoreticalRequirement)
+                .calciumMagnesiumBalance(calciumMagnesiumBalanceCalculator.calculate(
+                        theoreticalRequirement, calciumMmol, magnesiumMmol))
                 .limestoneSource("PRNT 100%")
                 .unit(UNIT)
                 .warnings(limingWarnings)

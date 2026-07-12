@@ -124,6 +124,7 @@ public class ShoppingListServiceImpl implements ShoppingListService {
                 .documentName(model.getDocumentName() != null ? model.getDocumentName() : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(model.getTechnicalReport())
                 .content(model.getTechnicalReport())
+                .usedAreaInThePlot(model.getRecommendation().getCropUsedAreaInThePlot())
                 .items(items)
                 .blocks(structuredDataAssembler.shoppingBlocks(items))
                 .purchaseList(structuredDataAssembler.purchaseList(items))
