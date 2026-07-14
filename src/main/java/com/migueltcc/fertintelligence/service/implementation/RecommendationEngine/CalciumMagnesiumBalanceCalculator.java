@@ -70,11 +70,21 @@ public class CalciumMagnesiumBalanceCalculator {
         if (!finiteNonNegative(additionalCalcium) || !finiteNonNegative(additionalMagnesium)) {
             double calciumCarbonate = 50d * additionalCalcium;
             double magnesiumCarbonate = 42.15d * additionalMagnesium;
+            String reason;
+            if (Double.isFinite(additionalMagnesium) && additionalMagnesium < 0d) {
+                reason = "Não é possível atingir a relação Ca/Mg de " + (int) desiredRatio
+                        + ":1 apenas pela adição do calcário, porque esse alvo exigiria redução do teor atual de Mg no solo";
+            } else if (Double.isFinite(additionalCalcium) && additionalCalcium < 0d) {
+                reason = "Não é possível atingir a relação Ca/Mg de " + (int) desiredRatio
+                        + ":1 apenas pela adição do calcário, porque esse alvo exigiria redução do teor atual de Ca no solo";
+            } else {
+                reason = "Composição teórica indisponível: a relação " + (int) desiredRatio
+                        + ":1 produziu adicional não finito de Ca ou Mg";
+            }
             return CalciumMagnesiumBalanceScenario.unavailable(desiredRatio,
                     additionalCalcium, additionalMagnesium, calciumCarbonate, magnesiumCarbonate,
                     calciumCarbonate + magnesiumCarbonate,
-                    "Composição teórica indisponível: a relação " + (int) desiredRatio
-                            + ":1 produziu adicional negativo ou não finito de Ca ou Mg"
+                    reason
                             + " (T=" + totalAdditionalBases + ", DCa=" + additionalCalcium
                             + ", DMg=" + additionalMagnesium + ").");
         }

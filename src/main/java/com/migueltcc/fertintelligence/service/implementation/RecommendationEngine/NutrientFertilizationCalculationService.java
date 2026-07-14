@@ -149,11 +149,13 @@ class NutrientFertilizationCalculationService {
         recommendationRows.addAll(simplePlantingPackage.rows());
         simplePlantingPackage.suggestions().forEach(fertilizerSuggestions::add);
         NutrientBalanceAccumulator nutrientBalance = new NutrientBalanceAccumulator(mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O, sulfurRequirement.totalRequiredS());
+        boolean simpleOnlyPlanting = FormulatedFertilizerSelectionService.hasSinglePositiveNutrient(
+                mineralRequiredN, mineralRequiredP2O5, mineralRequiredK2O);
         nutrientBalance.addPlanting(
-                (sulfurPlan.replacesPlanting() ? 0d : planting.providedN()) + sulfurPlan.providedN(),
-                (sulfurPlan.replacesPlanting() ? 0d : planting.providedP2O5()) + sulfurPlan.providedP2O5(),
-                (sulfurPlan.replacesPlanting() ? 0d : planting.providedK2O()) + sulfurPlan.providedK2O(),
-                (sulfurPlan.replacesPlanting() ? 0d : planting.providedS()) + sulfurPlan.providedS());
+                sulfurPlan.replacesPlanting() ? sulfurPlan.providedN() : simpleOnlyPlanting ? simplePlantingPackage.providedN() : planting.providedN(),
+                sulfurPlan.replacesPlanting() ? sulfurPlan.providedP2O5() : simpleOnlyPlanting ? simplePlantingPackage.providedP2O5() : planting.providedP2O5(),
+                sulfurPlan.replacesPlanting() ? sulfurPlan.providedK2O() : simpleOnlyPlanting ? simplePlantingPackage.providedK2O() : planting.providedK2O(),
+                sulfurPlan.replacesPlanting() ? sulfurPlan.providedS() : simpleOnlyPlanting ? simplePlantingPackage.providedS() : planting.providedS());
         CoverageDemand coverageDemand = buildCoverageDemand(
                 List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
                 nutrientBalance,
@@ -931,6 +933,15 @@ class NutrientFertilizationCalculationService {
         if (formulatedSelection.technicalMessage() != null) {
             w.add(formulatedSelection.technicalMessage());
         }
+        if (FormulatedFertilizerSelectionService.hasSinglePositiveNutrient(n, p, k)) {
+            return new FertilizerSelection(
+                    "Adubos formulados NPK não recomendados", null,
+                    0d, 0d, 0d, 0d,
+                    -nvl(n), -nvl(p), -nvl(k), null,
+                    null, null, null,
+                    FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_PLANTING_MESSAGE,
+                    Optional.empty());
+        }
         if (formulatedSelection.candidates() != null && !formulatedSelection.candidates().isEmpty()) {
             FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate selected =
                     formulatedSelection.candidates().get(0);
@@ -1330,7 +1341,7 @@ class NutrientFertilizationCalculationService {
 
         if (best == null || best.rows.isEmpty()) {
             addWarning(warnings, "Opção 2 - Plantio com adubos simples não calculada: fontes cadastradas insuficientes para N, P2O5, K2O, S e micronutrientes.");
-            return new SimplePlantingPackageResult(List.of(), List.of(), 0d, 0d);
+            return new SimplePlantingPackageResult(List.of(), List.of(), 0d, 0d, 0d, 0d, 0d, 0d);
         }
 
         if (!withinTolerance(best.n, nvl(requiredN)) || !withinTolerance(best.p2o5, nvl(requiredP2O5))
@@ -1350,7 +1361,9 @@ class NutrientFertilizationCalculationService {
         double transferredN = Math.max(0d, round2(nvl(requiredN) - best.n));
         List<RecommendationCalculationService.FertilizationRecommendationRow> rows = best.toRows(
                 crop, nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), sulfurRequirement.requiredS(), transferredN);
-        return new SimplePlantingPackageResult(rows, best.suggestions, transferredN, 0d);
+        return new SimplePlantingPackageResult(
+                rows, best.suggestions, transferredN, 0d,
+                best.n, best.p2o5, best.k2o, best.s);
     }
 
     private SimplePlantingPackage buildSimplePlantingPackageWithoutSulfurLimitation(
@@ -1359,12 +1372,19 @@ class NutrientFertilizationCalculationService {
             Double requiredP2O5,
             Double requiredK2O) {
         SimplePlantingPackage pkg = new SimplePlantingPackage("prioridade econômica sem S limitante após gessagem");
+        List<SimpleMineralFertilizerModel> nitrogenSourcesWithoutSulfur = fertilizers.stream()
+                .filter(NutrientFertilizationCalculationService::isNitrogenSourceEligibleAfterGypsum)
+                .toList();
+        List<SimpleMineralFertilizerModel> phosphorusSourcesWithoutSulfur = fertilizers.stream()
+                .filter(fertilizer -> nvl(fertilizer.getP2O5()) > 0d && nvl(fertilizer.getS()) <= 0d)
+                .filter(NutrientFertilizationCalculationService::isPreferredPhosphorusSourceAfterGypsum)
+                .toList();
         SimpleMineralFertilizerModel nitrogen = fertilizerOpportunityCostService.selectLowestCostSimpleSource(
-                fertilizers, FertilizerOpportunityCostService.Nutrient.N).orElseGet(() ->
-                namedSource(fertilizers, "ureia", f -> nvl(f.getN()) > 0d));
+                nitrogenSourcesWithoutSulfur, FertilizerOpportunityCostService.Nutrient.N).orElseGet(() ->
+                namedSource(nitrogenSourcesWithoutSulfur, "ureia", f -> nvl(f.getN()) > 0d));
         SimpleMineralFertilizerModel phosphorus = fertilizerOpportunityCostService.selectLowestCostSimpleSource(
-                fertilizers, FertilizerOpportunityCostService.Nutrient.P2O5).orElseGet(() ->
-                namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d));
+                phosphorusSourcesWithoutSulfur, FertilizerOpportunityCostService.Nutrient.P2O5).orElseGet(() ->
+                namedSource(phosphorusSourcesWithoutSulfur, "superfosfato triplo", f -> nvl(f.getP2O5()) > 0d));
         SimpleMineralFertilizerModel potassium = namedSource(
                 fertilizers, "cloreto de potassio", f -> nvl(f.getK2O()) > 0d);
 
@@ -1374,6 +1394,25 @@ class NutrientFertilizationCalculationService {
                 "P2O5 atendido pela fonte de menor custo unitário disponível; S fornecido é excedente não limitante.");
         addByNutrient(pkg, potassium, nvl(requiredK2O), "K2O", "Todo K2O aplicado como cloreto de potássio.");
         return pkg;
+    }
+
+    static boolean isNitrogenSourceEligibleAfterGypsum(SimpleMineralFertilizerModel fertilizer) {
+        return fertilizer != null && nvlStatic(fertilizer.getN()) > 0d && nvlStatic(fertilizer.getS()) <= 0d;
+    }
+
+    static boolean isPreferredPhosphorusSourceAfterGypsum(SimpleMineralFertilizerModel fertilizer) {
+        if (fertilizer == null || nvlStatic(fertilizer.getP2O5()) <= 0d || nvlStatic(fertilizer.getS()) > 0d) {
+            return false;
+        }
+        String normalizedName = normalizeText(fertilizer != null ? fertilizer.getName() : null).trim();
+        return normalizedName.contains("superfosfato triplo")
+                || normalizedName.equals("map")
+                || normalizedName.startsWith("map ")
+                || normalizedName.endsWith(" map");
+    }
+
+    private static double nvlStatic(Double value) {
+        return value == null ? 0d : value;
     }
 
     private SimplePlantingPackage chooseBestSimplePlantingPackage(
@@ -1688,7 +1727,7 @@ class NutrientFertilizationCalculationService {
         return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
-    private String normalizeText(String value) {
+    private static String normalizeText(String value) {
         if (value == null) return "";
         return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -2018,7 +2057,11 @@ class NutrientFertilizationCalculationService {
             List<RecommendationCalculationService.FertilizationRecommendationRow> rows,
             List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
             double transferredN,
-            double transferredK2O) {
+            double transferredK2O,
+            double providedN,
+            double providedP2O5,
+            double providedK2O,
+            double providedS) {
     }
 
     private class SimplePlantingPackage {

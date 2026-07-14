@@ -121,6 +121,23 @@ class FormulatedFertilizerSelectionServiceTest {
     }
 
     @Test
+    void rejectsNpkWhenOnlyOnePlantingNutrientIsPositive() {
+        FormulatedMineralFertilizerModel formula153015 = formulated(1L, 15d, 30d, 15d);
+
+        for (Double[] requirements : List.of(
+                new Double[]{20d, 0d, 0d},
+                new Double[]{0d, 80d, 0d},
+                new Double[]{0d, 0d, 40d})) {
+            FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionResult result =
+                    service.selectCandidates(List.of(formula153015), requirements[0], requirements[1], requirements[2]);
+
+            assertThat(result.candidates()).isEmpty();
+            assertThat(result.technicalMessage()).isEqualTo(
+                    FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_PLANTING_MESSAGE);
+        }
+    }
+
+    @Test
     void returnsMaximizationFallbackWhenNoIdenticalOrApproximateRatioExists() {
         FormulatedMineralFertilizerModel formula053005 = formulated(1L, 5d, 30d, 5d);
 

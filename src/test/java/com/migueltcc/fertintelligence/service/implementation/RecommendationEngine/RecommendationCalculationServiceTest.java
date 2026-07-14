@@ -105,6 +105,26 @@ class RecommendationCalculationServiceTest {
     }
 
     @Test
+    void primaryFertilitySelectionUsesOnlyLayerCoveringZeroToTwenty() throws Exception {
+        RecommendationCalculationService service = serviceWithRepositories(null);
+        FertilityAnalysisExtractModel surface = fertility(85L, 0, 20, 7.5d, 7.3d);
+        FertilityAnalysisExtractModel middle = fertility(86L, 21, 40, 5.2d, 7.1d);
+        FertilityAnalysisExtractModel deep = fertility(87L, 41, 60, 5.5d, 5.6d);
+        Method method = RecommendationCalculationService.class.getDeclaredMethod(
+                "selectPrimaryFertilityExtract", List.class, Long.class, List.class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Optional<FertilityAnalysisExtractModel> selected =
+                (Optional<FertilityAnalysisExtractModel>) method.invoke(
+                        service, List.of(middle, deep, surface), 90L, new ArrayList<String>());
+
+        assertThat(selected).containsSame(surface);
+        assertThat(selected.orElseThrow().getCalcio()).isEqualTo(7.5d);
+        assertThat(selected.orElseThrow().getMagnesio()).isEqualTo(7.3d);
+    }
+
+    @Test
     void chemicalDiagnosisLoadsMicronutrientRangesByAuthorizedTableIdBeforeEntityLookup() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .id(42L)
@@ -331,6 +351,20 @@ class RecommendationCalculationServiceTest {
     private PhysicalAnalysisExtractModel physical(long id, int start, int end) {
         return PhysicalAnalysisExtractModel.builder()
                 .id(id)
+                .rangeExtract(RangeExtractModel.builder()
+                        .profundidade_inicial(start)
+                        .profundidade_final(end)
+                        .build())
+                .build();
+    }
+
+    private FertilityAnalysisExtractModel fertility(long id, int start, int end, double calcium, double magnesium) {
+        return FertilityAnalysisExtractModel.builder()
+                .id(id)
+                .calcio(calcium)
+                .magnesio(magnesium)
+                .unidadeCalcio(FertilityAnalysisUnit.MMOLC_PER_DM3)
+                .unidadeMagnesio(FertilityAnalysisUnit.MMOLC_PER_DM3)
                 .rangeExtract(RangeExtractModel.builder()
                         .profundidade_inicial(start)
                         .profundidade_final(end)

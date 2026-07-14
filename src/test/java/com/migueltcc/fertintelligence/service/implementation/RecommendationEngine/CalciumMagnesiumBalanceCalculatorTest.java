@@ -90,7 +90,7 @@ class CalciumMagnesiumBalanceCalculatorTest {
 
         assertThat(result.available()).isFalse();
         assertThat(result.scenarios()).hasSize(2).allMatch(scenario -> !scenario.available());
-        assertThat(result.technicalWarning()).contains("adicional negativo");
+        assertThat(result.technicalWarning()).contains("exigiria redução do teor atual de Ca");
         assertThat(result.scenarios()).allSatisfy(scenario -> {
             assertThat(scenario.additionalCalcium()).isNotNull();
             assertThat(scenario.additionalMagnesium()).isNotNull();
@@ -106,7 +106,7 @@ class CalciumMagnesiumBalanceCalculatorTest {
         assertThat(result.scenarios()).extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available)
                 .containsExactly(true, false);
         assertThat(result.minimumCalciumOxidePercent()).isEqualTo(result.scenarios().get(0).calciumOxidePercent());
-        assertThat(result.technicalWarning()).contains("relação 4:1");
+        assertThat(result.technicalWarning()).contains("relação Ca/Mg de 4:1");
     }
 
     @Test
@@ -117,23 +117,24 @@ class CalciumMagnesiumBalanceCalculatorTest {
         assertThat(result.scenarios()).extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available)
                 .containsExactly(false, true);
         assertThat(result.maximumMagnesiumOxidePercent()).isEqualTo(result.scenarios().get(1).magnesiumOxidePercent());
-        assertThat(result.technicalWarning()).contains("relação 3:1");
+        assertThat(result.technicalWarning()).contains("relação Ca/Mg de 3:1");
     }
 
     @Test
-    void victoriaEquivalentKeepsAuditableNegativeAdditionsWithoutFabricatingComposition() {
-        var result = calculator.calculate(1.4d, 20.6d, 20d);
+    void realVictoriaValuesKeepAuditableNegativeMagnesiumAdditionsWithoutFabricatingComposition() {
+        var result = calculator.calculate(1.4d, 7.5d, 7.3d);
 
-        assertThat(result.currentRatio()).isCloseTo(1.03d, within(0.0001d));
+        assertThat(result.currentRatio()).isCloseTo(1.0273972603d, within(1e-10));
         assertThat(result.available()).isFalse();
         assertThat(result.scenarios()).hasSize(2).allMatch(scenario -> !scenario.available());
-        assertThat(result.scenarios().get(0).additionalCalcium()).isCloseTo(20.35d, within(1e-12));
-        assertThat(result.scenarios().get(0).additionalMagnesium()).isCloseTo(-6.35d, within(1e-12));
-        assertThat(result.scenarios().get(1).additionalCalcium()).isCloseTo(23.08d, within(1e-12));
-        assertThat(result.scenarios().get(1).additionalMagnesium()).isCloseTo(-9.08d, within(1e-12));
+        assertThat(result.scenarios().get(0).additionalCalcium()).isCloseTo(14.1d, within(1e-12));
+        assertThat(result.scenarios().get(0).additionalMagnesium()).isCloseTo(-0.1d, within(1e-12));
+        assertThat(result.scenarios().get(1).additionalCalcium()).isCloseTo(15.54d, within(1e-12));
+        assertThat(result.scenarios().get(1).additionalMagnesium()).isCloseTo(-1.54d, within(1e-12));
         assertThat(result.scenarios()).allSatisfy(scenario -> {
             assertThat(scenario.calciumOxidePercent()).isNull();
             assertThat(scenario.magnesiumOxidePercent()).isNull();
+            assertThat(scenario.technicalWarning()).contains("exigiria redução do teor atual de Mg");
             assertThat(scenario.technicalWarning()).doesNotContain("NaN", "Infinity");
         });
     }
