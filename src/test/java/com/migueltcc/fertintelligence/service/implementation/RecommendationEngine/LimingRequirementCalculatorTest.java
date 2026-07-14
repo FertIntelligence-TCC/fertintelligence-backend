@@ -32,12 +32,13 @@ class LimingRequirementCalculatorTest {
                 .unidadeMagnesio(FertilityAnalysisUnit.CMOLC_PER_DM3)
                 .build();
 
+        var warnings = new ArrayList<String>();
         var result = calculator.calculate(
                 request,
                 Optional.of(fertility),
                 null,
                 CropFertilizationTableModel.builder().criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                new ArrayList<>());
+                warnings);
 
         assertThat(result.getTheoreticalRequirement()).isEqualTo(4d);
         assertThat(result.getPrnt()).isEqualTo(100d);
@@ -46,5 +47,34 @@ class LimingRequirementCalculatorTest {
         assertThat(result.getCalciumMagnesiumBalance().currentMagnesium()).isEqualTo(10d);
         assertThat(result.getCalciumMagnesiumBalance().currentRatio()).isEqualTo(2d);
         assertThat(result.getCalciumMagnesiumBalance().available()).isTrue();
+        assertThat(result.getCalciumMagnesiumBalance().scenarios())
+                .extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::desiredRatio)
+                .containsExactly(3d, 4d);
+        assertThat(warnings).anyMatch(warning -> warning.contains("100/PRNT"));
+    }
+
+    @Test
+    void calciumMagnesiumCompositionDoesNotRequireSaturationExtract() {
+        var fertility = FertilityAnalysisExtractModel.builder()
+                .ctcPh7(100d).saturacaoBasesV(30d)
+                .calcio(20d).magnesio(10d)
+                .build();
+
+        var result = calculator.calculate(
+                RecommendationCreateRequestDto.builder()
+                        .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
+                Optional.of(fertility),
+                null,
+                CropFertilizationTableModel.builder()
+                        .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
+                new ArrayList<>());
+
+        assertThat(result.getTheoreticalRequirement()).isEqualTo(4d);
+        assertThat(result.getCalciumMagnesiumBalance().available()).isTrue();
+        assertThat(result.getCalciumMagnesiumBalance().currentRatio()).isEqualTo(2d);
+        assertThat(result.getCalciumMagnesiumBalance().scenarios()).hasSize(2)
+                .allMatch(scenario -> scenario.calciumOxidePercent() != null
+                        && scenario.magnesiumOxidePercent() != null
+                        && scenario.limestoneClassification() != null);
     }
 }

@@ -12,15 +12,11 @@ import com.migueltcc.fertintelligence.repository.SoilFertilityInterpretationCrit
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.RecommendedLimestoneTypeService;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 @Service
@@ -48,8 +44,11 @@ public class RecommendedLimestoneTypeServiceImpl implements RecommendedLimestone
 
         RecommendedLimestoneTypeModel criterion = RecommendedLimestoneTypeModel.builder()
                 .table(table)
+                .caMgLowRatio(createRequestDto.getCaMgLowRatio())
+                .caMgHighRatio(createRequestDto.getCaMgHighRatio())
+                .observations(createRequestDto.getObservations())
+                .sources(createRequestDto.getSources())
                 .build();
-        BeanUtils.copyProperties(createRequestDto, criterion);
 
         return recommendedLimestoneTypeRepository.save(criterion).toDto();
     }
@@ -83,7 +82,10 @@ public class RecommendedLimestoneTypeServiceImpl implements RecommendedLimestone
         RecommendedLimestoneTypeModel criterion = findCriterionByIdOrThrow(criterionId);
         checkModifyPermission(criterion.getTable(), owner);
 
-        copyNonNullProperties(updateRequestDto, criterion);
+        if (updateRequestDto.getCaMgLowRatio() != null) criterion.setCaMgLowRatio(updateRequestDto.getCaMgLowRatio());
+        if (updateRequestDto.getCaMgHighRatio() != null) criterion.setCaMgHighRatio(updateRequestDto.getCaMgHighRatio());
+        if (updateRequestDto.getObservations() != null) criterion.setObservations(updateRequestDto.getObservations());
+        if (updateRequestDto.getSources() != null) criterion.setSources(updateRequestDto.getSources());
         return recommendedLimestoneTypeRepository.save(criterion).toDto();
     }
 
@@ -148,17 +150,4 @@ public class RecommendedLimestoneTypeServiceImpl implements RecommendedLimestone
         return user != null && user.getCargo() == Cargo.USUARIO_SUPREMO;
     }
 
-    private void copyNonNullProperties(Object source, Object target) {
-        String[] nullPropertyNames = getNullPropertyNames(source);
-        BeanUtils.copyProperties(source, target, nullPropertyNames);
-    }
-
-    private String[] getNullPropertyNames(Object source) {
-        BeanWrapper src = new BeanWrapperImpl(source);
-        return Arrays.stream(src.getPropertyDescriptors())
-                .map(propertyDescriptor -> propertyDescriptor.getName())
-                .filter(propertyName -> !"class".equals(propertyName))
-                .filter(propertyName -> src.getPropertyValue(propertyName) == null)
-                .toArray(String[]::new);
-    }
 }

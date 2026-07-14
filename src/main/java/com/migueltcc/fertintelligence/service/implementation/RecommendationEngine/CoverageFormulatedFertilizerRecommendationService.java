@@ -20,6 +20,10 @@ import java.util.Locale;
 @RequiredArgsConstructor
 class CoverageFormulatedFertilizerRecommendationService {
 
+    static final String SIMPLE_FERTILIZER_REQUIRED_MESSAGE = "Não é possível usar formulado. Usar adubos simples.";
+    private static final double BALANCE_TOLERANCE = 0.10d;
+    private static final double EPSILON = 1e-9d;
+
     private final FormulatedFertilizerSelectionService formulatedFertilizerSelectionService;
     private final FormulatedFertilizerRatioService formulatedFertilizerRatioService;
     private final CropSpacingCalculationService cropSpacingCalculationService;
@@ -38,9 +42,9 @@ class CoverageFormulatedFertilizerRecommendationService {
         for (CoverageNpkRecommendation coverage : coverageRecommendations.stream()
                 .sorted(Comparator.comparing(CoverageNpkRecommendation::coverageOrder, Comparator.nullsLast(Integer::compareTo)))
                 .toList()) {
-            if (!hasPositiveNk(coverage)) {
+            if (!hasBothPositiveNk(coverage)) {
                 addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder())
-                        + " sem recomendação positiva de N ou K2O; seleção de formulado N-00-K2O não foi forçada.");
+                        + ": " + SIMPLE_FERTILIZER_REQUIRED_MESSAGE);
                 continue;
             }
 
@@ -69,7 +73,17 @@ class CoverageFormulatedFertilizerRecommendationService {
                             + " possui S pendente, mas nenhum formulado N-00-K2O selecionável contém S; complementar com fonte simples cadastrada.");
                 }
             }
-            rows.addAll(candidates.stream()
+            List<FormulatedFertilizerSelectionService.FormulatedFertilizerSelectionCandidate> balancedCandidates = candidates.stream()
+                    .filter(candidate -> hasAcceptableNkBalances(
+                            candidate.providedN(), coverage.requiredN(),
+                            candidate.providedK2O(), coverage.requiredK2O()))
+                    .toList();
+            if (balancedCandidates.isEmpty()) {
+                addWarning(warnings, "Cobertura " + coverageLabel(coverage.coverageOrder())
+                        + ": " + SIMPLE_FERTILIZER_REQUIRED_MESSAGE);
+                continue;
+            }
+            rows.addAll(balancedCandidates.stream()
                     .limit(2)
                     .map(candidate -> toRow(candidate, recommendedRatio.ratio(), coverage, crop))
                     .toList());
@@ -127,9 +141,19 @@ class CoverageFormulatedFertilizerRecommendationService {
                 .build();
     }
 
-    private boolean hasPositiveNk(CoverageNpkRecommendation coverage) {
+    private boolean hasBothPositiveNk(CoverageNpkRecommendation coverage) {
         return coverage != null
-                && (isPositive(coverage.requiredN()) || isPositive(coverage.requiredK2O()));
+                && isPositive(coverage.requiredN()) && isPositive(coverage.requiredK2O());
+    }
+
+    static boolean hasAcceptableNkBalances(double providedN, double requiredN,
+                                           double providedK2O, double requiredK2O) {
+        return withinTenPercent(providedN, requiredN) && withinTenPercent(providedK2O, requiredK2O);
+    }
+
+    private static boolean withinTenPercent(double provided, double required) {
+        if (!Double.isFinite(provided) || !Double.isFinite(required) || required <= 0d) return false;
+        return Math.abs(provided - required) <= required * BALANCE_TOLERANCE + EPSILON;
     }
 
     private boolean isPositive(Double value) {

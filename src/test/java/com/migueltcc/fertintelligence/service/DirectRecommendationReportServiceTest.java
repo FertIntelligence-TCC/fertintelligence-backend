@@ -14,6 +14,7 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrie
 import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationFertilizerResolver;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -130,6 +131,7 @@ class DirectRecommendationReportServiceTest {
                 mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
         DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
                 mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationFertilizerResolver fertilizerResolver = mock(DirectRecommendationFertilizerResolver.class);
         DirectRecommendationReportService service = new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
                 null,
@@ -139,7 +141,7 @@ class DirectRecommendationReportServiceTest {
                 micronutrientRepository,
                 plantingRepository,
                 coverageRepository,
-                null
+                fertilizerResolver
         );
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         recommendation.setId(1L);
@@ -172,6 +174,10 @@ class DirectRecommendationReportServiceTest {
                         .build()));
         when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
                 .thenReturn(List.of());
+        when(fertilizerResolver.formulated(null)).thenReturn(
+                new DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData("04-14-08", 4d, 14d, 8d));
+        when(fertilizerResolver.simple(null, AppliedMicronutrient.B)).thenReturn(
+                new DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData("Borax", 11d));
 
         String report = service.build(recommendation);
 
@@ -183,13 +189,14 @@ class DirectRecommendationReportServiceTest {
     }
 
     @Test
-    void buildDoesNotUseSourceCoverageRowsWhenStructuredPlantingExistsWithoutStructuredCoverage() {
+    void buildIncludesSimpleCoverageOptionWhenStructuredPlantingExistsWithoutStructuredCoverage() {
         DirectRecommendationMicronutrientFertilizerLineRepository micronutrientRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingRepository =
                 mock(DirectRecommendationPlantingFormulatedFertilizerLineRepository.class);
         DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageRepository =
                 mock(DirectRecommendationCoverageFormulatedFertilizerLineRepository.class);
+        DirectRecommendationFertilizerResolver fertilizerResolver = mock(DirectRecommendationFertilizerResolver.class);
         DirectRecommendationReportService service = new DirectRecommendationReportService(
                 new CropSpacingCalculationService(),
                 null,
@@ -199,7 +206,7 @@ class DirectRecommendationReportServiceTest {
                 micronutrientRepository,
                 plantingRepository,
                 coverageRepository,
-                null
+                fertilizerResolver
         );
         RecommendationModel recommendation = recommendationWithPlantingAndCoverageTechnicalReport();
         recommendation.setId(1L);
@@ -224,15 +231,16 @@ class DirectRecommendationReportServiceTest {
                         .build()));
         when(coverageRepository.findAllByDirectRecommendationOrderByCoverageOrderAscDoseKgHaDescIdAsc(directRecommendation))
                 .thenReturn(List.of());
+        when(fertilizerResolver.formulated(null)).thenReturn(
+                new DirectRecommendationFertilizerResolver.FormulatedMineralFertilizerData("04-14-08", 4d, 14d, 8d));
 
         String report = service.build(recommendation);
 
         assertThat(report).contains("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | g/m linear | Observação técnica |");
         assertThat(report).contains("| Plantio | 04-14-08 | 1-3.5-2 | 250.00 kg/ha | 12.50 | Formulado de plantio selecionado. |");
         assertThat(report).contains("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | Não calculado por falta de dados. | Não calculado por falta de dados. | Aviso técnico: não houve linha estruturada de formulado NPK para cobertura; a recomendação direta não propagou a cobertura textual do laudo. |");
-        assertThat(report).doesNotContain("Cobertura propagada do laudo técnico");
-        assertThat(report).doesNotContain("| Cobertura 1 - N | Ureia |");
-        assertThat(report).doesNotContain("| Cobertura 2 - K | Cloreto de potássio |");
+        assertThat(report).contains("| Opção 2 - Cobertura com adubos simples - N | Ureia |");
+        assertThat(report).contains("| Opção 2 - Cobertura com adubos simples - K2O | Cloreto de potássio |");
     }
 
     @Test
@@ -399,8 +407,8 @@ class DirectRecommendationReportServiceTest {
 
                         | Fase | Nutriente | Fertilizante | Quantidade |
                         |---|---|---|---:|
-                        | Cobertura 1 - N | N | Ureia | 60 kg/ha |
-                        | Cobertura 2 - K | K2O | Cloreto de potássio | 40 kg/ha |
+                        | Opção 2 - Cobertura com adubos simples - N | N | Ureia | 60 kg/ha |
+                        | Opção 2 - Cobertura com adubos simples - K2O | K2O | Cloreto de potássio | 40 kg/ha |
                         """)
                 .build();
     }

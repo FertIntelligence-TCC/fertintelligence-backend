@@ -146,7 +146,7 @@ class RecommendationCalculationServiceTest {
     @Test
     void formulatedPlantingWarningDoesNotMentionP2O5WhenDeficitIsZero() throws Exception {
         NutrientFertilizationCalculationService service = new NutrientFertilizationCalculationService(
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null);
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
                 .id(8L)
                 .N(8d)
@@ -193,6 +193,20 @@ class RecommendationCalculationServiceTest {
                 .contains("serão repassados para cobertura")
                 .doesNotContain("déficit de P2O5 0.00")
                 .doesNotContain("P2O5 0.00 kg/ha exige ajuste técnico");
+    }
+
+    @Test
+    void effectiveGypsumRequiresRecommendationAndPositiveDose() {
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(true).calculatedRequirement(1742.5d).sulfurEquivalent(261.375d).build())).isTrue();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(true).calculatedRequirement(0d).build())).isFalse();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(false).calculatedRequirement(1742.5d).build())).isFalse();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(null)).isFalse();
     }
 
     @SuppressWarnings("unchecked")

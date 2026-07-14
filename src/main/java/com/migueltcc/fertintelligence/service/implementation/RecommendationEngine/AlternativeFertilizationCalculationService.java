@@ -940,7 +940,7 @@ class AlternativeFertilizationCalculationService {
 
     private String formatNumber(Double value) {
         if (value == null) return "não informado";
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     private double nvl(Double v) {

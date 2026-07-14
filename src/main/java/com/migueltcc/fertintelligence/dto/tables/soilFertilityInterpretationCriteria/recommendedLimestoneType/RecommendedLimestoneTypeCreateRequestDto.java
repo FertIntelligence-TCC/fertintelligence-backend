@@ -16,10 +16,6 @@ public class RecommendedLimestoneTypeCreateRequestDto {
 
     @JsonProperty("relacao_ca_mg_baixa")
     private Double caMgLowRatio;
-    @JsonProperty("relacao_ca_mg_media_menor_valor")
-    private Double caMgMediumLowerValue;
-    @JsonProperty("relacao_ca_mg_media_maior_valor")
-    private Double caMgMediumHigherValue;
     @JsonProperty("relacao_ca_mg_alta")
     private Double caMgHighRatio;
 

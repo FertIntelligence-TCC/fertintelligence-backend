@@ -69,7 +69,10 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Fontes selecionadas", "fertilizantes_recomendados", null, null));
-        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Adubação complementar de micronutrientes com outras fontes"),
+                null, "Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
+                "complementos_micronutrientes", "complemento", "complemento"));
+        sections.add(section(report, "13.3. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(report, "15. Memória de cálculo", "Memória de cálculo", "memoria_calculo", null, null));
         return nonEmpty(sections);
     }
@@ -79,17 +82,19 @@ public class RecommendationStructuredDataAssembler {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 1 - formulados", "adubacao_corretiva_opcao_1", OPTION_CORRECTIVE_FORMULATED, true));
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
-        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
-        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
-        sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados", "fertilizantes_recomendados", null, null));
-        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes orgânicas, organominerais e micronutrientes"),
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes quelatadas, orgânicas e organominerais"),
                 null,
-                "Fontes orgânicas, organominerais e micronutrientes",
+                "Fontes quelatadas, orgânicas e organominerais",
                 "fontes_alternativas",
                 "complemento",
                 "complemento"));
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Adubação complementar de micronutrientes com outras fontes"),
+                null, "Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
+                "complementos_micronutrientes", "complemento", "complemento"));
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "12. Balanço nutricional", "Balanço nutricional", "balanco_nutricional", null, null));
+        sections.add(section(report, "14. Observações técnicas", "Observações técnicas", "observacoes_tecnicas", null, "observacao"));
         return nonEmpty(sections);
     }
 
@@ -100,8 +105,11 @@ public class RecommendationStructuredDataAssembler {
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
         sections.add(micronutrientLineSection(recommendation));
         sections.add(directPlantingFormulatedLineSection(recommendation));
+        sections.add(section(report, "10. Adubação de plantio", "Plantio - Opção 2 - adubos simples", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(directCoverageFormulatedLineSection(recommendation));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura - Opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(directReport, "Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
+        sections.add(section(report, "14. Observações técnicas", "Observações técnicas", "observacoes_tecnicas", null, "observacao"));
         return nonEmpty(sections);
     }
 
@@ -460,6 +468,7 @@ public class RecommendationStructuredDataAssembler {
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrients) {
             DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
                     fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
+            if (FteProductEligibility.isHistoricalSupportedFte(fertilizer.name())) continue;
             rows.add(List.of(
                     value(line.getMicronutrient()),
                     value(fertilizer.name()),
