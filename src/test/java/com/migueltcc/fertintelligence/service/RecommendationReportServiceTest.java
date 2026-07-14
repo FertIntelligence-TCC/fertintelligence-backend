@@ -253,6 +253,36 @@ class RecommendationReportServiceTest {
     }
 
     @Test
+    void buildTechnicalReport_RendersValidCalciumMagnesiumTargetWhenOtherTargetIsUnavailable() {
+        RecommendationCalculationService.RecommendationCalculationResult result =
+                RecommendationCalculationService.RecommendationCalculationResult.builder()
+                        .requesterName("Produtor")
+                        .propertyName("Fazenda")
+                        .plotIdentification("Talhao 1")
+                        .cropName("MILHO")
+                        .recommendationType("ACIDITY_OR_SALINITY_CORRECTION")
+                        .issuedAt(LocalDateTime.of(2026, 7, 14, 10, 0))
+                        .limingRequirement(RecommendationCalculationService.LimingRequirementResult.builder()
+                                .calculatedRequirement(1d)
+                                .theoreticalRequirement(1d)
+                                .calciumMagnesiumBalance(new CalciumMagnesiumBalanceCalculator().calculate(1d, 25d, 10d))
+                                .unit("t/ha")
+                                .warnings(List.of())
+                                .build())
+                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
+                                .evaluated(false).warnings(List.of()).build())
+                        .build();
+
+        String report = reportService.buildTechnicalReport(result);
+
+        assertTrue(report.contains("Composição teórica para 3:1"));
+        assertTrue(report.contains("Aviso técnico para o alvo 4:1"));
+        assertFalse(report.contains("Composição teórica para 4:1: CaO"));
+        assertFalse(report.contains("NaN"));
+        assertFalse(report.contains("Infinity"));
+    }
+
+    @Test
     void buildTechnicalReport_DoesNotRenderEmptyCoverageNutrientLabel() {
         RecommendationCalculationService.RecommendationCalculationResult result =
                 RecommendationCalculationService.RecommendationCalculationResult.builder()

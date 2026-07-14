@@ -78,7 +78,9 @@ final class TechnicalRecommendationDocumentSupport {
             "Entradas de calagem",
             "Entradas de gessagem",
             "13.1. Fontes quelatadas, orgânicas e organominerais",
-            "13.2. Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)"
+            "13.2. Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
+            "Menores preços unitários dos nutrientes em fontes simples/concentradas",
+            "Decisão econômica por unidade comercial"
     );
 
     private TechnicalRecommendationDocumentSupport() {

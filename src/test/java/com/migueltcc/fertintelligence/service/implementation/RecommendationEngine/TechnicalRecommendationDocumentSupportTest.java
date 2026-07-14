@@ -22,6 +22,31 @@ import static org.mockito.Mockito.mock;
 class TechnicalRecommendationDocumentSupportTest {
 
     @Test
+    void opportunityCostNutrientSubsectionDoesNotMixDecisionTableRows() {
+        String report = """
+                13.3. Comparativo de custo de oportunidade
+
+                Menores preços unitários dos nutrientes em fontes simples/concentradas
+
+                | Nutriente | R$/kg nutriente | Fonte | Tipo | Unidade comercial | Preço comercial |
+                |---|---:|---|---|---:|---:|
+                | P2O5 | R$ 2,50 | Superfosfato Triplo | SIMPLES | 50 kg | R$ 125,00 |
+
+                Decisão econômica por unidade comercial
+
+                | Categoria | Adubo | PC | PO | Unidade | Razão PC/PO | Decisão | Justificativa |
+                |---|---|---:|---:|---:|---:|---|---|
+                | N | Ureia | 100 | 90 | 50 | 1,11 | oportunidade | menor custo |
+                """;
+
+        String subsection = TechnicalRecommendationDocumentSupport.section(
+                report, "13.3. Comparativo de custo de oportunidade");
+
+        assertThat(RecommendationStructuredDataAssembler.firstTableRows(subsection)).containsExactly(
+                List.of("P2O5", "R$ 2,50", "Superfosfato Triplo", "SIMPLES", "50 kg", "R$ 125,00"));
+    }
+
+    @Test
     void collectShoppingItemsPropagatesPhaseAndLocalizedUnitFromStructuredRecommendationLines() {
         RecommendationModel recommendation = RecommendationModel.builder()
                 .cropName(NomeComum.MILHO)

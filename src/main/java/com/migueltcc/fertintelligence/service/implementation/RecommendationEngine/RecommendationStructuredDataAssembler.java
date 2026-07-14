@@ -72,7 +72,9 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Adubação complementar de micronutrientes com outras fontes"),
                 null, "Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
                 "complementos_micronutrientes", "complemento", "complemento"));
-        sections.add(section(report, "13.3. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(
+                        report, "Menores preços unitários dos nutrientes em fontes simples/concentradas"),
+                null, "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(report, "15. Memória de cálculo", "Memória de cálculo", "memoria_calculo", null, null));
         return nonEmpty(sections);
     }
@@ -108,7 +110,9 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "10. Adubação de plantio", "Plantio - Opção 2 - adubos simples", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(directCoverageFormulatedLineSection(recommendation));
         sections.add(section(report, "11. Adubação de cobertura", "Cobertura - Opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
-        sections.add(section(directReport, "Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(
+                        directReport, "Menores preços unitários dos nutrientes em fontes simples/concentradas"),
+                null, "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(report, "14. Observações técnicas", "Observações técnicas", "observacoes_tecnicas", null, "observacao"));
         return nonEmpty(sections);
     }
@@ -536,7 +540,7 @@ public class RecommendationStructuredDataAssembler {
                                                   String option,
                                                   String itemType) {
         String section = heading == null ? report : TechnicalRecommendationDocumentSupport.section(report, heading);
-        List<List<String>> tableRows = TechnicalRecommendationDocumentSupport.tableRows(section);
+        List<List<String>> tableRows = firstTableRows(section);
         if (tableRows.isEmpty()) {
             return null;
         }
@@ -556,6 +560,37 @@ public class RecommendationStructuredDataAssembler {
                 .technicalWarnings(observations)
                 .calculationMemory(calculationMemory)
                 .build();
+    }
+
+    static List<List<String>> firstTableRows(String section) {
+        if (section == null || section.isBlank()) return List.of();
+        List<List<String>> rows = new ArrayList<>();
+        boolean headerFound = false;
+        boolean separatorFound = false;
+        for (String line : section.split("\\R")) {
+            String trimmed = line.trim();
+            if (!headerFound) {
+                if (trimmed.startsWith("|") && !isSeparatorRow(trimmed)) headerFound = true;
+                continue;
+            }
+            if (!separatorFound) {
+                if (isSeparatorRow(trimmed)) separatorFound = true;
+                continue;
+            }
+            if (!trimmed.startsWith("|")) {
+                if (!rows.isEmpty()) break;
+                continue;
+            }
+            if (!isSeparatorRow(trimmed)) rows.add(splitStructuredRow(trimmed));
+        }
+        return rows;
+    }
+
+    private static List<String> splitStructuredRow(String line) {
+        String body = line.substring(1, line.endsWith("|") ? line.length() - 1 : line.length());
+        List<String> cells = new ArrayList<>();
+        for (String cell : body.split("\\|", -1)) cells.add(cell.trim());
+        return cells;
     }
 
     private List<String> tableHeader(String section) {
@@ -667,7 +702,7 @@ public class RecommendationStructuredDataAssembler {
         return deduplicate(memory);
     }
 
-    private boolean isSeparatorRow(String line) {
+    private static boolean isSeparatorRow(String line) {
         return line.replace("|", "").replace(":", "").replace("-", "").trim().isBlank();
     }
 

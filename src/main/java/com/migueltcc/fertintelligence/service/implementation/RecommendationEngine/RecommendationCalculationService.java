@@ -925,14 +925,11 @@ public class RecommendationCalculationService {
         }
 
         addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Simples", "P2O5", dose,
-                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"), "Superfosfato Simples",
+                selectCorrectivePhosphorusSource(user, sourceOption, "superfosfato simples"), "Superfosfato Simples",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo. P Mehlich-1 = " + formatNumber(p)
                         + " mg/dm³; argila = " + formatNumber(clay) + " g/kg; linha de adubação corretiva P2O5 ID " + selectedLine.getId() + ".", warnings);
         addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Triplo", "P2O5", dose,
-                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), "Superfosfato Triplo",
-                "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
-        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Termofosfato Magnesiano", "P2O5", dose,
-                selectSimpleByNameOrNutrient(user, sourceOption, "termofosfato", "P2O5"), "Termofosfato Magnesiano",
+                selectCorrectivePhosphorusSource(user, sourceOption, "superfosfato triplo"), "Superfosfato Triplo",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
         return round2(dose);
     }
@@ -1003,8 +1000,8 @@ public class RecommendationCalculationService {
                 .technicalWarning(balanceWarning(recommendedP2O5, recommendedK2O, pBalance, kBalance))
                 .build());
         addComplementRow(rows, "Complemento P2O5 após formulado", "P2O5", recommendedP2O5 - providedP,
-                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"),
-                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), warnings);
+                selectCorrectivePhosphorusSource(user, sourceOption, "superfosfato simples"),
+                selectCorrectivePhosphorusSource(user, sourceOption, "superfosfato triplo"), warnings);
         addComplementRow(rows, "Complemento K2O após formulado", "K2O", recommendedK2O - providedK,
                 selectSimpleByNameOrNutrient(user, sourceOption, "cloreto de potassio", "K2O"),
                 null, warnings);
@@ -1173,7 +1170,7 @@ public class RecommendationCalculationService {
         }
         rows.add(CorrectiveFertilizationRow.builder()
                 .correctedAttribute("FTE BR 12 corretivo")
-                .need(baseNutrient.name() + " como nutriente-base: " + formatNumber(baseDose) + " kg/ha")
+                .need(baseNutrient.name() + " como nutriente-base: " + formatFteNumber(baseDose) + " kg/ha")
                 .suggestedSource(fte.getName())
                 .dose(dose)
                 .doseUnit("kg/ha de produto")
@@ -1335,6 +1332,25 @@ public class RecommendationCalculationService {
                         .orElse(null));
     }
 
+    private SimpleMineralFertilizerModel selectCorrectivePhosphorusSource(UserModel user,
+                                                                          FertilizerSourceOption sourceOption,
+                                                                          String nameToken) {
+        String normalizedToken = normalizeText(nameToken);
+        return selectSimpleFertilizers(user, sourceOption).stream()
+                .filter(fertilizer -> isEligibleAutomaticCorrectivePhosphorusSource(fertilizer.getName()))
+                .filter(fertilizer -> normalizeText(fertilizer.getName()).contains(normalizedToken))
+                .filter(fertilizer -> positive(fertilizer.getP2O5()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    static boolean isEligibleAutomaticCorrectivePhosphorusSource(String name) {
+        String normalized = name == null ? "" : java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+        return normalized.contains("superfosfato simples") || normalized.contains("superfosfato triplo");
+    }
+
     private List<SimpleMineralFertilizerModel> selectSimpleFertilizers(UserModel user, FertilizerSourceOption sourceOption) {
         FertilizerSourceOption resolvedOption = sourceOption != null ? sourceOption : FertilizerSourceOption.BOTH;
         return switch (resolvedOption) {
@@ -1398,8 +1414,8 @@ public class RecommendationCalculationService {
         for (AppliedMicronutrient micronutrient : List.of(AppliedMicronutrient.B, AppliedMicronutrient.Cu, AppliedMicronutrient.Fe, AppliedMicronutrient.Mn, AppliedMicronutrient.Zn)) {
             double required = nvl(recommended.get(micronutrient));
             double applied = fteDoseKgHa * micronutrientConcentration(fte, micronutrient) / 100d;
-            parts.add(micronutrient.name() + " recomendado " + formatNumber(required) + ", aplicado " + formatNumber(applied)
-                    + ", saldo " + formatNumber(applied - required) + " kg/ha");
+            parts.add(micronutrient.name() + " recomendado " + formatFteNumber(required) + ", aplicado " + formatFteNumber(applied)
+                    + ", saldo " + formatFteNumber(applied - required) + " kg/ha");
         }
         return String.join("; ", parts);
     }
@@ -2393,6 +2409,12 @@ public class RecommendationCalculationService {
     private String formatNumber(Double value) {
         if (value == null) return "não informado";
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private String formatFteNumber(Double value) {
+        return value == null || !Double.isFinite(value)
+                ? "não informado"
+                : String.format(Locale.US, "%.2f", value);
     }
 
     private String describePhysicalExtract(PhysicalAnalysisExtractModel extract) {

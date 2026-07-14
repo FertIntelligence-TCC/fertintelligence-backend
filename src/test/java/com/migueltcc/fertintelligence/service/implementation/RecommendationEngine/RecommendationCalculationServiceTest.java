@@ -6,6 +6,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Range
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.DiverseContentRangeRepository;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
 import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
@@ -15,11 +16,20 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecommendationCalculationServiceTest {
+
+    @Test
+    void automaticCorrectivePhosphorusAcceptsOnlySimpleAndTripleSuperphosphate() {
+        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Superfosfato Simples")).isTrue();
+        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Superfosfato Triplo")).isTrue();
+        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Termofosfato Magnesiano")).isFalse();
+        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("TFMg")).isFalse();
+    }
 
     @Test
     void potassiumUsesIndependentDiverseRangesForFiveLevelClassificationAndBoundaries() throws Exception {
@@ -207,6 +217,42 @@ class RecommendationCalculationServiceTest {
                 RecommendationCalculationService.GypsumRequirementResult.builder()
                         .needed(false).calculatedRequirement(1742.5d).build())).isFalse();
         assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(null)).isFalse();
+    }
+
+    @Test
+    void newRecommendationSelectsBr12WhenBr24IsAlsoRegistered() throws Exception {
+        RecommendationCalculationService service = serviceWithRepositories(null);
+        Method method = RecommendationCalculationService.class.getDeclaredMethod("selectFteBr12", List.class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Optional<SimpleMineralFertilizerModel> selected = (Optional<SimpleMineralFertilizerModel>) method.invoke(
+                service,
+                List.of(
+                        SimpleMineralFertilizerModel.builder().name("FTE BR-24").build(),
+                        SimpleMineralFertilizerModel.builder().name("FTE BR-12").build()));
+
+        assertThat(selected).isPresent();
+        assertThat(selected.orElseThrow().getName()).isEqualTo("FTE BR-12");
+    }
+
+    @Test
+    void fteBalancePresentationUsesTwoDecimalsWithoutChangingInputs() throws Exception {
+        RecommendationCalculationService service = serviceWithRepositories(null);
+        Method method = RecommendationCalculationService.class.getDeclaredMethod(
+                "micronutrientBalanceSummary", Map.class, SimpleMineralFertilizerModel.class, Double.class);
+        method.setAccessible(true);
+        Map<com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient, Double> recommended =
+                new java.util.LinkedHashMap<>();
+        recommended.put(com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient.B, 2d);
+        SimpleMineralFertilizerModel fte = SimpleMineralFertilizerModel.builder().B(6d).build();
+        double originalDose = 20.001d;
+
+        String memory = (String) method.invoke(service, recommended, fte, originalDose);
+
+        assertThat(memory).contains("recomendado 2.00", "aplicado 1.20", "saldo -0.80");
+        assertThat(memory).doesNotContain("1.20006", "-0.7999400000000001");
+        assertThat(originalDose).isEqualTo(20.001d);
     }
 
     @SuppressWarnings("unchecked")

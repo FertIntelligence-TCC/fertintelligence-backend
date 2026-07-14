@@ -236,19 +236,31 @@ public class RecommendationReportService {
             report.append("- A relação Ca/Mg do solo é igual a ")
                     .append(formatDecimal(balance.currentRatio())).append(".\n");
         }
-        if (!balance.available()) {
+        if (balance.scenarios() == null || balance.scenarios().isEmpty()) {
             report.append("- Aviso técnico da composição do calcário: ")
                     .append(safe(balance.technicalWarning())).append("\n");
             return;
         }
 
-        report.append("- Para manter a relação Ca/Mg esperada entre 3:1 e 4:1, deve ser usado calcário com ")
-                .append(formatDecimal(balance.minimumCalciumOxidePercent())).append("% a ")
-                .append(formatDecimal(balance.maximumCalciumOxidePercent())).append("% de CaO e ")
-                .append(formatDecimal(balance.minimumMagnesiumOxidePercent())).append("% a ")
-                .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
-                .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
+        if (balance.available()) {
+            long availableScenarioCount = balance.scenarios().stream().filter(
+                    CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available).count();
+            report.append(availableScenarioCount == 2
+                            ? "- Para manter a relação Ca/Mg esperada entre 3:1 e 4:1, deve ser usado calcário com "
+                            : "- Para o alvo matematicamente disponível, deve ser usado calcário com ")
+                    .append(formatDecimal(balance.minimumCalciumOxidePercent())).append("% a ")
+                    .append(formatDecimal(balance.maximumCalciumOxidePercent())).append("% de CaO e ")
+                    .append(formatDecimal(balance.minimumMagnesiumOxidePercent())).append("% a ")
+                    .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
+                    .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
+        }
         for (CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario scenario : balance.scenarios()) {
+            if (!scenario.available()) {
+                report.append("- Aviso técnico para o alvo ")
+                        .append((int) scenario.desiredRatio()).append(":1: ")
+                        .append(safe(scenario.technicalWarning())).append("\n");
+                continue;
+            }
             report.append("- Composição teórica para ")
                     .append((int) scenario.desiredRatio()).append(":1: CaO ")
                     .append(formatDecimal(scenario.calciumOxidePercent())).append("%; MgO ")
