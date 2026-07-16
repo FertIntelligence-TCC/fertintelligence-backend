@@ -17,45 +17,6 @@ class RecommendationReportServiceTest {
     private final RecommendationReportService reportService = new RecommendationReportService();
 
     @Test
-    void addsGypsumAndCorrectiveSimpleSuperphosphateWarningsOnlyWhenEffective() {
-        RecommendationCalculationService.RecommendationCalculationResult result =
-                RecommendationCalculationService.RecommendationCalculationResult.builder()
-                        .recommendationType("BOTH")
-                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
-                                .needed(true).calculatedRequirement(1742.5d).unit("kg/ha")
-                                .sulfurEquivalent(261.375d).warnings(List.of()).build())
-                        .correctiveFertilizationRows(List.of(
-                                RecommendationCalculationService.CorrectiveFertilizationRow.builder()
-                                        .correctedAttribute("P2O5 corretivo").suggestedSource("Superfosfato simples")
-                                        .dose(200d).doseUnit("kg/ha").build()))
-                        .build();
-
-        String report = reportService.buildTechnicalReport(result);
-
-        assertTrue(report.contains("Caso se faça gessagem da área"));
-        assertTrue(report.contains("Se utilizar superfosfato simples na adubação corretiva"));
-        assertTrue(report.indexOf("Caso se faça gessagem da área") > report.indexOf("Dose de gesso"));
-    }
-
-    @Test
-    void omitsGypsumWarningForZeroDoseAndCorrectiveWarningForZeroDose() {
-        RecommendationCalculationService.RecommendationCalculationResult result =
-                RecommendationCalculationService.RecommendationCalculationResult.builder()
-                        .recommendationType("BOTH")
-                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
-                                .needed(true).calculatedRequirement(0d).warnings(List.of()).build())
-                        .correctiveFertilizationRows(List.of(
-                                RecommendationCalculationService.CorrectiveFertilizationRow.builder()
-                                        .suggestedSource("Superfosfato simples").dose(0d).build()))
-                        .build();
-
-        String report = reportService.buildTechnicalReport(result);
-
-        assertFalse(report.contains("Caso se faça gessagem da área"));
-        assertFalse(report.contains("Se utilizar superfosfato simples na adubação corretiva"));
-    }
-
-    @Test
     void buildTechnicalReport_UsesUpdatedRecommendationUnits() {
         RecommendationCalculationService.RecommendationCalculationResult result =
                 RecommendationCalculationService.RecommendationCalculationResult.builder()
@@ -253,36 +214,6 @@ class RecommendationReportServiceTest {
     }
 
     @Test
-    void buildTechnicalReport_RendersValidCalciumMagnesiumTargetWhenOtherTargetIsUnavailable() {
-        RecommendationCalculationService.RecommendationCalculationResult result =
-                RecommendationCalculationService.RecommendationCalculationResult.builder()
-                        .requesterName("Produtor")
-                        .propertyName("Fazenda")
-                        .plotIdentification("Talhao 1")
-                        .cropName("MILHO")
-                        .recommendationType("ACIDITY_OR_SALINITY_CORRECTION")
-                        .issuedAt(LocalDateTime.of(2026, 7, 14, 10, 0))
-                        .limingRequirement(RecommendationCalculationService.LimingRequirementResult.builder()
-                                .calculatedRequirement(1d)
-                                .theoreticalRequirement(1d)
-                                .calciumMagnesiumBalance(new CalciumMagnesiumBalanceCalculator().calculate(1d, 25d, 10d))
-                                .unit("t/ha")
-                                .warnings(List.of())
-                                .build())
-                        .gypsumRequirement(RecommendationCalculationService.GypsumRequirementResult.builder()
-                                .evaluated(false).warnings(List.of()).build())
-                        .build();
-
-        String report = reportService.buildTechnicalReport(result);
-
-        assertTrue(report.contains("Composição teórica para 3:1"));
-        assertTrue(report.contains("Aviso técnico para o alvo 4:1"));
-        assertFalse(report.contains("Composição teórica para 4:1: CaO"));
-        assertFalse(report.contains("NaN"));
-        assertFalse(report.contains("Infinity"));
-    }
-
-    @Test
     void buildTechnicalReport_DoesNotRenderEmptyCoverageNutrientLabel() {
         RecommendationCalculationService.RecommendationCalculationResult result =
                 RecommendationCalculationService.RecommendationCalculationResult.builder()
@@ -358,15 +289,13 @@ class RecommendationReportServiceTest {
         String report = reportService.buildTechnicalReport(result);
 
         int fertilizers = report.indexOf("13. Fertilizantes recomendados");
-        int alternativeSources = report.indexOf("13.1. Fontes quelatadas, orgânicas e organominerais");
-        int micronutrientComplements = report.indexOf("13.2. Adubação complementar de micronutrientes com outras fontes");
-        int opportunityCost = report.indexOf("13.3. Comparativo de custo de oportunidade");
-        int warning = report.indexOf("14. Observações técnicas");
+        int alternativeSources = report.indexOf("13.1. Fontes orgânicas, organominerais e micronutrientes");
+        int opportunityCost = report.indexOf("13.2. Comparativo de custo de oportunidade");
+        int warning = report.indexOf("14. Aviso técnico");
 
         assertTrue(fertilizers >= 0);
         assertTrue(alternativeSources > fertilizers);
-        assertTrue(micronutrientComplements > alternativeSources);
-        assertTrue(opportunityCost > micronutrientComplements);
+        assertTrue(opportunityCost > alternativeSources);
         assertTrue(warning > opportunityCost);
         assertFalse(report.contains("14. Fontes orgânicas"));
         assertFalse(report.contains("16. Aviso técnico"));

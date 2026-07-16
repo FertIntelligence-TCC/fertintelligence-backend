@@ -66,7 +66,7 @@ public class SummaryRecommendationReportService {
         appendOptionalSourceSection(
                 report,
                 "Recomendação de adubação orgânica",
-                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes quelatadas, orgânicas e organominerais"));
+                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
 
         appendMicronutrientRecommendation(report, micronutrientLines);
 
@@ -80,8 +80,14 @@ public class SummaryRecommendationReportService {
                 "Recomendações de N, P2O5 e K2O - cobertura",
                 TechnicalRecommendationDocumentSupport.section(source, "11. Adubação de cobertura"),
                 NOT_CALCULATED);
-        report.append("Observações técnicas\n\n");
-        appendWithoutHeading(report, source, "14. Observações técnicas", "Nenhuma observação adicional foi persistida.");
+        TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
+                report,
+                "Adubos simples e formulados",
+                TechnicalRecommendationDocumentSupport.section(source, "13. Fertilizantes recomendados"),
+                NOT_CALCULATED);
+
+        report.append("Observações\n\n");
+        appendWithoutHeading(report, source, "14. Limitações e alertas", "Nenhuma observação adicional foi persistida.");
         report.append("- Conversões g/m linear e g/cova: ").append(NOT_CALCULATED).append("\n");
         return report.toString();
     }
@@ -89,7 +95,7 @@ public class SummaryRecommendationReportService {
     private void appendMicronutrientRecommendation(
             StringBuilder report,
             List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientLines) {
-        report.append("Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)\n\n");
+        report.append("Recomendação de micronutrientes\n\n");
         if (micronutrientLines == null || micronutrientLines.isEmpty()) {
             report.append("- Micronutrientes: ").append(NOT_CALCULATED).append("\n");
             report.append("- Aviso técnico: não há linhas estruturadas de micronutrientes persistidas para esta recomendação. ")
@@ -103,7 +109,6 @@ public class SummaryRecommendationReportService {
             if (line == null) continue;
             DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
                     fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
-            if (FteProductEligibility.isHistoricalSupportedFte(fertilizer.name())) continue;
             if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())
                     || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())) continue;
             rows.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))

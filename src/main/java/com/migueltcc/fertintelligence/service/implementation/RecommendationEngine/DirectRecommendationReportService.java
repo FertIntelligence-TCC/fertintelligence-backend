@@ -109,16 +109,16 @@ public class DirectRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.section(source, "7. Calagem") + "\n\n" + TechnicalRecommendationDocumentSupport.stripHeading(TechnicalRecommendationDocumentSupport.section(source, "8. Gessagem")),
                 NOT_CALCULATED);
 
+        appendOptionalSourceSection(
+                report,
+                "Recomendação orgânica",
+                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
+
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
                 report,
                 "Adubação corretiva do solo",
                 TechnicalRecommendationDocumentSupport.section(source, "9. Adubação corretiva"),
                 NOT_CALCULATED);
-
-        appendOptionalSourceSection(
-                report,
-                "Recomendação orgânica",
-                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes quelatadas, orgânicas e organominerais"));
 
         appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
@@ -132,7 +132,7 @@ public class DirectRecommendationReportService {
 
     private void appendOpportunityCostComparison(StringBuilder report, String source) {
         String section = TechnicalRecommendationDocumentSupport.stripHeading(
-                TechnicalRecommendationDocumentSupport.section(source, "13.3. Comparativo de custo de oportunidade"));
+                TechnicalRecommendationDocumentSupport.section(source, "13.2. Comparativo de custo de oportunidade"));
         String content = TechnicalRecommendationDocumentSupport.cleanSectionForFinalReport(section);
         if (content.isBlank()) {
             return;
@@ -155,7 +155,7 @@ public class DirectRecommendationReportService {
                                           String source,
                                           DirectDoseUnitMetadata doseUnitMetadata,
                                           List<DirectRecommendationMicronutrientFertilizerLineModel> directLines) {
-        report.append("Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)\n\n");
+        report.append("Tabela de micronutrientes\n\n");
         if (directLines != null && !directLines.isEmpty()) {
             StringBuilder rows = new StringBuilder();
             boolean appended = false;
@@ -163,7 +163,6 @@ public class DirectRecommendationReportService {
                 if (line == null) continue;
                 DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
                         fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
-                if (FteProductEligibility.isHistoricalSupportedFte(fertilizer.name())) continue;
                 if (!TechnicalRecommendationDocumentSupport.hasPositiveKgHa(line.getFertilizerDoseKgHa())
                         || TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer.name())) continue;
                 rows.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(line.getMicronutrient()))
@@ -189,7 +188,7 @@ public class DirectRecommendationReportService {
 
         StringBuilder rowContent = new StringBuilder();
         List<List<String>> sourceRows = TechnicalRecommendationDocumentSupport.tableRows(
-                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes quelatadas, orgânicas e organominerais"));
+                TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         boolean appended = false;
         for (List<String> row : sourceRows) {
             if (row.size() < 5) continue;
@@ -227,7 +226,6 @@ public class DirectRecommendationReportService {
             boolean appended = appendPlantingFormulatedRows(rows, plantingFormulatedFertilizerLines);
             appended = appendAdditionalPlantingRowsForFormulatedTable(rows, source, crop, doseUnitMetadata, spacingWarnings) || appended;
             appended = appendCoverageFormulatedRows(rows, coverageFormulatedFertilizerLines) || appended;
-            appended = appendAdditionalCoverageRowsForFormulatedTable(rows, source, crop, doseUnitMetadata, spacingWarnings) || appended;
             if (coverageFormulatedFertilizerLines == null || coverageFormulatedFertilizerLines.isEmpty()) {
                 rows.append("| Cobertura | Não estruturado | Não aplicável com os dados disponíveis. | ")
                         .append("Não calculado por falta de dados. | ")
@@ -340,42 +338,6 @@ public class DirectRecommendationReportService {
             appended = true;
         }
         return appended;
-    }
-
-    private boolean appendAdditionalCoverageRowsForFormulatedTable(
-            StringBuilder report,
-            String source,
-            CropModel crop,
-            DirectDoseUnitMetadata doseUnitMetadata,
-            List<String> spacingWarnings) {
-        boolean appended = false;
-        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(
-                TechnicalRecommendationDocumentSupport.section(source, "11. Adubação de cobertura"))) {
-            if (row.size() < 4) continue;
-            String phase = row.get(0);
-            String fertilizer = row.get(2);
-            String quantity = row.get(3);
-            if (!isSimpleCoverageOption(phase)) continue;
-            if (TechnicalRecommendationDocumentSupport.looksUnavailable(fertilizer)
-                    || TechnicalRecommendationDocumentSupport.looksUnavailable(quantity)
-                    || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(quantity)) continue;
-            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(phase))
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(fertilizer))
-                    .append(" | ")
-                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(quantity))
-                    .append(" | ").append(calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings))
-                    .append(" | Adubo simples da Opção 2 de cobertura propagado da linha estruturada do laudo técnico. |\n");
-            appended = true;
-        }
-        return appended;
-    }
-
-    private boolean isSimpleCoverageOption(String phase) {
-        if (phase == null) return false;
-        String normalized = java.text.Normalizer.normalize(phase, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
-        return normalized.contains("opcao 2") && normalized.contains("cobertura");
     }
 
     private boolean appendCoverageFormulatedRows(

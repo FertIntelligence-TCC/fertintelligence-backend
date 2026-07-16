@@ -100,7 +100,7 @@ public class RecommendationReportService {
     }
 
     private void appendOpportunityCostComparison(StringBuilder report, RecommendationCalculationService.RecommendationCalculationResult result) {
-        report.append("13.3. Comparativo de custo de oportunidade\n\n");
+        report.append("13.2. Comparativo de custo de oportunidade\n\n");
         report.append("Menores preços unitários dos nutrientes em fontes simples/concentradas\n\n");
         report.append("| Nutriente | R$/kg nutriente | Fonte | Tipo | Unidade comercial | Preço comercial |\n");
         report.append("|---|---:|---|---|---:|---:|\n");
@@ -236,31 +236,19 @@ public class RecommendationReportService {
             report.append("- A relação Ca/Mg do solo é igual a ")
                     .append(formatDecimal(balance.currentRatio())).append(".\n");
         }
-        if (balance.scenarios() == null || balance.scenarios().isEmpty()) {
+        if (!balance.available()) {
             report.append("- Aviso técnico da composição do calcário: ")
                     .append(safe(balance.technicalWarning())).append("\n");
             return;
         }
 
-        if (balance.available()) {
-            long availableScenarioCount = balance.scenarios().stream().filter(
-                    CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available).count();
-            report.append(availableScenarioCount == 2
-                            ? "- Para manter a relação Ca/Mg esperada entre 3:1 e 4:1, deve ser usado calcário com "
-                            : "- Para o alvo matematicamente disponível, deve ser usado calcário com ")
-                    .append(formatDecimal(balance.minimumCalciumOxidePercent())).append("% a ")
-                    .append(formatDecimal(balance.maximumCalciumOxidePercent())).append("% de CaO e ")
-                    .append(formatDecimal(balance.minimumMagnesiumOxidePercent())).append("% a ")
-                    .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
-                    .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
-        }
+        report.append("- Para manter a relação Ca/Mg esperada entre 3:1 e 4:1, deve ser usado calcário com ")
+                .append(formatDecimal(balance.minimumCalciumOxidePercent())).append("% a ")
+                .append(formatDecimal(balance.maximumCalciumOxidePercent())).append("% de CaO e ")
+                .append(formatDecimal(balance.minimumMagnesiumOxidePercent())).append("% a ")
+                .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
+                .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
         for (CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario scenario : balance.scenarios()) {
-            if (!scenario.available()) {
-                report.append("- Aviso técnico para o alvo ")
-                        .append((int) scenario.desiredRatio()).append(":1: ")
-                        .append(safe(scenario.technicalWarning())).append("\n");
-                continue;
-            }
             report.append("- Composição teórica para ")
                     .append((int) scenario.desiredRatio()).append(":1: CaO ")
                     .append(formatDecimal(scenario.calciumOxidePercent())).append("%; MgO ")
@@ -306,11 +294,6 @@ public class RecommendationReportService {
         report.append("- Justificativa da fonte: ").append(safe(gypsum.getSourceJustification())).append("\n");
         appendPresentBullet(report, "Limitações da fonte", gypsum.getSourceLimitations(), null);
         appendFirstWarning(report, "Aviso técnico de gessagem", gypsum.getWarnings());
-        if (RecommendationCalculationService.isEffectiveGypsumRecommendation(gypsum)) {
-            report.append("- Atenção: Caso se faça gessagem da área, não precisa aplicar enxofre na adubação de plantio. "
-                    + "Se precisar usar sulfato de amônio ou superfosfato simples na adubação de plantio, "
-                    + "desconsiderar a quantidade adicional de S aplicada. Ele não é limitante.\n");
-        }
         report.append("\n");
     }
 
@@ -331,13 +314,6 @@ public class RecommendationReportService {
                     .append(" | ").append(safeCell(row.getCalculationMemory()))
                     .append(" | ").append(safeCell(row.getTechnicalWarning()))
                     .append(" |\n");
-        }
-        boolean recommendsSimpleSuperphosphate = rows.stream().anyMatch(row -> row.getDose() != null
-                && row.getDose() > 0d
-                && row.getSuggestedSource() != null
-                && row.getSuggestedSource().toLowerCase(Locale.ROOT).contains("superfosfato simples"));
-        if (recommendsSimpleSuperphosphate) {
-            report.append("\nAtenção: Se utilizar superfosfato simples na adubação corretiva, não usar enxofre na adubação de plantio.\n");
         }
         report.append("\n");
     }
@@ -418,14 +394,14 @@ public class RecommendationReportService {
             report.append("\n");
         }
 
-        report.append("13.1. Fontes quelatadas, orgânicas e organominerais\n\n");
+        report.append("13.1. Fontes orgânicas, organominerais e micronutrientes\n\n");
         report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
         report.append("|---|---|---|---:|---|---|---|\n");
         boolean hasAlternativeRows = result.getAlternativeFertilizationRows() != null && !result.getAlternativeFertilizationRows().isEmpty();
         boolean hasMicronutrientRows = result.getMicronutrientFertilizerRows() != null && !result.getMicronutrientFertilizerRows().isEmpty();
-        if (!hasAlternativeRows) {
-            report.append("Aviso técnico: fontes quelatadas, orgânicas e organominerais não geraram dose operacional com os dados persistidos.\n");
-        } else {
+        if (!hasAlternativeRows && !hasMicronutrientRows) {
+            report.append("Aviso técnico: fontes orgânicas, organominerais e micronutrientes não geraram dose operacional com os dados persistidos.\n\n");
+        } else if (hasAlternativeRows) {
             for (RecommendationCalculationService.AlternativeFertilizationRecommendationRow row : result.getAlternativeFertilizationRows()) {
                 if (row == null
                         || TechnicalRecommendationDocumentSupport.looksUnavailable(row.getSourceName())
@@ -440,16 +416,9 @@ public class RecommendationReportService {
                         .append(" |\n");
             }
         }
-        report.append("\n13.2. Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)\n\n");
-        report.append("| Tipo de fonte | Nutriente/objetivo | Fonte | Dose | Unidade | Justificativa | Limitações |\n");
-        report.append("|---|---|---|---:|---|---|---|\n");
-        if (!hasMicronutrientRows) {
-            report.append("Aviso técnico: complementos minerais de micronutrientes não geraram dose operacional com os dados persistidos.\n");
-        }
         if (hasMicronutrientRows) {
             Set<String> alternativeMicronutrientObjectives = alternativeMicronutrientObjectives(result.getAlternativeFertilizationRows());
             for (RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row : result.getMicronutrientFertilizerRows()) {
-                if (FteProductEligibility.isHistoricalSupportedFte(row.getFertilizerName())) continue;
                 String micronutrient = row.getMicronutrient() != null ? row.getMicronutrient().name() : null;
                 if (micronutrient != null && alternativeMicronutrientObjectives.contains(micronutrient)) {
                     continue;
@@ -511,7 +480,7 @@ public class RecommendationReportService {
         if (warning == null) {
             return;
         }
-        report.append("14. Observações técnicas\n\n");
+        report.append("14. Aviso técnico\n\n");
         report.append("- ").append(warning).append("\n\n");
     }
 

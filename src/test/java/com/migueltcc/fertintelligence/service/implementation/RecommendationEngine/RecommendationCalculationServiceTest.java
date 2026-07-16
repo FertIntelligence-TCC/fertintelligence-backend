@@ -6,7 +6,6 @@ import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.Range
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.criteria.DiverseContentRangeModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.repository.DiverseContentRangeRepository;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizers.NPKrelation;
 import com.migueltcc.fertintelligence.composedAttributes.fertilityAnalysis.FertilityAnalysisUnit;
@@ -16,20 +15,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecommendationCalculationServiceTest {
-
-    @Test
-    void automaticCorrectivePhosphorusAcceptsOnlySimpleAndTripleSuperphosphate() {
-        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Superfosfato Simples")).isTrue();
-        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Superfosfato Triplo")).isTrue();
-        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("Termofosfato Magnesiano")).isFalse();
-        assertThat(RecommendationCalculationService.isEligibleAutomaticCorrectivePhosphorusSource("TFMg")).isFalse();
-    }
 
     @Test
     void potassiumUsesIndependentDiverseRangesForFiveLevelClassificationAndBoundaries() throws Exception {
@@ -105,26 +95,6 @@ class RecommendationCalculationServiceTest {
     }
 
     @Test
-    void primaryFertilitySelectionUsesOnlyLayerCoveringZeroToTwenty() throws Exception {
-        RecommendationCalculationService service = serviceWithRepositories(null);
-        FertilityAnalysisExtractModel surface = fertility(85L, 0, 20, 7.5d, 7.3d);
-        FertilityAnalysisExtractModel middle = fertility(86L, 21, 40, 5.2d, 7.1d);
-        FertilityAnalysisExtractModel deep = fertility(87L, 41, 60, 5.5d, 5.6d);
-        Method method = RecommendationCalculationService.class.getDeclaredMethod(
-                "selectPrimaryFertilityExtract", List.class, Long.class, List.class);
-        method.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        Optional<FertilityAnalysisExtractModel> selected =
-                (Optional<FertilityAnalysisExtractModel>) method.invoke(
-                        service, List.of(middle, deep, surface), 90L, new ArrayList<String>());
-
-        assertThat(selected).containsSame(surface);
-        assertThat(selected.orElseThrow().getCalcio()).isEqualTo(7.5d);
-        assertThat(selected.orElseThrow().getMagnesio()).isEqualTo(7.3d);
-    }
-
-    @Test
     void chemicalDiagnosisLoadsMicronutrientRangesByAuthorizedTableIdBeforeEntityLookup() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder()
                 .id(42L)
@@ -176,7 +146,7 @@ class RecommendationCalculationServiceTest {
     @Test
     void formulatedPlantingWarningDoesNotMentionP2O5WhenDeficitIsZero() throws Exception {
         NutrientFertilizationCalculationService service = new NutrientFertilizationCalculationService(
-                null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null);
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
                 .id(8L)
                 .N(8d)
@@ -223,56 +193,6 @@ class RecommendationCalculationServiceTest {
                 .contains("serão repassados para cobertura")
                 .doesNotContain("déficit de P2O5 0.00")
                 .doesNotContain("P2O5 0.00 kg/ha exige ajuste técnico");
-    }
-
-    @Test
-    void effectiveGypsumRequiresRecommendationAndPositiveDose() {
-        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
-                RecommendationCalculationService.GypsumRequirementResult.builder()
-                        .needed(true).calculatedRequirement(1742.5d).sulfurEquivalent(261.375d).build())).isTrue();
-        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
-                RecommendationCalculationService.GypsumRequirementResult.builder()
-                        .needed(true).calculatedRequirement(0d).build())).isFalse();
-        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
-                RecommendationCalculationService.GypsumRequirementResult.builder()
-                        .needed(false).calculatedRequirement(1742.5d).build())).isFalse();
-        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(null)).isFalse();
-    }
-
-    @Test
-    void newRecommendationSelectsBr12WhenBr24IsAlsoRegistered() throws Exception {
-        RecommendationCalculationService service = serviceWithRepositories(null);
-        Method method = RecommendationCalculationService.class.getDeclaredMethod("selectFteBr12", List.class);
-        method.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        Optional<SimpleMineralFertilizerModel> selected = (Optional<SimpleMineralFertilizerModel>) method.invoke(
-                service,
-                List.of(
-                        SimpleMineralFertilizerModel.builder().name("FTE BR-24").build(),
-                        SimpleMineralFertilizerModel.builder().name("FTE BR-12").build()));
-
-        assertThat(selected).isPresent();
-        assertThat(selected.orElseThrow().getName()).isEqualTo("FTE BR-12");
-    }
-
-    @Test
-    void fteBalancePresentationUsesTwoDecimalsWithoutChangingInputs() throws Exception {
-        RecommendationCalculationService service = serviceWithRepositories(null);
-        Method method = RecommendationCalculationService.class.getDeclaredMethod(
-                "micronutrientBalanceSummary", Map.class, SimpleMineralFertilizerModel.class, Double.class);
-        method.setAccessible(true);
-        Map<com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient, Double> recommended =
-                new java.util.LinkedHashMap<>();
-        recommended.put(com.migueltcc.fertintelligence.composedAttributes.foliarAnalysis.AppliedMicronutrient.B, 2d);
-        SimpleMineralFertilizerModel fte = SimpleMineralFertilizerModel.builder().B(6d).build();
-        double originalDose = 20.001d;
-
-        String memory = (String) method.invoke(service, recommended, fte, originalDose);
-
-        assertThat(memory).contains("recomendado 2.00", "aplicado 1.20", "saldo -0.80");
-        assertThat(memory).doesNotContain("1.20006", "-0.7999400000000001");
-        assertThat(originalDose).isEqualTo(20.001d);
     }
 
     @SuppressWarnings("unchecked")
@@ -351,20 +271,6 @@ class RecommendationCalculationServiceTest {
     private PhysicalAnalysisExtractModel physical(long id, int start, int end) {
         return PhysicalAnalysisExtractModel.builder()
                 .id(id)
-                .rangeExtract(RangeExtractModel.builder()
-                        .profundidade_inicial(start)
-                        .profundidade_final(end)
-                        .build())
-                .build();
-    }
-
-    private FertilityAnalysisExtractModel fertility(long id, int start, int end, double calcium, double magnesium) {
-        return FertilityAnalysisExtractModel.builder()
-                .id(id)
-                .calcio(calcium)
-                .magnesio(magnesium)
-                .unidadeCalcio(FertilityAnalysisUnit.MMOLC_PER_DM3)
-                .unidadeMagnesio(FertilityAnalysisUnit.MMOLC_PER_DM3)
                 .rangeExtract(RangeExtractModel.builder()
                         .profundidade_inicial(start)
                         .profundidade_final(end)
@@ -451,6 +357,20 @@ class RecommendationCalculationServiceTest {
                     }
                     return null;
                 });
+    }
+
+    @Test
+    void effectiveGypsumRequiresRecommendationAndPositiveDose() {
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(true).calculatedRequirement(1742.5d).sulfurEquivalent(261.375d).build())).isTrue();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(true).calculatedRequirement(0d).build())).isFalse();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(
+                RecommendationCalculationService.GypsumRequirementResult.builder()
+                        .needed(false).calculatedRequirement(1742.5d).build())).isFalse();
+        assertThat(RecommendationCalculationService.isEffectiveGypsumRecommendation(null)).isFalse();
     }
 
 }

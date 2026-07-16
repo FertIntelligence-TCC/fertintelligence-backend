@@ -69,18 +69,14 @@ final class TechnicalRecommendationDocumentSupport {
             "11. Adubação de cobertura",
             "12. Balanço nutricional",
             "13. Fertilizantes recomendados",
-            "13.3. Comparativo de custo de oportunidade",
+            "13.2. Comparativo de custo de oportunidade",
             "14. Limitações e alertas",
             "15. Memória de cálculo",
             "16. Encerramento"
     );
     private static final List<String> SUBSECTION_HEADINGS = List.of(
             "Entradas de calagem",
-            "Entradas de gessagem",
-            "13.1. Fontes quelatadas, orgânicas e organominerais",
-            "13.2. Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
-            "Menores preços unitários dos nutrientes em fontes simples/concentradas",
-            "Decisão econômica por unidade comercial"
+            "Entradas de gessagem"
     );
 
     private TechnicalRecommendationDocumentSupport() {
@@ -185,7 +181,7 @@ final class TechnicalRecommendationDocumentSupport {
         addDirectMicronutrientItems(items, micronutrientFertilizerLines, fertilizerResolver);
         addDirectPlantingFormulatedItems(items, plantingFormulatedFertilizerLines, fertilizerResolver);
         addDirectCoverageFormulatedItems(items, coverageFormulatedFertilizerLines, fertilizerResolver);
-        addAlternativeItems(items, subsection(source, "Fontes quelatadas, orgânicas e organominerais"));
+        addAlternativeItems(items, subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
         addFertilizationItems(items, section(source, "10. Adubação de plantio"));
         addFertilizationItems(items, section(source, "11. Adubação de cobertura"));
         annotateOpportunityCostDecisions(items, source);
@@ -688,7 +684,7 @@ final class TechnicalRecommendationDocumentSupport {
 
     private static void annotateOpportunityCostDecisions(Map<String, ShoppingItem> items, String source) {
         if (items.isEmpty() || source == null || source.isBlank()) return;
-        String opportunitySection = section(source, "13.3. Comparativo de custo de oportunidade");
+        String opportunitySection = section(source, "13.2. Comparativo de custo de oportunidade");
         if (opportunitySection.isBlank()) return;
         for (List<String> row : tableRows(opportunitySection)) {
             if (row.size() < 8 || normalize(row.get(0)).contains("categoria")) continue;

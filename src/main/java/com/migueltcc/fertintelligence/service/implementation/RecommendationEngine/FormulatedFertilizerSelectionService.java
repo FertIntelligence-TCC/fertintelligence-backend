@@ -20,8 +20,6 @@ public class FormulatedFertilizerSelectionService {
 
     private static final int PRESENTATION_LIMIT = 2;
     private static final double APPROXIMATE_SUPPLY_TOLERANCE = 0.10d;
-    public static final String SINGLE_NUTRIENT_PLANTING_MESSAGE =
-            "Não é possível usar adubos formulados NPK, pois só há necessidade da aplicação de um nutriente no plantio. Assim, preferir adubos simples.";
 
     private final FormulatedMineralFertilizerRepository formulatedMineralFertilizerRepository;
     private final FormulatedFertilizerRatioService ratioService;
@@ -81,12 +79,6 @@ public class FormulatedFertilizerSelectionService {
                                                                 Double requiredN,
                                                                 Double requiredP2O5,
                                                                 Double requiredK2O) {
-        if (hasSinglePositiveNutrient(requiredN, requiredP2O5, requiredK2O)) {
-            return new FormulatedFertilizerSelectionResult(
-                    List.of(),
-                    false,
-                    SINGLE_NUTRIENT_PLANTING_MESSAGE);
-        }
         FormulatedFertilizerRatioService.RatioCalculationResult recommendedRatio =
                 ratioService.calculateRecommendedRatio(requiredN, requiredP2O5, requiredK2O);
         if (!recommendedRatio.calculated()) {
@@ -161,18 +153,6 @@ public class FormulatedFertilizerSelectionService {
         }
 
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
-    }
-
-    static boolean hasSinglePositiveNutrient(Double requiredN, Double requiredP2O5, Double requiredK2O) {
-        int positiveNutrients = 0;
-        if (positive(requiredN)) positiveNutrients++;
-        if (positive(requiredP2O5)) positiveNutrients++;
-        if (positive(requiredK2O)) positiveNutrients++;
-        return positiveNutrients == 1;
-    }
-
-    private static boolean positive(Double value) {
-        return value != null && Double.isFinite(value) && value > 0d;
     }
 
     public FormulatedFertilizerSelectionResult selectCoverageCandidates(List<FormulatedMineralFertilizerModel> fertilizers,

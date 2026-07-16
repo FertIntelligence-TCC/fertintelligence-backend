@@ -91,37 +91,10 @@ class CalciumMagnesiumBalanceCalculatorTest {
         assertThat(result.available()).isFalse();
         assertThat(result.scenarios()).hasSize(2).allMatch(scenario -> !scenario.available());
         assertThat(result.technicalWarning()).contains("exigiria redução do teor atual de Ca");
-        assertThat(result.scenarios()).allSatisfy(scenario -> {
-            assertThat(scenario.additionalCalcium()).isNotNull();
-            assertThat(scenario.additionalMagnesium()).isNotNull();
-            assertThat(scenario.totalCarbonates()).isNotNull();
-        });
     }
 
     @Test
-    void evaluatesTargetsIndependentlyWhenOnlyRatioThreeIsFeasible() {
-        var result = calculator.calculate(1d, 25d, 10d);
-
-        assertThat(result.available()).isTrue();
-        assertThat(result.scenarios()).extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available)
-                .containsExactly(true, false);
-        assertThat(result.minimumCalciumOxidePercent()).isEqualTo(result.scenarios().get(0).calciumOxidePercent());
-        assertThat(result.technicalWarning()).contains("relação Ca/Mg de 4:1");
-    }
-
-    @Test
-    void evaluatesTargetsIndependentlyWhenOnlyRatioFourIsFeasible() {
-        var result = calculator.calculate(1d, 50d, 5d);
-
-        assertThat(result.available()).isTrue();
-        assertThat(result.scenarios()).extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available)
-                .containsExactly(false, true);
-        assertThat(result.maximumMagnesiumOxidePercent()).isEqualTo(result.scenarios().get(1).magnesiumOxidePercent());
-        assertThat(result.technicalWarning()).contains("relação Ca/Mg de 3:1");
-    }
-
-    @Test
-    void realVictoriaValuesKeepAuditableNegativeMagnesiumAdditionsWithoutFabricatingComposition() {
+    void realVictoriaValuesRejectTargetsThatRequireRemovingMagnesium() {
         var result = calculator.calculate(1.4d, 7.5d, 7.3d);
 
         assertThat(result.currentRatio()).isCloseTo(1.0273972603d, within(1e-10));

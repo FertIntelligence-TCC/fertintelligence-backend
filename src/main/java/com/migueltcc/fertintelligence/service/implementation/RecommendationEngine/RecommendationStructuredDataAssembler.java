@@ -69,12 +69,7 @@ public class RecommendationStructuredDataAssembler {
         sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "13. Fertilizantes recomendados", "Fontes selecionadas", "fertilizantes_recomendados", null, null));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Adubação complementar de micronutrientes com outras fontes"),
-                null, "Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
-                "complementos_micronutrientes", "complemento", "complemento"));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(
-                        report, "Menores preços unitários dos nutrientes em fontes simples/concentradas"),
-                null, "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
         sections.add(section(report, "15. Memória de cálculo", "Memória de cálculo", "memoria_calculo", null, null));
         return nonEmpty(sections);
     }
@@ -84,19 +79,17 @@ public class RecommendationStructuredDataAssembler {
         List<RecommendationTableSectionDto> sections = new ArrayList<>();
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 1 - formulados", "adubacao_corretiva_opcao_1", OPTION_CORRECTIVE_FORMULATED, true));
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes quelatadas, orgânicas e organominerais"),
+        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
+        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
+        sections.add(section(report, "13. Fertilizantes recomendados", "Adubos simples e formulados", "fertilizantes_recomendados", null, null));
+        sections.add(section(report, "13.2. Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
+        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Fontes orgânicas, organominerais e micronutrientes"),
                 null,
-                "Fontes quelatadas, orgânicas e organominerais",
+                "Fontes orgânicas, organominerais e micronutrientes",
                 "fontes_alternativas",
                 "complemento",
                 "complemento"));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(report, "Adubação complementar de micronutrientes com outras fontes"),
-                null, "Adubação complementar de micronutrientes com outras fontes (usar na adubação corretiva ou na de plantio)",
-                "complementos_micronutrientes", "complemento", "complemento"));
-        sections.add(section(report, "10. Adubação de plantio", "Opção 2 - adubos simples no plantio", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
-        sections.add(section(report, "11. Adubação de cobertura", "Cobertura opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
         sections.add(section(report, "12. Balanço nutricional", "Balanço nutricional", "balanco_nutricional", null, null));
-        sections.add(section(report, "14. Observações técnicas", "Observações técnicas", "observacoes_tecnicas", null, "observacao"));
         return nonEmpty(sections);
     }
 
@@ -107,13 +100,8 @@ public class RecommendationStructuredDataAssembler {
         sections.add(correctiveSection(report, "Adubação corretiva - Opção 2 - adubos simples", "adubacao_corretiva_opcao_2", OPTION_CORRECTIVE_SIMPLE_SOURCES, false));
         sections.add(micronutrientLineSection(recommendation));
         sections.add(directPlantingFormulatedLineSection(recommendation));
-        sections.add(section(report, "10. Adubação de plantio", "Plantio - Opção 2 - adubos simples", "plantio_opcao_2", OPTION_PLANTING_SIMPLE_SOURCES, "alternativa"));
         sections.add(directCoverageFormulatedLineSection(recommendation));
-        sections.add(section(report, "11. Adubação de cobertura", "Cobertura - Opção 2 - adubos simples", "cobertura_opcao_2", OPTION_COVERAGE_SIMPLE_SOURCES, "alternativa"));
-        sections.add(section(TechnicalRecommendationDocumentSupport.subsection(
-                        directReport, "Menores preços unitários dos nutrientes em fontes simples/concentradas"),
-                null, "Comparativo de custo de oportunidade", "custo_oportunidade", null, null));
-        sections.add(section(report, "14. Observações técnicas", "Observações técnicas", "observacoes_tecnicas", null, "observacao"));
+        sections.add(section(directReport, "Comparativo de custo de oportunidade", "Comparativo de custo de oportunidade"));
         return nonEmpty(sections);
     }
 
@@ -472,7 +460,6 @@ public class RecommendationStructuredDataAssembler {
         for (DirectRecommendationMicronutrientFertilizerLineModel line : micronutrients) {
             DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData fertilizer =
                     fertilizerResolver.simple(line.getFertilizerId(), line.getMicronutrient());
-            if (FteProductEligibility.isHistoricalSupportedFte(fertilizer.name())) continue;
             rows.add(List.of(
                     value(line.getMicronutrient()),
                     value(fertilizer.name()),
@@ -540,7 +527,7 @@ public class RecommendationStructuredDataAssembler {
                                                   String option,
                                                   String itemType) {
         String section = heading == null ? report : TechnicalRecommendationDocumentSupport.section(report, heading);
-        List<List<String>> tableRows = firstTableRows(section);
+        List<List<String>> tableRows = TechnicalRecommendationDocumentSupport.tableRows(section);
         if (tableRows.isEmpty()) {
             return null;
         }
@@ -560,37 +547,6 @@ public class RecommendationStructuredDataAssembler {
                 .technicalWarnings(observations)
                 .calculationMemory(calculationMemory)
                 .build();
-    }
-
-    static List<List<String>> firstTableRows(String section) {
-        if (section == null || section.isBlank()) return List.of();
-        List<List<String>> rows = new ArrayList<>();
-        boolean headerFound = false;
-        boolean separatorFound = false;
-        for (String line : section.split("\\R")) {
-            String trimmed = line.trim();
-            if (!headerFound) {
-                if (trimmed.startsWith("|") && !isSeparatorRow(trimmed)) headerFound = true;
-                continue;
-            }
-            if (!separatorFound) {
-                if (isSeparatorRow(trimmed)) separatorFound = true;
-                continue;
-            }
-            if (!trimmed.startsWith("|")) {
-                if (!rows.isEmpty()) break;
-                continue;
-            }
-            if (!isSeparatorRow(trimmed)) rows.add(splitStructuredRow(trimmed));
-        }
-        return rows;
-    }
-
-    private static List<String> splitStructuredRow(String line) {
-        String body = line.substring(1, line.endsWith("|") ? line.length() - 1 : line.length());
-        List<String> cells = new ArrayList<>();
-        for (String cell : body.split("\\|", -1)) cells.add(cell.trim());
-        return cells;
     }
 
     private List<String> tableHeader(String section) {
@@ -702,7 +658,7 @@ public class RecommendationStructuredDataAssembler {
         return deduplicate(memory);
     }
 
-    private static boolean isSeparatorRow(String line) {
+    private boolean isSeparatorRow(String line) {
         return line.replace("|", "").replace(":", "").replace("-", "").trim().isBlank();
     }
 

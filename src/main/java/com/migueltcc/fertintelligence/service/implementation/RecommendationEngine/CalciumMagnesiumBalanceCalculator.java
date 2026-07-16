@@ -84,8 +84,7 @@ public class CalciumMagnesiumBalanceCalculator {
             return CalciumMagnesiumBalanceScenario.unavailable(desiredRatio,
                     additionalCalcium, additionalMagnesium, calciumCarbonate, magnesiumCarbonate,
                     calciumCarbonate + magnesiumCarbonate,
-                    reason
-                            + " (T=" + totalAdditionalBases + ", DCa=" + additionalCalcium
+                    reason + " (T=" + totalAdditionalBases + ", DCa=" + additionalCalcium
                             + ", DMg=" + additionalMagnesium + ").");
         }
 

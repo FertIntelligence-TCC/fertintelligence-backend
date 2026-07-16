@@ -5,6 +5,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendatio
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationFertilizerResolver;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.SummaryRecommendationReportService;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ class SummaryRecommendationReportServiceTest {
         DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, lineRepository, null);
+                new SummaryRecommendationReportService(null, lineRepository, fertilizerResolver());
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
@@ -54,7 +55,7 @@ class SummaryRecommendationReportServiceTest {
         DirectRecommendationMicronutrientFertilizerLineRepository lineRepository =
                 mock(DirectRecommendationMicronutrientFertilizerLineRepository.class);
         SummaryRecommendationReportService service =
-                new SummaryRecommendationReportService(null, lineRepository, null);
+                new SummaryRecommendationReportService(null, lineRepository, fertilizerResolver());
         RecommendationModel recommendation = recommendationWithTechnicalReport();
         DirectRecommendationModel directRecommendation = DirectRecommendationModel.builder()
                 .id(10L)
@@ -164,5 +165,16 @@ class SummaryRecommendationReportServiceTest {
                         | Micronutriente | B | Borax | 10.91 | kg/ha | Calculado |
                         """)
                 .build();
+    }
+
+    private DirectRecommendationFertilizerResolver fertilizerResolver() {
+        DirectRecommendationFertilizerResolver resolver = mock(DirectRecommendationFertilizerResolver.class);
+        when(resolver.simple(null, AppliedMicronutrient.B)).thenReturn(
+                new DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData("Borax", 11d));
+        when(resolver.simple(null, AppliedMicronutrient.Zn)).thenReturn(
+                new DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData("Sulfato de zinco", 20d));
+        when(resolver.simple(null, AppliedMicronutrient.Cu)).thenReturn(
+                new DirectRecommendationFertilizerResolver.SimpleMineralFertilizerData("Sulfato de cobre", 25d));
+        return resolver;
     }
 }

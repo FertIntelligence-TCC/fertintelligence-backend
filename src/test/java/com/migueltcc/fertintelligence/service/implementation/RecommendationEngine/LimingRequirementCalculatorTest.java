@@ -32,13 +32,12 @@ class LimingRequirementCalculatorTest {
                 .unidadeMagnesio(FertilityAnalysisUnit.CMOLC_PER_DM3)
                 .build();
 
-        var warnings = new ArrayList<String>();
         var result = calculator.calculate(
                 request,
                 Optional.of(fertility),
                 null,
                 CropFertilizationTableModel.builder().criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                warnings);
+                new ArrayList<>());
 
         assertThat(result.getTheoreticalRequirement()).isEqualTo(4d);
         assertThat(result.getPrnt()).isEqualTo(100d);
@@ -47,61 +46,5 @@ class LimingRequirementCalculatorTest {
         assertThat(result.getCalciumMagnesiumBalance().currentMagnesium()).isEqualTo(10d);
         assertThat(result.getCalciumMagnesiumBalance().currentRatio()).isEqualTo(2d);
         assertThat(result.getCalciumMagnesiumBalance().available()).isTrue();
-        assertThat(result.getCalciumMagnesiumBalance().scenarios())
-                .extracting(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::desiredRatio)
-                .containsExactly(3d, 4d);
-        assertThat(warnings).anyMatch(warning -> warning.contains("100/PRNT"));
-    }
-
-    @Test
-    void calciumMagnesiumCompositionDoesNotRequireSaturationExtract() {
-        var fertility = FertilityAnalysisExtractModel.builder()
-                .ctcPh7(100d).saturacaoBasesV(30d)
-                .calcio(20d).magnesio(10d)
-                .build();
-
-        var result = calculator.calculate(
-                RecommendationCreateRequestDto.builder()
-                        .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                Optional.of(fertility),
-                null,
-                CropFertilizationTableModel.builder()
-                        .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                new ArrayList<>());
-
-        assertThat(result.getTheoreticalRequirement()).isEqualTo(4d);
-        assertThat(result.getCalciumMagnesiumBalance().available()).isTrue();
-        assertThat(result.getCalciumMagnesiumBalance().currentRatio()).isEqualTo(2d);
-        assertThat(result.getCalciumMagnesiumBalance().scenarios()).hasSize(2)
-                .allMatch(scenario -> scenario.calciumOxidePercent() != null
-                        && scenario.magnesiumOxidePercent() != null
-                        && scenario.limestoneClassification() != null);
-    }
-
-    @Test
-    void keepsAlreadyNormalizedMmolValuesWithoutDoubleConversion() {
-        var fertility = FertilityAnalysisExtractModel.builder()
-                .ctcPh7(106.93d)
-                .unidadeCtcPh7(FertilityAnalysisUnit.MMOLC_PER_DM3)
-                .saturacaoBasesV(15.9d)
-                .calcio(7.5d)
-                .unidadeCalcio(FertilityAnalysisUnit.MMOLC_PER_DM3)
-                .magnesio(7.3d)
-                .unidadeMagnesio(FertilityAnalysisUnit.MMOLC_PER_DM3)
-                .build();
-
-        var result = calculator.calculate(
-                RecommendationCreateRequestDto.builder()
-                        .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                Optional.of(fertility),
-                null,
-                CropFertilizationTableModel.builder()
-                        .criteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS).build(),
-                new ArrayList<>());
-
-        assertThat(result.getCalciumMagnesiumBalance().currentCalcium()).isEqualTo(7.5d);
-        assertThat(result.getCalciumMagnesiumBalance().currentMagnesium()).isEqualTo(7.3d);
-        assertThat(result.getCalciumMagnesiumBalance().currentRatio())
-                .isCloseTo(1.0273972603d, org.assertj.core.data.Offset.offset(1e-10));
     }
 }
