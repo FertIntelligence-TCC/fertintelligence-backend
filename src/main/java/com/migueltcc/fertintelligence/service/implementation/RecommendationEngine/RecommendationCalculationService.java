@@ -58,6 +58,9 @@ import java.util.function.Function;
 
 @Service
 public class RecommendationCalculationService {
+    static final double MAX_ZINC_FROM_FTE_KG_HA = 7.5d;
+    static final String FTE_APPLICATION_WARNING = "Misturar e aplicar conjuntamente com os adubos simples ou formulados para correção da fertilidade do solo.";
+    static final String MICRONUTRIENT_COMPLEMENT_APPLICATION_WARNING = "Misturar com o adubo de plantio e por na linha de semeadura ou à lanço no pré-plantio, juntamente com o fósforo.";
 
     private static final String INCOMPATIBLE_CROP_AND_FERTILIZATION_TABLE_MESSAGE =
             "Cultura Anual e Tabela de Adubação de Culturas incompatíveis!";
@@ -1034,13 +1037,28 @@ public class RecommendationCalculationService {
         }
         Optional<DiverseContentRangeModel> diverseRange = findDiverseContentRangeByTable(soilInterpretationTable);
         Map<AppliedMicronutrient, Double> recommended = recommendedMicronutrientDoses(doses.get(), byAttribute, diverseRange, warnings);
-        Double znDose = recommended.get(AppliedMicronutrient.Zn);
-        if (!positive(znDose)) {
-            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "Dose recomendada de Zn ausente ou igual a zero; FTE por nutriente-base Zn não calculado.");
+        AppliedMicronutrient baseNutrient = isLowAnalyzedMicronutrient(AppliedMicronutrient.B, byAttribute, diverseRange)
+                && positive(recommended.get(AppliedMicronutrient.B)) ? AppliedMicronutrient.B : AppliedMicronutrient.Zn;
+        Double baseDose = recommended.get(baseNutrient);
+        if (!positive(baseDose)) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", recommended.isEmpty()
+                    ? "A recomendação de micronutrientes não foi calculada porque os dados analíticos não foram informados."
+                    : "Nenhum nutriente-base elegível possui dose corretiva positiva; FTE BR-12 não calculado.");
             addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
         } else {
-            addFteRows(rows, recommended, znDose, user, sourceOption);
+            addFteRows(rows, recommended, baseNutrient, baseDose, user, sourceOption, warnings);
         }
+    }
+
+    private boolean isLowAnalyzedMicronutrient(AppliedMicronutrient micronutrient,
+                                                Map<String, SoilChemicalDiagnosisItem> byAttribute,
+                                                Optional<DiverseContentRangeModel> diverseRange) {
+        SoilChemicalDiagnosisItem item = findFirstDiagnosis(byAttribute,
+                micronutrient == AppliedMicronutrient.B ? "boro" : micronutrient.name());
+        if (item == null || item.getAnalyzedValue() == null) return false;
+        String range = classifyCorrectiveMicronutrientRange(micronutrient, item.getAnalyzedValue(), diverseRange)
+                .orElse(item.getInterpretation());
+        return "Baixo".equals(range) || "Muito baixo".equals(range);
     }
 
     private Optional<CorrectiveP2O5FertilizationModel> selectPhosphorusCorrectiveLine(List<CorrectiveP2O5FertilizationModel> table, Double clay, Double p) {
@@ -1114,47 +1132,54 @@ public class RecommendationCalculationService {
 
     private void addFteRows(List<CorrectiveFertilizationRow> rows,
                             Map<AppliedMicronutrient, Double> recommended,
-                            Double znDose,
+                            AppliedMicronutrient baseNutrient,
+                            Double baseDose,
                             UserModel user,
-                            FertilizerSourceOption sourceOption) {
+                            FertilizerSourceOption sourceOption,
+                            List<String> warnings) {
         List<SimpleMineralFertilizerModel> simple = selectSimpleFertilizers(user, sourceOption);
-        List<SimpleMineralFertilizerModel> ftes = simple.stream()
-                .filter(f -> positive(f.getZn()) && normalizeText(f.getName()).contains("fte"))
-                .toList();
-        selectFteBr12(ftes).ifPresent(fte -> addFteRow(rows, "FTE BR 12 corretivo", fte, recommended, znDose, user, sourceOption));
-        ftes.stream()
-                .max(Comparator.comparing(SimpleMineralFertilizerModel::getZn))
-                .ifPresent(fte -> addFteRow(rows, "FTE mais concentrado em Zn corretivo", fte, recommended, znDose, user, sourceOption));
-        if (ftes.isEmpty()) {
-            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "Nenhum FTE com teor positivo de Zn foi encontrado em adubos minerais simples.");
+        SimpleMineralFertilizerModel fte = selectFteBr12(simple).orElse(null);
+        if (fte == null || !positive(micronutrientConcentration(fte, baseNutrient)) || !positive(fte.getZn())) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "FTE BR-12 com teores positivos do nutriente-base e de Zn não foi encontrado em adubos minerais simples.");
             addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
+            return;
         }
+        addFteRow(rows, fte, recommended, baseNutrient, baseDose, user, sourceOption, warnings);
     }
 
     private Optional<SimpleMineralFertilizerModel> selectFteBr12(List<SimpleMineralFertilizerModel> ftes) {
         if (ftes == null) return Optional.empty();
         return ftes.stream()
-                .filter(f -> normalizeText(f.getName()).contains("br 12") || normalizeText(f.getName()).contains("br-12"))
+                .filter(f -> FteProductEligibility.isBr12EligibleForNewRecommendation(f.getName()))
                 .findFirst();
     }
 
     private void addFteRow(List<CorrectiveFertilizationRow> rows,
-                           String correctedAttribute,
                            SimpleMineralFertilizerModel fte,
                            Map<AppliedMicronutrient, Double> recommended,
-                           Double znDose,
+                           AppliedMicronutrient baseNutrient,
+                           Double baseDose,
                            UserModel user,
-                           FertilizerSourceOption sourceOption) {
-        double dose = round2(100d * znDose / fte.getZn());
+                           FertilizerSourceOption sourceOption,
+                           List<String> warnings) {
+        FteDoseCalculator.FteDoseResult calculation = FteDoseCalculator.calculate(baseDose,
+                micronutrientConcentration(fte, baseNutrient), fte.getZn(), MAX_ZINC_FROM_FTE_KG_HA);
+        if (!calculation.available()) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo", "Dose do FTE BR-12 indisponível por ausência de teor válido do nutriente-base ou de Zn.");
+            addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
+            return;
+        }
+        double dose = calculation.productDoseKgHa();
+        if (calculation.limitedByZinc() && warnings != null) warnings.add("Dose do FTE BR-12 limitada para que o Zn fornecido não ultrapasse 7,50 kg/ha.");
         rows.add(CorrectiveFertilizationRow.builder()
-                .correctedAttribute(correctedAttribute)
-                .need("Zn como nutriente-base: " + formatNumber(znDose) + " kg/ha")
+                .correctedAttribute("FTE BR 12 corretivo")
+                .need(baseNutrient.name() + " como nutriente-base: " + formatFteNumber(baseDose) + " kg/ha")
                 .suggestedSource(fte.getName())
                 .dose(dose)
                 .doseUnit("kg/ha de produto")
-                .calculationMemory("Dose FTE = 100 * dose recomendada Zn / teor % Zn do FTE. Balanço B/Cu/Fe/Mn/Zn: "
+                .calculationMemory("Dose FTE pelo nutriente-base, limitada a 7,50 kg/ha de Zn. Balanço B/Cu/Fe/Mn/Zn: "
                         + micronutrientBalanceSummary(recommended, fte, dose) + ".")
-                .technicalWarning(null)
+                .technicalWarning(FTE_APPLICATION_WARNING)
                 .build());
         addMicronutrientSimpleComplements(rows, "Complemento após " + fte.getName(),
                 micronutrientDeficitsAfterFte(recommended, fte, dose), user, sourceOption);
@@ -1170,8 +1195,10 @@ public class RecommendationCalculationService {
         addPositiveDose(complementDoses, AppliedMicronutrient.Cu, recommended.get(AppliedMicronutrient.Cu));
         addPositiveDose(complementDoses, AppliedMicronutrient.Fe, recommended.get(AppliedMicronutrient.Fe));
         addPositiveDose(complementDoses, AppliedMicronutrient.Mn, recommended.get(AppliedMicronutrient.Mn));
+        addPositiveDose(complementDoses, AppliedMicronutrient.Zn, recommended.get(AppliedMicronutrient.Zn));
         List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
                 micronutrientFertilizerSelectionService.select(user, sourceOption, complementDoses);
+        if (selections == null) return;
         for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
             rows.add(CorrectiveFertilizationRow.builder()
                     .correctedAttribute(prefix + " de " + selection.micronutrient().name())
@@ -1180,7 +1207,7 @@ public class RecommendationCalculationService {
                     .dose(selection.fertilizerDoseKgHa())
                     .doseUnit("kg/ha de produto")
                     .calculationMemory("Fonte simples escolhida pelo maior teor cadastrado do micronutriente para zerar saldo negativo.")
-                    .technicalWarning(selection.technicalMessage())
+                    .technicalWarning(joinWarnings(MICRONUTRIENT_COMPLEMENT_APPLICATION_WARNING, selection.technicalMessage()))
                     .build());
         }
     }
@@ -1189,8 +1216,10 @@ public class RecommendationCalculationService {
                                                                             SimpleMineralFertilizerModel fte,
                                                                             Double fteDoseKgHa) {
         Map<AppliedMicronutrient, Double> deficits = new LinkedHashMap<>();
-        for (AppliedMicronutrient micronutrient : List.of(AppliedMicronutrient.B, AppliedMicronutrient.Cu, AppliedMicronutrient.Fe, AppliedMicronutrient.Mn)) {
-            double required = nvl(recommended.get(micronutrient));
+        for (AppliedMicronutrient micronutrient : List.of(AppliedMicronutrient.B, AppliedMicronutrient.Cu, AppliedMicronutrient.Fe, AppliedMicronutrient.Mn, AppliedMicronutrient.Zn)) {
+            Double requiredValue = recommended.get(micronutrient);
+            if (requiredValue == null) continue;
+            double required = requiredValue;
             double applied = fteDoseKgHa * micronutrientConcentration(fte, micronutrient) / 100d;
             double deficit = round2(required - applied);
             if (deficit > 0d) {
@@ -1198,6 +1227,12 @@ public class RecommendationCalculationService {
             }
         }
         return deficits;
+    }
+
+    private String joinWarnings(String first, String second) {
+        if (first == null || first.isBlank()) return second;
+        if (second == null || second.isBlank() || first.contains(second)) return first;
+        return second.contains(first) ? second : first + " " + second;
     }
 
     private Map<AppliedMicronutrient, Double> recommendedMicronutrientDoses(MicronutrientDoseModel doses,
@@ -2353,6 +2388,10 @@ public class RecommendationCalculationService {
     private String formatNumber(Double value) {
         if (value == null) return "não informado";
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private String formatFteNumber(Double value) {
+        return value == null || !Double.isFinite(value) ? "não informado" : String.format(Locale.US, "%.2f", value);
     }
 
     private String describePhysicalExtract(PhysicalAnalysisExtractModel extract) {

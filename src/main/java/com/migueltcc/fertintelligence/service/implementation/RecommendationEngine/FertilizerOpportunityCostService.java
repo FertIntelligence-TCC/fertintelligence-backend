@@ -85,6 +85,17 @@ public class FertilizerOpportunityCostService {
         return new OpportunityCostResult(nutrientPrices, decisions, technicalWarnings);
     }
 
+    Optional<SimpleMineralFertilizerModel> selectLowestCostSimpleSource(
+            List<SimpleMineralFertilizerModel> fertilizers, Nutrient nutrient) {
+        if (fertilizers == null || fertilizers.isEmpty() || nutrient == null) return Optional.empty();
+        NutrientPrice selected = calculateNutrientPrices(fertilizers, List.of()).get(nutrient);
+        if (selected == null) return Optional.empty();
+        return fertilizers.stream()
+                .filter(fertilizer -> fertilizer != null && fertilizer.getName() != null)
+                .filter(fertilizer -> fertilizer.getName().equals(selected.fertilizerName()))
+                .findFirst();
+    }
+
     private Map<Nutrient, NutrientPrice> calculateNutrientPrices(List<SimpleMineralFertilizerModel> simpleFertilizers,
                                                                  List<MineralFertilizerModel> mineralFertilizers) {
         Map<Nutrient, NutrientPrice> prices = new EnumMap<>(Nutrient.class);
