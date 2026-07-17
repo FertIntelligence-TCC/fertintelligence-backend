@@ -91,7 +91,8 @@ class FormulatedFertilizerSelectionServiceTest {
                 .extracting(candidate -> candidate.formulated().getId())
                 .containsExactly(1L, 2L);
         assertThat(result.candidates().get(0).approximateFallback()).isTrue();
-        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isEqualTo(14000d / 34d);
+        assertThat(result.candidates().get(0).fertilizerDoseKgHa()).isCloseTo(8000d / 19d, within(1e-12));
+        assertThat(result.candidates().get(0).providedP2O5()).isCloseTo(80d, within(1e-12));
     }
 
     @Test

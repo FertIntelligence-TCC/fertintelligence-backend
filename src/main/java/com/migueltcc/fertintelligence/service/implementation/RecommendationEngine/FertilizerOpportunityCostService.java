@@ -242,7 +242,7 @@ public class FertilizerOpportunityCostService {
                     "Preço de oportunidade calculado igual a zero para " + safe(fertilizerName) + ".");
         }
         BigDecimal ratio = actualUnit.get().price().divide(opportunityPrice, 6, RoundingMode.HALF_UP);
-        String decision = ratio.compareTo(BigDecimal.ONE) >= 0
+        String decision = preferSimpleSources(ratio)
                 ? "comprar e usar adubos simples"
                 : "comprar e usar " + decisionTarget;
         return new OpportunityCostDecision(
@@ -258,6 +258,11 @@ public class FertilizerOpportunityCostService {
                 false,
                 null,
                 contributionSummary(contributions));
+    }
+
+    static boolean preferSimpleSources(BigDecimal commercialToOpportunityRatio) {
+        return commercialToOpportunityRatio != null
+                && commercialToOpportunityRatio.compareTo(BigDecimal.ONE) > 0;
     }
 
     private OpportunityCostDecision indeterminate(String fertilizerName, String category, String decision, String justification) {

@@ -272,9 +272,7 @@ public class FormulatedFertilizerSelectionService {
             return null;
         }
 
-        Double fertilizerDoseKgHa = calculateFertilizerDoseKgHa(
-                requiredNutrientSum(requiredN, requiredP2O5, requiredK2O),
-                concentrationSum);
+        Double fertilizerDoseKgHa = calculateDoseByPhosphorus(fertilizer, requiredP2O5);
         if (fertilizerDoseKgHa == null
                 || !hasSupplyWithinTolerance(fertilizer, fertilizerDoseKgHa, requiredN, requiredP2O5, requiredK2O)) {
             return null;
@@ -295,6 +293,14 @@ public class FormulatedFertilizerSelectionService {
                         requiredK2O,
                         appendTechnicalMessage(baseTechnicalMessage, formulatedRatio.technicalMessage())),
                 calculateRatioDistance(recommendedRatio, formulatedRatio.ratio()));
+    }
+
+    private Double calculateDoseByPhosphorus(FormulatedMineralFertilizerModel fertilizer, Double requiredP2O5) {
+        double required = normalizeRequiredDose(requiredP2O5);
+        double concentration = normalizeRequiredDose(fertilizer != null ? fertilizer.getP2O5() : null);
+        if (required <= 0d || concentration <= 0d) return null;
+        double dose = 100d * required / concentration;
+        return Double.isFinite(dose) && dose > 0d ? dose : null;
     }
 
     private List<FormulatedFertilizerSelectionCandidate> selectMaximizationCandidates(

@@ -94,22 +94,33 @@ class CalciumMagnesiumBalanceCalculatorTest {
     }
 
     @Test
-    void realVictoriaValuesRejectTargetsThatRequireRemovingMagnesium() {
+    void realVictoriaValuesReturnMaximumRatioWithZeroMagnesium() {
         var result = calculator.calculate(1.4d, 7.5d, 7.3d);
 
         assertThat(result.currentRatio()).isCloseTo(1.0273972603d, within(1e-10));
-        assertThat(result.available()).isFalse();
-        assertThat(result.scenarios()).hasSize(2).allMatch(scenario -> !scenario.available());
-        assertThat(result.scenarios().get(0).additionalCalcium()).isCloseTo(14.1d, within(1e-12));
-        assertThat(result.scenarios().get(0).additionalMagnesium()).isCloseTo(-0.1d, within(1e-12));
-        assertThat(result.scenarios().get(1).additionalCalcium()).isCloseTo(15.54d, within(1e-12));
-        assertThat(result.scenarios().get(1).additionalMagnesium()).isCloseTo(-1.54d, within(1e-12));
+        assertThat(result.available()).isTrue();
+        assertThat(result.scenarios()).hasSize(2).allMatch(CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario::available);
         assertThat(result.scenarios()).allSatisfy(scenario -> {
-            assertThat(scenario.calciumOxidePercent()).isNull();
-            assertThat(scenario.magnesiumOxidePercent()).isNull();
-            assertThat(scenario.technicalWarning()).contains("exigiria redução do teor atual de Mg");
+            assertThat(scenario.limitedByZeroMagnesium()).isTrue();
+            assertThat(scenario.achievableRatio()).isCloseTo(21.5d / 7.3d, within(1e-12));
+            assertThat(scenario.additionalCalcium()).isEqualTo(14d);
+            assertThat(scenario.additionalMagnesium()).isZero();
+            assertThat(scenario.calciumOxidePercent()).isEqualTo(56d);
+            assertThat(scenario.magnesiumOxidePercent()).isZero();
+            assertThat(scenario.technicalWarning()).contains("maior relação estimada alcançável");
             assertThat(scenario.technicalWarning()).doesNotContain("NaN", "Infinity");
         });
+    }
+
+    @Test
+    void preservesViableThreeToOneAndLimitsOnlyFourToOne() {
+        var result = calculator.calculate(1d, 1d, 3d);
+
+        assertThat(result.scenarios().get(0).limitedByZeroMagnesium()).isFalse();
+        assertThat(result.scenarios().get(0).achievableRatio()).isEqualTo(3d);
+        assertThat(result.scenarios().get(1).limitedByZeroMagnesium()).isTrue();
+        assertThat(result.scenarios().get(1).achievableRatio()).isCloseTo(11d / 3d, within(1e-12));
+        assertThat(result.scenarios().get(1).magnesiumOxidePercent()).isZero();
     }
 
     private void assertUnavailable(

@@ -145,9 +145,19 @@ class NutrientFertilizationCalculationService {
                 (sulfurPlan.replacesPlanting() ? 0d : planting.providedP2O5()) + sulfurPlan.providedP2O5(),
                 (sulfurPlan.replacesPlanting() ? 0d : planting.providedK2O()) + sulfurPlan.providedK2O(),
                 (sulfurPlan.replacesPlanting() ? 0d : planting.providedS()) + sulfurPlan.providedS());
-        CoverageDemand coverageDemand = buildCoverageDemand(
+        double optionOneBalanceN = round2((sulfurPlan.replacesPlanting() ? 0d : planting.providedN())
+                + sulfurPlan.providedN() - nvl(mineralRequiredN));
+        double optionOneBalanceK2O = round2((sulfurPlan.replacesPlanting() ? 0d : planting.providedK2O())
+                + sulfurPlan.providedK2O() - nvl(mineralRequiredK2O));
+        double optionOneBalanceS = round2((sulfurPlan.replacesPlanting() ? 0d : planting.providedS())
+                + sulfurPlan.providedS() - sulfurRequirement.requiredS());
+        CoverageDemand optionOneCoverageDemand = buildCoverageDemand(
                 List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
-                nutrientBalance,
+                optionOneBalanceN, optionOneBalanceK2O, optionOneBalanceS,
+                warnings);
+        CoverageDemand optionTwoCoverageDemand = buildCoverageDemand(
+                List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
+                simplePlantingPackage.balanceN(), simplePlantingPackage.balanceK2O(), simplePlantingPackage.balanceS(),
                 warnings);
 
         if (!sulfurPlan.replacesPlanting()) {
@@ -178,11 +188,11 @@ class NutrientFertilizationCalculationService {
 
         List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedRows =
                 coverageFormulatedFertilizerRecommendationService.calculate(
-                        user, sourceOption, coverageDemand.toFormulatedRecommendations(), crop, warnings);
+                        user, sourceOption, optionOneCoverageDemand.toFormulatedRecommendations(), crop, warnings);
         recommendationRows.addAll(buildCoverageOptionOneRows(
-                coverageDemand, coverageFormulatedRows, crop, user, sourceOption, fertilizerSuggestions, warnings));
+                optionOneCoverageDemand, coverageFormulatedRows, crop, user, sourceOption, fertilizerSuggestions, warnings));
         recommendationRows.addAll(buildCoverageOptionTwoRows(
-                coverageDemand, crop, user, sourceOption, fertilizerSuggestions, nutrientBalance, warnings));
+                optionTwoCoverageDemand, crop, user, sourceOption, fertilizerSuggestions, null, warnings));
         recommendationRows.add(RecommendationCalculationService.FertilizationRecommendationRow.builder()
                 .phase("Balanço global NPK")
                 .nutrients("Consolidado após plantio e coberturas recomendadas")
@@ -1028,7 +1038,9 @@ class NutrientFertilizationCalculationService {
 
     private CoverageDemand buildCoverageDemand(
             List<ContentRangeModel> selectedRanges,
-            NutrientBalanceAccumulator balance,
+            double plantingBalanceN,
+            double plantingBalanceK2O,
+            double plantingBalanceS,
             List<String> warnings) {
         CoverageDemand demand = new CoverageDemand();
         for (ContentRangeModel range : selectedRanges) {
@@ -1047,10 +1059,7 @@ class NutrientFertilizationCalculationService {
                 demand.add(coverage.getOrder(), nutrient, application);
             }
         }
-        demand.addPlantingDeficits(
-                Math.max(0d, -balance.balanceN()),
-                Math.max(0d, -balance.balanceK2O()),
-                Math.max(0d, -balance.balanceS()));
+        demand.adjustForPlantingBalances(plantingBalanceN, plantingBalanceK2O, plantingBalanceS);
         return demand;
     }
 
@@ -1238,7 +1247,7 @@ class NutrientFertilizationCalculationService {
 
         if (best == null || best.rows.isEmpty()) {
             addWarning(warnings, "Opção 2 - Plantio com adubos simples não calculada: fontes cadastradas insuficientes para N, P2O5, K2O, S e micronutrientes.");
-            return new SimplePlantingPackageResult(List.of(), List.of(), 0d, 0d);
+            return new SimplePlantingPackageResult(List.of(), List.of(), 0d, 0d, 0d);
         }
 
         if (!withinTolerance(best.n, nvl(requiredN)) || !withinTolerance(best.p2o5, nvl(requiredP2O5))
@@ -1251,10 +1260,13 @@ class NutrientFertilizationCalculationService {
             best.warning = warning;
         }
 
-        double transferredN = Math.max(0d, round2(nvl(requiredN) - best.n));
+        double balanceN = round2(best.n - nvl(requiredN));
+        double balanceK2O = round2(best.k2o - nvl(requiredK2O));
+        double balanceS = round2(best.s - sulfurRequirement.requiredS());
+        double transferredN = Math.max(0d, -balanceN);
         List<RecommendationCalculationService.FertilizationRecommendationRow> rows = best.toRows(
                 crop, nvl(requiredN), nvl(requiredP2O5), nvl(requiredK2O), sulfurRequirement.requiredS(), transferredN);
-        return new SimplePlantingPackageResult(rows, best.suggestions, transferredN, 0d);
+        return new SimplePlantingPackageResult(rows, best.suggestions, balanceN, balanceK2O, balanceS);
     }
 
     private SimplePlantingPackage chooseBestSimplePlantingPackage(
@@ -1693,10 +1705,12 @@ class NutrientFertilizationCalculationService {
             if (nutrient == Nutriente.POTASSIO) recommendedK2O = round2(recommendedK2O + applicationKgHa);
         }
 
-        void addPlantingDeficits(double n, double k2o, double s) {
-            plantingDeficitN = round2(n);
-            plantingDeficitK2O = round2(k2o);
-            plantingDeficitS = round2(s);
+        void adjustForPlantingBalances(double n, double k2o, double s) {
+            double adjustedN = CoverageAdjustmentCalculator.adjustedRequirement(recommendedN, n);
+            double adjustedK2O = CoverageAdjustmentCalculator.adjustedRequirement(recommendedK2O, k2o);
+            plantingDeficitN = round2(adjustedN - recommendedN);
+            plantingDeficitK2O = round2(adjustedK2O - recommendedK2O);
+            plantingDeficitS = round2(Math.max(0d, -s));
         }
 
         double recommendedN() { return recommendedN; }
@@ -1894,8 +1908,9 @@ class NutrientFertilizationCalculationService {
     private record SimplePlantingPackageResult(
             List<RecommendationCalculationService.FertilizationRecommendationRow> rows,
             List<RecommendationCalculationService.FertilizerSuggestion> suggestions,
-            double transferredN,
-            double transferredK2O) {
+            double balanceN,
+            double balanceK2O,
+            double balanceS) {
     }
 
     private class SimplePlantingPackage {

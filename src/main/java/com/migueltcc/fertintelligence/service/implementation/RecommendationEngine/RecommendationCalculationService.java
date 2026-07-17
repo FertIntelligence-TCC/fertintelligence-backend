@@ -928,12 +928,6 @@ public class RecommendationCalculationService {
                 selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato simples", "P2O5"), "Superfosfato Simples",
                 "100 * dose recomendada P2O5 / teor % P2O5 do adubo. P Mehlich-1 = " + formatNumber(p)
                         + " mg/dm³; argila = " + formatNumber(clay) + " g/kg; linha de adubação corretiva P2O5 ID " + selectedLine.getId() + ".", warnings);
-        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Superfosfato Triplo", "P2O5", dose,
-                selectSimpleByNameOrNutrient(user, sourceOption, "superfosfato triplo", "P2O5"), "Superfosfato Triplo",
-                "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
-        addSimpleCorrectiveProductRow(rows, "P2O5 corretivo - Termofosfato Magnesiano", "P2O5", dose,
-                selectSimpleByNameOrNutrient(user, sourceOption, "termofosfato", "P2O5"), "Termofosfato Magnesiano",
-                "100 * dose recomendada P2O5 / teor % P2O5 do adubo.", warnings);
         return round2(dose);
     }
 
@@ -1037,8 +1031,17 @@ public class RecommendationCalculationService {
         }
         Optional<DiverseContentRangeModel> diverseRange = findDiverseContentRangeByTable(soilInterpretationTable);
         Map<AppliedMicronutrient, Double> recommended = recommendedMicronutrientDoses(doses.get(), byAttribute, diverseRange, warnings);
-        AppliedMicronutrient baseNutrient = isLowAnalyzedMicronutrient(AppliedMicronutrient.B, byAttribute, diverseRange)
-                && positive(recommended.get(AppliedMicronutrient.B)) ? AppliedMicronutrient.B : AppliedMicronutrient.Zn;
+        String boronRange = correctiveMicronutrientRange(AppliedMicronutrient.B, byAttribute, diverseRange);
+        String zincRange = correctiveMicronutrientRange(AppliedMicronutrient.Zn, byAttribute, diverseRange);
+        AppliedMicronutrient baseNutrient = FteBaseNutrientSelector.select(
+                boronRange, recommended.get(AppliedMicronutrient.B),
+                zincRange, recommended.get(AppliedMicronutrient.Zn)).orElse(null);
+        if (baseNutrient == null) {
+            addNotCalculatedCorrectiveRow(rows, "FTE corretivo",
+                    "Nenhum nutriente-base B/Zn atende às regras de classificação e dose válida; FTE BR-12 não calculado.");
+            addMicronutrientSimpleComplements(rows, "Complemento corretivo", recommended, user, sourceOption);
+            return;
+        }
         Double baseDose = recommended.get(baseNutrient);
         if (!positive(baseDose)) {
             addNotCalculatedCorrectiveRow(rows, "FTE corretivo", recommended.isEmpty()
@@ -1048,6 +1051,16 @@ public class RecommendationCalculationService {
         } else {
             addFteRows(rows, recommended, baseNutrient, baseDose, user, sourceOption, warnings);
         }
+    }
+
+    private String correctiveMicronutrientRange(AppliedMicronutrient micronutrient,
+                                                 Map<String, SoilChemicalDiagnosisItem> byAttribute,
+                                                 Optional<DiverseContentRangeModel> diverseRange) {
+        SoilChemicalDiagnosisItem item = findFirstDiagnosis(byAttribute,
+                micronutrient == AppliedMicronutrient.B ? "boro" : "zinco");
+        if (item == null || item.getAnalyzedValue() == null) return null;
+        return classifyCorrectiveMicronutrientRange(micronutrient, item.getAnalyzedValue(), diverseRange)
+                .orElse(item.getInterpretation());
     }
 
     private boolean isLowAnalyzedMicronutrient(AppliedMicronutrient micronutrient,

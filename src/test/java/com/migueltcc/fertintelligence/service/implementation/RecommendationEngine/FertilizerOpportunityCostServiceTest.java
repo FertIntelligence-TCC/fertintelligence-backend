@@ -31,6 +31,12 @@ class FertilizerOpportunityCostServiceTest {
                 FertilizerOpportunityCostService.Nutrient.N)).contains(first);
     }
 
+    @Test void appliesStrictCmToCoDecisionBoundary() {
+        assertThat(FertilizerOpportunityCostService.preferSimpleSources(new BigDecimal("1.01"))).isTrue();
+        assertThat(FertilizerOpportunityCostService.preferSimpleSources(new BigDecimal("1.00"))).isFalse();
+        assertThat(FertilizerOpportunityCostService.preferSimpleSources(new BigDecimal("0.99"))).isFalse();
+    }
+
     private SimpleMineralFertilizerModel source(Long id, String name, double n, String price50) {
         return SimpleMineralFertilizerModel.builder().id(id).name(name).N(n)
                 .precoSaco50Kg(price50 == null ? null : new BigDecimal(price50)).build();

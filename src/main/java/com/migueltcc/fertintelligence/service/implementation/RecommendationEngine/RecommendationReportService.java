@@ -249,11 +249,17 @@ public class RecommendationReportService {
                 .append(formatDecimal(balance.maximumMagnesiumOxidePercent())).append("% de MgO. ")
                 .append("Quanto menos MgO% tiver o calcário, mais a relação Ca/Mg se alarga.\n");
         for (CalciumMagnesiumBalanceCalculator.CalciumMagnesiumBalanceScenario scenario : balance.scenarios()) {
-            report.append("- Composição teórica para ")
+            report.append(scenario.limitedByZeroMagnesium()
+                            ? "- Composição limite para o alvo "
+                            : "- Composição teórica para ")
                     .append((int) scenario.desiredRatio()).append(":1: CaO ")
                     .append(formatDecimal(scenario.calciumOxidePercent())).append("%; MgO ")
                     .append(formatDecimal(scenario.magnesiumOxidePercent())).append("%; classificação: ")
                     .append(safe(scenario.limestoneClassification())).append(".\n");
+            if (scenario.limitedByZeroMagnesium()) {
+                report.append("- Aviso técnico da composição limite: ")
+                        .append(safe(scenario.technicalWarning())).append("\n");
+            }
         }
     }
 

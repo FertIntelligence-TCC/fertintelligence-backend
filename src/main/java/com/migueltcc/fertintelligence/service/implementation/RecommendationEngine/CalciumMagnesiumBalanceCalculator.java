@@ -68,6 +68,9 @@ public class CalciumMagnesiumBalanceCalculator {
                 - desiredRatio * magnesium + calcium) / denominator;
 
         if (!finiteNonNegative(additionalCalcium) || !finiteNonNegative(additionalMagnesium)) {
+            if (Double.isFinite(additionalMagnesium) && additionalMagnesium < 0d && magnesium > 0d) {
+                return maximumRatioWithZeroMagnesium(theoreticalLimingRequirement, calcium, magnesium, desiredRatio);
+            }
             double calciumCarbonate = 50d * additionalCalcium;
             double magnesiumCarbonate = 42.15d * additionalMagnesium;
             String reason;
@@ -106,6 +109,8 @@ public class CalciumMagnesiumBalanceCalculator {
         return new CalciumMagnesiumBalanceScenario(
                 true,
                 desiredRatio,
+                desiredRatio,
+                false,
                 additionalCalcium,
                 additionalMagnesium,
                 calciumCarbonate,
@@ -115,6 +120,30 @@ public class CalciumMagnesiumBalanceCalculator {
                 magnesiumOxidePercent,
                 classify(magnesiumOxidePercent),
                 null);
+    }
+
+    private CalciumMagnesiumBalanceScenario maximumRatioWithZeroMagnesium(double theoreticalLimingRequirement,
+                                                                          double calcium,
+                                                                          double magnesium,
+                                                                          double desiredRatio) {
+        double totalAdditionalBases = 10d * theoreticalLimingRequirement;
+        double additionalCalcium = totalAdditionalBases;
+        double achievableRatio = (calcium + additionalCalcium) / magnesium;
+        double calciumCarbonate = 50d * additionalCalcium;
+        double totalCarbonates = calciumCarbonate;
+        double calciumOxidePercent = calciumCarbonate * 56d / totalCarbonates;
+        if (!finitePositive(totalAdditionalBases) || !Double.isFinite(achievableRatio)
+                || !validPercent(calciumOxidePercent)) {
+            return CalciumMagnesiumBalanceScenario.unavailable(desiredRatio,
+                    "Composição limite indisponível: não foi possível calcular a relação Ca/Mg com MgO igual a zero.");
+        }
+        String warning = String.format(java.util.Locale.US,
+                "Com a dose de calcário recomendada, não é possível atingir a relação Ca/Mg de %.0f:1 sem exigir teor negativo de MgO. Utilizando calcário com 0,00%% de MgO, a maior relação estimada alcançável é %.2f:1, com teor calculado de %.2f%% de CaO.",
+                desiredRatio, achievableRatio, calciumOxidePercent);
+        return new CalciumMagnesiumBalanceScenario(
+                true, desiredRatio, achievableRatio, true,
+                additionalCalcium, 0d, calciumCarbonate, 0d, totalCarbonates,
+                calciumOxidePercent, 0d, classify(0d), warning);
     }
 
     private String validateInputs(Double theoreticalLimingRequirement, Double calcium, Double magnesium) {
@@ -176,6 +205,8 @@ public class CalciumMagnesiumBalanceCalculator {
     public record CalciumMagnesiumBalanceScenario(
             boolean available,
             double desiredRatio,
+            Double achievableRatio,
+            boolean limitedByZeroMagnesium,
             Double additionalCalcium,
             Double additionalMagnesium,
             Double calciumCarbonate,
@@ -188,7 +219,7 @@ public class CalciumMagnesiumBalanceCalculator {
 
         static CalciumMagnesiumBalanceScenario unavailable(double desiredRatio, String warning) {
             return new CalciumMagnesiumBalanceScenario(
-                    false, desiredRatio, null, null, null, null, null, null, null, null, warning);
+                    false, desiredRatio, null, false, null, null, null, null, null, null, null, null, warning);
         }
 
         static CalciumMagnesiumBalanceScenario unavailable(double desiredRatio,
@@ -199,7 +230,7 @@ public class CalciumMagnesiumBalanceCalculator {
                                                             Double totalCarbonates,
                                                             String warning) {
             return new CalciumMagnesiumBalanceScenario(
-                    false, desiredRatio, additionalCalcium, additionalMagnesium,
+                    false, desiredRatio, null, false, additionalCalcium, additionalMagnesium,
                     calciumCarbonate, magnesiumCarbonate, totalCarbonates,
                     null, null, null, warning);
         }
