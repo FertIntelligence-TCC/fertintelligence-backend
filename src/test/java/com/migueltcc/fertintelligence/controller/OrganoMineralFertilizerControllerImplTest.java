@@ -121,7 +121,7 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
         OrganoMineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(organoMineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
+        when(organoMineralFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(List.of(model));
 
         mockMvc.perform(get("/organo-mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())

@@ -14,6 +14,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.test.context.support.WithMockUser;
 
@@ -83,6 +84,12 @@ class DirectRecommendationControllerImplTest extends AbstractControllerTest {
                         .gramsPerLinearMeter(null)
                         .gramsPerPit(1.0)
                         .technicalObservation("Dose calculada por Zn.")
+                        .build()));
+        when(simpleMineralFertilizerRepository.findById(801L)).thenReturn(Optional.of(
+                SimpleMineralFertilizerModel.builder()
+                        .id(801L)
+                        .name("Sulfato de zinco")
+                        .Zn(25d)
                         .build()));
 
         mockMvc.perform(get("/direct-recommendation/get-by-recommendation").param("recommendationId", "7"))

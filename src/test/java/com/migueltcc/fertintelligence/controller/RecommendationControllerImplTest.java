@@ -26,16 +26,20 @@ import com.migueltcc.fertintelligence.model.fertintelligence.SoilAnalysisModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.SummaryRecommendationModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.AnnualCropFolderModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.cropModels.CropModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.FormulatedMineralFertilizerModel;
+import com.migueltcc.fertintelligence.model.fertintelligence.soilFertilizerModels.SimpleMineralFertilizerModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.PhysicalAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractAnalysisModels.SaturationExtractAnalysisExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.extractModels.RangeExtractModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFertilizationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.CropFoliarAnalysisInterpretationTableModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
+import com.migueltcc.fertintelligence.service.implementation.FertAiClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +56,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class RecommendationControllerImplTest extends AbstractControllerTest {
+
+    @MockitoBean
+    private FertAiClient fertAiClient;
 
     @Test
     void recommendationCreateRequestDto_AcceptsCamelCaseTableGroups() throws Exception {
@@ -830,6 +837,12 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                         .gramsPerLinearMeter(9.0)
                         .technicalObservation("Formulado de cobertura selecionado.")
                         .build()));
+        when(simpleMineralFertilizerRepository.findById(801L)).thenReturn(Optional.of(
+                SimpleMineralFertilizerModel.builder().id(801L).name("Borax").B(12d).build()));
+        when(formulatedMineralFertilizerRepository.findById(802L)).thenReturn(Optional.of(
+                FormulatedMineralFertilizerModel.builder().id(802L).N(4d).P2O5(14d).K2O(8d).build()));
+        when(formulatedMineralFertilizerRepository.findById(803L)).thenReturn(Optional.of(
+                FormulatedMineralFertilizerModel.builder().id(803L).N(20d).P2O5(0d).K2O(20d).build()));
 
         mockMvc.perform(get("/recommendation/get").param("id", "7"))
                 .andExpect(status().isOk())
@@ -868,9 +881,9 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_aplicavel_unidade").value("g/m linear"))
                 .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].dose_aplicavel_coluna").value("gPerLinearMeter"))
                 .andExpect(jsonPath("$.recomendacao_direta.adubos_micronutrientes[0].observacao_tecnica").value("Dose calculada por B."))
-                .andExpect(jsonPath("$.recomendacao_direta.formulados_plantio[0].nome_formulado").value("04-14-08"))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_plantio[0].nome_formulado").value("NPK 4.00-14.00-8.00"))
                 .andExpect(jsonPath("$.recomendacao_direta.formulados_plantio[0].dose_aplicavel_valor").value(12.5))
-                .andExpect(jsonPath("$.recomendacao_direta.formulados_cobertura[0].nome_formulado").value("20-00-20"))
+                .andExpect(jsonPath("$.recomendacao_direta.formulados_cobertura[0].nome_formulado").value("NPK 20.00-0.00-20.00"))
                 .andExpect(jsonPath("$.recomendacao_direta.formulados_cobertura[0].dose_aplicavel_valor").value(9.0));
     }
 
@@ -938,6 +951,7 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(recommendationRepository.findById(7L)).thenReturn(Optional.of(item));
         when(recommendationRepository.save(any(RecommendationModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fertAiClient.improveNarrative("laudo 100 kg/ha")).thenReturn("laudo aprimorado 100 kg/ha");
 
         mockMvc.perform(post("/recommendation/improve-narrative").param("id", "7"))
                 .andExpect(status().isOk())

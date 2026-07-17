@@ -484,12 +484,21 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
                 .order(1)
                 .application(25.0)
                 .build();
-
-        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+        ContentRangeModel potassiumFirstRange = ContentRangeModel.builder()
+                .id(600L)
+                .table(ownerTable)
                 .nutrient(Nutriente.POTASSIO)
                 .order(1)
                 .smallest(null)
                 .largest(10.0)
+                .application(70.0)
+                .build();
+
+        ContentRangePostRequestDto requestDto = ContentRangePostRequestDto.builder()
+                .nutrient(Nutriente.POTASSIO)
+                .order(2)
+                .smallest(10.0)
+                .largest(null)
                 .application(60.0)
                 .build();
 
@@ -498,7 +507,7 @@ public class ContentRangeControllerImplTest extends AbstractControllerTest {
         when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.FOSFORO))
                 .thenReturn(List.of(fosforoRange, fosforoFinalRange));
         when(contentRangeRepository.findAllByTableAndNutrientOrderByOrderAsc(ownerTable, Nutriente.POTASSIO))
-                .thenReturn(List.of());
+                .thenReturn(List.of(potassiumFirstRange));
         when(contentRangeRepository.save(any(ContentRangeModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(coverageRepository.findAllByRangeOrderByOrderAsc(fosforoFinalRange)).thenReturn(List.of(oldCoverage));
 

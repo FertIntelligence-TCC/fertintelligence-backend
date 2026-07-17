@@ -160,14 +160,14 @@ public class BioFertilizerControllerImplTest extends AbstractControllerTest {
         BioFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(bioFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
+        when(bioFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(List.of(model));
 
         mockMvc.perform(get("/bio-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
                 .andExpect(jsonPath("$[0].densidade_g_ml").value(1.1))
                 .andExpect(jsonPath("$[0].proteinas_g_l").value(18.0))
-                .andExpect(jsonPath("$[0].user_id").doesNotExist());
+                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
     }
 
     @Test

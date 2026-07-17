@@ -18,6 +18,10 @@ import java.util.function.Function;
 @Service
 public class FormulatedFertilizerSelectionService {
 
+    static final double EFFECTIVE_REQUIREMENT_TOLERANCE = 1.0e-6d;
+    public static final String SINGLE_NUTRIENT_FORMULATED_REJECTION =
+            "Não é possível usar formulado na adubação, pois apenas um dos nutrientes NPK é necessário. "
+                    + "Nessa situação, optar, obrigatoriamente, pelo uso de adubos simples, aplicando tão somente o nutriente necessário.";
     private static final int PRESENTATION_LIMIT = 2;
     private static final double APPROXIMATE_SUPPLY_TOLERANCE = 0.10d;
 
@@ -79,6 +83,19 @@ public class FormulatedFertilizerSelectionService {
                                                                 Double requiredN,
                                                                 Double requiredP2O5,
                                                                 Double requiredK2O) {
+        int requiredNutrientCount = countEffectiveRequiredNutrients(requiredN, requiredP2O5, requiredK2O);
+        if (requiredNutrientCount == 1) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    SINGLE_NUTRIENT_FORMULATED_REJECTION);
+        }
+        if (requiredNutrientCount == 0) {
+            return new FormulatedFertilizerSelectionResult(
+                    List.of(),
+                    false,
+                    "Adubo formulado não avaliado: nenhum nutriente NPK possui necessidade efetiva positiva nesta fase.");
+        }
         FormulatedFertilizerRatioService.RatioCalculationResult recommendedRatio =
                 ratioService.calculateRecommendedRatio(requiredN, requiredP2O5, requiredK2O);
         if (!recommendedRatio.calculated()) {
@@ -155,9 +172,22 @@ public class FormulatedFertilizerSelectionService {
         return new FormulatedFertilizerSelectionResult(candidates, false, recommendedRatio.technicalMessage());
     }
 
+    static int countEffectiveRequiredNutrients(Double requiredN, Double requiredP2O5, Double requiredK2O) {
+        return (isEffectiveRequirement(requiredN) ? 1 : 0)
+                + (isEffectiveRequirement(requiredP2O5) ? 1 : 0)
+                + (isEffectiveRequirement(requiredK2O) ? 1 : 0);
+    }
+
+    private static boolean isEffectiveRequirement(Double value) {
+        return value != null && Double.isFinite(value) && value > EFFECTIVE_REQUIREMENT_TOLERANCE;
+    }
+
     public FormulatedFertilizerSelectionResult selectCoverageCandidates(List<FormulatedMineralFertilizerModel> fertilizers,
                                                                         Double requiredN,
                                                                         Double requiredK2O) {
+        if (countEffectiveRequiredNutrients(requiredN, 0d, requiredK2O) < 2) {
+            return selectCandidates(List.of(), requiredN, 0d, requiredK2O);
+        }
         List<FormulatedMineralFertilizerModel> safeFertilizers = fertilizers != null ? fertilizers : List.of();
         List<FormulatedMineralFertilizerModel> withoutPhosphorus = safeFertilizers.stream()
                 .filter(this::doesNotExceedCoveragePhosphorus)

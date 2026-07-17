@@ -183,12 +183,12 @@ public class MineralFertilizerControllerImplTest extends AbstractControllerTest 
         MineralFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(mineralFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
+        when(mineralFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(List.of(model));
 
         mockMvc.perform(get("/mineral-fertilizer/get-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(3L))
-                .andExpect(jsonPath("$[0].user_id").isEmpty());
+                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
     }
 
     @Test

@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -152,11 +153,11 @@ class NutrientFertilizationCalculationService {
         double optionOneBalanceS = round2((sulfurPlan.replacesPlanting() ? 0d : planting.providedS())
                 + sulfurPlan.providedS() - sulfurRequirement.requiredS());
         CoverageDemand optionOneCoverageDemand = buildCoverageDemand(
-                List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
+                Arrays.asList(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
                 optionOneBalanceN, optionOneBalanceK2O, optionOneBalanceS,
                 warnings);
         CoverageDemand optionTwoCoverageDemand = buildCoverageDemand(
-                List.of(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
+                Arrays.asList(nRange.orElse(null), pRange.orElse(null), kRange.orElse(null)),
                 simplePlantingPackage.balanceN(), simplePlantingPackage.balanceK2O(), simplePlantingPackage.balanceS(),
                 warnings);
 

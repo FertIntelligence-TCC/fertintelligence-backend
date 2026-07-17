@@ -118,7 +118,68 @@ class FormulatedFertilizerSelectionServiceTest {
 
         assertThat(result.candidates()).isEmpty();
         assertThat(result.fallbackUsed()).isFalse();
-        assertThat(result.technicalMessage()).contains("relacao nao calculada");
+        assertThat(result.technicalMessage()).contains("nenhum nutriente NPK possui necessidade efetiva positiva");
+    }
+
+    @Test
+    void rejectsFormulatedForEachSingleRequiredNutrientBeforeCalculatingDose() {
+        FormulatedMineralFertilizerModel formula200020 = formulated(1L, 20d, 0d, 20d);
+
+        for (double[] demand : List.of(
+                new double[]{30d, 0d, 0d},
+                new double[]{0d, 30d, 0d},
+                new double[]{0d, 0d, 30d})) {
+            var result = service.selectCandidates(
+                    List.of(formula200020), demand[0], demand[1], demand[2]);
+
+            assertThat(result.candidates()).isEmpty();
+            assertThat(result.technicalMessage())
+                    .isEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+        }
+    }
+
+    @Test
+    void rejectsCaptureScenarioWithOnlyNitrogenAndDoesNotCreateNpkDose() {
+        FormulatedMineralFertilizerModel formula200020 = formulated(1L, 20d, 0d, 20d);
+
+        var result = service.selectCoverageCandidates(List.of(formula200020), 30d, 0d);
+
+        assertThat(result.candidates()).isEmpty();
+        assertThat(result.technicalMessage())
+                .isEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+    }
+
+    @Test
+    void usesEffectiveRequirementToleranceAtTheBoundary() {
+        FormulatedMineralFertilizerModel formula100010 = formulated(1L, 10d, 0d, 10d);
+
+        var residual = service.selectCandidates(List.of(formula100010), 30d, 1.0e-7d, 0d);
+        var atTolerance = service.selectCandidates(List.of(formula100010), 30d, 1.0e-6d, 0d);
+        var aboveTolerance = service.selectCandidates(List.of(formula100010), 30d, 1.1e-6d, 0d);
+
+        assertThat(residual.technicalMessage())
+                .isEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+        assertThat(atTolerance.technicalMessage())
+                .isEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+        assertThat(aboveTolerance.technicalMessage())
+                .isNotEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+    }
+
+    @Test
+    void permitsEvaluationForEveryCombinationWithAtLeastTwoRequiredNutrients() {
+        FormulatedMineralFertilizerModel formula101010 = formulated(1L, 10d, 10d, 10d);
+
+        for (double[] demand : List.of(
+                new double[]{10d, 10d, 0d},
+                new double[]{10d, 0d, 10d},
+                new double[]{0d, 10d, 10d},
+                new double[]{10d, 10d, 10d})) {
+            var result = service.selectCandidates(
+                    List.of(formula101010), demand[0], demand[1], demand[2]);
+
+            assertThat(result.technicalMessage())
+                    .isNotEqualTo(FormulatedFertilizerSelectionService.SINGLE_NUTRIENT_FORMULATED_REJECTION);
+        }
     }
 
     @Test

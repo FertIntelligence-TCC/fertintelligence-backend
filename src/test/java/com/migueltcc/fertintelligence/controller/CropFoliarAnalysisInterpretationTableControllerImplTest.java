@@ -269,7 +269,8 @@ public class CropFoliarAnalysisInterpretationTableControllerImplTest extends Abs
                 .publicTable(true)
                 .build();
 
-        when(cropFoliarAnalysisInterpretationTableRepository.findAllByPublicTableTrue())
+        when(cropFoliarAnalysisInterpretationTableRepository
+                .findAllByPublicTableTrueAndCreator_CargoNot(Cargo.USUARIO_SUPREMO))
                 .thenReturn(List.of(publicOwner, publicOther));
 
         mockMvc.perform(get("/crop-foliar-analysis-interpretation-table/get-all-public"))

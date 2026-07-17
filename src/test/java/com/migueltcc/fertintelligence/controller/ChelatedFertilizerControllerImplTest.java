@@ -155,7 +155,7 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
         ChelatedFertilizerModel model = createModel(3L);
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
-        when(chelatedFertilizerRepository.findAllByUserOrDefaultCreator(owner, Cargo.USUARIO_SUPREMO)).thenReturn(List.of(model));
+        when(chelatedFertilizerRepository.findAllByUserUsernameOrderByNameAsc("owner")).thenReturn(List.of(model));
 
         mockMvc.perform(get("/chelated-fertilizer/get-all"))
                 .andExpect(status().isOk())
@@ -163,7 +163,7 @@ public class ChelatedFertilizerControllerImplTest extends AbstractControllerTest
                 .andExpect(jsonPath("$[0].densidade_g_ml").value(1.2))
                 .andExpect(jsonPath("$[0].concentracao_volume_g_l").value(240.0))
                 .andExpect(jsonPath("$[0].concentracao_massa_g_kg").value(200.0))
-                .andExpect(jsonPath("$[0].user_id").doesNotExist());
+                .andExpect(jsonPath("$[0].user_id").value(owner.getId()));
     }
 
     @Test

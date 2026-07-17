@@ -240,8 +240,8 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .andExpect(jsonPath("$.unidade_teor_areia").value("g/kg"))
                 .andExpect(jsonPath("$.unidade_teor_silte").value("g/kg"))
                 .andExpect(jsonPath("$.unidade_teor_argila").value("g/kg"))
-                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/dm3"))
-                .andExpect(jsonPath("$.unidade_densidade_real").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/kg"))
+                .andExpect(jsonPath("$.unidade_densidade_real").value("g/kg"))
                 .andExpect(jsonPath("$.porosidade_total", closeTo(53.84615384615385, 0.000001)))
                 .andExpect(jsonPath("$.agua_disponivel").value(13.0));
     }
@@ -330,8 +330,8 @@ public class PhysicalAnalysisExtractControllerImplTest extends AbstractControlle
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teor_areia").value(500.0))
                 .andExpect(jsonPath("$.unidade_teor_areia").value("g/kg"))
-                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/dm3"))
-                .andExpect(jsonPath("$.unidade_densidade_real").value("g/dm3"))
+                .andExpect(jsonPath("$.unidade_densidade_aparente").value("g/kg"))
+                .andExpect(jsonPath("$.unidade_densidade_real").value("g/kg"))
                 .andExpect(jsonPath("$.porosidade_total").value(48.0))
                 .andExpect(jsonPath("$.agua_disponivel").value(14.0));
     }

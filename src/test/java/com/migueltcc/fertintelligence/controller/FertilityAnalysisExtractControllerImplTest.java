@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -264,7 +265,7 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.unidade_ctc_ph7").value("mmolc/dm³"))
                 .andExpect(jsonPath("$.soma_bases").value(65.9))
                 .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
-                .andExpect(jsonPath("$.ctc_ph7").value(70.1))
+                .andExpect(jsonPath("$.ctc_ph7").value(closeTo(70.1, 1.0e-9)))
                 .andExpect(jsonPath("$.saturacao_bases_v").value(94.0))
                 .andExpect(jsonPath("$.saturacao_aluminio_m").value(0.8))
                 .andExpect(jsonPath("$.pst").value(3.4))
@@ -379,7 +380,7 @@ public class FertilityAnalysisExtractControllerImplTest extends AbstractControll
                 .andExpect(jsonPath("$.unidade_ctc_ph7").value("mmolc/dm³"))
                 .andExpect(jsonPath("$.soma_bases").value(65.9))
                 .andExpect(jsonPath("$.ctc_efetiva").value(66.4))
-                .andExpect(jsonPath("$.ctc_ph7").value(70.1))
+                .andExpect(jsonPath("$.ctc_ph7").value(closeTo(70.1, 1.0e-9)))
                 .andExpect(jsonPath("$.saturacao_bases_v").value(94.0))
                 .andExpect(jsonPath("$.saturacao_aluminio_m").value(0.8))
                 .andExpect(jsonPath("$.pst").value(3.4));
