@@ -61,6 +61,11 @@ public class CropServiceImpl implements CropService {
                     );
                 });
 
+        CropPhenologyDateValidator.validate(
+                createRequestDto.getPlantingDate(), createRequestDto.getEmergenceDate(),
+                createRequestDto.getButtoningDate(), createRequestDto.getFloweringDate(),
+                createRequestDto.getHarvestDate());
+
         validateUsedAreaLimit(
                 folder,
                 null,
@@ -153,7 +158,13 @@ public class CropServiceImpl implements CropService {
 
         Double newUsedArea = Optional.ofNullable(updateRequestDto.getUsedAreaInThePlot()).orElse(crop.getUsedAreaInThePlot());
         Date newPlantingDate = Optional.ofNullable(updateRequestDto.getPlantingDate()).orElse(crop.getPlantingDate());
+        Date newEmergenceDate = Optional.ofNullable(updateRequestDto.getEmergenceDate()).orElse(crop.getEmergenceDate());
+        Date newButtoningDate = Optional.ofNullable(updateRequestDto.getButtoningDate()).orElse(crop.getButtoningDate());
+        Date newFloweringDate = Optional.ofNullable(updateRequestDto.getFloweringDate()).orElse(crop.getFloweringDate());
         Date newHarvestDate = Optional.ofNullable(updateRequestDto.getHarvestDate()).orElse(crop.getHarvestDate());
+
+        CropPhenologyDateValidator.validate(
+                newPlantingDate, newEmergenceDate, newButtoningDate, newFloweringDate, newHarvestDate);
 
         validateUsedAreaLimit(crop.getFolder(), cropId, newUsedArea, newPlantingDate, newHarvestDate);
 

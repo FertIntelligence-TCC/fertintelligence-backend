@@ -36,6 +36,7 @@ import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables
 import com.migueltcc.fertintelligence.model.fertintelligence.fertilizationTables.SoilFertilityInterpretationCriteriaTableModel;
 import com.migueltcc.fertintelligence.service.implementation.FertAiClient;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -59,6 +60,14 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
     @MockitoBean
     private FertAiClient fertAiClient;
+
+    @BeforeEach
+    void persistGeneratedDirectRecommendationInControllerFixtures() {
+        when(directRecommendationRepository.saveAndFlush(any(DirectRecommendationModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(directRecommendationRepository.save(any(DirectRecommendationModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
 
     @Test
     void recommendationCreateRequestDto_AcceptsCamelCaseTableGroups() throws Exception {

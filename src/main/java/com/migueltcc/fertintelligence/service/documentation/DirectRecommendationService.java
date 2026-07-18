@@ -22,6 +22,13 @@ public interface DirectRecommendationService {
             List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
             List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
             List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows);
+    DirectRecommendationModel createInitial(
+            RecommendationModel recommendation,
+            String technicalReport,
+            List<RecommendationCalculationService.FertilizationRecommendationRow> fertilizationRows,
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
+            List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
+            List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows);
     DirectRecommendationResponseDto get(Long id, String username);
     DirectRecommendationResponseDto getByRecommendation(Long recommendationId, String username);
     DirectRecommendationResponseDto update(Long id, DirectRecommendationPostRequestDto dto, String username);

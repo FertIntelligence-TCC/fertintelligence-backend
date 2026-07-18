@@ -23,6 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Comparator;
+import java.text.Normalizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.LINEAR_CONVERSION_UNAVAILABLE;
 import static com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.TechnicalRecommendationDocumentSupport.NOT_CALCULATED;
@@ -31,6 +35,8 @@ import static com.migueltcc.fertintelligence.service.implementation.Recommendati
 @Service
 @RequiredArgsConstructor
 public class DirectRecommendationReportService {
+
+    private static final Pattern OPTION_NUMBER = Pattern.compile("\\bopcao\\s+(\\d+)\\b");
 
     private static final DirectDoseUnitMetadata INSUFFICIENT_DATA_METADATA =
             new DirectDoseUnitMetadata("INSUFFICIENT_DATA", null, null);
@@ -52,7 +58,8 @@ public class DirectRecommendationReportService {
                 resolveCrop(recommendation).orElse(null),
                 micronutrientFertilizerLines(directRecommendation),
                 plantingFormulatedFertilizerLines(directRecommendation),
-                coverageFormulatedFertilizerLines(directRecommendation));
+                coverageFormulatedFertilizerLines(directRecommendation),
+                List.of());
     }
 
     public DirectDoseUnitMetadata resolveDoseUnitMetadata(RecommendationModel recommendation) {
@@ -82,14 +89,25 @@ public class DirectRecommendationReportService {
     }
 
     public String build(RecommendationModel recommendation, CropModel crop) {
-        return build(recommendation, crop, List.of(), List.of(), List.of());
+        return build(recommendation, crop, List.of(), List.of(), List.of(), List.of());
+    }
+
+    public String buildWithFertilizationRows(
+            RecommendationModel recommendation,
+            List<RecommendationCalculationService.FertilizationRecommendationRow> fertilizationRows) {
+        DirectRecommendationModel directRecommendation = resolveDirectRecommendation(recommendation).orElse(null);
+        return build(recommendation, resolveCrop(recommendation).orElse(null),
+                micronutrientFertilizerLines(directRecommendation),
+                plantingFormulatedFertilizerLines(directRecommendation),
+                coverageFormulatedFertilizerLines(directRecommendation), fertilizationRows);
     }
 
     private String build(RecommendationModel recommendation,
                          CropModel crop,
                          List<DirectRecommendationMicronutrientFertilizerLineModel> micronutrientFertilizerLines,
                          List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
-                         List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+                         List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines,
+                         List<RecommendationCalculationService.FertilizationRecommendationRow> fertilizationRows) {
         String source = recommendation != null ? recommendation.getTechnicalReport() : null;
         DirectDoseUnitMetadata doseUnitMetadata = resolveEffectiveDoseUnitMetadata(
                 resolveDoseUnitMetadata(crop),
@@ -122,7 +140,7 @@ public class DirectRecommendationReportService {
 
         appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
-                plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines);
+                plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines, fertilizationRows);
         appendOpportunityCostComparison(report, source);
 
         report.append("Observações sobre adubação\n\n");
@@ -219,8 +237,24 @@ public class DirectRecommendationReportService {
                                 DirectDoseUnitMetadata doseUnitMetadata,
                                 List<String> spacingWarnings,
                                 List<DirectRecommendationPlantingFormulatedFertilizerLineModel> plantingFormulatedFertilizerLines,
-                                List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines) {
+                                List<DirectRecommendationCoverageFormulatedFertilizerLineModel> coverageFormulatedFertilizerLines,
+                                List<RecommendationCalculationService.FertilizationRecommendationRow> fertilizationRows) {
         report.append("Tabela de N, P2O5 e K2O\n\n");
+        if (fertilizationRows != null && !fertilizationRows.isEmpty()) {
+            StringBuilder rows = new StringBuilder();
+            boolean appended = appendStructuredOperationalRows(rows, fertilizationRows, crop, doseUnitMetadata, spacingWarnings);
+            if (appended) {
+                report.append("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha | ")
+                        .append(spacingColumnHeader(doseUnitMetadata)).append(" | Observação técnica |\n");
+                report.append("|---|---|---|---:|---:|---|\n");
+                report.append(rows);
+            } else {
+                report.append(NO_CALCULATED_LINES).append("\n");
+            }
+            report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
+                    .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n\n");
+            return;
+        }
         if (hasFormulatedLines(plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines)) {
             StringBuilder rows = new StringBuilder();
             boolean appended = appendPlantingFormulatedRows(rows, plantingFormulatedFertilizerLines);
@@ -262,6 +296,66 @@ public class DirectRecommendationReportService {
         report.append("\n").append(spacingObservationLabel(doseUnitMetadata)).append(": ")
                 .append(resolveSpacingObservation(doseUnitMetadata, spacingWarnings)).append("\n");
         report.append("\n");
+    }
+
+    private boolean appendStructuredOperationalRows(
+            StringBuilder report,
+            List<RecommendationCalculationService.FertilizationRecommendationRow> rows,
+            CropModel crop,
+            DirectDoseUnitMetadata doseUnitMetadata,
+            List<String> spacingWarnings) {
+        boolean appended = false;
+        for (RecommendationCalculationService.FertilizationRecommendationRow row : rows.stream()
+                .filter(this::isOperationalOptionRow)
+                .sorted(directOptionComparator())
+                .toList()) {
+            String quantity = TechnicalRecommendationDocumentSupport.formatKgHa(row.getFertilizerQuantityKgHa());
+            String observation = firstNonBlank(row.getWarning(), row.getApplicationMode(), row.getCalculationMemory());
+            report.append("| ").append(TechnicalRecommendationDocumentSupport.safeCell(row.getPhase()))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(row.getSuggestedFertilizer()))
+                    .append(" | ")
+                    .append(" | ").append(quantity)
+                    .append(" | ").append(calculateSpacingDose(crop, quantity, doseUnitMetadata, spacingWarnings))
+                    .append(" | ").append(TechnicalRecommendationDocumentSupport.safeCell(observation))
+                    .append(" |\n");
+            appended = true;
+        }
+        return appended;
+    }
+
+    private boolean isOperationalOptionRow(RecommendationCalculationService.FertilizationRecommendationRow row) {
+        if (row == null || !TechnicalRecommendationDocumentSupport.hasPositiveKgHa(row.getFertilizerQuantityKgHa())) return false;
+        String phase = normalize(row.getPhase());
+        return phase.contains("opcao") && (phase.contains("plantio") || phase.contains("cobertura"))
+                && !TechnicalRecommendationDocumentSupport.looksUnavailable(row.getSuggestedFertilizer());
+    }
+
+    private Comparator<RecommendationCalculationService.FertilizationRecommendationRow> directOptionComparator() {
+        return Comparator
+                .comparingInt((RecommendationCalculationService.FertilizationRecommendationRow row) -> optionNumber(row.getPhase()))
+                .thenComparingInt(row -> directPhaseOrder(row.getPhase()));
+    }
+
+    private int optionNumber(String phase) {
+        Matcher matcher = OPTION_NUMBER.matcher(normalize(phase));
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : Integer.MAX_VALUE;
+    }
+
+    private int directPhaseOrder(String phase) {
+        String normalized = normalize(phase);
+        if (normalized.contains("plantio")) return normalized.contains("complement") ? 1 : 0;
+        if (normalized.contains("cobertura")) return normalized.contains("complement") ? 3 : 2;
+        return 4;
+    }
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) if (value != null && !value.isBlank()) return value;
+        return "Aplicar conforme a fase e a opção indicadas.";
     }
 
     private boolean appendFertilizationRows(StringBuilder report,

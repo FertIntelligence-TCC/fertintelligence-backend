@@ -73,6 +73,19 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
             List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
             List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
             List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows) {
+        return createInitial(recommendation, technicalReport, List.of(), micronutrientFertilizerRows,
+                plantingFormulatedFertilizerRows, coverageFormulatedFertilizerRows);
+    }
+
+    @Override
+    @Transactional
+    public DirectRecommendationModel createInitial(
+            RecommendationModel recommendation,
+            String technicalReport,
+            List<RecommendationCalculationService.FertilizationRecommendationRow> fertilizationRows,
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> micronutrientFertilizerRows,
+            List<RecommendationCalculationService.PlantingFormulatedFertilizerRecommendationRow> plantingFormulatedFertilizerRows,
+            List<RecommendationCalculationService.CoverageFormulatedFertilizerRecommendationRow> coverageFormulatedFertilizerRows) {
         if (recommendation == null || recommendation.getId() == null) {
             throw new IllegalArgumentException("A recomendação precisa estar salva antes da criação da Recomendação Direta.");
         }
@@ -84,8 +97,9 @@ public class DirectRecommendationServiceImpl implements DirectRecommendationServ
         syncMicronutrientFertilizerLines(directRecommendation, micronutrientFertilizerRows);
         syncPlantingFormulatedFertilizerLines(directRecommendation, plantingFormulatedFertilizerRows);
         syncCoverageFormulatedFertilizerLines(directRecommendation, coverageFormulatedFertilizerRows);
-        if (hasStructuredLines(micronutrientFertilizerRows, plantingFormulatedFertilizerRows, coverageFormulatedFertilizerRows)) {
-            directRecommendation.setTechnicalReport(directRecommendationReportService.build(recommendation));
+        if ((fertilizationRows != null && !fertilizationRows.isEmpty())
+                || hasStructuredLines(micronutrientFertilizerRows, plantingFormulatedFertilizerRows, coverageFormulatedFertilizerRows)) {
+            directRecommendation.setTechnicalReport(directRecommendationReportService.buildWithFertilizationRows(recommendation, fertilizationRows));
             directRecommendation = directRecommendationRepository.save(directRecommendation);
         }
         return directRecommendation;

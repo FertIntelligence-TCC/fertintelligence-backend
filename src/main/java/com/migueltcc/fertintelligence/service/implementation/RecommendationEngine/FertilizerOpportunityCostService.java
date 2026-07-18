@@ -322,7 +322,35 @@ public class FertilizerOpportunityCostService {
                 .distinct()
                 .map(byId::get)
                 .filter(fertilizer -> fertilizer != null)
+                .map(selected -> resolveEquivalentPricedFormulated(selected, fertilizers))
                 .toList();
+    }
+
+    FormulatedMineralFertilizerModel resolveEquivalentPricedFormulated(
+            FormulatedMineralFertilizerModel selected,
+            List<FormulatedMineralFertilizerModel> eligibleFertilizers) {
+        if (selected == null || bestCommercialUnit(selected.getPrecoSaco5Kg(), selected.getPrecoSaco25Kg(),
+                selected.getPrecoSaco50Kg(), selected.getPrecoSaco1000Kg()).isPresent()) {
+            return selected;
+        }
+        if (eligibleFertilizers == null) return selected;
+        return eligibleFertilizers.stream()
+                .filter(candidate -> candidate != null && sameCompleteFormula(selected, candidate))
+                .filter(candidate -> bestCommercialUnit(candidate.getPrecoSaco5Kg(), candidate.getPrecoSaco25Kg(),
+                        candidate.getPrecoSaco50Kg(), candidate.getPrecoSaco1000Kg()).isPresent())
+                .min(Comparator.comparing(candidate -> candidate.getId() == null ? Long.MAX_VALUE : candidate.getId()))
+                .orElse(selected);
+    }
+
+    private boolean sameCompleteFormula(FormulatedMineralFertilizerModel left, FormulatedMineralFertilizerModel right) {
+        return same(left.getN(), right.getN()) && same(left.getP2O5(), right.getP2O5()) && same(left.getK2O(), right.getK2O())
+                && same(left.getCa(), right.getCa()) && same(left.getMg(), right.getMg()) && same(left.getS(), right.getS())
+                && same(left.getB(), right.getB()) && same(left.getCu(), right.getCu()) && same(left.getFe(), right.getFe())
+                && same(left.getMn(), right.getMn()) && same(left.getMo(), right.getMo()) && same(left.getZn(), right.getZn());
+    }
+
+    private boolean same(Double left, Double right) {
+        return BigDecimal.valueOf(left == null ? 0d : left).compareTo(BigDecimal.valueOf(right == null ? 0d : right)) == 0;
     }
 
     private boolean hasMicronutrientsOnly(MineralFertilizerModel fertilizer) {

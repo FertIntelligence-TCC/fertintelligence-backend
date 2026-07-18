@@ -15,6 +15,7 @@ import com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFor
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.CropSpacingCalculationService;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationFertilizerResolver;
 import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.DirectRecommendationReportService;
+import com.migueltcc.fertintelligence.service.implementation.RecommendationEngine.RecommendationCalculationService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,6 +25,32 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class DirectRecommendationReportServiceTest {
+
+    @Test
+    void buildOrdersCompleteStructuredOptionsAndDoesNotCreateFalseFallback() {
+        DirectRecommendationReportService service = newService();
+        RecommendationModel recommendation = recommendationWithTechnicalReport();
+        List<RecommendationCalculationService.FertilizationRecommendationRow> rows = List.of(
+                row("Opção 2 - Cobertura com adubos simples", "Ureia", 80d),
+                row("Opção 1 - Complemento de cobertura", "Cloreto de potássio", 30d),
+                row("Opção 2 - Plantio com adubos simples", "Superfosfato simples", 120d),
+                row("Opção 1 - Plantio com formulado", "NPK 20-00-10", 200d),
+                row("Opção 2 - Cobertura com adubos simples", "Cloreto de potássio", 45d),
+                row("Opção 1 - Complemento de plantio", "Gesso agrícola", 100d));
+
+        String report = service.buildWithFertilizationRows(recommendation, rows);
+
+        assertThat(report).doesNotContain("Não estruturado");
+        assertThat(report).containsSubsequence(
+                "Opção 1 - Plantio com formulado",
+                "Opção 1 - Complemento de plantio",
+                "Opção 1 - Complemento de cobertura",
+                "Opção 2 - Plantio com adubos simples",
+                "Opção 2 - Cobertura com adubos simples");
+        assertThat(report).contains("| Opção 2 - Cobertura com adubos simples | Ureia |  | 80.00 kg/ha |");
+        assertThat(report).contains("| Opção 2 - Cobertura com adubos simples | Cloreto de potássio |  | 45.00 kg/ha |");
+        assertThat(report).contains("| Adubação | Formulado | Relação N-P2O5-K2O | kg/ha |");
+    }
 
     @Test
     void resolveDoseUnitMetadataReturnsInsufficientDataForLegacyRecommendationWithoutResolvableCrop() {
@@ -369,6 +396,15 @@ class DirectRecommendationReportServiceTest {
                 null,
                 null
         );
+    }
+
+    private RecommendationCalculationService.FertilizationRecommendationRow row(String phase, String fertilizer, double dose) {
+        return RecommendationCalculationService.FertilizationRecommendationRow.builder()
+                .phase(phase)
+                .suggestedFertilizer(fertilizer)
+                .fertilizerQuantityKgHa(dose)
+                .applicationMode("Aplicar conforme a opção.")
+                .build();
     }
 
     private DirectRecommendationFertilizerResolver fertilizerResolver() {

@@ -120,6 +120,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             directRecommendationService.createInitial(
                     savedRecommendation,
                     directRecommendationReportService.build(savedRecommendation),
+                    calculationResult.getFertilizationRecommendationRows(),
                     calculationResult.getMicronutrientFertilizerRows(),
                     calculationResult.getPlantingFormulatedFertilizerRows(),
                     calculationResult.getCoverageFormulatedFertilizerRows());
