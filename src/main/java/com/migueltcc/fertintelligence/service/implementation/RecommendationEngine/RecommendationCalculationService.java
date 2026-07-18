@@ -265,7 +265,8 @@ public class RecommendationCalculationService {
                 inputs.soilInterpretationTable(), user, sourceOption, warnings)
                 : List.of();
         SalinityDiagnosis salinityDiagnosis = buildSalinityAndSodicityDiagnosis(
-                inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.soilInterpretationTable(), warnings);
+                inputs.saturationExtractAnalysis(), inputs.fertilityExtract(), inputs.fertilityAnalysisExtracts(),
+                inputs.soilInterpretationTable(), warnings);
         String saturationSummary = buildSaturationAnalysisSummary(inputs, salinityDiagnosis.summary());
 
         return new DiagnosesContext(
@@ -1721,13 +1722,12 @@ public class RecommendationCalculationService {
 
     private SalinityDiagnosis buildSalinityAndSodicityDiagnosis(SaturationExtractAnalysisExtractModel saturation,
                                                                 Optional<FertilityAnalysisExtractModel> fertilityExtract,
+                                                                List<FertilityAnalysisExtractModel> fertilityExtracts,
                                                                 SoilFertilityInterpretationCriteriaTableModel table,
                                                                 List<String> warnings) {
         List<SoilSalinityDiagnosisItem> diagnosis = new ArrayList<>();
         if (saturation == null) {
-            String message = "Extrato de saturação não disponível para diagnóstico de salinidade e sodicidade.";
-            warnings.add(message);
-            return new SalinityDiagnosis(message, diagnosis);
+            return buildPreliminarySodicityDiagnosis(fertilityExtracts, warnings);
         }
 
         addSalinityValue(diagnosis, "Condutividade elétrica do extrato", saturation.getCe(), "dS/m",
@@ -1757,6 +1757,59 @@ public class RecommendationCalculationService {
         }
 
         String summary = "Extrato de saturação considerado com diagnóstico estruturado de salinidade e sodicidade; correção salina/sódica e cálculo de gesso não foram calculados nesta etapa.";
+        return new SalinityDiagnosis(summary, diagnosis);
+    }
+
+    private SalinityDiagnosis buildPreliminarySodicityDiagnosis(
+            List<FertilityAnalysisExtractModel> fertilityExtracts,
+            List<String> warnings) {
+        SodicityRecoveryCalculator.Result result = SodicityRecoveryCalculator.calculate(fertilityExtracts);
+        if (result.layers().isEmpty()) {
+            String message = "Extrato de saturação indisponível e nenhuma camada de fertilidade 0–20 ou 21–40 cm foi encontrada para diagnóstico preliminar de sodicidade.";
+            warnings.add(message);
+            return new SalinityDiagnosis(message, List.of());
+        }
+        List<SoilSalinityDiagnosisItem> diagnosis = new ArrayList<>();
+        for (SodicityRecoveryCalculator.LayerResult layer : result.layers()) {
+            if (!layer.calculated()) {
+                String missing = String.join(", ", layer.missing());
+                diagnosis.add(notClassifiedSalinity("Camada " + layer.label(), null, null,
+                        "Diagnóstico preliminar não calculado; dados ausentes ou incompatíveis: " + missing + "."));
+                continue;
+            }
+            String interpretation = layer.highPst()
+                    ? "Teor de Na+ alto"
+                    : "Teor de Na+ dentro da normalidade";
+            String orientation = layer.highPst()
+                    ? "Poucas plantas toleram esse nível. Recomenda-se reduzir o teor pela aplicação de gesso agrícola no início da estação chuvosa. Aplicar em área total e incorporar com grade niveladora a 10 cm de profundidade, com passagem cruzada."
+                    : "Solos com teor de Na+ dentro da normalidade nesta camada.";
+            diagnosis.add(SoilSalinityDiagnosisItem.builder()
+                    .attribute("Camada " + layer.label() + " — dose estimada de gesso")
+                    .analyzedValue(round2(layer.gypsumKgHa()))
+                    .unit("kg/ha")
+                    .interpretation(interpretation)
+                    .usedCriterion("Na=" + formatNumber(layer.sodium()) + " mmolc/dm³; CTC(T)="
+                            + formatNumber(layer.ctc()) + " mmolc/dm³; PST=" + formatNumber(layer.pst())
+                            + "%; dose=max(0, [CTC(T)×(PST−5)/100]×172)")
+                    .technicalObservation(orientation)
+                    .build());
+        }
+        if (!result.hasCalculatedLayer()) {
+            String message = "Extrato de saturação indisponível; Na, CTC(T) e/ou PST são insuficientes nas camadas encontradas para diagnóstico preliminar.";
+            warnings.add(message);
+            return new SalinityDiagnosis(message, diagnosis);
+        }
+        diagnosis.add(SoilSalinityDiagnosisItem.builder()
+                .attribute("Dose total estimada de gesso 0–40 cm")
+                .analyzedValue(round2(result.totalGypsumKgHa()))
+                .unit("kg/ha")
+                .interpretation(result.hasHighPst() ? "Recuperação preliminar por excesso de Na+" : "Sem dose positiva por PST")
+                .usedCriterion("Soma somente das doses positivas das camadas disponíveis")
+                .technicalObservation("Estimativa independente da gessagem agronômica convencional; não somada a ela nem usada para suprir S.")
+                .build());
+        String summary = "Diagnóstico preliminar baseado nos dados de Na, CTC(T) e PST da análise de fertilidade do solo. "
+                + "A confirmação da salinidade/sodicidade requer análise do extrato de saturação.";
+        warnings.add(summary);
         return new SalinityDiagnosis(summary, diagnosis);
     }
 

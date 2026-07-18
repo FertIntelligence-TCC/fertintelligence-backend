@@ -22,6 +22,9 @@ public class FormulatedFertilizerSelectionService {
     public static final String SINGLE_NUTRIENT_FORMULATED_REJECTION =
             "Não é possível usar formulado na adubação, pois apenas um dos nutrientes NPK é necessário. "
                     + "Nessa situação, optar, obrigatoriamente, pelo uso de adubos simples, aplicando tão somente o nutriente necessário.";
+    public static final String ZERO_N_FORMULATED_REJECTION =
+            "Não é possível usar formulado 00-P2O5-K2O se provocar excesso ou déficit superior a 10% dos nutrientes recomendados. "
+                    + "É recomendado usar adubos simples.";
     private static final int PRESENTATION_LIMIT = 2;
     private static final double APPROXIMATE_SUPPLY_TOLERANCE = 0.10d;
 
@@ -96,6 +99,15 @@ public class FormulatedFertilizerSelectionService {
                     false,
                     "Adubo formulado não avaliado: nenhum nutriente NPK possui necessidade efetiva positiva nesta fase.");
         }
+        boolean requiresPhosphorusAndPotassiumWithoutNitrogen = !isEffectiveRequirement(requiredN)
+                && isEffectiveRequirement(requiredP2O5) && isEffectiveRequirement(requiredK2O);
+        List<FormulatedMineralFertilizerModel> eligibleFertilizers = fertilizers != null ? fertilizers : List.of();
+        if (requiresPhosphorusAndPotassiumWithoutNitrogen) {
+            eligibleFertilizers = eligibleFertilizers.stream()
+                    .filter(fertilizer -> normalizeRequiredDose(fertilizer != null ? fertilizer.getN() : null)
+                            <= EFFECTIVE_REQUIREMENT_TOLERANCE)
+                    .toList();
+        }
         FormulatedFertilizerRatioService.RatioCalculationResult recommendedRatio =
                 ratioService.calculateRecommendedRatio(requiredN, requiredP2O5, requiredK2O);
         if (!recommendedRatio.calculated()) {
@@ -104,16 +116,17 @@ public class FormulatedFertilizerSelectionService {
                     false,
                     recommendedRatio.technicalMessage());
         }
-        if (fertilizers == null || fertilizers.isEmpty()) {
+        if (eligibleFertilizers.isEmpty()) {
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
                     false,
-                    appendTechnicalMessage(
-                            recommendedRatio.technicalMessage(),
+                    requiresPhosphorusAndPotassiumWithoutNitrogen
+                            ? ZERO_N_FORMULATED_REJECTION
+                            : appendTechnicalMessage(recommendedRatio.technicalMessage(),
                             "Sem adubo mineral formulado cadastrado para avaliar relação N-P2O5-K2O."));
         }
 
-        List<FormulatedFertilizerSelectionCandidate> candidates = fertilizers.stream()
+        List<FormulatedFertilizerSelectionCandidate> candidates = eligibleFertilizers.stream()
                 .map(fertilizer -> toDirectMatchCandidate(
                         fertilizer,
                         recommendedRatio.ratio(),
@@ -131,7 +144,7 @@ public class FormulatedFertilizerSelectionService {
                     "Sem adubo mineral formulado com relação N-P2O5-K2O idêntica à recomendação calculada.");
             List<FormulatedFertilizerSelectionCandidate> approximateCandidates =
                     selectApproximateCandidates(
-                            fertilizers,
+                            eligibleFertilizers,
                             recommendedRatio.ratio(),
                             noDirectMatchMessage,
                             requiredN,
@@ -147,12 +160,18 @@ public class FormulatedFertilizerSelectionService {
             }
             List<FormulatedFertilizerSelectionCandidate> maximizationCandidates =
                     selectMaximizationCandidates(
-                            fertilizers,
+                            eligibleFertilizers,
                             recommendedRatio.ratio(),
                             noDirectMatchMessage,
                             requiredN,
                             requiredP2O5,
                             requiredK2O);
+            if (requiresPhosphorusAndPotassiumWithoutNitrogen) {
+                maximizationCandidates = maximizationCandidates.stream()
+                        .filter(candidate -> isSuppliedWithinTolerance(candidate.providedP2O5(), requiredP2O5)
+                                && isSuppliedWithinTolerance(candidate.providedK2O(), requiredK2O))
+                        .toList();
+            }
             if (!maximizationCandidates.isEmpty()) {
                 return new FormulatedFertilizerSelectionResult(
                         maximizationCandidates,
@@ -164,7 +183,9 @@ public class FormulatedFertilizerSelectionService {
             return new FormulatedFertilizerSelectionResult(
                     List.of(),
                     false,
-                    appendTechnicalMessage(
+                    requiresPhosphorusAndPotassiumWithoutNitrogen
+                            ? ZERO_N_FORMULATED_REJECTION
+                            : appendTechnicalMessage(
                             noDirectMatchMessage,
                             "Nenhum formulado aproximado ou aplicável à maximização permaneceu válido sem exceder nutriente acima da tolerância de 10%. Usar adubos simples ou outra alternativa válida."));
         }
@@ -518,13 +539,18 @@ public class FormulatedFertilizerSelectionService {
     }
 
     private boolean isSuppliedWithinTolerance(double supplied, Double required) {
+        return isWithinTenPercent(supplied, required);
+    }
+
+    public static boolean isWithinTenPercent(double supplied, Double required) {
         double normalizedRequired = normalizeRequiredDose(required);
         if (normalizedRequired == 0d) {
             return supplied == 0d;
         }
         double minimum = normalizedRequired * (1d - APPROXIMATE_SUPPLY_TOLERANCE);
         double maximum = normalizedRequired * (1d + APPROXIMATE_SUPPLY_TOLERANCE);
-        return supplied >= minimum && supplied <= maximum;
+        return supplied + EFFECTIVE_REQUIREMENT_TOLERANCE >= minimum
+                && supplied <= maximum + EFFECTIVE_REQUIREMENT_TOLERANCE;
     }
 
     private boolean exceedsMaximumSupplyTolerance(double supplied, Double required) {
@@ -588,7 +614,7 @@ public class FormulatedFertilizerSelectionService {
         limits.add(new NutrientLimit(nutrient, normalizeRequiredDose(required) / normalizeRequiredDose(concentration) * 100d));
     }
 
-    private double normalizeRequiredDose(Double value) {
+    private static double normalizeRequiredDose(Double value) {
         if (value == null || !Double.isFinite(value) || value < 0d) {
             return 0d;
         }

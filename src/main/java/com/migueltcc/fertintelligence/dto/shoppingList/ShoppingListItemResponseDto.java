@@ -41,6 +41,33 @@ public class ShoppingListItemResponseDto {
     @JsonProperty("total_area")
     private String totalForArea;
 
+    @JsonProperty("massa_unidade_comercial_kg")
+    private Double commercialUnitMassKg;
+
+    @JsonProperty("preco_unidade_comercial")
+    private String commercialUnitPrice;
+
+    @JsonProperty("custo_estimado_insumo_ha")
+    private String estimatedInputCostPerHectare;
+
+    @JsonProperty("custo_estimado_insumo_ha_valor")
+    private Double estimatedInputCostPerHectareValue;
+
+    @JsonProperty("quantidade_total_comercial")
+    private String totalCommercialQuantity;
+
+    @JsonProperty("quantidade_total_comercial_valor")
+    private Double totalCommercialQuantityValue;
+
+    @JsonProperty("custo_total_estimado")
+    private String estimatedTotalCost;
+
+    @JsonProperty("custo_total_estimado_valor")
+    private Double estimatedTotalCostValue;
+
+    @JsonProperty("preco_informado")
+    private Boolean priceAvailable;
+
     @JsonProperty("decisao_custo_oportunidade")
     private String opportunityCostDecision;
 }

@@ -43,6 +43,15 @@ public class ShoppingListResponseDto {
     @JsonProperty("purchaseList")
     private PurchaseListResponseDto purchaseList;
 
+    @JsonProperty("custo_total_estimado_insumos")
+    private String estimatedInputTotalCost;
+
+    @JsonProperty("itens_sem_preco")
+    private Integer itemsWithoutPrice;
+
+    @JsonProperty("observacao_estimativa_custos")
+    private String costEstimateObservation;
+
     @Builder.Default
     @JsonProperty("observacoes_tecnicas")
     private List<String> technicalObservations = new ArrayList<>();
@@ -115,5 +124,11 @@ public class ShoppingListResponseDto {
 
         @JsonProperty("observacao_tecnica")
         private String technicalObservation;
+
+        @JsonProperty("custo_total_estimado")
+        private String estimatedTotalCost;
+
+        @JsonProperty("itens_sem_preco")
+        private Integer itemsWithoutPrice;
     }
 }

@@ -26,6 +26,7 @@ public class ShoppingListReportService {
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
     private final DirectRecommendationFertilizerResolver fertilizerResolver;
+    private final ShoppingInputCostService shoppingInputCostService;
 
     public String build(RecommendationModel recommendation) {
         AreaResolution areaResolution = resolveArea(recommendation);
@@ -54,15 +55,15 @@ public class ShoppingListReportService {
             report.append("Aviso técnico: lista de compras não gerou itens com dose operacional persistida.\n\n");
         } else {
             appendBlock(report, "BLOCO 1 - Correção da Acidez",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION), area);
+                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_ACIDITY_CORRECTION), area, recommendation);
             appendBlock(report, "BLOCO 2 - Adubação Corretiva",
-                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION), area);
+                    itemsInSections(items, TechnicalRecommendationDocumentSupport.SECTION_CORRECTIVE_FERTILIZATION), area, recommendation);
             appendBlock(report, "BLOCO 3 - Adubação de plantio e cobertura",
                     itemsInSections(items,
                             TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_1,
                             TechnicalRecommendationDocumentSupport.SECTION_PLANTING_OPTION_2,
                             TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1,
-                            TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area);
+                            TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area, recommendation);
         }
 
         report.append("Observações\n\n");
@@ -73,6 +74,8 @@ public class ShoppingListReportService {
         }
         report.append("- Itens sem dose em kg/ha não são convertidos para compra para evitar conversões não suportadas.\n");
         report.append("- Em blocos com Opção 1 e Opção 2, aceitar uma opção descarta somente a outra opção do mesmo bloco.\n");
+        report.append("- Os valores representam apenas a estimativa dos custos dos insumos recomendados, sem incluir transporte, armazenamento ou aplicação.\n");
+        report.append("- Custos são totalizados separadamente por opção; alternativas mutuamente exclusivas não são somadas.\n");
         return report.toString();
     }
 
@@ -118,7 +121,8 @@ public class ShoppingListReportService {
     private void appendBlock(StringBuilder report,
                              String title,
                              List<TechnicalRecommendationDocumentSupport.ShoppingItem> items,
-                             Double area) {
+                             Double area,
+                             RecommendationModel recommendation) {
         report.append(title).append("\n\n");
         if (items.isEmpty()) {
             report.append("Aviso técnico: nenhum item com dose operacional foi classificado para este bloco.\n\n");
@@ -128,7 +132,7 @@ public class ShoppingListReportService {
             if (!group.getKey().isBlank()) {
                 report.append("Grupo: ").append(group.getKey()).append("\n\n");
             }
-            appendItemsTable(report, group.getValue(), area);
+            appendItemsTable(report, group.getValue(), area, recommendation);
         }
     }
 
@@ -158,17 +162,48 @@ public class ShoppingListReportService {
 
     private void appendItemsTable(StringBuilder report,
                                   List<TechnicalRecommendationDocumentSupport.ShoppingItem> items,
-                                  Double area) {
-        report.append("| Fonte | Dose de aplicação | Quantidade total |\n");
-        report.append("|---|---:|---:|\n");
+                                  Double area,
+                                  RecommendationModel recommendation) {
+        report.append("| Fonte | Dose de aplicação (DA, kg/ha) | Preço da unidade comercial (PUC) | Custo estimado do insumo (CEI, R$/ha) | Quantidade total teórica (QTT, kg) | Quantidade total comercial (QTC) | Custo total estimado (CTE, R$) |\n");
+        report.append("|---|---:|---:|---:|---:|---:|---:|\n");
+        double total = 0d;
+        int missing = 0;
+        int priced = 0;
         for (TechnicalRecommendationDocumentSupport.ShoppingItem item : items) {
+            ShoppingInputCostService.CostEstimate cost = shoppingInputCostService.estimate(recommendation, item.getName(), item.getKgHa(), area);
+            if (cost.priced() && cost.estimatedTotalCost() != null) {
+                total += cost.estimatedTotalCost();
+                priced++;
+            } else {
+                missing++;
+            }
             report.append("| ").append(cell(item.getName()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
+                    .append(" | ").append(formatCommercialPrice(cost))
+                    .append(" | ").append(formatMoney(cost.estimatedCostPerHa()))
                     .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
+                    .append(" | ").append(formatCommercialQuantity(cost))
+                    .append(" | ").append(formatMoney(cost.estimatedTotalCost()))
                     .append(" |\n");
         }
-        report.append("\n");
+        report.append("\nCusto total estimado dos insumos recomendados nesta opção: ")
+                .append(priced == 0 ? "Não calculado" : formatMoney(total)).append(".\n\n");
+        if (missing > 0) report.append("Estimativa parcial: ").append(missing).append(" insumo(s) não possuem preço comercial cadastrado.\n\n");
     }
+
+    private String formatCommercialPrice(ShoppingInputCostService.CostEstimate cost) {
+        if (cost == null || !cost.priced()) return "Não informado";
+        String mass = cost.commercialUnitMassKg() == 1000d ? "" : " " + cost.commercialUnitMassKg().intValue() + " kg";
+        return formatMoney(cost.commercialUnitPrice().doubleValue()) + " / " + cost.commercialUnitSymbol() + mass;
+    }
+
+    private String formatCommercialQuantity(ShoppingInputCostService.CostEstimate cost) {
+        if (cost == null || !cost.priced() || cost.theoreticalCommercialQuantity() == null) return "Não calculado";
+        return formatNumber(cost.theoreticalCommercialQuantity()) + " " + cost.commercialUnitSymbol();
+    }
+
+    private String formatMoney(Double value) { return value == null ? "Não calculado" : "R$ " + formatNumber(value); }
+    private String formatNumber(Double value) { return String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", value); }
 
     private String cell(String value) {
         if (value == null || value.isBlank()) {

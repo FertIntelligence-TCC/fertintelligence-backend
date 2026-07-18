@@ -316,6 +316,10 @@ public class RecommendationServiceImpl implements RecommendationService {
             return null;
         }
         List<ShoppingListItemResponseDto> items = structuredDataAssembler.shoppingItems(shoppingList.getRecommendation());
+        int missingPrices = (int) items.stream().filter(item -> !Boolean.TRUE.equals(item.getPriceAvailable())).count();
+        String costObservation = "Os valores representam apenas a estimativa dos custos dos insumos recomendados, sem incluir transporte, armazenamento ou aplicação."
+                + " Os totais são segmentados por opção e alternativas mutuamente exclusivas não são somadas."
+                + (missingPrices > 0 ? " Estimativa parcial: " + missingPrices + " insumo(s) não possuem preço comercial cadastrado." : "");
         return ShoppingListResponseDto.builder()
                 .id(shoppingList.getId())
                 .recommendationId(shoppingList.getRecommendation().getId())
@@ -324,9 +328,12 @@ public class RecommendationServiceImpl implements RecommendationService {
                         : ShoppingListModel.DOCUMENT_NAME)
                 .technicalReport(shoppingList.getTechnicalReport())
                 .content(shoppingList.getTechnicalReport())
+                .usedAreaInThePlot(shoppingList.getRecommendation().getCropUsedAreaInThePlot())
                 .items(items)
                 .blocks(structuredDataAssembler.shoppingBlocks(items))
                 .purchaseList(structuredDataAssembler.purchaseList(items))
+                .itemsWithoutPrice(missingPrices)
+                .costEstimateObservation(costObservation)
                 .technicalObservations(structuredDataAssembler.observations(shoppingList.getTechnicalReport()))
                 .createdAt(shoppingList.getCreatedAt())
                 .updatedAt(shoppingList.getUpdatedAt())

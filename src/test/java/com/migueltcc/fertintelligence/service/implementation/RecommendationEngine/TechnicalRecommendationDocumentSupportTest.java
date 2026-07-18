@@ -377,7 +377,7 @@ class TechnicalRecommendationDocumentSupportTest {
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
-                null);
+                null, null);
         List<ShoppingListItemResponseDto> items = List.of(
                 ShoppingListItemResponseDto.builder()
                         .inputName("NPK 00-20-20")
@@ -481,7 +481,7 @@ class TechnicalRecommendationDocumentSupportTest {
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
-                null);
+                null, null);
 
         assertCorrectiveSections(assembler.summarySections(recommendation));
         assertCorrectiveSections(assembler.directSections(recommendation, ""));
@@ -494,7 +494,7 @@ class TechnicalRecommendationDocumentSupportTest {
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationMicronutrientFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationPlantingFormulatedFertilizerLineRepository.class),
                 mock(com.migueltcc.fertintelligence.repository.DirectRecommendationCoverageFormulatedFertilizerLineRepository.class),
-                null);
+                null, null);
         RecommendationModel recommendation = RecommendationModel.builder()
                 .cropUsedAreaInThePlot(50.0)
                 .technicalReport("""
@@ -530,7 +530,7 @@ class TechnicalRecommendationDocumentSupportTest {
 
     @Test
     void purchaseListJsonKeepsCalculationMemoryOutsidePurchaseItems() throws Exception {
-        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null);
+        RecommendationStructuredDataAssembler assembler = new RecommendationStructuredDataAssembler(null, null, null, null, null, null);
         PurchaseListResponseDto purchaseList = assembler.purchaseList(List.of(
                 ShoppingListItemResponseDto.builder()
                         .inputName("NPK 00-20-20")

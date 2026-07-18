@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.math.RoundingMode;
 
 @Component
 @RequiredArgsConstructor
@@ -52,6 +53,7 @@ public class RecommendationStructuredDataAssembler {
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
     private final DirectRecommendationCoverageFormulatedFertilizerLineRepository coverageFormulatedFertilizerLineRepository;
     private final DirectRecommendationFertilizerResolver fertilizerResolver;
+    private final ShoppingInputCostService shoppingInputCostService;
 
     public List<RecommendationTableSectionDto> generalSections(RecommendationModel recommendation) {
         return generalSections(report(recommendation));
@@ -114,7 +116,11 @@ public class RecommendationStructuredDataAssembler {
                         coverageFormulatedFertilizerLines(recommendation),
                         fertilizerResolver)
                 .stream()
-                .map(item -> ShoppingListItemResponseDto.builder()
+                .map(item -> {
+                    ShoppingInputCostService.CostEstimate cost = shoppingInputCostService != null
+                            ? shoppingInputCostService.estimate(recommendation, item.getName(), item.getKgHa(), area)
+                            : ShoppingInputCostService.CostEstimate.unpriced(item.getKgHa(), area);
+                    return ShoppingListItemResponseDto.builder()
                         .inputName(item.getName())
                         .typeGroup(item.getTypeGroup())
                         .phase(item.getPhase())
@@ -125,9 +131,39 @@ public class RecommendationStructuredDataAssembler {
                         .quantityPerHectare(TechnicalRecommendationDocumentSupport.formatKgHa(item.getKgHa()))
                         .localizedUnit(item.getLocalizedDose())
                         .totalForArea(TechnicalRecommendationDocumentSupport.formatTotal(item.getKgHa(), area))
+                        .commercialUnitMassKg(cost.commercialUnitMassKg())
+                        .commercialUnitPrice(formatCommercialPrice(cost))
+                        .estimatedInputCostPerHectare(formatMoney(cost.estimatedCostPerHa()))
+                        .estimatedInputCostPerHectareValue(cost.estimatedCostPerHa())
+                        .totalCommercialQuantity(formatCommercialQuantity(cost))
+                        .totalCommercialQuantityValue(cost.theoreticalCommercialQuantity())
+                        .estimatedTotalCost(formatMoney(cost.estimatedTotalCost()))
+                        .estimatedTotalCostValue(cost.estimatedTotalCost())
+                        .priceAvailable(cost.priced())
                         .opportunityCostDecision(item.getOpportunityCostDecision())
-                        .build())
+                        .build();
+                })
                 .toList();
+    }
+
+    private String formatCommercialPrice(ShoppingInputCostService.CostEstimate cost) {
+        if (cost == null || !cost.priced()) return "Não informado";
+        String mass = cost.commercialUnitMassKg() != null && cost.commercialUnitMassKg() == 1000d
+                ? "" : " " + cost.commercialUnitMassKg().intValue() + " kg";
+        return "R$ " + decimal(cost.commercialUnitPrice()) + " / " + cost.commercialUnitSymbol() + mass;
+    }
+
+    private String formatCommercialQuantity(ShoppingInputCostService.CostEstimate cost) {
+        if (cost == null || !cost.priced() || cost.theoreticalCommercialQuantity() == null) return "Não calculado";
+        return decimal(java.math.BigDecimal.valueOf(cost.theoreticalCommercialQuantity())) + " " + cost.commercialUnitSymbol();
+    }
+
+    private String formatMoney(Double value) {
+        return value == null ? "Não calculado" : "R$ " + decimal(java.math.BigDecimal.valueOf(value));
+    }
+
+    private String decimal(java.math.BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
     }
 
     public List<ShoppingListResponseDto.ShoppingListBlockResponseDto> shoppingBlocks(RecommendationModel recommendation) {
@@ -389,11 +425,18 @@ public class RecommendationStructuredDataAssembler {
             String name,
             boolean mutuallyExclusive,
             List<ShoppingListItemResponseDto> items) {
+        double estimatedTotal = items.stream().map(ShoppingListItemResponseDto::getEstimatedTotalCostValue)
+                .filter(java.util.Objects::nonNull).mapToDouble(Double::doubleValue).sum();
+        long pricedItems = items.stream().filter(item -> Boolean.TRUE.equals(item.getPriceAvailable())
+                && item.getEstimatedTotalCostValue() != null).count();
+        int missingPrices = (int) items.stream().filter(item -> !Boolean.TRUE.equals(item.getPriceAvailable())).count();
         return ShoppingListResponseDto.ShoppingListOptionResponseDto.builder()
                 .code(code)
                 .name(name)
                 .mutuallyExclusive(mutuallyExclusive)
                 .items(items)
+                .estimatedTotalCost(pricedItems == 0 ? "Não calculado" : formatMoney(estimatedTotal))
+                .itemsWithoutPrice(missingPrices)
                 .technicalObservation(items.isEmpty() ? "Nenhum item com dose operacional foi classificado para esta opção." : null)
                 .build();
     }

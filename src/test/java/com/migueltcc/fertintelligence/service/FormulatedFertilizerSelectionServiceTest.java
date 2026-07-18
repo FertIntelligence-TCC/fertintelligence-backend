@@ -183,6 +183,52 @@ class FormulatedFertilizerSelectionServiceTest {
     }
 
     @Test
+    void zeroNitrogenDemandRejectsPositiveNitrogenAndKeepsValidZeroNitrogenFormula() {
+        var invalid063006 = formulated(1L, 6d, 30d, 6d);
+        var valid002010 = formulated(2L, 0d, 20d, 10d);
+
+        var result = service.selectCandidates(List.of(invalid063006, valid002010), 0d, 80d, 40d);
+
+        assertThat(result.candidates()).singleElement()
+                .extracting(candidate -> candidate.formulated().getId()).isEqualTo(2L);
+    }
+
+    @Test
+    void zeroNitrogenFormulaAcceptsExactlyTenPercentDeviationForBothRequiredNutrients() {
+        var formula = formulated(1L, 0d, 20d, 11d);
+
+        var result = service.selectCandidates(List.of(formula), 0d, 80d, 40d);
+
+        assertThat(result.candidates()).singleElement().satisfies(candidate -> {
+            assertThat(candidate.providedP2O5()).isEqualTo(80d);
+            assertThat(candidate.providedK2O()).isEqualTo(44d);
+        });
+    }
+
+    @Test
+    void zeroNitrogenFormulaRejectsDeficitOrExcessAboveTenPercent() {
+        for (var formula : List.of(
+                formulated(1L, 0d, 20d, 8.9d),
+                formulated(2L, 0d, 20d, 11.1d))) {
+            var result = service.selectCandidates(List.of(formula), 0d, 80d, 40d);
+            assertThat(result.candidates()).isEmpty();
+            assertThat(result.technicalMessage())
+                    .isEqualTo(FormulatedFertilizerSelectionService.ZERO_N_FORMULATED_REJECTION);
+        }
+        assertThat(FormulatedFertilizerSelectionService.isWithinTenPercent(71.9d, 80d)).isFalse();
+        assertThat(FormulatedFertilizerSelectionService.isWithinTenPercent(88.1d, 80d)).isFalse();
+    }
+
+    @Test
+    void zeroNitrogenDemandUsesSpecificWarningWhenOnlyPositiveNitrogenFormulaExists() {
+        var result = service.selectCandidates(List.of(formulated(1L, 6d, 30d, 6d)), 0d, 80d, 15d);
+
+        assertThat(result.candidates()).isEmpty();
+        assertThat(result.technicalMessage())
+                .isEqualTo(FormulatedFertilizerSelectionService.ZERO_N_FORMULATED_REJECTION);
+    }
+
+    @Test
     void returnsMaximizationFallbackWhenNoIdenticalOrApproximateRatioExists() {
         FormulatedMineralFertilizerModel formula053005 = formulated(1L, 5d, 30d, 5d);
 
