@@ -49,6 +49,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         GreenFertilizerModel fertilizer = GreenFertilizerModel.builder()
                 .user(owner)
                 .name(dto.getName())
+                .umidadeIncorporacaoPercentual(dto.getUmidadeIncorporacaoPercentual())
                 // Nutrientes Essenciais
                 .C(getOrDefault(dto.getC()))
                 .N(getOrDefault(dto.getN()))
@@ -75,6 +76,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
                 .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
                 .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
                 .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
+                .taxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual())
                 .build();
         List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
@@ -145,6 +147,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
+        if (dto.getUmidadeIncorporacaoPercentual() != null) fertilizer.setUmidadeIncorporacaoPercentual(dto.getUmidadeIncorporacaoPercentual());
         if (dto.getC() != null) fertilizer.setC(dto.getC());
 
         // Updates de Nutrientes
@@ -164,6 +167,7 @@ public class GreenFertilizerServiceImpl implements GreenFertilizerService {
         if (dto.getTaxaMineralizacaoPrimeiroAnoPercentual() != null) fertilizer.setTaxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual());
         if (dto.getTaxaMineralizacaoSegundoAnoPercentual() != null) fertilizer.setTaxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual());
         if (dto.getTaxaMineralizacaoTerceiroAnoPercentual() != null) fertilizer.setTaxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual());
+        if (dto.getTaxaMineralizacaoQuartoAnoPercentual() != null) fertilizer.setTaxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual());
 
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
         List<String> idsFotos = null;

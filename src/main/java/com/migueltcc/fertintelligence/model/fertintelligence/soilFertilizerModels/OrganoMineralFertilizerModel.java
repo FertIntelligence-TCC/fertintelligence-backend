@@ -104,6 +104,18 @@ public class OrganoMineralFertilizerModel {
     @Column(name = "INDICE_ACIDEZ")
     private Double indiceAcidez;
 
+    @Column(name = "TAXA_MINERALIZACAO_PRIMEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_SEGUNDO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
+    @Column(name = "TAXA_MINERALIZACAO_QUARTO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
     public OrganoMineralFertilizerResponseDto toDto() {
         return OrganoMineralFertilizerResponseDto.builder()
                 .id(this.id)
@@ -124,6 +136,10 @@ public class OrganoMineralFertilizerModel {
                 .zn(this.Zn != null ? this.Zn : 0.0)
                 .indiceSalino(this.indiceSalino != null ? this.indiceSalino : 0.0)
                 .indiceAcidez(this.indiceAcidez != null ? this.indiceAcidez : 0.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
+                .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
+                .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
+                .taxaMineralizacaoQuartoAnoPercentual(this.taxaMineralizacaoQuartoAnoPercentual)
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)

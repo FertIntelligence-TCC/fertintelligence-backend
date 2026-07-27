@@ -54,6 +54,9 @@ public class GreenFertilizerModel {
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
+    @Column(name = "PORCENTAGEM_UMIDADE_INCORPORACAO")
+    private Double umidadeIncorporacaoPercentual;
+
     // Componente Orgânico
     @Column(name = "PORCENTAGEM_CARBONO")
     private Double C;
@@ -109,10 +112,14 @@ public class GreenFertilizerModel {
     @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 
+    @Column(name = "TAXA_MINERALIZACAO_QUARTO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
     public GreenFertilizerResponseDto toDto() {
         return GreenFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
+                .umidadeIncorporacaoPercentual(this.umidadeIncorporacaoPercentual)
                 // Uso de ternário para garantir que não vá nulo para o DTO
                 .c(this.C != null ? this.C : 0.0)
                 .n(this.N != null ? this.N : 0.0)
@@ -142,6 +149,7 @@ public class GreenFertilizerModel {
                 .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
                 .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
                 .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
+                .taxaMineralizacaoQuartoAnoPercentual(this.taxaMineralizacaoQuartoAnoPercentual)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }

@@ -88,6 +88,26 @@ public class OrganoMineralFertilizerCreateRequestDto {
     @JsonProperty("indice_acidez")
     private Double indiceAcidez;
 
+    @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_primeiro_ano", "taxaMineralizacaoPrimeiroAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_segundo_ano", "taxaMineralizacaoSegundoAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_terceiro_ano", "taxaMineralizacaoTerceiroAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
+    @JsonProperty("taxa_mineralizacao_quarto_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_quarto_ano", "taxaMineralizacaoQuartoAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
     @JsonProperty("data_tomada_preco")
     @JsonAlias("dataTomadaPreco")
     private LocalDate dataTomadaPreco;

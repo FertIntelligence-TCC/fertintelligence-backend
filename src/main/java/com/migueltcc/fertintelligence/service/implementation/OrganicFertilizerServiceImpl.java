@@ -68,6 +68,14 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
                 .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
                 .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
                 .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
+                .taxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual())
+                .arsenioMgKg(dto.getArsenioMgKg())
+                .cadmioMgKg(dto.getCadmioMgKg())
+                .cromioMgKg(dto.getCromioMgKg())
+                .chumboMgKg(dto.getChumboMgKg())
+                .mercurioMgKg(dto.getMercurioMgKg())
+                .niquelMgKg(dto.getNiquelMgKg())
+                .selenioMgKg(dto.getSelenioMgKg())
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
@@ -175,6 +183,16 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         if (dto.getTaxaMineralizacaoTerceiroAnoPercentual() != null) {
             fertilizer.setTaxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual());
         }
+        if (dto.getTaxaMineralizacaoQuartoAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual());
+        }
+        if (dto.getArsenioMgKg() != null) fertilizer.setArsenioMgKg(dto.getArsenioMgKg());
+        if (dto.getCadmioMgKg() != null) fertilizer.setCadmioMgKg(dto.getCadmioMgKg());
+        if (dto.getCromioMgKg() != null) fertilizer.setCromioMgKg(dto.getCromioMgKg());
+        if (dto.getChumboMgKg() != null) fertilizer.setChumboMgKg(dto.getChumboMgKg());
+        if (dto.getMercurioMgKg() != null) fertilizer.setMercurioMgKg(dto.getMercurioMgKg());
+        if (dto.getNiquelMgKg() != null) fertilizer.setNiquelMgKg(dto.getNiquelMgKg());
+        if (dto.getSelenioMgKg() != null) fertilizer.setSelenioMgKg(dto.getSelenioMgKg());
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
         List<String> idsFotos = null;
         if (dto.getIdsFotos() != null) {

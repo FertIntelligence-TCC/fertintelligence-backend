@@ -129,6 +129,31 @@ public class OrganicFertilizerResponseDto {
     @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 
+    @Schema(description = "Taxa de mineralização no quarto ano em %")
+    @JsonProperty("taxa_mineralizacao_quarto_ano_percentual")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
+    @JsonProperty("arsenio_mg_kg")
+    private Double arsenioMgKg;
+
+    @JsonProperty("cadmio_mg_kg")
+    private Double cadmioMgKg;
+
+    @JsonProperty("cromio_mg_kg")
+    private Double cromioMgKg;
+
+    @JsonProperty("chumbo_mg_kg")
+    private Double chumboMgKg;
+
+    @JsonProperty("mercurio_mg_kg")
+    private Double mercurioMgKg;
+
+    @JsonProperty("niquel_mg_kg")
+    private Double niquelMgKg;
+
+    @JsonProperty("selenio_mg_kg")
+    private Double selenioMgKg;
+
     @JsonProperty("nome_criador")
     private String nomeCriador;
 }

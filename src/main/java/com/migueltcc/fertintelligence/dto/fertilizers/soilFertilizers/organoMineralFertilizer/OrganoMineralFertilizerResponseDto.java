@@ -76,6 +76,22 @@ public class OrganoMineralFertilizerResponseDto {
     @JsonProperty("indice_acidez")
     private Double indiceAcidez;
 
+    @Schema(description = "Taxa de mineralização no primeiro ano em %")
+    @JsonProperty("taxa_mineralizacao_primeiro_ano_percentual")
+    private Double taxaMineralizacaoPrimeiroAnoPercentual;
+
+    @Schema(description = "Taxa de mineralização no segundo ano em %")
+    @JsonProperty("taxa_mineralizacao_segundo_ano_percentual")
+    private Double taxaMineralizacaoSegundoAnoPercentual;
+
+    @Schema(description = "Taxa de mineralização no terceiro ano em %")
+    @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
+    private Double taxaMineralizacaoTerceiroAnoPercentual;
+
+    @Schema(description = "Taxa de mineralização no quarto ano em %")
+    @JsonProperty("taxa_mineralizacao_quarto_ano_percentual")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
     @Schema(example = "42")
     @JsonProperty("user_id")
     private Long userId;

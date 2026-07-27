@@ -106,6 +106,39 @@ public class OrganicFertilizerCreateRequestDto {
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 
+    @JsonProperty("taxa_mineralizacao_quarto_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_quarto_ano", "taxaMineralizacaoQuartoAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
+    @JsonProperty("arsenio_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double arsenioMgKg;
+
+    @JsonProperty("cadmio_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double cadmioMgKg;
+
+    @JsonProperty("cromio_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double cromioMgKg;
+
+    @JsonProperty("chumbo_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double chumboMgKg;
+
+    @JsonProperty("mercurio_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double mercurioMgKg;
+
+    @JsonProperty("niquel_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double niquelMgKg;
+
+    @JsonProperty("selenio_mg_kg")
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double selenioMgKg;
+
     @JsonProperty("data_tomada_preco")
     @JsonAlias("dataTomadaPreco")
     private LocalDate dataTomadaPreco;

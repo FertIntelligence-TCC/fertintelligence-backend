@@ -74,6 +74,10 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
                 // Índices
                 .indiceSalino(getOrDefault(dto.getIndiceSalino()))
                 .indiceAcidez(getOrDefault(dto.getIndiceAcidez()))
+                .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
+                .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
+                .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
+                .taxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual())
                 .publico(Boolean.TRUE.equals(dto.getPublico()))
                 .observation(dto.getObservation())
                 .source(dto.getSource())
@@ -170,6 +174,18 @@ public class OrganoMineralFertilizerServiceImpl implements OrganoMineralFertiliz
 
         if (dto.getIndiceSalino() != null) fertilizer.setIndiceSalino(dto.getIndiceSalino());
         if (dto.getIndiceAcidez() != null) fertilizer.setIndiceAcidez(dto.getIndiceAcidez());
+        if (dto.getTaxaMineralizacaoPrimeiroAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual());
+        }
+        if (dto.getTaxaMineralizacaoSegundoAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual());
+        }
+        if (dto.getTaxaMineralizacaoTerceiroAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual());
+        }
+        if (dto.getTaxaMineralizacaoQuartoAnoPercentual() != null) {
+            fertilizer.setTaxaMineralizacaoQuartoAnoPercentual(dto.getTaxaMineralizacaoQuartoAnoPercentual());
+        }
         if (dto.getNovoPublico() != null) fertilizer.setPublico(dto.getNovoPublico());
         List<String> idsFotos = null;
         if (dto.getIdsFotos() != null) {

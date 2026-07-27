@@ -70,6 +70,14 @@ public class OrganicFertilizerControllerImplTest extends AbstractControllerTest 
                 .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
                 .taxaMineralizacaoSegundoAnoPercentual(30.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(20.0)
+                .taxaMineralizacaoQuartoAnoPercentual(10.0)
+                .arsenioMgKg(0.0)
+                .cadmioMgKg(0.12)
+                .cromioMgKg(1.23)
+                .chumboMgKg(2.34)
+                .mercurioMgKg(0.045)
+                .niquelMgKg(3.45)
+                .selenioMgKg(0.56)
                 .build();
     }
 
@@ -96,6 +104,14 @@ public class OrganicFertilizerControllerImplTest extends AbstractControllerTest 
                 .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
                 .taxaMineralizacaoSegundoAnoPercentual(30.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(20.0)
+                .taxaMineralizacaoQuartoAnoPercentual(10.0)
+                .arsenioMgKg(0.0)
+                .cadmioMgKg(0.12)
+                .cromioMgKg(1.23)
+                .chumboMgKg(2.34)
+                .mercurioMgKg(0.045)
+                .niquelMgKg(3.45)
+                .selenioMgKg(0.56)
                 .build();
     }
 
@@ -121,7 +137,15 @@ public class OrganicFertilizerControllerImplTest extends AbstractControllerTest 
                 .andExpect(jsonPath("$.teor_cinzas").doesNotExist())
                 .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(50.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(30.0))
-                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0));
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(10.0))
+                .andExpect(jsonPath("$.arsenio_mg_kg").value(0.0))
+                .andExpect(jsonPath("$.cadmio_mg_kg").value(0.12))
+                .andExpect(jsonPath("$.cromio_mg_kg").value(1.23))
+                .andExpect(jsonPath("$.chumbo_mg_kg").value(2.34))
+                .andExpect(jsonPath("$.mercurio_mg_kg").value(0.045))
+                .andExpect(jsonPath("$.niquel_mg_kg").value(3.45))
+                .andExpect(jsonPath("$.selenio_mg_kg").value(0.56));
     }
 
     @Test
@@ -134,6 +158,8 @@ public class OrganicFertilizerControllerImplTest extends AbstractControllerTest 
                 .taxaMineralizacaoPrimeiroAnoPercentual(55.0)
                 .taxaMineralizacaoSegundoAnoPercentual(25.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(15.0)
+                .taxaMineralizacaoQuartoAnoPercentual(7.5)
+                .arsenioMgKg(0.25)
                 .build();
 
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(owner));
@@ -152,6 +178,8 @@ public class OrganicFertilizerControllerImplTest extends AbstractControllerTest 
                 .andExpect(jsonPath("$.teor_cinzas").doesNotExist())
                 .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(55.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(25.0))
-                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(15.0));
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(15.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(7.5))
+                .andExpect(jsonPath("$.arsenio_mg_kg").value(0.25));
     }
 }

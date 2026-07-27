@@ -54,6 +54,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
     private GreenFertilizerCreateRequestDto createRequestDto() {
         return GreenFertilizerCreateRequestDto.builder()
                 .name("Adubo Verde Teste")
+                .umidadeIncorporacaoPercentual(72.5)
                 .c(15.0)
                 .n(3.0)
                 .p2o5(2.0)
@@ -71,6 +72,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
                 .taxaMineralizacaoSegundoAnoPercentual(30.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(20.0)
+                .taxaMineralizacaoQuartoAnoPercentual(10.5)
                 .build();
     }
 
@@ -79,6 +81,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .id(id)
                 .user(owner)
                 .name("Adubo Verde Teste")
+                .umidadeIncorporacaoPercentual(72.5)
                 .C(15.0)
                 .N(3.0)
                 .P2O5(2.0)
@@ -96,6 +99,7 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .taxaMineralizacaoPrimeiroAnoPercentual(50.0)
                 .taxaMineralizacaoSegundoAnoPercentual(30.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(20.0)
+                .taxaMineralizacaoQuartoAnoPercentual(10.5)
                 .build();
     }
 
@@ -115,11 +119,13 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(header().string("Location", "http://localhost/green-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Adubo Verde Teste"))
+                .andExpect(jsonPath("$.umidade_incorporacao_percentual").value(72.5))
                 .andExpect(jsonPath("$.c").value(15.0))
                 .andExpect(jsonPath("$.produtividade_esperada_kg_ha").value(12000.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(50.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(30.0))
-                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0));
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(20.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(10.5));
     }
 
     @Test
@@ -184,6 +190,8 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .taxaMineralizacaoPrimeiroAnoPercentual(55.0)
                 .taxaMineralizacaoSegundoAnoPercentual(25.0)
                 .taxaMineralizacaoTerceiroAnoPercentual(15.0)
+                .taxaMineralizacaoQuartoAnoPercentual(5.25)
+                .umidadeIncorporacaoPercentual(0.0)
                 .build();
 
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(owner));
@@ -210,7 +218,9 @@ public class GreenFertilizerControllerImplTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.produtividade_esperada_kg_ha").value(14000.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(55.0))
                 .andExpect(jsonPath("$.taxa_mineralizacao_segundo_ano_percentual").value(25.0))
-                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(15.0));
+                .andExpect(jsonPath("$.taxa_mineralizacao_terceiro_ano_percentual").value(15.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(5.25))
+                .andExpect(jsonPath("$.umidade_incorporacao_percentual").value(0.0));
     }
 
     @Test

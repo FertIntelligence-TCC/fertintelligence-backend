@@ -67,6 +67,10 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
                 .zn(0.2)
                 .indiceSalino(45.0)
                 .indiceAcidez(5.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(40.0)
+                .taxaMineralizacaoSegundoAnoPercentual(25.0)
+                .taxaMineralizacaoTerceiroAnoPercentual(15.0)
+                .taxaMineralizacaoQuartoAnoPercentual(5.0)
                 .build();
     }
 
@@ -90,6 +94,10 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
                 .Zn(0.2)
                 .indiceSalino(45.0)
                 .indiceAcidez(5.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(40.0)
+                .taxaMineralizacaoSegundoAnoPercentual(25.0)
+                .taxaMineralizacaoTerceiroAnoPercentual(15.0)
+                .taxaMineralizacaoQuartoAnoPercentual(5.0)
                 .build();
     }
 
@@ -112,7 +120,9 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
                 .andExpect(header().string("Location", "http://localhost/organo-mineral-fertilizer/register/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.nome_adubo").value("Organo Plus"))
-                .andExpect(jsonPath("$.indice_salino").value(45.0));
+                .andExpect(jsonPath("$.indice_salino").value(45.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(40.0))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(5.0));
     }
 
     @Test
@@ -156,6 +166,8 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
                 .name("Organo Atualizado")
                 .indiceAcidez(5.5)
                 .n(12.0)
+                .taxaMineralizacaoPrimeiroAnoPercentual(42.5)
+                .taxaMineralizacaoQuartoAnoPercentual(0.0)
                 .build();
 
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
@@ -176,7 +188,9 @@ public class OrganoMineralFertilizerControllerImplTest extends AbstractControlle
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome_adubo").value("Organo Atualizado"))
                 .andExpect(jsonPath("$.n").value(12.0))
-                .andExpect(jsonPath("$.indice_acidez").value(5.5));
+                .andExpect(jsonPath("$.indice_acidez").value(5.5))
+                .andExpect(jsonPath("$.taxa_mineralizacao_primeiro_ano_percentual").value(42.5))
+                .andExpect(jsonPath("$.taxa_mineralizacao_quarto_ano_percentual").value(0.0));
     }
 
     @Test

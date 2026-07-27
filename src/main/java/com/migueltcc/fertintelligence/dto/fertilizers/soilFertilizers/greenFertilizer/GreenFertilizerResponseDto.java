@@ -25,6 +25,10 @@ public class GreenFertilizerResponseDto {
     @JsonProperty("nome_adubo")
     private String name;
 
+    @Schema(description = "Umidade na incorporação em %")
+    @JsonProperty("umidade_incorporacao_percentual")
+    private Double umidadeIncorporacaoPercentual;
+
     @Schema(example = "8.0", description = "Porcentagem de Carbono Orgânico")
     @JsonProperty("c")
     private Double c;
@@ -121,6 +125,10 @@ public class GreenFertilizerResponseDto {
     @Schema(example = "20.0", description = "Taxa de mineralização no terceiro ano em %")
     @JsonProperty("taxa_mineralizacao_terceiro_ano_percentual")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
+
+    @Schema(description = "Taxa de mineralização no quarto ano em %")
+    @JsonProperty("taxa_mineralizacao_quarto_ano_percentual")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
 
     @JsonProperty("nome_criador")
     private String nomeCriador;

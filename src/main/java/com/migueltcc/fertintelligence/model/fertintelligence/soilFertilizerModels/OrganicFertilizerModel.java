@@ -113,6 +113,30 @@ public class OrganicFertilizerModel {
     @Column(name = "TAXA_MINERALIZACAO_TERCEIRO_ANO_PERCENTUAL")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
 
+    @Column(name = "TAXA_MINERALIZACAO_QUARTO_ANO_PERCENTUAL")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
+
+    @Column(name = "ARSENIO_MG_KG")
+    private Double arsenioMgKg;
+
+    @Column(name = "CADMIO_MG_KG")
+    private Double cadmioMgKg;
+
+    @Column(name = "CROMIO_MG_KG")
+    private Double cromioMgKg;
+
+    @Column(name = "CHUMBO_MG_KG")
+    private Double chumboMgKg;
+
+    @Column(name = "MERCURIO_MG_KG")
+    private Double mercurioMgKg;
+
+    @Column(name = "NIQUEL_MG_KG")
+    private Double niquelMgKg;
+
+    @Column(name = "SELENIO_MG_KG")
+    private Double selenioMgKg;
+
     public OrganicFertilizerResponseDto toDto() {
         return OrganicFertilizerResponseDto.builder()
                 .id(this.id)
@@ -136,6 +160,14 @@ public class OrganicFertilizerModel {
                 .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
                 .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
                 .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
+                .taxaMineralizacaoQuartoAnoPercentual(this.taxaMineralizacaoQuartoAnoPercentual)
+                .arsenioMgKg(this.arsenioMgKg)
+                .cadmioMgKg(this.cadmioMgKg)
+                .cromioMgKg(this.cromioMgKg)
+                .chumboMgKg(this.chumboMgKg)
+                .mercurioMgKg(this.mercurioMgKg)
+                .niquelMgKg(this.niquelMgKg)
+                .selenioMgKg(this.selenioMgKg)
                 .userId(this.user != null ? this.user.getId() : null)
                 .userNome(this.user != null ? this.user.getName() : null)
                 .publico(this.publico != null ? this.publico : false)

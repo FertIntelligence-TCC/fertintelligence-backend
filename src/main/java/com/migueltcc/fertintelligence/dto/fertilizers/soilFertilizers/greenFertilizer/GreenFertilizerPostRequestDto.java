@@ -24,6 +24,11 @@ public class GreenFertilizerPostRequestDto {
     @JsonProperty("novo_nome_adubo")
     private String name;
 
+    @JsonProperty("novo_umidade_incorporacao_percentual")
+    @JsonAlias({"umidade_incorporacao_percentual", "umidadeIncorporacaoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double umidadeIncorporacaoPercentual;
+
     @JsonProperty("novo_c")
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double c;
@@ -95,6 +100,11 @@ public class GreenFertilizerPostRequestDto {
     @JsonAlias({"taxa_mineralizacao_terceiro_ano_percentual", "taxa_mineralizacao_terceiro_ano", "novo_taxa_mineralizacao_terceiro_ano", "taxaMineralizacaoTerceiroAnoPercentual"})
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private Double taxaMineralizacaoTerceiroAnoPercentual;
+
+    @JsonProperty("novo_taxa_mineralizacao_quarto_ano_percentual")
+    @JsonAlias({"taxa_mineralizacao_quarto_ano_percentual", "taxa_mineralizacao_quarto_ano", "novo_taxa_mineralizacao_quarto_ano", "taxaMineralizacaoQuartoAnoPercentual"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private Double taxaMineralizacaoQuartoAnoPercentual;
 
     @JsonProperty("data_tomada_preco")
     @JsonAlias({"dataTomadaPreco", "nova_data_tomada_preco"})
