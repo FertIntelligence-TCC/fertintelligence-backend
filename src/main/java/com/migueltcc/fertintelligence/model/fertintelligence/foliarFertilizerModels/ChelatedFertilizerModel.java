@@ -51,6 +51,15 @@ public class ChelatedFertilizerModel {
     @Column(name = "PRECO_SACO_1000KG", precision = 19, scale = 2)
     private BigDecimal precoSaco1000Kg;
 
+    @Column(name = "PRECO_UNIDADE_COMERCIAL", precision = 19, scale = 2)
+    private BigDecimal precoUnidadeComercial;
+
+    @Column(name = "UNIDADE_COMERCIAL")
+    private String unidadeComercial;
+
+    @Column(name = "PESO_UNIDADE_COMERCIAL_KG")
+    private Double pesoUnidadeComercialKg;
+
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 

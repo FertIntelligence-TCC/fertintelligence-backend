@@ -76,7 +76,8 @@ final class TechnicalRecommendationDocumentSupport {
     );
     private static final List<String> SUBSECTION_HEADINGS = List.of(
             "Entradas de calagem",
-            "Entradas de gessagem"
+            "Entradas de gessagem",
+            "Adubação foliar de micronutrientes"
     );
 
     private TechnicalRecommendationDocumentSupport() {

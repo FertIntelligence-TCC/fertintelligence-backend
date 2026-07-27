@@ -425,6 +425,7 @@ public class RecommendationReportService {
         if (hasMicronutrientRows) {
             Set<String> alternativeMicronutrientObjectives = alternativeMicronutrientObjectives(result.getAlternativeFertilizationRows());
             for (RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row : result.getMicronutrientFertilizerRows()) {
+                if ("Adubação foliar".equals(row.getPhase())) continue;
                 String micronutrient = row.getMicronutrient() != null ? row.getMicronutrient().name() : null;
                 if (micronutrient != null && alternativeMicronutrientObjectives.contains(micronutrient)) {
                     continue;
@@ -442,9 +443,53 @@ public class RecommendationReportService {
             }
         }
         report.append("\n");
+        appendFoliarMicronutrientTable(report, result.getMicronutrientFertilizerRows());
         if (result.getOpportunityCostDecisionRows() != null && !result.getOpportunityCostDecisionRows().isEmpty()) {
             appendOpportunityCostComparison(report, result);
         }
+    }
+
+    private void appendFoliarMicronutrientTable(
+            StringBuilder report,
+            List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> rows) {
+        if (rows == null || rows.stream().noneMatch(row -> row != null && "Adubação foliar".equals(row.getPhase()))) {
+            return;
+        }
+        report.append("Adubação foliar de micronutrientes\n\n");
+        report.append("| Micronutriente | Tipo de fonte | Produto | Teor | Dose micronutriente | Dose produto | Unidade comercial | PCkgAMi | R$/kgNut | CUMIC | Decisão | Observação técnica |\n");
+        report.append("|---|---|---|---:|---:|---:|---|---:|---:|---:|---|---|\n");
+        for (RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row : rows) {
+            if (row == null || !"Adubação foliar".equals(row.getPhase())) continue;
+            report.append("| ").append(safeCell(row.getMicronutrient() != null ? row.getMicronutrient().name() : null))
+                    .append(" | ").append(safeCell(sourceTypeLabel(row.getSourceType())))
+                    .append(" | ").append(safeCell(row.getFertilizerName()))
+                    .append(" | ").append(formatPercentValue(row.getMicronutrientConcentrationPercent()))
+                    .append(" | ").append(formatQuantity(row.getMicronutrientDoseKgHa()))
+                    .append(" | ").append(formatQuantity(row.getFertilizerDoseKgHa()))
+                    .append(" | ").append(safeCell(row.getCommercialUnit() != null ? row.getCommercialUnit() : "Não informado"))
+                    .append(" | ").append(moneyOrMissing(row.getPricePerProductKg()))
+                    .append(" | ").append(moneyOrMissing(row.getPricePerNutrientKg()))
+                    .append(" | ").append(moneyOrMissing(row.getEstimatedCostPerHa()))
+                    .append(" | ").append(safeCell(decisionLabel(row)))
+                    .append(" | ").append(safeCell(row.getTechnicalObservation()))
+                    .append(" |\n");
+        }
+        report.append("\n");
+    }
+
+    private String sourceTypeLabel(String value) {
+        return "CHELATED".equals(value) ? "Quelatada" : "Mineral simples";
+    }
+
+    private String moneyOrMissing(Double value) {
+        return value == null ? "Não informado" : String.format(Locale.US, "R$ %.2f", value);
+    }
+
+    private String decisionLabel(RecommendationCalculationService.MicronutrientFertilizerRecommendationRow row) {
+        String state = row.getAlternativeState();
+        if ("SELECTED".equals(state)) return "SELECTED — Escolhida — " + safeCell(row.getEconomicDecision());
+        if ("NOT_SELECTED".equals(state)) return "NOT_SELECTED — Não escolhida — " + safeCell(row.getEconomicDecision());
+        return "UNDETERMINED — Aguardando preços para decisão — " + safeCell(row.getEconomicDecision());
     }
 
     private Set<String> alternativeMicronutrientObjectives(

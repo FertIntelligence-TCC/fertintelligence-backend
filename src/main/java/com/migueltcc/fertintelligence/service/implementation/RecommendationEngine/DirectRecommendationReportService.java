@@ -129,6 +129,11 @@ public class DirectRecommendationReportService {
 
         appendOptionalSourceSection(
                 report,
+                "Recuperação de sodicidade/excesso de Na",
+                TechnicalRecommendationDocumentSupport.section(source, "5. Diagnóstico de salinidade/sodicidade"));
+
+        appendOptionalSourceSection(
+                report,
                 "Recomendação orgânica",
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
 
@@ -139,6 +144,8 @@ public class DirectRecommendationReportService {
                 NOT_CALCULATED);
 
         appendMicronutrientTable(report, source, doseUnitMetadata, micronutrientFertilizerLines);
+        appendOptionalSourceSection(report, "Adubação foliar de micronutrientes",
+                TechnicalRecommendationDocumentSupport.subsection(source, "Adubação foliar de micronutrientes"));
         appendNpkTable(report, source, crop, doseUnitMetadata, spacingWarnings,
                 plantingFormulatedFertilizerLines, coverageFormulatedFertilizerLines, fertilizationRows);
         appendOpportunityCostComparison(report, source);

@@ -22,6 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RecommendationCalculationServiceTest {
 
     @Test
+    void ftePhBoundaryAllowsSixPointNinetyNineAndBlocksSevenAndSevenPointFive() {
+        assertThat(RecommendationCalculationService.isFteEligibleForPh(6.99d)).isTrue();
+        assertThat(RecommendationCalculationService.isFteEligibleForPh(7.00d)).isFalse();
+        assertThat(RecommendationCalculationService.isFteEligibleForPh(7.50d)).isFalse();
+    }
+
+    @Test
     void potassiumUsesIndependentDiverseRangesForFiveLevelClassificationAndBoundaries() throws Exception {
         SoilFertilityInterpretationCriteriaTableModel table = SoilFertilityInterpretationCriteriaTableModel.builder().id(42L).build();
         DiverseContentRangeModel range = micronutrientRange(table).toBuilder()
@@ -146,7 +153,7 @@ class RecommendationCalculationServiceTest {
     @Test
     void formulatedPlantingWarningDoesNotMentionP2O5WhenDeficitIsZero() throws Exception {
         NutrientFertilizationCalculationService service = new NutrientFertilizationCalculationService(
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null);
         FormulatedMineralFertilizerModel fertilizer = FormulatedMineralFertilizerModel.builder()
                 .id(8L)
                 .N(8d)

@@ -21,6 +21,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ShoppingListReportService {
 
+    private static final java.util.regex.Pattern SODICITY_TOTAL = java.util.regex.Pattern.compile(
+            "\\|\\s*Dose total estimada de gesso 0[–-]40 cm\\s*\\|\\s*([0-9.,]+)\\s*\\|\\s*kg/ha\\s*\\|",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
     private final DirectRecommendationRepository directRecommendationRepository;
     private final DirectRecommendationMicronutrientFertilizerLineRepository micronutrientFertilizerLineRepository;
     private final DirectRecommendationPlantingFormulatedFertilizerLineRepository plantingFormulatedFertilizerLineRepository;
@@ -65,6 +69,8 @@ public class ShoppingListReportService {
                             TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_1,
                             TechnicalRecommendationDocumentSupport.SECTION_COVERAGE_OPTION_2), area, recommendation);
         }
+        appendSodicityGypsum(report, recommendation, area);
+        appendFoliarAlternatives(report, recommendation, area);
 
         report.append("Observações\n\n");
         report.append("- A lista consolida insumos e doses do laudo técnico persistido e das linhas calculadas da Recomendação Direta.\n");
@@ -78,6 +84,97 @@ public class ShoppingListReportService {
         report.append("- Custos são totalizados separadamente por opção; alternativas mutuamente exclusivas não são somadas.\n");
         return report.toString();
     }
+
+    private void appendSodicityGypsum(StringBuilder report, RecommendationModel recommendation, Double area) {
+        Double dose = sodicityGypsumDose(recommendation != null ? recommendation.getTechnicalReport() : null);
+        if (dose == null || dose <= 0d) return;
+        ShoppingInputCostService.CostEstimate cost =
+                shoppingInputCostService.estimate(recommendation, "Gesso agrícola", dose, area);
+        report.append("Grupo: Recuperação de sodicidade/excesso de Na (dose separada; não somada à gessagem convencional nem ao S)\n\n");
+        report.append("| Fonte | Finalidade | Dose de aplicação (kg/ha) | Área | Quantidade total teórica | Unidade comercial | Custo estimado (R$/ha) | Custo total estimado |\n");
+        report.append("|---|---|---:|---:|---:|---|---:|---:|\n");
+        report.append("| Gesso agrícola | Recuperação de sodicidade/excesso de Na | ")
+                .append(TechnicalRecommendationDocumentSupport.formatKgHa(dose))
+                .append(" | ").append(TechnicalRecommendationDocumentSupport.formatArea(area))
+                .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(dose, area))
+                .append(" | ").append(formatCommercialPrice(cost))
+                .append(" | ").append(formatMoney(cost.estimatedCostPerHa()))
+                .append(" | ").append(formatMoney(cost.estimatedTotalCost()))
+                .append(" |\n\n");
+    }
+
+    static Double sodicityGypsumDose(String report) {
+        if (report == null) return null;
+        java.util.regex.Matcher matcher = SODICITY_TOTAL.matcher(report);
+        if (!matcher.find()) return null;
+        try {
+            String value = matcher.group(1);
+            return Double.valueOf(value.contains(",") ? value.replace(".", "").replace(',', '.') : value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private void appendFoliarAlternatives(StringBuilder report, RecommendationModel recommendation, Double area) {
+        List<FoliarShoppingAlternative> alternatives =
+                foliarAlternatives(recommendation != null ? recommendation.getTechnicalReport() : null);
+        if (alternatives.isEmpty()) return;
+        report.append("BLOCO 4 - Adubação foliar de micronutrientes (alternativas mutuamente exclusivas)\n\n");
+        Map<String, List<FoliarShoppingAlternative>> groups = new LinkedHashMap<>();
+        for (FoliarShoppingAlternative alternative : alternatives) {
+            groups.computeIfAbsent(alternative.micronutrient(), ignored -> new ArrayList<>()).add(alternative);
+        }
+        for (Map.Entry<String, List<FoliarShoppingAlternative>> group : groups.entrySet()) {
+            report.append("Grupo: ").append(group.getKey()).append("\n\n");
+            report.append("| Produto | Tipo de fonte | Estado | Dose (kg/ha) | Área | Quantidade total | CUMIC (R$/ha) | Custo total da alternativa |\n");
+            report.append("|---|---|---|---:|---:|---:|---:|---:|\n");
+            for (FoliarShoppingAlternative alternative : group.getValue()) {
+                String state = alternative.state();
+                Double total = alternative.costPerHa() != null && area != null ? alternative.costPerHa() * area : null;
+                report.append("| ").append(alternative.product())
+                        .append(" | ").append(alternative.sourceType())
+                        .append(" | ").append(state)
+                        .append(" | ").append(formatNumber(alternative.productDoseKgHa()))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatArea(area))
+                        .append(" | ").append(TechnicalRecommendationDocumentSupport.formatTotal(alternative.productDoseKgHa(), area))
+                        .append(" | ").append(formatMoney(alternative.costPerHa()))
+                        .append(" | ").append(formatMoney(total))
+                        .append(" |\n");
+            }
+            report.append("\nAlternativa escolhida: ")
+                    .append(group.getValue().stream().filter(value -> "SELECTED".equals(value.state()))
+                            .map(FoliarShoppingAlternative::product).findFirst().orElse("Aguardando preços para decisão"))
+                    .append(". As alternativas deste grupo não são somadas ao mesmo total.\n\n");
+        }
+    }
+
+    static List<FoliarShoppingAlternative> foliarAlternatives(String source) {
+        if (source == null) return List.of();
+        int start = source.indexOf("Adubação foliar de micronutrientes");
+        if (start < 0) return List.of();
+        String table = source.substring(start);
+        List<FoliarShoppingAlternative> alternatives = new ArrayList<>();
+        for (List<String> row : TechnicalRecommendationDocumentSupport.tableRows(table)) {
+            if (row.size() < 11) continue;
+            Double dose = TechnicalRecommendationDocumentSupport.extractKgHa(row.get(5)).orElse(null);
+            if (dose == null || dose <= 0d) continue;
+            String decision = row.get(10);
+            String state = decision.startsWith("SELECTED") ? "SELECTED"
+                    : decision.startsWith("NOT_SELECTED") ? "NOT_SELECTED" : "UNDETERMINED";
+            alternatives.add(new FoliarShoppingAlternative(row.get(0), row.get(1), row.get(2), dose,
+                    parseMoney(row.get(9)), state));
+        }
+        return alternatives;
+    }
+
+    private static Double parseMoney(String value) {
+        if (value == null || value.contains("Não informado")) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("([0-9]+(?:[.,][0-9]+)?)").matcher(value);
+        return matcher.find() ? Double.valueOf(matcher.group(1).replace(',', '.')) : null;
+    }
+
+    record FoliarShoppingAlternative(String micronutrient, String sourceType, String product,
+                                     Double productDoseKgHa, Double costPerHa, String state) {}
 
     private AreaResolution resolveArea(RecommendationModel recommendation) {
         if (recommendation != null && isPositive(recommendation.getCropUsedAreaInThePlot())) {

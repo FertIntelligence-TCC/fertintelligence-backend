@@ -69,6 +69,7 @@ public class SummaryRecommendationReportService {
                 TechnicalRecommendationDocumentSupport.subsection(source, "Fontes orgânicas, organominerais e micronutrientes"));
 
         appendMicronutrientRecommendation(report, micronutrientLines);
+        appendSelectedFoliarAlternatives(report, source);
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
                 report,
@@ -90,6 +91,29 @@ public class SummaryRecommendationReportService {
         appendWithoutHeading(report, source, "14. Limitações e alertas", "Nenhuma observação adicional foi persistida.");
         report.append("- Conversões g/m linear e g/cova: ").append(NOT_CALCULATED).append("\n");
         return report.toString();
+    }
+
+    private void appendSelectedFoliarAlternatives(StringBuilder report, String source) {
+        String table = TechnicalRecommendationDocumentSupport.subsection(source, "Adubação foliar de micronutrientes");
+        if (table.isBlank()) return;
+        List<List<String>> rows = TechnicalRecommendationDocumentSupport.tableRows(table);
+        List<List<String>> selected = rows.stream()
+                .filter(row -> row.size() > 10)
+                .filter(row -> row.get(10).startsWith("SELECTED") || row.get(10).startsWith("UNDETERMINED"))
+                .toList();
+        if (selected.isEmpty()) return;
+        report.append("Adubação foliar de micronutrientes\n\n");
+        report.append("| Micronutriente | Estratégia | Produto | Dose | Aplicações | Alternativa escolhida |\n");
+        report.append("|---|---|---|---:|---:|---|\n");
+        for (List<String> row : selected) {
+            report.append("| ").append(row.get(0))
+                    .append(" | Foliar - ").append(row.get(1))
+                    .append(" | ").append(row.get(2))
+                    .append(" | ").append(row.get(5))
+                    .append(" | 1 | ").append(row.get(10))
+                    .append(" |\n");
+        }
+        report.append("\n");
     }
 
     private void appendMicronutrientRecommendation(

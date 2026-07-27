@@ -50,6 +50,7 @@ class NutrientFertilizationCalculationService {
     private final PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService;
     private final CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService;
     private final CropSpacingCalculationService cropSpacingCalculationService;
+    private final FoliarMicronutrientDecisionService foliarMicronutrientDecisionService;
 
     NutrientFertilizationCalculationService(ContentRangeRepository contentRangeRepository,
                                             CoverageRepository coverageRepository,
@@ -61,7 +62,8 @@ class NutrientFertilizationCalculationService {
                                             MicronutrientFertilizerSelectionService micronutrientFertilizerSelectionService,
                                             PlantingFormulatedFertilizerRecommendationService plantingFormulatedFertilizerRecommendationService,
                                             CoverageFormulatedFertilizerRecommendationService coverageFormulatedFertilizerRecommendationService,
-                                            CropSpacingCalculationService cropSpacingCalculationService) {
+                                            CropSpacingCalculationService cropSpacingCalculationService,
+                                            FoliarMicronutrientDecisionService foliarMicronutrientDecisionService) {
         this.contentRangeRepository = contentRangeRepository;
         this.coverageRepository = coverageRepository;
         this.simpleMineralFertilizerRepository = simpleMineralFertilizerRepository;
@@ -73,6 +75,7 @@ class NutrientFertilizationCalculationService {
         this.plantingFormulatedFertilizerRecommendationService = plantingFormulatedFertilizerRecommendationService;
         this.coverageFormulatedFertilizerRecommendationService = coverageFormulatedFertilizerRecommendationService;
         this.cropSpacingCalculationService = cropSpacingCalculationService;
+        this.foliarMicronutrientDecisionService = foliarMicronutrientDecisionService;
     }
 
     FertilizationRecommendationContext calculate(CropFertilizationTableModel table,
@@ -527,9 +530,20 @@ class NutrientFertilizationCalculationService {
         List<MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult> selections =
                 micronutrientFertilizerSelectionService.select(user, sourceOption, doses);
         List<RecommendationCalculationService.MicronutrientFertilizerRecommendationRow> rows = new ArrayList<>();
+        for (Map.Entry<AppliedMicronutrient, Double> entry : doses.entrySet()) {
+            if (foliarMicronutrientDecisionService.isFoliarDose(entry.getValue())
+                    && entry.getKey() != AppliedMicronutrient.B) {
+                MicronutrientRecommendationInput input = inputs.get(entry.getKey());
+                foliarMicronutrientDecisionService.calculate(user, sourceOption, entry.getKey(), entry.getValue())
+                        .stream().map(alternative -> toFoliarMicronutrientRow(alternative, input))
+                        .forEach(rows::add);
+            }
+        }
         for (MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection : selections) {
             MicronutrientRecommendationInput input = inputs.get(selection.micronutrient());
             if (input == null) continue;
+            if (foliarMicronutrientDecisionService.isFoliarDose(selection.micronutrientDoseKgHa())
+                    && selection.micronutrient() != AppliedMicronutrient.B) continue;
             if (selection.technicalMessage() != null) {
                 addWarning(warnings, selection.technicalMessage());
             }
@@ -729,13 +743,24 @@ class NutrientFertilizationCalculationService {
         CropSpacingCalculationService.DoseUnitMetadata doseUnitMetadata =
                 cropSpacingCalculationService.resolveDoseUnitMetadata(spacingDose);
         SimpleMineralFertilizerModel fertilizer = selection.selectedFertilizer();
+        int applications = applicationsFor(input.interpretation());
+        String phase = selection.micronutrient() == AppliedMicronutrient.B
+                ? "Cobertura"
+                : "Linha de plantio";
         return RecommendationCalculationService.MicronutrientFertilizerRecommendationRow.builder()
                 .micronutrient(selection.micronutrient())
+                .strategyGroupId("SOIL_" + selection.micronutrient().name())
+                .sourceType("MINERAL_SIMPLE")
+                .alternativeState("SELECTED")
+                .phase(phase)
+                .applications(applications)
                 .micronutrientDoseKgHa(selection.micronutrientDoseKgHa())
                 .fertilizerId(fertilizer != null ? fertilizer.getId() : null)
                 .fertilizerName(fertilizer != null ? fertilizer.getName() : null)
                 .micronutrientConcentrationPercent(selection.selectedConcentrationPercent())
                 .fertilizerDoseKgHa(selection.fertilizerDoseKgHa())
+                .fertilizerDosePerApplicationKgHa(selection.fertilizerDoseKgHa() != null
+                        ? selection.fertilizerDoseKgHa() / applications : null)
                 .doseUnitMode(doseUnitMetadata.doseUnitMode())
                 .doseUnitLabel(doseUnitMetadata.doseUnitLabel())
                 .gramsPerLinearMeter(spacingDose.gramsPerLinearMeter())
@@ -743,6 +768,41 @@ class NutrientFertilizationCalculationService {
                 .technicalObservation(buildMicronutrientObservation(selection, input, spacingDose))
                 .build();
     }
+
+    private RecommendationCalculationService.MicronutrientFertilizerRecommendationRow toFoliarMicronutrientRow(
+            FoliarMicronutrientDecisionService.Alternative alternative,
+            MicronutrientRecommendationInput input) {
+        return RecommendationCalculationService.MicronutrientFertilizerRecommendationRow.builder()
+                .micronutrient(alternative.micronutrient())
+                .strategyGroupId(alternative.strategyGroupId())
+                .sourceType(alternative.sourceType().name())
+                .alternativeState(alternative.state().name())
+                .phase("Adubação foliar")
+                .applications(1)
+                .micronutrientDoseKgHa(alternative.elementDoseKgHa())
+                .fertilizerName(alternative.product())
+                .micronutrientConcentrationPercent(alternative.concentrationPercent())
+                .fertilizerDoseKgHa(alternative.productDoseKgHa())
+                .fertilizerDosePerApplicationKgHa(alternative.productDoseKgHa())
+                .commercialUnit(alternative.commercialUnit())
+                .pricePerProductKg(alternative.pricePerProductKg())
+                .pricePerNutrientKg(alternative.pricePerNutrientKg())
+                .estimatedCostPerHa(alternative.costPerHa())
+                .economicDecision(alternative.decisionMessage())
+                .technicalObservation(FOLIAR_TECHNICAL_OBSERVATION)
+                .build();
+    }
+
+    static int applicationsFor(String interpretation) {
+        if (interpretation == null) return 3;
+        return "Médio".equalsIgnoreCase(interpretation.trim()) ? 2 : 3;
+    }
+
+    private static final String FOLIAR_TECHNICAL_OBSERVATION =
+            "Verificar com seu técnico se a cultura é sensível à deficiência do nutriente encontrado deficiente no solo e na dose indicada. "
+                    + "Se sim, aplicar o adubo nas épocas recomendadas: fase de crescimento, florescimento e fase inicial de enchimento dos frutos. "
+                    + "Se não, evitar aplicações desnecessárias e sem resposta econômica. Alternativamente, realizar análise foliar da cultura anual "
+                    + "e ajustar a adubação foliar no ano seguinte.";
 
     private String buildMicronutrientObservation(
             MicronutrientFertilizerSelectionService.MicronutrientFertilizerSelectionResult selection,

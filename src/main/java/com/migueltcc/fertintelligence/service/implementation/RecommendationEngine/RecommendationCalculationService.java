@@ -1013,10 +1013,10 @@ public class RecommendationCalculationService {
                                                 FertilizerSourceOption sourceOption,
                                                 List<String> warnings) {
         Double ph = fertility != null ? fertility.getPhAgua() : null;
-        if (ph != null && ph > 7.0d) {
+        if (!isFteEligibleForPh(ph)) {
             rows.add(CorrectiveFertilizationRow.builder()
                     .correctedAttribute("Micronutrientes corretivos")
-                    .need("Bloqueado por pH em água > 7,0")
+                    .need("Bloqueado por pH em água >= 7,0")
                     .suggestedSource("Não recomendada no solo")
                     .dose(null)
                     .doseUnit("kg/ha")
@@ -1052,6 +1052,10 @@ public class RecommendationCalculationService {
         } else {
             addFteRows(rows, recommended, baseNutrient, baseDose, user, sourceOption, warnings);
         }
+    }
+
+    static boolean isFteEligibleForPh(Double ph) {
+        return ph == null || ph < 7.0d;
     }
 
     private String correctiveMicronutrientRange(AppliedMicronutrient micronutrient,
@@ -1186,7 +1190,7 @@ public class RecommendationCalculationService {
         double dose = calculation.productDoseKgHa();
         if (calculation.limitedByZinc() && warnings != null) warnings.add("Dose do FTE BR-12 limitada para que o Zn fornecido não ultrapasse 7,50 kg/ha.");
         rows.add(CorrectiveFertilizationRow.builder()
-                .correctedAttribute("FTE BR 12 corretivo")
+                .correctedAttribute("Micragem — FTE BR-12")
                 .need(baseNutrient.name() + " como nutriente-base: " + formatFteNumber(baseDose) + " kg/ha")
                 .suggestedSource(fte.getName())
                 .dose(dose)
@@ -3030,11 +3034,22 @@ public class RecommendationCalculationService {
     @AllArgsConstructor
     public static class MicronutrientFertilizerRecommendationRow {
         private AppliedMicronutrient micronutrient;
+        private String strategyGroupId;
+        private String sourceType;
+        private String alternativeState;
+        private String phase;
+        private Integer applications;
         private Double micronutrientDoseKgHa;
         private Long fertilizerId;
         private String fertilizerName;
         private Double micronutrientConcentrationPercent;
         private Double fertilizerDoseKgHa;
+        private Double fertilizerDosePerApplicationKgHa;
+        private String commercialUnit;
+        private Double pricePerProductKg;
+        private Double pricePerNutrientKg;
+        private Double estimatedCostPerHa;
+        private String economicDecision;
         private String doseUnitMode;
         private String doseUnitLabel;
         private Double gramsPerLinearMeter;
