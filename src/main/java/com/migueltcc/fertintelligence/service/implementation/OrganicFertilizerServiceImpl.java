@@ -50,10 +50,10 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
                 .user(owner)
                 .name(dto.getName())
                 // Nutrientes Essenciais
-                .C(getOrDefault(dto.getC()))
-                .N(getOrDefault(dto.getN()))
-                .P2O5(getOrDefault(dto.getP2o5()))
-                .K2O(getOrDefault(dto.getK2o()))
+                .C(OrganicFertilizerModel.calcularTeorCarbonoOrganicoPercentual(dto.getTeorMateriaOrganicaPercentual()))
+                .N(dto.getN())
+                .P2O5(dto.getP2o5())
+                .K2O(dto.getK2o())
                 .Ca(getOrDefault(dto.getCa()))
                 .Mg(getOrDefault(dto.getMg()))
                 .S(getOrDefault(dto.getS()))
@@ -63,8 +63,8 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
                 .Mn(getOrDefault(dto.getMn()))
                 .Mo(getOrDefault(dto.getMo()))
                 .Zn(getOrDefault(dto.getZn()))
-                .teorUmidade(getOrDefault(dto.getTeorUmidade()))
-                .teorMateriaOrganicaPercentual(getOrDefault(dto.getTeorMateriaOrganicaPercentual()))
+                .teorUmidade(dto.getTeorUmidade())
+                .teorMateriaOrganicaPercentual(dto.getTeorMateriaOrganicaPercentual())
                 .taxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual())
                 .taxaMineralizacaoSegundoAnoPercentual(dto.getTaxaMineralizacaoSegundoAnoPercentual())
                 .taxaMineralizacaoTerceiroAnoPercentual(dto.getTaxaMineralizacaoTerceiroAnoPercentual())
@@ -84,6 +84,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
                 .precoSaco25Kg(dto.getPrecoSaco25Kg())
                 .precoSaco50Kg(dto.getPrecoSaco50Kg())
                 .precoSaco1000Kg(dto.getPrecoSaco1000Kg())
+                .valorFreteTonelada(dto.getValorFreteTonelada())
                 .build();
         List<String> idsFotos = copyIdsFotos(dto.getIdsFotos());
 
@@ -154,7 +155,6 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         checkOwnership(fertilizer, owner);
 
         if (dto.getName() != null) fertilizer.setName(dto.getName());
-        if (dto.getC() != null) fertilizer.setC(dto.getC());
 
         // Updates de Nutrientes
         if (dto.getN() != null) fertilizer.setN(dto.getN());
@@ -173,6 +173,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         if (dto.getTeorUmidade() != null) fertilizer.setTeorUmidade(dto.getTeorUmidade());
         if (dto.getTeorMateriaOrganicaPercentual() != null) {
             fertilizer.setTeorMateriaOrganicaPercentual(dto.getTeorMateriaOrganicaPercentual());
+            fertilizer.setC(OrganicFertilizerModel.calcularTeorCarbonoOrganicoPercentual(dto.getTeorMateriaOrganicaPercentual()));
         }
         if (dto.getTaxaMineralizacaoPrimeiroAnoPercentual() != null) {
             fertilizer.setTaxaMineralizacaoPrimeiroAnoPercentual(dto.getTaxaMineralizacaoPrimeiroAnoPercentual());
@@ -205,6 +206,7 @@ public class OrganicFertilizerServiceImpl implements OrganicFertilizerService {
         if (dto.getPrecoSaco25Kg() != null) fertilizer.setPrecoSaco25Kg(dto.getPrecoSaco25Kg());
         if (dto.getPrecoSaco50Kg() != null) fertilizer.setPrecoSaco50Kg(dto.getPrecoSaco50Kg());
         if (dto.getPrecoSaco1000Kg() != null) fertilizer.setPrecoSaco1000Kg(dto.getPrecoSaco1000Kg());
+        if (dto.getValorFreteTonelada() != null) fertilizer.setValorFreteTonelada(dto.getValorFreteTonelada());
 
         OrganicFertilizerModel saved = organicFertilizerRepository.save(fertilizer);
         if (idsFotos != null) {

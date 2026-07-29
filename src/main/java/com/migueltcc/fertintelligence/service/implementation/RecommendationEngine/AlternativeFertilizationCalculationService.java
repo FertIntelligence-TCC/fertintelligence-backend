@@ -19,6 +19,8 @@ import com.migueltcc.fertintelligence.repository.GreenFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.MicronutrientDoseRepository;
 import com.migueltcc.fertintelligence.repository.OrganoMineralFertilizerRepository;
 import com.migueltcc.fertintelligence.repository.OrganicFertilizerRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -77,6 +79,7 @@ class AlternativeFertilizationCalculationService {
             UserModel user,
             FertilizerSourceOption sourceOption,
             Boolean useOrganicFertilizer,
+            Long organicFertilizerId,
             Nutriente organicFertilizerReferenceNutrient,
             Boolean useOrganoMineralFertilizer,
             Boolean useGreenFertilizer,
@@ -92,7 +95,7 @@ class AlternativeFertilizationCalculationService {
                 user, sourceOption, useGreenFertilizer, greenFertilizerSpecies, greenFertilizerGreenMass,
                 greenFertilizerMoisturePercentage, greenFertilizerDryMass, requiredN, requiredP2O5, requiredK2O, warnings);
         addOrganicFertilizationRow(rows, user, sourceOption, useOrganicFertilizer,
-                organicFertilizerReferenceNutrient, requiredN, requiredP2O5, requiredK2O, warnings);
+                organicFertilizerId, organicFertilizerReferenceNutrient, requiredN, requiredP2O5, requiredK2O, warnings);
         addOrganoMineralFertilizationRow(rows, user, sourceOption, useOrganoMineralFertilizer,
                 greenContribution.remainingN(), greenContribution.remainingP2O5(), greenContribution.remainingK2O(), warnings);
         rows.add(greenContribution.row());
@@ -138,6 +141,7 @@ class AlternativeFertilizationCalculationService {
                                             UserModel user,
                                             FertilizerSourceOption sourceOption,
                                             Boolean useOrganicFertilizer,
+                                            Long organicFertilizerId,
                                             Nutriente referenceNutrient,
                                             Double requiredN,
                                             Double requiredP2O5,
@@ -174,7 +178,8 @@ class AlternativeFertilizationCalculationService {
             return;
         }
 
-        Optional<OrganicFertilizerModel> selectedSource = selectBestOrganicSource(user, sourceOption, referenceNutrient);
+        Optional<OrganicFertilizerModel> selectedSource = selectOrganicSourceById(
+                user, sourceOption, organicFertilizerId, referenceNutrient);
         if (selectedSource.isEmpty()) {
             String nutrientLabel = organicReferenceNutrientLabel(referenceNutrient);
             String limitation = "Não há fonte orgânica acessível com teor positivo de " + nutrientLabel
@@ -808,11 +813,25 @@ class AlternativeFertilizationCalculationService {
         return evidence;
     }
 
-    private Optional<OrganicFertilizerModel> selectBestOrganicSource(UserModel user, FertilizerSourceOption sourceOption, Nutriente referenceNutrient) {
-        return selectOrganicFertilizers(user, sourceOption).stream()
-                .filter(f -> nvl(organicReferenceConcentration(f, referenceNutrient)) > 0d)
-                .max(Comparator.comparing((OrganicFertilizerModel f) -> organicReferenceEffectiveConcentration(f, referenceNutrient))
-                        .thenComparing(f -> f.getId() == null ? 0L : f.getId()));
+    private Optional<OrganicFertilizerModel> selectOrganicSourceById(UserModel user,
+                                                                     FertilizerSourceOption sourceOption,
+                                                                     Long fertilizerId,
+                                                                     Nutriente referenceNutrient) {
+        if (fertilizerId == null) {
+            return Optional.empty();
+        }
+        OrganicFertilizerModel selected = organicFertilizerRepository.findById(fertilizerId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Adubo orgânico não encontrado com o ID: " + fertilizerId));
+        boolean accessible = selectOrganicFertilizers(user, sourceOption).stream()
+                .anyMatch(fertilizer -> fertilizerId.equals(fertilizer.getId()));
+        if (!accessible) {
+            throw new AccessDeniedException(
+                    "O adubo orgânico selecionado não está acessível para a origem de adubos informada.");
+        }
+        return nvl(organicReferenceConcentration(selected, referenceNutrient)) > 0d
+                ? Optional.of(selected)
+                : Optional.empty();
     }
 
     private Optional<NpkAlternativeSource> selectBestOrganoMineralSource(UserModel user, FertilizerSourceOption sourceOption) {

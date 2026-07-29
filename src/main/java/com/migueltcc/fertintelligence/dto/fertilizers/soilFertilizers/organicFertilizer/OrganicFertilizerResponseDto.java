@@ -80,6 +80,9 @@ public class OrganicFertilizerResponseDto {
     @JsonProperty("teor_carbono_organico_percentual")
     private Double teorCarbonoOrganicoPercentual;
 
+    @JsonProperty("relacao_carbono_nitrogenio")
+    private Double relacaoCarbonoNitrogenio;
+
     @Schema(example = "42")
     @JsonProperty("user_id")
     private Long userId;
@@ -106,6 +109,9 @@ public class OrganicFertilizerResponseDto {
 
     @JsonProperty("preco_saco_1000kg")
     private BigDecimal precoSaco1000Kg;
+
+    @JsonProperty("valor_frete_tonelada")
+    private BigDecimal valorFreteTonelada;
 
 
     @JsonProperty("ids_fotos")

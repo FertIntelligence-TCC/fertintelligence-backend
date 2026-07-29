@@ -51,6 +51,9 @@ public class OrganicFertilizerModel {
     @Column(name = "PRECO_SACO_1000KG", precision = 19, scale = 2)
     private BigDecimal precoSaco1000Kg;
 
+    @Column(name = "VALOR_FRETE_TONELADA", precision = 19, scale = 2)
+    private BigDecimal valorFreteTonelada;
+
     @Column(name = "NOME_ADUBO", nullable = false)
     private String name;
 
@@ -141,10 +144,10 @@ public class OrganicFertilizerModel {
         return OrganicFertilizerResponseDto.builder()
                 .id(this.id)
                 .name(this.name)
-                .c(this.C != null ? this.C : 0.0)
-                .n(this.N != null ? this.N : 0.0)
-                .p2o5(this.P2O5 != null ? this.P2O5 : 0.0)
-                .k2o(this.K2O != null ? this.K2O : 0.0)
+                .c(this.C)
+                .n(this.N)
+                .p2o5(this.P2O5)
+                .k2o(this.K2O)
                 .ca(this.Ca != null ? this.Ca : 0.0)
                 .mg(this.Mg != null ? this.Mg : 0.0)
                 .s(this.S != null ? this.S : 0.0)
@@ -154,9 +157,10 @@ public class OrganicFertilizerModel {
                 .mn(this.Mn != null ? this.Mn : 0.0)
                 .mo(this.Mo != null ? this.Mo : 0.0)
                 .zn(this.Zn != null ? this.Zn : 0.0)
-                .teorUmidade(this.teorUmidade != null ? this.teorUmidade : 0.0)
-                .teorMateriaOrganicaPercentual(this.teorMateriaOrganicaPercentual != null ? this.teorMateriaOrganicaPercentual : 0.0)
+                .teorUmidade(this.teorUmidade)
+                .teorMateriaOrganicaPercentual(this.teorMateriaOrganicaPercentual)
                 .teorCarbonoOrganicoPercentual(calcularTeorCarbonoOrganicoPercentual())
+                .relacaoCarbonoNitrogenio(calcularRelacaoCarbonoNitrogenio())
                 .taxaMineralizacaoPrimeiroAnoPercentual(this.taxaMineralizacaoPrimeiroAnoPercentual)
                 .taxaMineralizacaoSegundoAnoPercentual(this.taxaMineralizacaoSegundoAnoPercentual)
                 .taxaMineralizacaoTerceiroAnoPercentual(this.taxaMineralizacaoTerceiroAnoPercentual)
@@ -179,14 +183,33 @@ public class OrganicFertilizerModel {
                 .precoSaco25Kg(this.precoSaco25Kg)
                 .precoSaco50Kg(this.precoSaco50Kg)
                 .precoSaco1000Kg(this.precoSaco1000Kg)
+                .valorFreteTonelada(this.valorFreteTonelada)
                 .nomeCriador(this.user != null ? this.user.getName() : null)
                 .build();
     }
 
-    private Double calcularTeorCarbonoOrganicoPercentual() {
-        if (this.teorMateriaOrganicaPercentual == null) {
-            return 0.0;
+    public static Double calcularTeorCarbonoOrganicoPercentual(Double materiaOrganica) {
+        if (materiaOrganica == null) {
+            return null;
         }
-        return Math.round((this.teorMateriaOrganicaPercentual / 1.724) * 10.0) / 10.0;
+        return BigDecimal.valueOf(materiaOrganica)
+                .divide(new BigDecimal("1.724"), 12, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    private Double calcularTeorCarbonoOrganicoPercentual() {
+        return calcularTeorCarbonoOrganicoPercentual(this.teorMateriaOrganicaPercentual);
+    }
+
+    private Double calcularRelacaoCarbonoNitrogenio() {
+        if (this.teorMateriaOrganicaPercentual == null) {
+            return null;
+        }
+        if (this.N == null || this.N == 0d) {
+            return null;
+        }
+        return BigDecimal.valueOf(calcularTeorCarbonoOrganicoPercentual())
+                .divide(BigDecimal.valueOf(this.N), 12, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }

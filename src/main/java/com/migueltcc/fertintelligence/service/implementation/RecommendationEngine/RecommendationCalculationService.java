@@ -287,7 +287,7 @@ public class RecommendationCalculationService {
         return nutrientFertilizationCalculationService.calculate(
                 inputs.cropFertilizationTable(), inputs.crop(), inputs.fertilityExtract(), Optional.ofNullable(inputs.physicalAnalysis()), inputs.soilInterpretationTable(),
                 isEffectiveGypsumRecommendation(gypsumRequirement),
-                user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerReferenceNutrient(),
+                user, sourceOption, dto.getUseOrganicFertilizer(), dto.getOrganicFertilizerId(), dto.getOrganicFertilizerReferenceNutrient(),
                 dto.getUseOrganoMineralFertilizer(), dto.getUseGreenFertilizer(), dto.getGreenFertilizerSpecies(), dto.getGreenFertilizerGreenMass(),
                 dto.getGreenFertilizerMoisturePercentage(), dto.getGreenFertilizerDryMass(),
                 dto.getUseBioFertilizer(),

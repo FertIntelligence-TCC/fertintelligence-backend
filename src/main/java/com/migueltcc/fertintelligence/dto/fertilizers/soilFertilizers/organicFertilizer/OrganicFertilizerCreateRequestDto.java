@@ -163,6 +163,11 @@ public class OrganicFertilizerCreateRequestDto {
     @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
     private BigDecimal precoSaco1000Kg;
 
+    @JsonProperty("valor_frete_tonelada")
+    @JsonAlias({"valorFreteTonelada", "frete_tonelada"})
+    @DecimalMin(value = "0.0", message = "O valor não pode ser negativo")
+    private BigDecimal valorFreteTonelada;
+
 
     @Size(max = 5, message = "Um adubo pode ter no máximo 5 fotos")
     @JsonProperty("ids_fotos")

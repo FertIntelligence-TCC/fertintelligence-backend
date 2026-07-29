@@ -87,6 +87,7 @@ class NutrientFertilizationCalculationService {
                                                  UserModel user,
                                                  FertilizerSourceOption sourceOption,
                                                  Boolean useOrganicFertilizer,
+                                                 Long organicFertilizerId,
                                                  Nutriente organicFertilizerReferenceNutrient,
                                                  Boolean useOrganoMineralFertilizer,
                                                  Boolean useGreenFertilizer,
@@ -126,7 +127,7 @@ class NutrientFertilizationCalculationService {
                 alternativeFertilizationCalculationService.calculate(
                         requiredN, requiredP2O5, requiredK2O, crop, chemicalDiagnosis, foliarDiagnosis,
                         soilInterpretationTable, user, sourceOption, useOrganicFertilizer,
-                        organicFertilizerReferenceNutrient, useOrganoMineralFertilizer, useGreenFertilizer, greenFertilizerSpecies,
+                        organicFertilizerId, organicFertilizerReferenceNutrient, useOrganoMineralFertilizer, useGreenFertilizer, greenFertilizerSpecies,
                         greenFertilizerGreenMass, greenFertilizerMoisturePercentage, greenFertilizerDryMass,
                         useBioFertilizer, correctiveFteCredits, warnings);
         Double mineralRequiredN = alternativeFertilizationResult.remainingRequiredN();
@@ -350,7 +351,7 @@ class NutrientFertilizationCalculationService {
                     "Complemento de S usando P2O5 demandado no plantio.");
         }
         double p2o5Remaining = Math.max(0d, nvl(requiredP2O5) - pkg.p2o5);
-        if (p2o5Remaining > tolerance(nvl(requiredP2O5))) {
+        if (nvl(requiredN) > 0d && p2o5Remaining > tolerance(nvl(requiredP2O5))) {
             pkg.add("MAP", p2o5Remaining / 0.50d, 11d, 50d, 0d, 0d,
                     "Complemento de P2O5 remanescente após superfosfato simples.");
         }
@@ -935,7 +936,11 @@ class NutrientFertilizationCalculationService {
         }
 
         var simples = selectSimpleFertilizers(user, sourceOption);
-        var bestS = simples.stream().filter(f -> f.getN() > 0 || f.getP2O5() > 0 || f.getK2O() > 0).max((a, b) -> compareScore(a.getN(), a.getP2O5(), a.getK2O(), b.getN(), b.getP2O5(), b.getK2O(), n, p, k, a.getId(), b.getId()));
+        boolean plantingWithoutNitrogen = nvl(n) <= 0d;
+        var bestS = simples.stream()
+                .filter(f -> !plantingWithoutNitrogen || nvl(f.getN()) <= 0d)
+                .filter(f -> nvl(f.getN()) > 0 || nvl(f.getP2O5()) > 0 || nvl(f.getK2O()) > 0)
+                .max((a, b) -> compareScore(a.getN(), a.getP2O5(), a.getK2O(), b.getN(), b.getP2O5(), b.getK2O(), n, p, k, a.getId(), b.getId()));
         if (bestS.isPresent()) {
             var f = bestS.get();
             Optional<FertilizerDoseCalculation> calc = calculateByGreatestFactor(n, p, k, f.getN(), f.getP2O5(), f.getK2O(), "concentração do nutriente alvo em fertilizante simples");
@@ -1359,9 +1364,13 @@ class NutrientFertilizationCalculationService {
             Double requiredP2O5,
             Double requiredK2O) {
         SimplePlantingPackage pkg = new SimplePlantingPackage("prioridade N via sulfato de amônio");
-        SimpleMineralFertilizerModel ammoniumSulfate = namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d);
+        SimpleMineralFertilizerModel ammoniumSulfate = nvl(requiredN) > 0d
+                ? namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d)
+                : null;
         SimpleMineralFertilizerModel simpleSuper = namedSource(fertilizers, "superfosfato simples", f -> nvl(f.getP2O5()) > 0d && nvl(f.getS()) > 0d);
-        SimpleMineralFertilizerModel map = namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel map = nvl(requiredN) > 0d
+                ? namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d)
+                : null;
         SimpleMineralFertilizerModel urea = namedSource(fertilizers, "ureia", f -> nvl(f.getN()) > 0d);
         SimpleMineralFertilizerModel kcl = namedSource(fertilizers, "cloreto de potassio", f -> nvl(f.getK2O()) > 0d);
 
@@ -1384,8 +1393,12 @@ class NutrientFertilizationCalculationService {
             Double requiredK2O) {
         SimplePlantingPackage pkg = new SimplePlantingPackage("prioridade S/P2O5 via superfosfato simples");
         SimpleMineralFertilizerModel simpleSuper = namedSource(fertilizers, "superfosfato simples", f -> nvl(f.getP2O5()) > 0d && nvl(f.getS()) > 0d);
-        SimpleMineralFertilizerModel ammoniumSulfate = namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d);
-        SimpleMineralFertilizerModel map = namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d);
+        SimpleMineralFertilizerModel ammoniumSulfate = nvl(requiredN) > 0d
+                ? namedSource(fertilizers, "sulfato de amonio", f -> nvl(f.getN()) > 0d && nvl(f.getS()) > 0d)
+                : null;
+        SimpleMineralFertilizerModel map = nvl(requiredN) > 0d
+                ? namedSource(fertilizers, "map", f -> nvl(f.getP2O5()) > 0d && nvl(f.getN()) > 0d)
+                : null;
         SimpleMineralFertilizerModel urea = namedSource(fertilizers, "ureia", f -> nvl(f.getN()) > 0d);
         SimpleMineralFertilizerModel kcl = namedSource(fertilizers, "cloreto de potassio", f -> nvl(f.getK2O()) > 0d);
 

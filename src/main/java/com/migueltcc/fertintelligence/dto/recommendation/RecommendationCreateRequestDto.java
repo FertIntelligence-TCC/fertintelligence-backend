@@ -146,6 +146,10 @@ public class RecommendationCreateRequestDto {
     @JsonAlias({"organicFertilizerReferenceNutrient", "nutrienteReferenciaAduboOrganico"})
     private Nutriente organicFertilizerReferenceNutrient;
 
+    @JsonProperty("id_adubo_organico")
+    @JsonAlias({"organicFertilizerId", "aduboOrganicoId"})
+    private Long organicFertilizerId;
+
     @JsonProperty("usar_adubo_verde")
     @JsonAlias({"useGreenFertilizer", "usarAduboVerde"})
     private Boolean useGreenFertilizer;
@@ -174,6 +178,14 @@ public class RecommendationCreateRequestDto {
     @AssertTrue(message = "O nutriente de referência do adubo orgânico só pode ser informado quando o uso de adubo orgânico estiver habilitado.")
     public boolean isOrganicFertilizerReferenceNutrientConsistent() {
         return organicFertilizerReferenceNutrient == null || Boolean.TRUE.equals(useOrganicFertilizer);
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "O adubo orgânico deve ser selecionado quando seu uso estiver habilitado.")
+    public boolean isOrganicFertilizerSelectionConsistent() {
+        return Boolean.TRUE.equals(useOrganicFertilizer)
+                ? organicFertilizerId != null
+                : organicFertilizerId == null;
     }
 
     @JsonIgnore
