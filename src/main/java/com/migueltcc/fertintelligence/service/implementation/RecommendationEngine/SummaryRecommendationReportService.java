@@ -30,10 +30,7 @@ public class SummaryRecommendationReportService {
                 micronutrientFertilizerLines(resolveDirectRecommendation(recommendation).orElse(null));
         String granulometricClassification = extractGranulometricClassification(source);
         StringBuilder report = new StringBuilder();
-        TechnicalRecommendationDocumentSupport.appendStyle(report);
-        TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
         report.append("LAUDO TÉCNICO DE RECOMENDAÇÃO DE ADUBAÇÃO\n\n");
-        TechnicalRecommendationDocumentSupport.appendIdentification(report, recommendation);
 
         report.append("Diagnóstico da Fertilidade do Solo da Área Avaliada\n\n");
         report.append("- Classificação granulométrica: ").append(TechnicalRecommendationDocumentSupport.safe(granulometricClassification)).append("\n");

@@ -48,6 +48,11 @@ class SummaryRecommendationReportServiceTest {
         assertThat(report).contains("| Micronutriente | Dose micronutriente | Adubo sólido | Concentração | Dose adubo | Dose operacional | Observação técnica |");
         assertThat(report).contains("| B | 1.20 kg/ha | Borax | 11.00% | 10.91 kg/ha | 0.55 g/m linear | Dose calculada pela recomendação direta. |");
         assertThat(report).doesNotContain("- Boro: Não calculado por falta de dados.");
+        assertThat(report)
+                .doesNotContain("<!-- formato:")
+                .doesNotContain("Endereço:")
+                .doesNotContain("CEO:")
+                .doesNotContain("Identificação\n\n");
     }
 
     @Test

@@ -382,6 +382,11 @@ class DirectRecommendationReportServiceTest {
         assertThat(report).contains("| Zn | Sulfato de zinco | 2.00 kg/ha | 8.00 kg/ha | 0.40 | Misturar com os demais adubos minerais no plantio. |");
         assertThat(report).contains("| Cu | Sulfato de cobre | 1.00 kg/ha | 5.00 kg/ha | 0.25 | Aplicar conforme análise específica. |");
         assertThat(report).doesNotContain("| Não informado |");
+        assertThat(report)
+                .doesNotContain("<!-- formato:")
+                .doesNotContain("Endereço:")
+                .doesNotContain("CEO:")
+                .doesNotContain("Identificação\n\n");
     }
 
     private DirectRecommendationReportService newService() {

@@ -44,15 +44,8 @@ public class ShoppingListReportService {
                         fertilizerResolver);
 
         StringBuilder report = new StringBuilder();
-        TechnicalRecommendationDocumentSupport.appendStyle(report);
-        TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
         report.append("Lista de insumos para a área cultivada (")
                 .append(TechnicalRecommendationDocumentSupport.formatArea(area)).append(")\n\n");
-        TechnicalRecommendationDocumentSupport.appendIdentification(
-                report,
-                recommendation,
-                area,
-                recommendation != null ? recommendation.getCropPlantingDate() : null);
         report.append("- Área usada para totalização: ").append(TechnicalRecommendationDocumentSupport.formatArea(area)).append("\n\n");
 
         if (items.isEmpty()) {

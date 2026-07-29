@@ -2,12 +2,10 @@ package com.migueltcc.fertintelligence.service.implementation.RecommendationEngi
 
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.model.fertintelligence.PlotModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.PropertyModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationCoverageFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationMicronutrientFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.DirectRecommendationPlantingFormulatedFertilizerLineModel;
 import com.migueltcc.fertintelligence.model.fertintelligence.RecommendationModel;
-import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 
 import java.text.Normalizer;
 import java.time.LocalDateTime;
@@ -27,7 +25,6 @@ final class TechnicalRecommendationDocumentSupport {
     static final String NO_CALCULATED_LINES = "Não houve linhas calculadas para esta seção.";
     static final String NOT_APPLICABLE = "Não aplicável com os dados disponíveis.";
     static final String LINEAR_CONVERSION_UNAVAILABLE = "Não calculado por falta de dados.";
-    static final String STYLE_METADATA = "<!-- formato: markdown; fonte: Aptos; tamanho: 10 -->";
     static final String DEFAULT_MICRONUTRIENT_TECHNICAL_OBSERVATION = "Misturar com os demais adubos minerais no plantio.";
     private static final String LINEAR_METER_MODE = "LINEAR_METER";
     private static final String PIT_MODE = "PIT";
@@ -81,44 +78,6 @@ final class TechnicalRecommendationDocumentSupport {
     );
 
     private TechnicalRecommendationDocumentSupport() {
-    }
-
-    static void appendStyle(StringBuilder report) {
-        report.append(STYLE_METADATA).append("\n\n");
-    }
-
-    static void appendInstitutionalHeader(StringBuilder report) {
-        report.append("**FertIntelligence**\n\n");
-        report.append("- Endereço: ").append(NOT_INFORMED).append("\n");
-        report.append("- Telefone/WhatsApp: ").append(NOT_INFORMED).append("\n");
-        report.append("- E-mail: ").append(NOT_INFORMED).append("\n");
-        report.append("- CEO: ").append(NOT_INFORMED).append("\n\n");
-    }
-
-    static void appendIdentification(StringBuilder report, RecommendationModel recommendation) {
-        PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
-        appendIdentification(report, recommendation, plot != null ? plot.getArea() : null, null);
-    }
-
-    static void appendIdentification(StringBuilder report,
-                                     RecommendationModel recommendation,
-                                     Double evaluatedArea,
-                                     Date plantingDate) {
-        PropertyModel property = recommendation != null ? recommendation.getProperty() : null;
-        PlotModel plot = recommendation != null ? recommendation.getPlot() : null;
-        UserModel creator = recommendation != null ? recommendation.getCreator() : null;
-        report.append("Identificação\n\n");
-        report.append("- Cliente/Produtor: ").append(safe(property != null && property.getOwner() != null ? property.getOwner().getName() : null)).append("\n");
-        report.append("- Propriedade: ").append(safe(property != null ? property.getNome() : null)).append("\n");
-        report.append("- Município/UF: ").append(NOT_INFORMED).append("\n");
-        report.append("- Talhão: ").append(safe(plot != null ? plot.getIdentification() : null)).append("\n");
-        report.append("- Área avaliada: ").append(formatArea(evaluatedArea)).append("\n");
-        report.append("- Cultura prevista: ").append(safe(recommendation != null ? recommendation.getCropName() : null)).append("\n");
-        report.append("- Safra/Safrinha: ").append(recommendation == null || recommendation.getCropYear() == null ? NOT_INFORMED : recommendation.getCropYear()).append("\n");
-        report.append("- Data de plantio: ").append(formatCropDate(plantingDate)).append("\n");
-        report.append("- Responsável técnico: ").append(safe(creator != null ? creator.getName() : null)).append("\n");
-        report.append("- Registro profissional: ").append(NOT_INFORMED).append("\n");
-        report.append("- Data de emissão: ").append(formatDate(recommendation != null ? recommendation.getCreatedAt() : null)).append("\n\n");
     }
 
     static String section(String markdown, String heading) {

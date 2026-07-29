@@ -116,10 +116,7 @@ public class DirectRecommendationReportService {
                 coverageFormulatedFertilizerLines);
         StringBuilder report = new StringBuilder();
         List<String> spacingWarnings = new ArrayList<>();
-        TechnicalRecommendationDocumentSupport.appendStyle(report);
-        TechnicalRecommendationDocumentSupport.appendInstitutionalHeader(report);
         report.append("LAUDO TÉCNICO DE RECOMENDAÇÃO DE ADUBAÇÃO\n\n");
-        TechnicalRecommendationDocumentSupport.appendIdentification(report, recommendation);
 
         TechnicalRecommendationDocumentSupport.appendSourceSectionOrMessage(
                 report,
