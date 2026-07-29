@@ -25,6 +25,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,10 +44,12 @@ public class SecurityConfig {
         this.currentCargoJwtAuthenticationConverter = currentCargoJwtAuthenticationConverter;
     }
 
-    @Value("${jwt.public.key}")
-    private RSAPublicKey publicKey;
-    @Value("${jwt.private.key}")
-    private RSAPrivateKey privateKey;
+    @Value("${jwt.public.key:}")
+    private String publicKeyPem;
+    @Value("${jwt.private.key:}")
+    private String privateKeyPem;
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
@@ -101,13 +109,50 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(publicKey).build();
+    public KeyPair jwtKeyPair() {
+        if (activeProfile.contains("test")) {
+            try {
+                KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+                generator.initialize(2048);
+                return generator.generateKeyPair();
+            } catch (Exception exception) {
+                throw new IllegalStateException("Não foi possível gerar chaves JWT de teste", exception);
+            }
+        }
+
+        if (publicKeyPem.isBlank() || privateKeyPem.isBlank()) {
+            throw new IllegalStateException("JWT_PUBLIC_KEY e JWT_PRIVATE_KEY são obrigatórias");
+        }
+
+        try {
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            RSAPublicKey publicKey = (RSAPublicKey) factory.generatePublic(
+                    new X509EncodedKeySpec(decodePem(publicKeyPem, "PUBLIC KEY")));
+            RSAPrivateKey privateKey = (RSAPrivateKey) factory.generatePrivate(
+                    new PKCS8EncodedKeySpec(decodePem(privateKeyPem, "PRIVATE KEY")));
+            return new KeyPair(publicKey, privateKey);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Chaves JWT RSA inválidas", exception);
+        }
+    }
+
+    private byte[] decodePem(String value, String label) {
+        String normalized = value.replace("\\n", "\n")
+                .replace("-----BEGIN " + label + "-----", "")
+                .replace("-----END " + label + "-----", "")
+                .replaceAll("\\s", "");
+        return Base64.getDecoder().decode(normalized);
     }
 
     @Bean
-    public JwtEncoder jwtEncoder() {
-        var jwk = new RSAKey.Builder(publicKey).privateKey(privateKey).build();
+    public JwtDecoder jwtDecoder(KeyPair jwtKeyPair) {
+        return NimbusJwtDecoder.withPublicKey((RSAPublicKey) jwtKeyPair.getPublic()).build();
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder(KeyPair jwtKeyPair) {
+        var jwk = new RSAKey.Builder((RSAPublicKey) jwtKeyPair.getPublic())
+                .privateKey((RSAPrivateKey) jwtKeyPair.getPrivate()).build();
         var jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
         return new NimbusJwtEncoder(jwks);
     }

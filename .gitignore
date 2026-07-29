@@ -1,3 +1,11 @@
 target/
 .idea/
 *.class
+.env
+.env.local
+.env.development.local
+.env.production.local
+*.pem
+*.key
+credentials*.json
+service-account*.json

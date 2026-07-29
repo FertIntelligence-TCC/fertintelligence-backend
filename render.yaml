@@ -1,0 +1,23 @@
+services:
+  - type: web
+    runtime: docker
+    name: fertintelligence-api
+    branch: m-fertilization
+    healthCheckPath: /health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: APP_FRONTEND_URL
+        value: https://fertintelligence-client.onrender.com
+      - key: FERT_AI_BASE_URL
+        value: https://fertintelligence-fert-ai.onrender.com
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
