@@ -45,7 +45,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -102,6 +104,20 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .cropId(calculationResult.getCropId())
                 .cropUsedAreaInThePlot(calculationResult.getCropUsedAreaInThePlot())
                 .cropPlantingDate(copyDate(calculationResult.getCropPlantingDate()))
+                .reportClientProducer(property.getOwner() != null ? normalizeOptionalText(property.getOwner().getName()) : null)
+                .reportPropertyName(normalizeOptionalText(property.getNome()))
+                .reportMunicipality(normalizeOptionalText(dto.getReportMunicipality()))
+                .reportState(normalizeState(dto.getReportState()))
+                .reportPlotIdentification(normalizeOptionalText(plot.getIdentification()))
+                .reportEvaluatedAreaHa(calculationResult.getCropUsedAreaInThePlot() != null
+                        ? calculationResult.getCropUsedAreaInThePlot()
+                        : plot.getArea())
+                .reportTechnicalResponsible(normalizeOptionalText(user.getName()))
+                .reportProfessionalRegistration(normalizeOptionalText(dto.getReportProfessionalRegistration()))
+                .reportResponsiblePhone(formatPhone(user))
+                .reportResponsibleEmail(normalizeOptionalText(user.getEmail()))
+                .reportIssueDate(LocalDate.now())
+                .reportSignatureAuthor(normalizeOptionalText(user.getName()))
                 .limingCriteria(dto.getLimingCriteria())
                 .texturalClassification(resolveTexturalClassification(dto.getTexturalClassification()))
                 .origemAdubos(dto.getOrigemAdubos() != null ? dto.getOrigemAdubos() : FertilizerSourceOption.BOTH)
@@ -232,6 +248,19 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .recommendationType(model.getRecommendationType())
                 .cropName(model.getCropName())
                 .cropYear(model.getCropYear())
+                .cropPlantingDate(model.getCropPlantingDate())
+                .reportClientProducer(model.getReportClientProducer())
+                .reportPropertyName(model.getReportPropertyName())
+                .reportMunicipality(model.getReportMunicipality())
+                .reportState(model.getReportState())
+                .reportPlotIdentification(model.getReportPlotIdentification())
+                .reportEvaluatedAreaHa(model.getReportEvaluatedAreaHa())
+                .reportTechnicalResponsible(model.getReportTechnicalResponsible())
+                .reportProfessionalRegistration(model.getReportProfessionalRegistration())
+                .reportResponsiblePhone(model.getReportResponsiblePhone())
+                .reportResponsibleEmail(model.getReportResponsibleEmail())
+                .reportIssueDate(model.getReportIssueDate())
+                .reportSignatureAuthor(model.getReportSignatureAuthor())
                 .limingCriteria(model.getLimingCriteria())
                 .texturalClassification(resolveTexturalClassification(model.getTexturalClassification()))
                 .origemAdubos(model.getOrigemAdubos() != null ? model.getOrigemAdubos() : FertilizerSourceOption.BOTH)
@@ -400,6 +429,30 @@ public class RecommendationServiceImpl implements RecommendationService {
             return null;
         }
         return new Date(date.getDay(), date.getMonth(), date.getYear());
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private String normalizeState(String value) {
+        String normalized = normalizeOptionalText(value);
+        return normalized != null ? normalized.toUpperCase(Locale.ROOT) : null;
+    }
+
+    private String formatPhone(UserModel user) {
+        if (user == null || user.getTelefone() == null) {
+            return null;
+        }
+        String phone = String.join(" ",
+                normalizeOptionalText(user.getTelefone().getPais()) != null ? user.getTelefone().getPais().trim() : "",
+                normalizeOptionalText(user.getTelefone().getDdd()) != null ? user.getTelefone().getDdd().trim() : "",
+                normalizeOptionalText(user.getTelefone().getNumero()) != null ? user.getTelefone().getNumero().trim() : ""
+        ).trim().replaceAll("\\s+", " ");
+        return phone.isBlank() ? null : phone;
     }
 
     private UserModel findUserByUsernameOrEmailOrThrow(String usernameOrEmail) {

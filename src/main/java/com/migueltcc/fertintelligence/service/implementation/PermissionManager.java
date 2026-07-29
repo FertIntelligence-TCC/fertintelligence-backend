@@ -128,8 +128,10 @@ public class PermissionManager {
     @Transactional(readOnly = true)
     public void assertCanPrintRecommendation(UserModel user) {
         if (user == null || user.getCargo() == null ||
-                (user.getCargo() != Cargo.AGRONOMO_RESIDENTE && user.getCargo() != Cargo.AGRONOMO_CONSULTOR)) {
-            throw new AccessDeniedException("Somente agrônomos residentes e consultores podem imprimir recomendações formais.");
+                (user.getCargo() != Cargo.AGRONOMO_RESIDENTE
+                        && user.getCargo() != Cargo.AGRONOMO_CONSULTOR
+                        && user.getCargo() != Cargo.USUARIO_SUPREMO)) {
+            throw new AccessDeniedException("Somente agrônomos residentes, consultores e usuários supremos podem imprimir recomendações formais.");
         }
     }
 

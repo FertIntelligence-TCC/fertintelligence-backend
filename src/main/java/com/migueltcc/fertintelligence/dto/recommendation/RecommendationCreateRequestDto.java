@@ -16,6 +16,8 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 
@@ -43,6 +45,21 @@ public class RecommendationCreateRequestDto {
     @JsonProperty("nome_pasta_recomendacao")
     @JsonAlias({"recommendationFolderName", "nomePastaRecomendacao"})
     private String recommendationFolderName;
+
+    @JsonProperty("municipio_relatorio")
+    @JsonAlias("reportMunicipality")
+    @Size(max = 120)
+    private String reportMunicipality;
+
+    @JsonProperty("uf_relatorio")
+    @JsonAlias("reportState")
+    @Pattern(regexp = "^[A-Za-z]{2}$", message = "A UF do relatório deve possuir duas letras.")
+    private String reportState;
+
+    @JsonProperty("registro_profissional_relatorio")
+    @JsonAlias("reportProfessionalRegistration")
+    @Size(max = 120)
+    private String reportProfessionalRegistration;
 
     @JsonProperty("physicalAnalysisId")
     @JsonAlias({"id_analise_fisica"})

@@ -434,6 +434,9 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .soilFertilityInterpretationCriteriaTableGroup(TechnicalTableGroup.PADRAO)
                 .cropFoliarAnalysisInterpretationTableId(300L)
                 .cropFoliarAnalysisInterpretationTableGroup(TechnicalTableGroup.PADRAO)
+                .reportMunicipality("  Fortaleza ")
+                .reportState("ce")
+                .reportProfessionalRegistration(" CREA-CE 12345 ")
                 .limingCriteria(CriterioCalagem.SATURACAO_POR_BASES_TROCAVEIS)
                 .origemAdubos(FertilizerSourceOption.BOTH)
                 .build();
@@ -482,6 +485,16 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(
                 "AMBAS",
                 new FertilizerSourceOptionConverter().convertToDatabaseColumn(recommendationCaptor.getValue().getOrigemAdubos()));
+        RecommendationModel generated = recommendationCaptor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("Test User", generated.getReportClientProducer());
+        org.junit.jupiter.api.Assertions.assertEquals("Fazenda Teste", generated.getReportPropertyName());
+        org.junit.jupiter.api.Assertions.assertEquals("Fortaleza", generated.getReportMunicipality());
+        org.junit.jupiter.api.Assertions.assertEquals("CE", generated.getReportState());
+        org.junit.jupiter.api.Assertions.assertEquals("Talhao A", generated.getReportPlotIdentification());
+        org.junit.jupiter.api.Assertions.assertEquals("Test User", generated.getReportTechnicalResponsible());
+        org.junit.jupiter.api.Assertions.assertEquals("CREA-CE 12345", generated.getReportProfessionalRegistration());
+        org.junit.jupiter.api.Assertions.assertEquals("Test User", generated.getReportSignatureAuthor());
+        org.junit.jupiter.api.Assertions.assertNotNull(generated.getReportIssueDate());
     }
 
     @Test
@@ -898,8 +911,8 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
     @Test
     @WithMockUser(username = "testuser")
-    void preparePrint_ReturnsOne() throws Exception {
-        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.AGRONOMO_CONSULTOR).build();
+    void preparePrint_AllowsSupremeAndReturnsSnapshot() throws Exception {
+        UserModel user = UserModel.builder().id(1L).username("testuser").name("Test User").cargo(Cargo.USUARIO_SUPREMO).build();
         PropertyModel property = PropertyModel.builder().id(10L).nome("Fazenda Teste").owner(user).build();
         PlotModel plot = PlotModel.builder().id(20L).identification("Talhao A").property(property).build();
 
@@ -907,6 +920,11 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
                 .id(8L).creator(user).property(property).plot(plot)
                 .recommendationType(RecommendationType.BOTH)
                 .cropName(NomeComum.ALGODAO).cropYear(2026)
+                .reportClientProducer("Produtor Teste")
+                .reportMunicipality("Campina Grande")
+                .reportState("PB")
+                .reportTechnicalResponsible("Test User")
+                .reportIssueDate(java.time.LocalDate.of(2026, 7, 29))
                 .technicalReport("laudo")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
@@ -916,7 +934,18 @@ public class RecommendationControllerImplTest extends AbstractControllerTest {
 
         mockMvc.perform(get("/recommendation/print").param("id", "8"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(8L));
+                .andExpect(jsonPath("$.id").value(8L))
+                .andExpect(jsonPath("$.cliente_produtor_relatorio").value("Produtor Teste"))
+                .andExpect(jsonPath("$.municipio_relatorio").value("Campina Grande"))
+                .andExpect(jsonPath("$.uf_relatorio").value("PB"))
+                .andExpect(jsonPath("$.responsavel_tecnico_relatorio").value("Test User"))
+                .andExpect(jsonPath("$.data_emissao_relatorio").value("2026-07-29"));
+    }
+
+    @Test
+    void preparePrint_RequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/recommendation/print").param("id", "8"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

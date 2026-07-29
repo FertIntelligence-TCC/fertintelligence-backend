@@ -1,6 +1,7 @@
 package com.migueltcc.fertintelligence.dto.recommendation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
@@ -15,6 +16,7 @@ import com.migueltcc.fertintelligence.dto.shoppingList.ShoppingListResponseDto;
 import com.migueltcc.fertintelligence.dto.summaryRecommendation.SummaryRecommendationResponseDto;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -44,6 +46,32 @@ public class RecommendationResponseDto {
     private NomeComum cropName;
     @JsonProperty("ano_safra")
     private Integer cropYear;
+    @JsonProperty("data_plantio")
+    private Date cropPlantingDate;
+    @JsonProperty("cliente_produtor_relatorio")
+    private String reportClientProducer;
+    @JsonProperty("propriedade_relatorio")
+    private String reportPropertyName;
+    @JsonProperty("municipio_relatorio")
+    private String reportMunicipality;
+    @JsonProperty("uf_relatorio")
+    private String reportState;
+    @JsonProperty("talhao_relatorio")
+    private String reportPlotIdentification;
+    @JsonProperty("area_avaliada_ha_relatorio")
+    private Double reportEvaluatedAreaHa;
+    @JsonProperty("responsavel_tecnico_relatorio")
+    private String reportTechnicalResponsible;
+    @JsonProperty("registro_profissional_relatorio")
+    private String reportProfessionalRegistration;
+    @JsonProperty("telefone_responsavel_relatorio")
+    private String reportResponsiblePhone;
+    @JsonProperty("email_responsavel_relatorio")
+    private String reportResponsibleEmail;
+    @JsonProperty("data_emissao_relatorio")
+    private LocalDate reportIssueDate;
+    @JsonProperty("autor_assinatura_relatorio")
+    private String reportSignatureAuthor;
     @JsonProperty("criterio_calagem")
     private CriterioCalagem limingCriteria;
     @JsonProperty("classificacao_textural")
@@ -106,7 +134,9 @@ public class RecommendationResponseDto {
     private LocalDateTime updatedAt;
 
     public static boolean isPrintableForRole(Cargo cargo) {
-        return cargo == Cargo.AGRONOMO_RESIDENTE || cargo == Cargo.AGRONOMO_CONSULTOR;
+        return cargo == Cargo.AGRONOMO_RESIDENTE
+                || cargo == Cargo.AGRONOMO_CONSULTOR
+                || cargo == Cargo.USUARIO_SUPREMO;
     }
 
     @JsonProperty("laudoTecnico")

@@ -1,7 +1,7 @@
 package com.migueltcc.fertintelligence.model.fertintelligence;
 
-import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.crop.Date;
+import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.CriterioCalagem;
 import com.migueltcc.fertintelligence.composedAttributes.fertilizationTables.NomeComum;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.FertilizerSourceOption;
 import com.migueltcc.fertintelligence.composedAttributes.recommendation.RecommendationType;
@@ -10,6 +10,7 @@ import com.migueltcc.fertintelligence.composedAttributes.recommendation.Textural
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @NoArgsConstructor
@@ -64,6 +65,42 @@ public class RecommendationModel {
             @AttributeOverride(name = "year", column = @Column(name = "CROP_PLANTING_DATE_YEAR"))
     })
     Date cropPlantingDate;
+
+    @Column(name = "REPORT_CLIENT_PRODUCER")
+    String reportClientProducer;
+
+    @Column(name = "REPORT_PROPERTY_NAME")
+    String reportPropertyName;
+
+    @Column(name = "REPORT_MUNICIPALITY", length = 120)
+    String reportMunicipality;
+
+    @Column(name = "REPORT_STATE", length = 2)
+    String reportState;
+
+    @Column(name = "REPORT_PLOT_IDENTIFICATION")
+    String reportPlotIdentification;
+
+    @Column(name = "REPORT_EVALUATED_AREA_HA")
+    Double reportEvaluatedAreaHa;
+
+    @Column(name = "REPORT_TECHNICAL_RESPONSIBLE")
+    String reportTechnicalResponsible;
+
+    @Column(name = "REPORT_PROFESSIONAL_REGISTRATION", length = 120)
+    String reportProfessionalRegistration;
+
+    @Column(name = "REPORT_RESPONSIBLE_PHONE", length = 80)
+    String reportResponsiblePhone;
+
+    @Column(name = "REPORT_RESPONSIBLE_EMAIL")
+    String reportResponsibleEmail;
+
+    @Column(name = "REPORT_ISSUE_DATE")
+    LocalDate reportIssueDate;
+
+    @Column(name = "REPORT_SIGNATURE_AUTHOR")
+    String reportSignatureAuthor;
 
     @Column(name = "LIMING_CRITERIA")
     @Enumerated(EnumType.STRING)
