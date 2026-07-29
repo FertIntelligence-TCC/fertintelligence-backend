@@ -32,6 +32,12 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final CurrentCargoJwtAuthenticationConverter currentCargoJwtAuthenticationConverter;
+
+    public SecurityConfig(CurrentCargoJwtAuthenticationConverter currentCargoJwtAuthenticationConverter) {
+        this.currentCargoJwtAuthenticationConverter = currentCargoJwtAuthenticationConverter;
+    }
+
     @Value("${jwt.public.key}")
     private RSAPublicKey publicKey;
     @Value("${jwt.private.key}")
@@ -68,7 +74,7 @@ public class SecurityConfig {
                 )
                 // Configura o OAuth2 Resource Server para validação de JWT
                 .oauth2ResourceServer(
-                        oauth2 -> oauth2.jwt(Customizer.withDefaults())
+                        oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(currentCargoJwtAuthenticationConverter))
                 )
                 // Define a política de criação de sessão como stateless
                 .sessionManagement(

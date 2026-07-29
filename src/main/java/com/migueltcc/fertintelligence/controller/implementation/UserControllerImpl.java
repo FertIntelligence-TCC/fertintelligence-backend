@@ -2,6 +2,8 @@ package com.migueltcc.fertintelligence.controller.implementation;
 
 import com.migueltcc.fertintelligence.controller.documentation.UserController;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.user.ActiveCargoUpdateRequestDto;
+import com.migueltcc.fertintelligence.dto.user.ActiveCargoUpdateResponseDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
@@ -35,6 +37,13 @@ public class UserControllerImpl implements UserController {
             @Validated @RequestBody UserPostRequestDto userDto,
             Authentication authentication) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.updateUser(authentication.getName(), userDto));
+    }
+
+    @PutMapping("/active-cargo")
+    public ResponseEntity<ActiveCargoUpdateResponseDto> updateActiveCargo(
+            @Validated @RequestBody ActiveCargoUpdateRequestDto request,
+            Authentication authentication) {
+        return ResponseEntity.ok(userService.updateActiveCargo(authentication.getName(), request.getCargo()));
     }
 
     @DeleteMapping("/delete")

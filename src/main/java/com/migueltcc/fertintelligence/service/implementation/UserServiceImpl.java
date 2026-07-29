@@ -2,11 +2,13 @@ package com.migueltcc.fertintelligence.service.implementation;
 
 import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.user.ActiveCargoUpdateResponseDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
 import com.migueltcc.fertintelligence.model.fertintelligence.UserModel;
 import com.migueltcc.fertintelligence.repository.UserRepository;
 import com.migueltcc.fertintelligence.service.documentation.UserService;
+import com.migueltcc.fertintelligence.service.documentation.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,11 +19,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -53,10 +57,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public String updateUser(String Username, UserPostRequestDto userDTO) {
-        System.out.println("Esse é o id da foto: "+userDTO.getIdfoto());
         UserModel user = userRepository.findByUsername(Username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + Username));
-        rejectSupremeUserCargo(userDTO.getCargo());
+        if (userDTO.getCargo() != null) {
+            throw new IllegalArgumentException(
+                    "O cargo não pode ser alterado pela edição de perfil. Use o endpoint de cargo ativo.");
+        }
         user.setName(userDTO.getNome() == null ? user.getName() : userDTO.getNome());
         user.setUsername(userDTO.getUsername() == null ? user.getUsername() : userDTO.getUsername());
         user.setCpf(userDTO.getCpf() == null ? user.getCpf() : userDTO.getCpf());
@@ -66,12 +72,33 @@ public class UserServiceImpl implements UserService {
         user.setTelefone(userDTO.getTelefone() == null ? user.getTelefone() : userDTO.getTelefone());
         user.setFormacao(userDTO.getFormacao() == null ? user.getFormacao() : userDTO.getFormacao());
         user.setProfissao(userDTO.getProfissao() == null ? user.getProfissao() : userDTO.getProfissao());
-        user.setCargo(userDTO.getCargo() == null ? user.getCargo() : userDTO.getCargo());
         user.setPassword(userDTO.getPassword() == null ? user.getPassword() : passwordEncoder.encode(userDTO.getPassword()));
         user.setIdfoto(userDTO.getIdfoto() == null ? user.getIdfoto() : userDTO.getIdfoto());
 
         userRepository.save(user);
         return "User updated successfully!";
+    }
+
+    @Override
+    @Transactional
+    public ActiveCargoUpdateResponseDto updateActiveCargo(String userName, Cargo cargo) {
+        if (cargo == null) {
+            throw new IllegalArgumentException("Cargo ativo é obrigatório.");
+        }
+        rejectSupremeUserCargo(cargo);
+
+        UserModel user = userRepository.findByUsername(userName)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userName));
+        if (user.getCargo() == Cargo.USUARIO_SUPREMO) {
+            throw new IllegalArgumentException("O cargo USUARIO_SUPREMO é reservado e não pode ser alterado.");
+        }
+
+        user.setCargo(cargo);
+        userRepository.save(user);
+        return ActiveCargoUpdateResponseDto.builder()
+                .cargo(cargo)
+                .token(jwtService.generateToken(user.getUsername(), cargo))
+                .build();
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -154,6 +155,95 @@ class UserControllerImplTest extends AbstractControllerTest {
                 )
                 .andExpect(status().isBadRequest())
                 .andDo(print());
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void profileUpdateRejectsAnyCargoChange() throws Exception {
+        UserModel user = UserModel.builder()
+                .username("owner")
+                .cargo(Cargo.PROPRIETARIO)
+                .build();
+        Mockito.when(userRepository.findByUsername("owner")).thenReturn(Optional.of(user));
+
+        mockMvc.perform(put("/user/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"novo_cargo":"AGRONOMO_RESIDENTE"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "O cargo não pode ser alterado pela edição de perfil. Use o endpoint de cargo ativo."));
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
+        org.assertj.core.api.Assertions.assertThat(user.getCargo()).isEqualTo(Cargo.PROPRIETARIO);
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void changesOnlyActiveCargoAndReturnsFreshToken() throws Exception {
+        UserModel user = UserModel.builder()
+                .id(21L)
+                .username("owner")
+                .cargo(Cargo.PROPRIETARIO)
+                .build();
+        Mockito.when(userRepository.findByUsername("owner")).thenReturn(Optional.of(user));
+        Mockito.when(userRepository.save(Mockito.any(UserModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        Jwt encodedJwt = Mockito.mock(Jwt.class);
+        Mockito.when(encodedJwt.getTokenValue()).thenReturn("fresh-token");
+        Mockito.when(jwtEncoder.encode(Mockito.any())).thenReturn(encodedJwt);
+
+        mockMvc.perform(put("/user/active-cargo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cargo":"AGRONOMO_RESIDENTE"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cargo").value("AGRONOMO_RESIDENTE"))
+                .andExpect(jsonPath("$.token").isNotEmpty());
+
+        org.assertj.core.api.Assertions.assertThat(user.getId()).isEqualTo(21L);
+        org.assertj.core.api.Assertions.assertThat(user.getCargo()).isEqualTo(Cargo.AGRONOMO_RESIDENTE);
+        Mockito.verify(userRepository).save(user);
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void rejectsReservedSupremeCargoInActiveCargoEndpoint() throws Exception {
+        mockMvc.perform(put("/user/active-cargo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cargo":"USUARIO_SUPREMO"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
+    }
+
+    @Test
+    @WithMockUser(username = "owner")
+    void rejectsUnknownActiveCargoWithoutChangingUser() throws Exception {
+        mockMvc.perform(put("/user/active-cargo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cargo":"ADMINISTRADOR"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
+    }
+
+    @Test
+    void rejectsUnauthenticatedActiveCargoChange() throws Exception {
+        mockMvc.perform(put("/user/active-cargo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cargo":"GERENTE"}
+                                """))
+                .andExpect(status().isUnauthorized());
 
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any(UserModel.class));
     }

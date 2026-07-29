@@ -1,6 +1,8 @@
 package com.migueltcc.fertintelligence.controller.documentation;
 
 import com.migueltcc.fertintelligence.dto.user.UserCreateRequestDto;
+import com.migueltcc.fertintelligence.dto.user.ActiveCargoUpdateRequestDto;
+import com.migueltcc.fertintelligence.dto.user.ActiveCargoUpdateResponseDto;
 import com.migueltcc.fertintelligence.dto.user.UserPostRequestDto;
 import com.migueltcc.fertintelligence.dto.user.UserResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +20,11 @@ public interface UserController {
     @Operation(description = "Atualizar usuário", summary = "Atualizar usuário no sistema. Deixe o campo vazio para mantê-lo.")
     ResponseEntity<String> updateUser(
             @RequestBody() UserPostRequestDto userDto,
+            Authentication authentication);
+
+    @Operation(description = "Alterar o contexto funcional atual do usuário", summary = "Alterar cargo ativo")
+    ResponseEntity<ActiveCargoUpdateResponseDto> updateActiveCargo(
+            @RequestBody ActiveCargoUpdateRequestDto request,
             Authentication authentication);
 
     @Operation(description = "Deletar usuário", summary = "Remover usuário do sistema.")

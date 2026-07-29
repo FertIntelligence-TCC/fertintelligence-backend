@@ -1,5 +1,6 @@
 package com.migueltcc.fertintelligence.service.auth;
 
+import com.migueltcc.fertintelligence.composedAttributes.user.Cargo;
 import com.migueltcc.fertintelligence.service.documentation.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -22,17 +23,26 @@ public class JwtServiceImpl implements JwtService {
     }
 
     public String generateToken(Authentication authentication) {
-        Instant now = Instant.now();
-        long expiry = 24 * 3600L;
-
         String scopes = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(" "));
+        return generateToken(authentication.getName(), scopes);
+    }
+
+    @Override
+    public String generateToken(String username, Cargo cargo) {
+        return generateToken(username, "ROLE_" + cargo.name());
+    }
+
+    private String generateToken(String username, String scopes) {
+        Instant now = Instant.now();
+        long expiry = 24 * 3600L;
+
         var claims = JwtClaimsSet.builder()
                 .issuer("spring-security-jwt")
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiry))
-                .subject(authentication.getName())
+                .subject(username)
                 .claim("scope", scopes)
                 .claim("scopes", scopes)
                 .build();
